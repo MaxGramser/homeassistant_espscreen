@@ -4,7 +4,18 @@
 
 - **A device's settings and diagnostics are tucked away.** Entities Home Assistant files under Configuration or Diagnostic (a lamp's power-on behaviour, a signal strength) and the ones hidden there now stand folded under "extras" below each room in the library, so the lights, switches and sensors you use come first. They can still be found and added.
 
-- **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, the way it goes when the standby time runs out. A tap still goes to the Home page. It works where Auto standby is on. New firmware.
+- **Plugins get the large clock digits.** A plugin can now draw its time in the same large digits Tessera's own flip clock and bedside clock use, up to as large as the page, without bringing a font of its own, so it costs no extra space on the screen. New firmware, plugin API 0.29.
+
+- **An alarm of a plugin can ring louder than the screen.** A plugin may raise the speaker for its sound, as an alarm clock does, and the screen's own volume comes back afterwards, also when a call rings at the same time or the screen restarts in the middle. New firmware, plugin API 0.29.
+
+- **A plugin tile shows its new name.** Renaming a plugin's tile in the editor now reaches the tile on the screen; before, it kept its old name until the tile was changed in another way. New firmware.
+
+- **The key on the board is the standby key.** A press on the board's own key sends the screen to standby at once, with its screensaver, and a second press wakes it, as Sleep and Wake in Home Assistant do, also with Auto standby off. Until now only the reTerminal D1001's button did this; now every board that can go dark does it with its own key or its BOOT key, except the boards whose BOOT key the display uses (Guition 4848S040, Waveshare 4.3, 4.3C, 5, 7 and 7B, WT32-SC01 Plus), the Waveshare 86 panel in the wall and the M5Stack Tab5. On the Waveshare 3.5 and the Waveshare 4 (revision 4.0) it is the power key. The key also shows up in Home Assistant as Button. New firmware.
+
+- **Clearer tile names on the CYD.** On the small screens (the CYD and the Hosyond 4-inch) the names on the tiles are now drawn in medium instead of bold, so their letters no longer run into each other on the glass. They keep their width, so no name gets cut shorter. New firmware.
+
+- **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, also with Auto standby off. A tap still goes to the Home page. New firmware.
+- **A screen you put to standby yourself stays there while you walk away.** After the home button held, the board's key or Sleep in Home Assistant, a wake on movement (the camera plugin's Wake on movement, a reTerminal that is moved, an automation that presses Wake on motion) waits until it has seen no movement for a minute, so walking away no longer lights the screen again. The next movement after that wakes it as before. A tap, the key, an alert, a doorbell or a call always wake it. New firmware.
 
 - **New screen asks one thing at a time, and stays with you until the screen really works.** Each step is one question with a large title and one Continue key: which screen, which version (only when there are more), its name (the rooms of your home are offered), which way it hangs, its plugins and the Wi-Fi (only when needed). Before any USB port, it asks where the cable is: in this computer or in your Home Assistant, each drawn, with the Home Assistant machine's ports watched until the screen shows up and a Zigbee or Z-Wave stick kept out of the way. After the install it follows four steps, the software, putting it on the screen, the Wi-Fi and adding it to Home Assistant, and only says the screen is ready once Home Assistant has it online and allowed to control your home.
 

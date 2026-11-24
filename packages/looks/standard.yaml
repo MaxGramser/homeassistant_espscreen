@@ -56,6 +56,7 @@ substitutions:
   BEDSIDE_WITH_NAMES: "1"   # the names under the keys
   FONT_LABEL_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }        # tile titles
   WIDE_NAME_FONT: "label"             # the standard look keeps one name size (runtime_tiles::name_font)
+  TILE_NAME_FONT_FILE: "Roboto-700.ttf"  # tile titles in bold (the compact look takes medium)
   FONT_SUBLABEL_SIZE: ${ [8, (16 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
   FONT_SUBLABEL_BIG_SIZE: ${ [8, (21 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
   FONT_ICON_SIZE: ${ [8, (42 * LOOK_SCALE | float) | round | int] | max }         # tile icons

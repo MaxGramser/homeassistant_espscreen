@@ -29,12 +29,15 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare101"
   DEVICE_NAME: "waveshare101-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 10"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together. 1509 diagonal pixels over 10.1 inches.

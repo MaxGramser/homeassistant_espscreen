@@ -652,7 +652,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
     return;
   }
   // Out of standby and Sleep, over any card, the settings page, a camera or another ring.
-  if (plugin_host::wake) plugin_host::wake("doorbell");
+  if (plugin_host::wake) plugin_host::wake("doorbell", false);
   settings_screen::close();
   camera_close();
   // A ring is to be heard, unless its automation says the screen stands somewhere quiet.

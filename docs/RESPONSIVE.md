@@ -124,7 +124,10 @@ Every board builds the same fifteen fonts, by id (firmware 0.17.0+): four text s
 `label`, `sublabel_big`, `headline`, `watch_value`), four digit steps (`clock_digits`, `setpoint_digits`,
 `display_digits`, `bedside_digits`), five icon sizes and the brand wordmark, all in `packages/core.yaml` with `bpp: 4`.
 The icon fonts take their bits from the look (`FONT_ICON_BPP`): 4 in the standard look, 2 in the compact one, which
-halves their flash on the boards with 4 MB.
+halves their flash on the boards with 4 MB. The tile titles (`label`) take their weight from the look too
+(`TILE_NAME_FONT_FILE`): bold in the standard look, medium in the compact one, where bold at 11 px ran its letters
+together on a small, cheap glass. Medium keeps the width and the same glyphs, so it costs no flash; a pixel of letter
+spacing was tried and cut names short.
 Their pixel sizes are the look's (`FONT_*_SIZE` in `packages/looks/standard.yaml` and `compact.yaml`, each a design
 size times `LOOK_SCALE`, the board's density over the look's own), and the two large digit steps are worked out from
 the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest step that fits (for digits

@@ -21,12 +21,15 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The BOOT key, GPIO0, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare4b"
   DEVICE_NAME: "waveshare4b-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 4B"
+  STANDBY_KEY_PIN: GPIO0                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, the 4-inch Guition's.
   PANEL_W: "480"

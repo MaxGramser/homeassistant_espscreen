@@ -998,6 +998,10 @@ class Run:
         digits, value, number, word = (int(v) for v in re.search(r'digits=(\d+) value=(\d+) covers=(\d),(\d)', fonts).groups())
         if not (digits > value and number == 1 and word == 0):
             self.failures.append(f'Font::DIGITS is not the large digits: {fonts}')
+        # The clocks' digits (plugin API 0.29): half a page larger than DIGITS, the page's at least that, and a time in them.
+        large, page, clock = (int(v) for v in re.search(r'large=(\d+) page=(\d+) clock=(\d)', fonts).groups())
+        if not (large > digits and page >= large and clock == 1):
+            self.failures.append(f'Font::DIGITS_LARGE and DIGITS_PAGE are not the clocks\' digits: {fonts}')
         # The tones for a block (plugin API 0.9): four colours of their own, GOOD on the badge, and a label one line high.
         tones = await self.until(lambda l: probe(l, 'tile=0 tones'), 10, 'the tones of tile 0', start)
         good, busy, alert, normal, fill = re.search(r'good=(\w+) busy=(\w+) alert=(\w+) normal=(\w+) fill=(\w+)', tones).groups()

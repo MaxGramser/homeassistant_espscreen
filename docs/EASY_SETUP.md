@@ -376,8 +376,20 @@ in its own colours (a house before that). It stands on the baseline of the page 
 moves behind it with the same air between them as between the logo and the edge of the glass, and the
 items on the right of the bar keep every pixel they had. **Show home button** in the **Screen settings** tab, and on
 the screen's own settings page, takes it away. Holding the logo for half a second (firmware 0.64.0+) sends the
-screen to standby at once, with its screensaver, as when the standby time runs out. That needs **Auto standby** on;
-without it, the hold is an ordinary tap home.
+screen to standby at once, with its screensaver, also with **Auto standby** off, until a tap or Wake.
+A board with a key of its own uses it as the standby key (firmware 0.64.0+): a press sends a lit screen to standby
+at once, with its screensaver, and wakes a screen in standby. It works like **Sleep** and **Wake** in Home Assistant,
+so it holds with **Auto standby** off too.
+After a standby you asked for this way (the logo held, the key, or **Sleep** in Home Assistant), the person who did it
+is still in front of the screen, and walking away is motion. So a wake on movement (a plugin such as the camera's
+Wake on movement, a board that wakes when moved, an automation that presses **Wake** on motion) waits until it has
+seen no movement for a minute; the next movement after that lights the screen. A tap, the key, an alert, a doorbell
+or a call always wake it. The standby time running out on its own waits for nothing, since nobody was there. The key is the reTerminal D1001's button on top, the SenseCAP Indicator's
+user button, the power key of the Waveshare 3.5-inch and the Waveshare 4-inch revision 4.0, and on the other boards the
+BOOT key (on the back or the edge of the board). The Guition 4848S040, the Waveshare 4.3-inch, 4.3C, 5-inch, 7-inch and
+7B and the WT32-SC01 Plus have their BOOT key on a pin the display uses, the Waveshare 86 panel hangs in the wall with
+its BOOT key on the Ethernet line, and the M5Stack Tab5's key belongs to its power chip, so these have none. The key
+is also the **Button** entity in Home Assistant.
 The default standby time is ten minutes. For offline devices, the screen blocks
 actions. If the connection to Home Assistant drops, the screen immediately shows
 "HA not connected"; if the app sends nothing for two rounds (about five minutes),

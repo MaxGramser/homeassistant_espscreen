@@ -165,7 +165,10 @@ role, like an audio session on a phone: DOORBELL > CALL > VOICE > CAMERA_SOUND >
 hands it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever
 plays and never claim. A live camera's sound claims through `live_view.h`'s `SoundClaim` and reaches the speaker through
 its `SoundPump`. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; tests: `tests/test_audio_owner.cpp`,
-`tests/test_live_sound.cpp`.
+`tests/test_live_sound.cpp`. Who plays louder than the screen's volume (a call's ring, a plugin's alarm) is apart from
+who holds the speaker: each lifts it through `volume_lift.h`, the one place that keeps the screen's volume and puts it
+back when the last lift comes down, and stores nothing (docs/SOUNDS.md, "Louder than the screen";
+`tests/test_volume_lift.cpp`).
 
 ### 9. The top bar, the doorbell, the modules
 

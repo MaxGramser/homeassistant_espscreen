@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.28 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.29 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -244,6 +244,9 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | Pictures on a card (0.13) | The same `ui::picture` and `ui::set_picture` in a card's calls: `placing` is the tile's places in a tile's call and the open card's in a card's (`call`), so the places are the same `Place`s, measured from the card's room (`measure`), laid by the same `lay`. The card is one owner of the loader (`CARD_OWNER`, `Kind::CARD` 1, `Rank::CARD`, the full view's slot), its key apart from every tile's (`tile_picture::card_key`, `pcard|`), its question a tile's with `card` and `for` (`card_fields`), its answer `pcard` (`card_picture_answer`, `card_question`). The store counts its places as on the glass (`card_draws` in `picture_shown` and `picture_away`); closing lets the picture go at once (`card_pictures_end`: the loader's release, then `pictures_collect`). It shares the store's budget as the media card's cover does: the glass under it keeps its pictures, a page out of sight makes room first. | `answer_plugin_pictures` with `question.card`: a card of a plugin the screen runs (`Entry.card`), its manifest's `pictures`, every address through `plugin_pictures.allowed` (Home Assistant's own pictures only for a card shown for an entity of the layout, `of_entity`); the source pictures are kept by address, so the cover a tile shows costs no second fetch | nothing |
 | A label of several lines (0.10) | `ui::text`: a label of the plugin's height, wrapped, ending in dots | nothing | nothing |
 | Where a tap was (0.10) | `tessera::tap_point()`: the finger of the tile's `on_tap` in the tile's own pixels (`finger_at` in the tile's touch handler, made relative to the extra layer by `plugin_host::tap`) | nothing | nothing |
+| The clocks' digits (0.29) | `Font::DIGITS_LARGE` is `display_digits` (half a page's width for two digits, the flip clock's), `Font::DIGITS_PAGE` is `runtime_tiles::bedside_digits()` (the bedside clock's own step, or `display_digits` where that is an 8 px place holder): fonts every build has, so a plugin's clock costs no flash. They hold the digits and the colon alone | nothing | nothing |
+| A sound louder than the screen (0.29) | `tessera::audio::raise_volume(plugin, volume)` and `restore_volume(plugin)`: a lift of `volume_lift.h` (the screen's one set, which a call's ring lifts too), `volume` on the media player's 0 to 1 (`volume_lift::on_dac`, its `volume_min` and `volume_max`); `before_update` takes every lift down; nothing is stored, so a restart comes back at the media player's kept volume (docs/SOUNDS.md, "Louder than the screen") | nothing | nothing |
+| A plugin tile renamed (0.29) | `render()` makes the tile again when its name changed too (`Slot::name`), so a tile shows its new `TileContext::name` | nothing | nothing |
 | The large digits (0.9) | `Font::DIGITS` is `setpoint_digits`, a font every board has, so it costs no flash; `ui::covers()` says whether a value has only its characters (`face_covers`) | nothing | nothing |
 | Tones for a block (0.9) | `Tone::GOOD` (Home Assistant's green) beside ACCENT, BUSY and ALERT; `ui::set_fill` gives a block (a bar, a dot) a tone's colour, `ui::tone_color` the colour itself; one `tone_color` in `plugin_host.cpp` for the bar, labels and blocks | nothing | nothing |
 | A sound of its own (0.8) | `plugin_sound.h` (`tessera::Sound`, `SoundPlayer` on `ts_speaker`; `add()`, 0.11, plays a sound after the ones before it, each followed by silence to its span, so the speaker spaces a run of clicks evenly); `smart_display.sound()` builds a WAV in | nothing: a plugin that needs the feature `speaker` | nothing |
@@ -306,6 +309,11 @@ screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 - It is no tap. Back to page 1 keeps counting from the last touch, so waking on every motion holds no card or page 2
   up. A finger on the glass counts as use; a wake does not.
 - A board that cannot go dark (`CAN_STANDBY` false) has no standby, so there is nothing to wake.
+- After a standby by hand (firmware 0.64.0+: Home Assistant's Sleep, the board's key, the home key held) it waits for
+  the room to go quiet. The person who sent the screen to standby is still there, and walking away is motion, so a
+  sensed wake lights the screen only after a minute without one (`hand_standby.h`); each wake it holds starts that
+  minute again. Home Assistant's Wake counts as sensed too, as automations press it on motion. A popup, a call, a
+  doorbell, an alert, the board's key and a finger always wake the screen.
 
 A plugin that wakes the screen by what it senses:
 

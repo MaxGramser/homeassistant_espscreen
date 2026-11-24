@@ -138,6 +138,7 @@ esphome:
     - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
+    - <esphome/components/smart_display/hand_standby.h>
   name: ${DEVICE_NAME}
   friendly_name: ${DEVICE_FRIENDLY_NAME}
   on_boot:
@@ -271,14 +272,12 @@ esphome:
           // over any card or the settings page 0.28.0+): the same script the Back to page 1 timeout and Home Assistant
           // use, so there is one way home, and it closes everything on the way.
           runtime_tiles::back_home = []() { id(go_home).execute(); };
-          // The home key held for half a second (firmware 0.64.0+): standby now, with its screensaver, as when the standby
-          // time runs out. Only where Auto standby is on: with it off nothing would hold the screen dark, and the lift
-          // is then a tap home as ever.
+          // The home key held for half a second (firmware 0.64.0+): standby by hand, with its screensaver, as the
+          // board's key does (the script standby_by_hand). A board that cannot go dark leaves the lift a tap home.
           runtime_tiles::hold_home = []() {
-            if (!settings_screen::can_standby || !screen_settings::current.standby_enabled) return false;
-            if (id(display_dimmed) || id(calibration_active) || id(alert_active)) return false;
-            ESP_LOGI("standby", "Standby from the home key held");
-            id(dim_display).execute();
+            if (!settings_screen::can_standby || id(display_dimmed) || id(calibration_active) || id(alert_active)) return false;
+            if (runtime_tiles::doorbell_holds()) return false;
+            id(standby_by_hand).execute(true, std::string("the home key held"));
             return true;
           };
           // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
@@ -286,7 +285,8 @@ esphome:
           runtime_tiles::alarm_wake = []() { id(last_use_ms) = millis(); id(wake_display).execute(); };
           // A plugin wakes the screen as Home Assistant's Wake button does (tessera::wake, plugin API 0.16): the one way
           // in for every wake that is not a finger, the script wake_from, with the plugin's name for the log.
-          plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };
+          // A plugin's own wake senses someone (motion, a light); a call or a doorbell is no sensing (hand_standby.h).
+          plugin_host::wake = [](const std::string &source, bool sensed) { id(wake_from).execute(source, sensed); };
           // How a doorbell's ring ended on this screen goes to ESP Screens (module doorbell, esphome.screen_doorbell).
           runtime_tiles::doorbell_reports([](const std::string &action, const std::string &key) { id(doorbell_report).execute(action, key); });
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
@@ -951,9 +951,15 @@ globals:
     restore_value: no
     initial_value: 'false'
 
-  # Sleep from Home Assistant (0.2.45+): standby that also holds with Auto standby off,
-  # until a tap, Wake or an alert wakes the screen.
+  # Standby by hand (Sleep from Home Assistant 0.2.45+; the board's key and the home key held 0.64.0+, the script
+  # standby_by_hand): standby that also holds with Auto standby off, until a tap, Wake or an alert wakes the screen.
   - id: sleep_requested
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Home Assistant's Sleep alone: its standby shows no screensaver (the board's key and the home key held do).
+  - id: sleep_dark
     type: bool
     restore_value: no
     initial_value: 'false'
@@ -1062,7 +1068,8 @@ font:
     bpp: 4
     glyphs: ['-','.',',','°','%','0','1','2','3','4','5','6','7','8','9']
 
-  - file: "${FONT_DIR}/Roboto-700.ttf"
+  # A tile's name: bold, or medium on the compact look (TILE_NAME_FONT_FILE), the same glyphs either way.
+  - file: "${FONT_DIR}/${TILE_NAME_FONT_FILE}"
     id: label
     size: ${FONT_LABEL_SIZE}
     bpp: 4
@@ -2563,7 +2570,7 @@ script:
           else lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
           // The screensaver (firmware 0.29.0+) in standby, at the standby level: it lies over everything on the top layer
           // without a tap of its own, so the overlay takes the touch. Sleep pressed in Home Assistant stays without it.
-          runtime_tiles::saver_sync(id(display_dimmed) && !id(sleep_requested) && level > 0);
+          runtime_tiles::saver_sync(id(display_dimmed) && !id(sleep_dark) && level > 0);
           // The setting numbers and times only publish a changed value (HA keeps identical states anyway); the
           // switches publish their own changes. An open settings page shows a change from Home Assistant too.
           // A number without a state publishes too: a night brightness of 0 equals the number's initial state and
@@ -2641,17 +2648,72 @@ script:
   - id: wake_from
     parameters:
       source: string
+      # Someone sensed (a plugin's tessera::wake, Home Assistant's Wake from a motion automation, a board moved), not a
+      # deliberate wake: after a standby by hand it waits for the room to go quiet (hand_standby.h, firmware 0.64.0+).
+      sensed: bool
     then:
-      - lambda: 'ESP_LOGI("standby", "Wake from %s, screen %s", source.c_str(), id(display_dimmed) ? "in standby" : "on");'
+      - if:
+          condition:
+            lambda: |-
+              if (!sensed || !id(display_dimmed) || hand_standby::sensed_wakes(millis())) return false;
+              ESP_LOGI("standby", "Wake from %s held: standby by hand, waiting for %u s without movement", source.c_str(),
+                       (unsigned) (hand_standby::QUIET_MS / 1000));
+              return true;
+          else:
+            - lambda: 'ESP_LOGI("standby", "Wake from %s, screen %s", source.c_str(), id(display_dimmed) ? "in standby" : "on");'
+            - if:
+                condition:
+                  lambda: 'return id(display_dimmed);'
+                then:
+                  - script.execute: wake_display
+                  # A page whose time ran out during standby: light up on page 1, not on the old page first.
+                  - script.execute: back_to_page_1_when_due
+                else:
+                  - lambda: 'id(last_touch_ms) = millis();'
+
+  # The board's own key (features/standby-key.yaml, firmware 0.64.0+): a toggle. In standby it wakes the screen as Home
+  # Assistant's Wake does; lit, it is Home Assistant's Sleep, standby at once with the screensaver, also with Auto
+  # standby off, until a tap, Wake or the key again.
+  - id: standby_key
+    then:
       - if:
           condition:
             lambda: 'return id(display_dimmed);'
           then:
-            - script.execute: wake_display
-            # A page whose time ran out during standby: light up on page 1, not on the old page first.
-            - script.execute: back_to_page_1_when_due
+            - script.execute:
+                id: wake_from
+                source: "the board's key"
+                sensed: false
           else:
-            - lambda: 'id(last_touch_ms) = millis();'
+            - script.execute:
+                id: standby_by_hand
+                saver: true
+                source: "the board's key"
+
+  # Standby by hand (firmware 0.64.0+): Home Assistant's Sleep (without a screensaver), the board's key and the home key
+  # held (with one). The one way a person sends the screen to standby: it holds with Auto standby off too, until a tap,
+  # Wake or an alert, and since the person is still there, a wake on motion waits until the room went quiet
+  # (hand_standby.h). An alert that is up closes. Not while the touch calibration runs.
+  - id: standby_by_hand
+    parameters:
+      saver: bool
+      source: string
+    then:
+      - if:
+          condition:
+            lambda: 'return id(calibration_active);'
+          then:
+            - lambda: 'ESP_LOGI("standby", "Standby from %s ignored: touch calibration is running", source.c_str());'
+          else:
+            - lambda: |-
+                ESP_LOGI("standby", "Standby from %s", source.c_str());
+                id(sleep_requested) = true;
+                id(sleep_dark) = !saver;
+                hand_standby::begin(millis());
+            - script.execute:
+                id: alert_dismiss
+                reason: "remote"
+            - script.execute: dim_display
 
   # ---------- ALERT (HA action show_alert) ----------
   # The screen wakes, keeps its normal brightness and shows the card until OK or the
@@ -2879,24 +2941,17 @@ button:
       - script.execute:
           id: wake_from
           source: "Home Assistant"
+          # Automations press it on every motion: sensed, as a plugin's wake (hand_standby.h).
+          sensed: true
   - platform: template
     id: sleep_button
     name: "Sleep"
     icon: "mdi:power-sleep"
     on_press:
-      - if:
-          condition:
-            lambda: 'return id(calibration_active);'
-          then:
-            - lambda: 'ESP_LOGI("standby", "Sleep from Home Assistant ignored: touch calibration is running");'
-          else:
-            - lambda: |-
-                ESP_LOGI("standby", "Sleep from Home Assistant");
-                id(sleep_requested) = true;
-            - script.execute:
-                id: alert_dismiss
-                reason: "remote"
-            - script.execute: dim_display
+      - script.execute:
+          id: standby_by_hand
+          saver: false
+          source: "Home Assistant's Sleep"
 
 number:
   # Firmware 0.2.49+: every number goes through settings_screen::set(), like the settings page, so a value the

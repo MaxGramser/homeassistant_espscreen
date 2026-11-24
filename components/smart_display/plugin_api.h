@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 28;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 29;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -45,7 +45,13 @@ constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 28;
 // letters (Latin with the accents of the screen's languages, digits and common signs); the icon fonts have Tessera's
 // icon set only. DIGITS (0.9) is the largest: a climate card's setpoint, with the digits and - . , ° % alone, so a
 // tile takes it only for a value ui::covers() and steps down to VALUE for any other (a word, a unit, a letter).
-enum class Font : uint8_t { VALUE, HEADLINE, TITLE, BODY_LARGE, BODY, ICON, ICON_SMALL, DIGITS };
+// Larger still (0.29), the digits of Tessera's own clocks, in every build already, so a plugin's clock pays nothing for
+// them: DIGITS_LARGE fills half the page's width with two digits (the flip clock's step: 73 px on a CYD, 150 on a
+// 4-inch, 270 on a 10-inch), DIGITS_PAGE is the largest the page takes for "00:00" (the bedside clock's step; on a
+// board where that is not a fifth larger, the CYD and the 4-inch boards among them, it is DIGITS_LARGE itself). Both
+// hold the digits and the colon alone: check a text with ui::covers(), and measure it with ui::text_width() before you
+// take one (a step down to DIGITS where it is too wide). Neither holds a space, a letter or a sign.
+enum class Font : uint8_t { VALUE, HEADLINE, TITLE, BODY_LARGE, BODY, ICON, ICON_SMALL, DIGITS, DIGITS_LARGE, DIGITS_PAGE };
 // What came of a place's picture (0.17, on_picture): SHOWN, it is on its place; NONE, the app has no picture at that
 // address now (it asks again later, each time after a longer while); FAILED, it did not come (the download broke off).
 enum class PictureState : uint8_t { SHOWN, NONE, FAILED };
@@ -524,7 +530,8 @@ void refresh();
 // page 1 keeps counting from the last touch, so waking on every motion holds no card or page 2 up. The log names the
 // plugin. Call it from the plugin's own calls (the screen's loop, as every call here), never from a task of its own,
 // and at most once a second or two while what it senses goes on. A plugin that wakes the screen by what it senses has
-// a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen").
+// a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen"). After a standby someone asked
+// for by hand (firmware 0.64.0+) it lights the screen only after a minute without one: the person is walking away.
 void wake(const Plugin *plugin);
 // What a plugin captures on the screen itself (0.17): its own camera, watched (CAMERA: someone sees what it sees), or
 // for sensing alone (SENSING, 0.20: a light level, motion, and no picture leaves the screen or reaches a person), or
@@ -593,6 +600,17 @@ inline bool open(Side side, Role role) { return audio_owner::the().would_grant(s
 // Who holds a side now (held() says whether anyone does).
 inline bool held(Side side) { return audio_owner::the().held(side); }
 inline Role holder(Side side) { return audio_owner::the().holder(side); }
+// A sound louder than the screen's own volume (0.29, volume_lift.h; docs/SOUNDS.md, "Louder than the screen"), as an
+// alarm clock rings: raise_volume sets the speaker to at least `volume`, on the same 0 to 1 as the screen's volume in
+// Home Assistant (1 is its 100 %), and restore_volume puts back the screen's own volume after the sound. Never quieter:
+// where the screen stands louder already, it stays there. Again with another `volume` changes the plugin's level. A
+// call's ring lifts the speaker the same way, and the screen keeps what its volume was in one place, so the two never
+// put back each other's level. Nothing of it is stored: a restart or an update while it rings comes back at the screen's
+// own volume, and an update takes every lift down first. Someone who moves the volume while it is raised keeps what
+// they chose. Call restore_volume when the sound ends, is stopped, or the plugin hears `lost`. A muted screen stays
+// muted. False on a board without a speaker, or with four lifts up. Call them from the plugin's own calls.
+bool raise_volume(const Plugin *plugin, float volume);
+void restore_volume(const Plugin *plugin);
 }  // namespace audio
 // A Home Assistant action on an entity, as a tile's tap sends it: action("light.toggle", entity), or with fields of any
 // JSON type, a JSON object of up to 16 fields, together at most 1 KB:

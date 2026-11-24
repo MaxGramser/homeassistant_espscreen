@@ -1,0 +1,43 @@
+# ESP Screens - the board's own key as the standby key (firmware 0.64.0): a press puts a lit screen in standby, with
+# its screensaver, and wakes one that is in standby, the way Home Assistant's Sleep and Wake buttons do (the core's
+# script standby_key). Sleep holds with Auto standby off too, until a tap, Wake or this key again.
+#
+# Every board that can go dark and has a key the chip can read takes it: a key of its own where it has one (the
+# reTerminal D1001's on top, the SenseCAP Indicator's user button, the power key of the Waveshare 4 rev 4.0), else the
+# BOOT key, which every ESP32 board has on its boot strapping pin (GPIO0 on the ESP32 and the ESP32-S3, GPIO35 on the
+# ESP32-P4). After the start that pin is an ordinary input. The pins come from each board's schematic or its vendor's
+# code (2026-11-24). None where the display or other hardware drives that pin (the Guition 4848S040, the Waveshare
+# RGB boards and the WT32-SC01 Plus, GPIO0 in their picture; the Waveshare 4 rev 4.0's CAN line), on the Waveshare 86
+# panel (a wall panel, and GPIO35 is its Ethernet line), and on the M5Stack Tab5 (its only key is its power chip's).
+# The Waveshare 3.5's key is on its expander: that board file reads it and runs the same script.
+#
+#   substitutions:
+#     STANDBY_KEY_PIN: GPIO0
+#
+# The key reads low while it is pressed and the pin has a pull-up, as a BOOT key does; a key wired the other way
+# names STANDBY_KEY_INVERTED "false" and STANDBY_KEY_PULLUP "false"; a key on a pin that is no strapping pin names
+# STANDBY_KEY_STRAPPING "false" (ESPHome refuses the strapping note there). It is the entity Button in Home Assistant
+# too, for an automation of its own. A BOOT key also sits on the USB chip's auto-download line, so opening a board's
+# USB port can read as a press.
+substitutions:
+  STANDBY_KEY_INVERTED: "true"
+  STANDBY_KEY_PULLUP: "true"
+  STANDBY_KEY_STRAPPING: "true"
+
+binary_sensor:
+  - platform: gpio
+    id: board_button
+    name: "Button"
+    pin:
+      number: ${STANDBY_KEY_PIN}
+      inverted: ${STANDBY_KEY_INVERTED}
+      mode:
+        input: true
+        pullup: ${STANDBY_KEY_PULLUP}
+      # A strapping pin decides how the chip starts and is free after that; the key only pulls it while pressed.
+      ignore_strapping_warning: ${STANDBY_KEY_STRAPPING}
+    # The contacts bounce for a few milliseconds: without this one press could put the screen in standby and wake it.
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - script.execute: standby_key

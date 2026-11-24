@@ -4,7 +4,9 @@ code around them (tidied in app 0.2.54, firmware 0.2.46).
 Wake lights the screen and restarts the standby time, Sleep is the standby time running out right away, and a Sleep
 holds until a tap, Wake or an alert ends it, whatever turns Auto standby off. Since app 0.2.65 (firmware 0.2.56) Wake
 is no tap: Back to page 1 counts from the last touch, so an automation pressing Wake on every motion no longer holds a
-card or page 2 up. What the firmware does is proven by running it: `tools/render/run.py guition --only standby` presses
+card or page 2 up. Since firmware 0.64.0 Sleep, the board's key and the home key held are one standby by hand
+(the script standby_by_hand), and after one a sensed wake waits until the room went quiet (hand_standby.h,
+tests/test_hand_standby.cpp). What the firmware does is proven by running it: `tools/render/run.py guition --only standby` presses
 Wake and Sleep on the real firmware (a host build) and reads its clocks and pages back; the colour card closing with
 every card is web/wasm/test_colour_card.mjs. What stays here are the rules every board keeps.
 """
@@ -67,18 +69,31 @@ class Profiles(unittest.TestCase):
                 self.assertNotIn('internal', button, f'{name}: {label} must reach Home Assistant')
 
     def test_every_wake_that_is_not_a_finger_takes_wake_from(self):
-        # Home Assistant's button, a board's sensor (it presses that button) and a plugin (tessera::wake through
-        # plugin_host::wake) wake the screen one way, the script wake_from (plugin API 0.16).
+        # Home Assistant's button, a board's sensor (it presses that button), a plugin (tessera::wake through
+        # plugin_host::wake) and the board's key wake the screen one way, the script wake_from (plugin API 0.16).
         for name, text in self.profiles.items():
-            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 3,
-                             f'{name}: wake the screen through the script wake_from, from the Wake button and '
-                             f'plugin_host::wake only; a board\'s sensor presses the Wake button')
+            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 4,
+                             f'{name}: wake the screen through the script wake_from, from the Wake button, the '
+                             f'board\'s key and plugin_host::wake only; a board\'s sensor presses the Wake button')
+
+    def test_a_sensed_wake_waits_for_the_quiet_after_a_standby_by_hand(self):
+        # Walking away from a screen sent to standby by hand is motion: it must not light the screen again.
+        for name, text in self.profiles.items():
+            self.assertIn('hand_standby::sensed_wakes(millis())', script(text, 'wake_from'), name)
+            self.assertIn('hand_standby::begin(millis());', script(text, 'standby_by_hand'), name)
+            self.assertIn('hand_standby::end();', script(text, 'wake_display'), f'{name}: every wake ends the hold')
+            # Home Assistant's Wake is pressed by motion automations: sensed. The board's key is a person: not.
+            self.assertIn('sensed: true', item(section(text, 'button'), 'name', 'Wake'), name)
+            self.assertIn('sensed: false', script(text, 'standby_key'), name)
 
     def test_one_way_into_standby_and_one_out_of_a_sleep(self):
         for name, text in self.profiles.items():
             self.assertEqual(len(re.findall(r'script\.execute: dim_display', text)), 2,
-                             f'{name}: only the standby interval and the Sleep button run dim_display')
-            self.assertEqual(len(re.findall(r'id\(sleep_requested\) = true;', text)), 1, f'{name}: only the Sleep button starts a Sleep')
+                             f'{name}: only the standby interval and standby_by_hand run dim_display')
+            self.assertEqual(len(re.findall(r'id\(sleep_requested\) = true;', text)), 1,
+                             f'{name}: only standby_by_hand (Sleep, the board\'s key, the home key held) starts a Sleep')
+            self.assertIn('standby_by_hand', item(section(text, 'button'), 'name', 'Sleep'), name)
+            self.assertIn('runtime_tiles::hold_home', text, name)
             self.assertEqual(len(re.findall(r'id\(sleep_requested\) = false;', text)), 1, name)
             self.assertIn('id(sleep_requested) = false;', script(text, 'wake_display'),
                           f'{name}: only wake_display, the way every wake and tap takes, ends a Sleep')
@@ -108,11 +123,11 @@ class Profiles(unittest.TestCase):
 
     def test_the_clocks_and_the_flag_start_over_with_every_boot(self):
         for name, text in self.profiles.items():
-            for flag in ('sleep_requested', 'last_use_ms'):
+            for flag in ('sleep_requested', 'sleep_dark', 'last_use_ms'):
                 self.assertIn('restore_value: no', item(section(text, 'globals'), 'id', flag),
                               f'{name}: {flag} starts over with every boot, never saved')
             # glass: on a CYD calibrating its touch, press Sleep in Home Assistant: the crosshairs stay lit.
-            self.assertIn('return id(calibration_active);', item(section(text, 'button'), 'name', 'Sleep'), name)
+            self.assertIn('return id(calibration_active);', script(text, 'standby_by_hand'), name)
 
 
 if __name__ == '__main__':
