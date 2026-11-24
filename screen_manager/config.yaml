@@ -1,8 +1,8 @@
-name: Tessera Screen Manager (Test)
+name: Tessera Screen Manager
 version: "0.4.103"
-slug: esp_screen_manager_test
+slug: esp_screen_manager
 description: "Tessera: touch screens for Home Assistant. Choose tiles for your ESP32 screens, 2.8 to 10.1 inch, without reflashing."
-url: https://github.com/haarspalter/homeassistant_espscreen
+url: https://tessera-maxgramser.on-forge.com
 arch: [aarch64, amd64]
 startup: application
 boot: auto
@@ -15,7 +15,7 @@ ingress: true
 ingress_port: 8099
 # Camera images for Guition screens (docs/CAMERA.md): the screens load them from this port on the LAN.
 ports:
-  8098/tcp: 8198
+  8098/tcp: 8098
 ports_description:
   8098/tcp: Camera images and album covers for the screens
 # With Home Assistant's Watchdog switch on (the app's Info page; off until someone turns it on) the Supervisor starts
@@ -23,7 +23,7 @@ ports_description:
 # app answers from anywhere (server.py guard, the same as Docker's health check).
 watchdog: http://[HOST]:[PORT:8099]/health
 panel_icon: mdi:view-grid
-panel_title: Tessera Test
+panel_title: Tessera
 panel_admin: true
 options: {}
 schema: {}
