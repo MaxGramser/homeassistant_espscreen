@@ -43,6 +43,7 @@ class Detector {
       return false;
     }
     float away = std::fabs(value - a.rest);
+    if (away > largest_[kind]) largest_[kind] = away;
     float follow = kind == ACCELERATION ? (float) ACCELERATION_FOLLOW_MS : (float) TURNING_FOLLOW_MS;
     float dt = (float) (uint32_t) (now - a.at);
     a.rest += (value - a.rest) * (dt / (follow + dt));
@@ -57,6 +58,14 @@ class Detector {
     return true;
   }
 
+  // The largest departure of any axis of a kind since the last call, then from zero again: the measurement the
+  // thresholds come from (Debug mode logs it every second, features/wake-when-moved.yaml).
+  float take_largest(Kind kind) {
+    float largest = largest_[kind];
+    largest_[kind] = 0;
+    return largest;
+  }
+
   // What the last "moved" felt, for the log.
   Kind last_kind() const { return last_kind_; }
   uint8_t last_axis() const { return last_axis_; }
@@ -69,6 +78,7 @@ class Detector {
     uint32_t at = 0;
   };
   Axis axes_[2][3]{};
+  float largest_[2]{0, 0};
   bool said_ = false;
   uint32_t said_at_ = 0;
   Kind last_kind_ = ACCELERATION;

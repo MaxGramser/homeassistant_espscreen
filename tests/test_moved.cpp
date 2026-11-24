@@ -138,6 +138,21 @@ int main() {
     assert(feed(d, 5000, r));
   }
 
+  // The largest departure since the last look, per kind, then from zero again.
+  {
+    Detector d;
+    count(d, 0, 5000, [&](uint32_t t) { return still(t, seed); });
+    d.take_largest(ACCELERATION);
+    d.take_largest(TURNING);
+    Reading r = still(5000, seed);
+    r.a[1] += 0.02f;
+    r.g[2] += 3.0f;
+    feed(d, 5000, r);
+    assert(d.take_largest(ACCELERATION) > 0.015f);
+    assert(d.take_largest(TURNING) > 2.0f);
+    assert(d.take_largest(ACCELERATION) == 0.0f);
+  }
+
   // A missing reading (NAN) and a wrapping millisecond counter are no movement.
   {
     Detector d;
