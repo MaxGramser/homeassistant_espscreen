@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [phone-save-in-the-dock.md](phone-save-in-the-dock.md) | Save in the phone editor's dock does nothing for some phones in Home Assistant's app (GitHub #438); not reproduced, what was read and tried, what to ask | 2026-11-24 |
 | [first-save-after-a-grid-change.md](first-save-after-a-grid-change.md) | A screen never saved refuses a grid change at its first save (GitHub #355); only the message changed on 2026-11-24, the fix in the file is not built | 2026-11-24 |
 | [pictures-ahead-on-a-tight-store.md](pictures-ahead-on-a-tight-store.md) | Pictures fetched ahead use spare room only since 2026-11-24 (GitHub #415): proven on the host with the issue's numbers, not yet on a 7-inch with a store of about 1 MB | 2026-11-24 |
 | [dark-mode-half-switched.md](dark-mode-half-switched.md) | Dark mode, a card or a turn that reached the glass only in part since 0.4.98: page pictures' copies of the frame buffer threw away what LVGL drew; removed. Solved 2026-11-19 for the P4 boards; a 4-inch report still open | 2026-11-18 |

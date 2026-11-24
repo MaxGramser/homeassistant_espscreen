@@ -1,7 +1,5 @@
 ## Unreleased
 
-- **Save stays in reach on a phone.** In Home Assistant's app on a phone that draws to the screen's edge, the dock with Save could sit under the phone's gesture bar, where a tap does not arrive. The foot of the phone editor now keeps that room free on every touch screen. ([#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
-
 - **Notices with two choices read well on a phone.** "Another editor saved changes" and "the screen's grid changed" put their words on full lines and their keys under them, instead of one word a line.
 
 - **A clearer word when a change of grid cannot be saved.** It now says what to do: save the screen once on the grid it has, then change the grid. ([#355](https://github.com/MaxGramser/homeassistant_espscreen/issues/355))
