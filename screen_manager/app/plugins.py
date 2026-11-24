@@ -2536,6 +2536,11 @@ class Plugins:
                            sorted(plugin_fetch.words_of(chosen).items(), key=lambda kv: kv[0]),
                            (pick or {}).get('value')], default=str)
 
+    def zone(self):
+        """Home Assistant's zone as the app knows it (None until it has said): the zone a time without an offset is
+        read in when its field names none of its own (plugin_fetch.epoch_of), whatever zone the app's machine is in."""
+        return getattr(self.manager.ha, 'time_zone', None)
+
     async def tile_data(self, entry, tile, chosen, ask=True, inbox=None, placed=None):
         """What the screen gets for one tile: the mapped answer of its fetch, with "stale" or "wait". A fetch with `each`
         (0.12) puts the answers of its values together; one that has none yet is left out, one that failed makes the
@@ -2569,9 +2574,9 @@ class Plugins:
             return {'wait': next(w for w in ('refused', 'not_filled', 'failed', 'asking') if w in waits)}
         try:
             if fetch.get('each'):
-                data = plugin_fetch.apply_each(fetch['map'], answers)
+                data = plugin_fetch.apply_each(fetch['map'], answers, self.zone())
             else:
-                data = plugin_fetch.apply_map(fetch['map'], *answers[0])
+                data = plugin_fetch.apply_map(fetch['map'], *answers[0], zone=self.zone())
         except Exception as error:   # an answer of another shape than the map expects
             LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
             return {'wait': 'failed'}
@@ -2597,7 +2602,7 @@ class Plugins:
         for name in spec.get('attributes', ()):
             value = attrs.get(name)
             if name.endswith(('_at', '_time', 'date')) and isinstance(value, str):
-                moment = plugin_fetch.epoch_of(value, getattr(self.manager.ha, 'time_zone', None))
+                moment = plugin_fetch.epoch_of(value, self.zone())
                 if moment is not None:
                     bounded[name] = moment
                     continue
@@ -2610,9 +2615,9 @@ class Plugins:
                 bounded[name] = [core.short(v, plugin_fetch.TEXT_BYTES) if isinstance(v, str) else v for v in value[:1000]
                                  if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
                                                            and math.isfinite(v))]
-        zone = getattr(self.manager.ha, 'time_zone', None)
+        zone = self.zone()
         for name, field in (spec.get('fields') or {}).items():
-            bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
+            bounded[name] = plugin_fetch.field_value(attrs, field, zone)
         part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
                 'name': core.short(attrs.get('friendly_name') or entity, plugin_fetch.TEXT_BYTES), 'attributes': bounded}
         moment = plugin_fetch.epoch_of(state.get('last_updated'), zone) if updated else None
@@ -2826,7 +2831,7 @@ class Plugins:
         if not cached or cached['data'] is None:
             return {'ok': False, 'error': 'failed'}
         try:
-            result = plugin_fetch.apply_map(fetch['map'], cached['data'], values)
+            result = plugin_fetch.apply_map(fetch['map'], cached['data'], values, zone=self.zone())
         except Exception as error:   # an answer of another shape than the map expects
             LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
             return {'ok': False, 'error': 'failed'}
@@ -2891,8 +2896,7 @@ class Plugins:
                 # An answer the manifest maps (`answers`) goes as its fields, the rest as it came; both bounded.
                 spec = next((a for a in entry.manifest.get('answers') or [] if a['command'] == ask), None)
                 if spec:
-                    zone = getattr(self.manager.ha, 'time_zone', None)
-                    result = {name: plugin_fetch.field_value(result, {**field, 'tz': field.get('tz') or zone})
+                    result = {name: plugin_fetch.field_value(result, field, self.zone())
                               for name, field in spec['fields'].items()}
                 reply.update(ok=True, result=bounded(result, mapped=bool(spec)))
             except Exception as error:   # Home Assistant said no, or did not answer

@@ -126,7 +126,10 @@ async def message(entry, spec, index, tile, span=None, now=None):
     example = example_of(spec, tile_id, span)
     if example is None or entry.tile(tile_id) is None:
         return None
-    zone = spec.get('time_zone') if isinstance(spec.get('time_zone'), str) else ZONE
+    # The zone the example's moments are written in, and the zone its app reads them back in: the example's own
+    # (`time_zone`), else ZONE; a name that is no zone is ZONE too. It stands for Home Assistant's zone in the app, and
+    # is kept as the app keeps that one, a zone and not its name.
+    zone = spec.get('time_zone') if plugin_fetch.zone_of(spec.get('time_zone')) else ZONE
     # Moments are written from the start of this minute: asked again within it, an example is the same message, so the
     # editor's firmware is told of a change once a minute and not at every refresh, while a countdown still never runs
     # out. The screen's own clock counts the seconds in between.
@@ -138,7 +141,7 @@ async def message(entry, spec, index, tile, span=None, now=None):
     options = {**(tile.get('options') or {}), 'plugin': dict(example.get('options') or {})}
     if isinstance(example.get('entity'), str):
         options['plugin_entity'] = example['entity']
-    app = ExampleApp(entry, states, answers if isinstance(answers, dict) else {}, zone)
+    app = ExampleApp(entry, states, answers if isinstance(answers, dict) else {}, ZoneInfo(zone))
     # A tile without a name of its own takes the example's ("Centraal Station"), as its maker shows it.
     name = tile.get('name') or (example['name'] if isinstance(example.get('name'), str) else '')
     shown = await app.tile_message(index, {**tile, 'name': name, 'options': options})

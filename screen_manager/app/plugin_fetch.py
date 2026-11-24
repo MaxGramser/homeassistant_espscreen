@@ -21,7 +21,7 @@ import math
 import re
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from urllib.parse import quote, urlsplit
 
 from plugin_manifest import ATTRIBUTE_PLACEHOLDER, FETCH_PLACEHOLDER, MAX_ITEMS, PLACEHOLDER, parse_path
@@ -111,8 +111,26 @@ def first(data, steps):
     return found[0] if found else None
 
 
-def epoch_of(value, zone=None):
-    """Seconds since 1970 from a number, an ISO 8601 time with an offset, or a time without one in `zone`."""
+def zone_of(zone):
+    """A zone to read a time in, from its name ("Europe/Amsterdam", as a manifest writes a field's `tz`) or from a zone
+    itself (Home Assistant's, which the app keeps as one); None for none, or for a name that is no zone."""
+    if isinstance(zone, tzinfo):
+        return zone
+    if isinstance(zone, str) and zone:
+        try:
+            from zoneinfo import ZoneInfo
+            return ZoneInfo(zone)
+        except Exception:
+            return None
+    return None
+
+
+def epoch_of(value, zone=None, fallback=None):
+    """Seconds since 1970 from a number, an ISO 8601 time with an offset, or a time without one. That last kind is read
+    in `zone` (a field's own `tz`), else in `fallback` (Home Assistant's zone, as the app knows it), else in UTC, as the
+    rest of the app reads a time while it does not know Home Assistant's zone. Each is a zone's name or a zone itself.
+    Never the zone of the machine the app runs on: a container's clock stands in UTC or wherever its host does, and
+    the same answer would be another moment there."""
     if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
@@ -127,14 +145,7 @@ def epoch_of(value, zone=None):
     except ValueError:
         return None
     if moment.tzinfo is None:
-        tz = None
-        if zone:
-            try:
-                from zoneinfo import ZoneInfo
-                tz = ZoneInfo(zone)
-            except Exception:
-                tz = None
-        moment = moment.replace(tzinfo=tz) if tz else moment.astimezone()
+        moment = moment.replace(tzinfo=zone_of(zone) or zone_of(fallback) or timezone.utc)
     return int(moment.timestamp())
 
 
@@ -153,13 +164,15 @@ def number_of(value):
         return None
 
 
-def field_value(item, field):
+def field_value(item, field, zone=None):
+    """One field of a map, bounded by its kind. `zone`: Home Assistant's, in which an `epoch` without an offset is read
+    when the field names no `tz` of its own (epoch_of)."""
     if field['as'] == 'numbers':
         # Every value the path reaches, in order, as one list: `[*].value` of 96 objects is 96 numbers.
         return [number_of(value) for value in walk(item, field['path'])[:1000]]
     value = first(item, field['path'])
     if field['as'] == 'epoch':
-        return epoch_of(value, field.get('tz'))
+        return epoch_of(value, field.get('tz'), zone)
     if field['as'] == 'number':
         return number_of(value)
     if field['as'] == 'url':
@@ -191,9 +204,9 @@ def _word(value):
     return '' if value is None or isinstance(value, (list, dict)) else str(value)
 
 
-def _fields(spec, raw, pick):
+def _fields(spec, raw, pick, zone=None):
     """An item's fields; a field `{each: value|label}` (0.12) is the pick whose ask brought it."""
-    return {name: short((pick or {}).get(field['each'], '')) if 'each' in field else field_value(raw, field)
+    return {name: short((pick or {}).get(field['each'], '')) if 'each' in field else field_value(raw, field, zone)
             for name, field in spec['fields'].items()}
 
 
@@ -207,20 +220,21 @@ def _sorted_and_cut(spec, items):
     return items[:min(spec.get('limit', MAX_ITEMS), MAX_ITEMS)]
 
 
-def apply_map(spec, data, values=None, pick=None):
+def apply_map(spec, data, values=None, pick=None, zone=None):
     """What the screen gets of one answer: `{"items": [...]}` for a list, or the fields of one object. `pick`: the
-    value of a fetch with `each` this answer belongs to, {value, label}."""
+    value of a fetch with `each` this answer belongs to, {value, label}. `zone`: Home Assistant's, for a time the
+    answer gives without an offset in a field without a `tz` (epoch_of)."""
     values = values or {}
     if 'fields' not in spec:
         raise FetchRefused('this fetch fills a list of choices')
     if 'items' not in spec:
-        return _fields(spec, data, pick)
+        return _fields(spec, data, pick, zone)
     keep, skip = _filled(values, spec.get('where')), _filled(values, spec.get('skip'))
     items = []
     for raw in walk(data, spec['items'], values):
         if not isinstance(raw, dict):
             continue
-        item = _fields(spec, raw, pick)
+        item = _fields(spec, raw, pick, zone)
         if any(_word(item.get(name)) not in wanted for name, wanted in keep.items()):
             continue
         if any(_word(item.get(name)) in unwanted for name, unwanted in skip.items()):
@@ -231,13 +245,13 @@ def apply_map(spec, data, values=None, pick=None):
     return {'items': _sorted_and_cut(spec, items)}
 
 
-def apply_each(spec, answers):
+def apply_each(spec, answers, zone=None):
     """One list of the answers of a fetch with `each` (0.12), in the order of the picks: `answers` is [(data, values,
     pick)]. Each answer is mapped on its own (its items, or one item for a map of one object), then `sort` and `limit`
-    work on them together: the newest releases of three artists, not three lists."""
+    work on them together: the newest releases of three artists, not three lists. `zone` as for apply_map."""
     items = []
     for data, values, pick in answers:
-        mapped = apply_map(spec, data, values, pick)
+        mapped = apply_map(spec, data, values, pick, zone)
         items.extend(mapped['items'] if 'items' in spec else [mapped])
     return {'items': _sorted_and_cut(spec, items)}
 

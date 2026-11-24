@@ -184,6 +184,12 @@ saved there. Every value kept before 0.12 is still valid.
 - **One path language.** A fetch's `map`, a tile's `fields` and an answer's `fields` share `parse_path` and
   `plugin_fetch.field_value`, and the kinds `text`, `number`, `epoch` and `numbers`. A new kind or step goes there,
   for all three.
+- **Times.** An `epoch` field takes a number or an ISO 8601 time. A time that says no offset is read in the field's
+  own `tz`, else in Home Assistant's zone as the app knows it (`Plugins.zone()`), else in UTC while the app has not
+  heard it, and never in the zone of the machine the app runs on (`plugin_fetch.epoch_of`): a container stands in UTC
+  or wherever its host does, and the same answer would be another moment there. The app keeps Home Assistant's zone
+  as a zone and a manifest writes a `tz` as a name; `epoch_of` takes either. `tests/test_plugin_times.py` runs every
+  case with the machine in four zones, since a test that passes only where it was written proves nothing here.
 - **The host proves the host.** A change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin fields runs
   `tools/render/run.py --plugin tests/fixtures/plugins/host_probe`, plain (the CYD's path: a card made anew when its
   page comes back) and with `KEPT_PAGES_HOST=1` (the kept path of a board with PSRAM), docs/TESTING.md, "The plugin

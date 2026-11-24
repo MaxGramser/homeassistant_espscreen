@@ -1,3 +1,7 @@
+## Unreleased
+
+- **A plugin's times are right whatever time zone the app's machine is in.** A time that a web service or an entity gives without a time zone (a departure at 17:25, the start of a collection) was read in the zone of the machine the app runs on, not in your Home Assistant's. Where those differ (the app in a container that stands in UTC, a home in another zone than its host), a plugin's tile showed such times off by the difference, and so did the plugins' examples in the library. They are read in Home Assistant's time zone now, as the plugins' documentation says; a plugin that names a zone of its own for a time keeps it.
+
 ## 0.4.102 (firmware 0.64.0)
 
 - **An alert that arrives in standby no longer darkens the page behind it too much.** On the boards that dim the page on the glass itself (the larger ones, such as the Guition 10.1), the page behind an alert's card came out darker when the alert woke the screen from standby than when the screen was already lit, most visibly in the light look. Both now look the same. New firmware.
