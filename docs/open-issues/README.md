@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [pictures-ahead-on-a-tight-store.md](pictures-ahead-on-a-tight-store.md) | Pictures fetched ahead use spare room only since 2026-11-24 (GitHub #415): proven on the host with the issue's numbers, not yet on a 7-inch with a store of about 1 MB | 2026-11-24 |
 | [dark-mode-half-switched.md](dark-mode-half-switched.md) | Dark mode, a card or a turn that reached the glass only in part since 0.4.98: page pictures' copies of the frame buffer threw away what LVGL drew; removed. Solved 2026-11-19 for the P4 boards; a 4-inch report still open | 2026-11-18 |
 | [esphome-2026-11-audio-stack.md](esphome-2026-11-audio-stack.md) | The boards with echo cancelling did not build on ESPHome 2026.11 (the speaker's `audio_dac_` became `audio_dacs_`). Solved 2026-11-19: the stack from a fork with one commit, until the stack has it | 2026-11-18 |
 | [calls-found-on-the-bench.md](calls-found-on-the-bench.md) | Calls on two boards: the first call after a restart can stall, a sound takes a second there and back, the canceller relearns for a minute after two boards shared a desk, the Guition's microphone is noisy, a live view aborts when internal RAM runs out, and one old-protocol message leaves a screen at "Configuration problem" | 2026-11-17 |

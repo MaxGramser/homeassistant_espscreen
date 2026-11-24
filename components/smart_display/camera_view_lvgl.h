@@ -52,7 +52,7 @@ inline ViewPicture camera;
 // refilled by an interrupt on this core every 0.34 ms: every picture that loaded shifted a frame on the glass.
 inline void picture_memory(const char *stage, const char *what, int pixels) {
 #ifdef USE_ESP32
-  ESP_LOGI("picture", "%s %s: %d px wants %d B; inside free=%u, psram free=%u", stage, what, pixels, pixels * 2,
+  ESP_LOGI("picture", "%s %s: %d px wants %d B; inside free=%u, psram free=%u", stage, what, pixels, (int) picture_store::bytes_of(pixels, 1),
            (unsigned) heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 #else
   (void) stage; (void) what; (void) pixels;

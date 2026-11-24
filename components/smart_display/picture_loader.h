@@ -53,6 +53,7 @@ struct Want {
   uint32_t every = 0;       // a picture that refreshes (a camera): the next one this long after the last started; 0: once
   bool drawn = false;       // the app draws it (a map): an answer without a link is a hitch, asked again, later each time
   uint8_t tries = 0;        // downloads that may fail before the picture is given up (an alert's); 0: no end
+  size_t bytes = 0;         // what the picture takes in the store (picture_store::bytes_of), for one fetched ahead
   std::string url;          // a link the owner has already (the app sends an alert's by itself): nothing to ask
   std::function<void()> ask;                  // asks the app for the link (an event)
   std::function<void(Outcome)> done;          // the picture came (now in the store), did not, or the app has none
@@ -68,6 +69,9 @@ class Loader {
   std::function<void(Slot)> cancel;
   // A picture its owner moved on from: the store may let it go once nothing draws it.
   std::function<void(const std::string &key)> forget;
+  // Whether a picture of `bytes` fetched ahead for a page out of sight fits the store's spare room now
+  // (picture_store::Store::fits_ahead, GitHub #415). Unbound: every one does.
+  std::function<bool(size_t bytes)> room_ahead;
   // Every step of every picture, for a diagnosis (runtime_tiles.h logs it at DEBUG): who, which picture, what happened.
   std::function<void(const Owner &, const std::string &key, const char *what, const std::string &detail)> log;
 
@@ -132,8 +136,9 @@ class Loader {
       if (job.phase == Phase::DONE && !job.told) { job.told = true; if (job.want.done) job.want.done(Outcome::UNCHANGED); }
     const bool glass_waits = glass_waiting(now);
     for (auto &job : jobs_) {
-      // One fetched ahead asks once nothing on the glass waits: the app's work for it should not hold up theirs.
-      if (job.want.rank == Rank::AHEAD && glass_waits) continue;
+      // One fetched ahead asks once nothing on the glass waits: the app's work for it should not hold up theirs. One
+      // that would not fit the spare room is not asked for at all: it loads when its page comes back.
+      if (job.want.rank == Rank::AHEAD && (glass_waits || !fits_ahead(job))) continue;
       // One question of a kind at a time: the app's answer names the player, not the size, so a card's cover and a
       // tile's cover of the same player would take each other's links.
       if (asking(job.want.tag, now, &job)) continue;
@@ -152,7 +157,7 @@ class Loader {
     if (!may_load) return;
     Job *next = nullptr;
     for (auto &job : jobs_) {
-      if (job.want.rank == Rank::AHEAD && glass_waits) continue;  // a page out of sight waits for the glass
+      if (job.want.rank == Rank::AHEAD && (glass_waits || !fits_ahead(job))) continue;  // a page out of sight waits for the glass
       if (should_load(job, now) && (!next || before(job, *next))) next = &job;
     }
     if (!next) return;
@@ -213,6 +218,13 @@ class Loader {
       if (job.want.key == key && job.want.done) job.want.done(unchanged ? Outcome::UNCHANGED : Outcome::LOADED);
   }
 
+  // How much the download in `slot` matters (Rank::PAGE when none runs): one fetched ahead that arrives when the room it
+  // fitted is gone is not kept (picture_rounds_lvgl.h picture_done, GitHub #415).
+  Rank loading_rank(Slot slot) const {
+    for (const auto &j : jobs_) if (j.phase == Phase::LOADING && j.want.slot == slot) return j.want.rank;
+    return Rank::PAGE;
+  }
+
   // ---- what owners read ----
   // Whether the owner's picture had its first try (here, failed or none): a spinner stops, a title starts to roll.
   bool settled_for(const Owner &owner) const {
@@ -260,6 +272,7 @@ class Loader {
     bool told = false;   // the owner heard that its picture is here
   };
   std::vector<Job> jobs_;
+  bool fits_ahead(const Job &job) const { return !room_ahead || room_ahead(job.want.bytes); }
   // The last key of owners that want nothing right now, the oldest first; a few dozen at most.
   static constexpr size_t REMEMBERED = 32;
   std::vector<std::pair<Owner, std::string>> last_;
