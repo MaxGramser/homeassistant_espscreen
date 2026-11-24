@@ -174,6 +174,9 @@ class BuildQueue:
         if same:
             return same   # asked twice (a second click): it waits once
         request = {'file': data['file'], 'action': data['action'], **({'target': data['target']} if data.get('target') else {})}
+        # The revision the browser read from the chip on the cable goes with it (Firmware.start, docs/CHIP_REVISIONS.md).
+        if data.get('chip_revision') is not None:
+            request['chip_revision'] = data['chip_revision']
 
         async def run(build):
             return 'success' if await self.step(request) else 'failed'

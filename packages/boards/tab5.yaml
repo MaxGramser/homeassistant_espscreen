@@ -108,7 +108,8 @@ touchscreen:
 
 # ESPHome's MIPI-DSI model selects the panel's sequence (DISPLAY_MODEL). The panel is 720x1280; LVGL turns it a quarter.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: M5STACK-TAB5-${DISPLAY_MODEL}
     dimensions: {width: 720, height: 1280}

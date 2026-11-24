@@ -43,6 +43,39 @@ export function imageChip(data: Uint8Array): string | null {
   return null;
 }
 
+/** The revisions of a chip a factory image runs on, as ESP-IDF numbers them (major x 100 + minor). */
+export type RevisionRange = { min: number; max: number };
+
+/**
+ * The range of chip revisions a factory image was built for, from its bootloader's header (min_chip_rev_full at byte
+ * 15, max_chip_rev_full at byte 17, both little endian), or null when the file doesn't say. ESP-IDF writes the same pair
+ * into every image of one build, and its bootloader refuses a chip outside it: an ESP32-P4 of revision 3 stays black on
+ * a firmware built for the earlier silicon (docs/CHIP_REVISIONS.md). So the page compares them before it writes.
+ */
+export function imageRevisions(data: Uint8Array): RevisionRange | null {
+  for (const offset of BOOTLOADER_OFFSETS) {
+    if (data.length < offset + 24) break;
+    if (data[offset] !== IMAGE_MAGIC) continue;
+    const min = data[offset + 15] | (data[offset + 16] << 8);
+    const max = data[offset + 17] | (data[offset + 18] << 8);
+    return min <= max ? { min, max } : null;
+  }
+  return null;
+}
+
+/** Whether the chip on the cable is one the image runs on; a revision or a range nobody knows lets it through. */
+export const revisionFits = (found: number | null, range: RevisionRange | null) =>
+  found === null || !range || (found >= range.min && found <= range.max);
+
+/** A revision in esptool's words: 302 -> "v3.2". */
+export const revisionText = (full: number) => `v${Math.floor(full / 100)}.${full % 100}`;
+
+/** The revision in a chip description of esptool-js, "ESP32-P4 (revision v3.2)" -> 302; null without "v<major>.<minor>". */
+export function revisionOf(description: string): number | null {
+  const match = /\(revision v(\d{1,2})\.(\d{1,2})\)/.exec(description || "");
+  return match ? Number(match[1]) * 100 + Number(match[2]) : null;
+}
+
 /** Whether a chip esptool found fits the chip a screen is built for; an unknown expectation lets any chip through. */
 export const chipMatches = (found: string, expected?: string | null) => !expected || found.toUpperCase() === expected.toUpperCase();
 
@@ -56,7 +89,7 @@ export function writtenPercent(written: number, total: number): number | null {
 }
 
 /** What went wrong, as a key under editor.webflash.errors; the texts say what to do about it. */
-export type FlashProblem = "no_port" | "blocked" | "busy" | "connect" | "wrong_chip" | "wrong_image" | "disconnected"
+export type FlashProblem = "no_port" | "blocked" | "busy" | "connect" | "wrong_chip" | "wrong_image" | "wrong_revision" | "disconnected"
   | "download" | "failed";
 
 /** Why the browser's port picker gave no port. */

@@ -371,7 +371,8 @@ touchscreen:
 # ESPHome's mipi_dsi preset for this panel: the JD9365's init sequence, its timings, and its power, backlight supply
 # and reset on the XL9535.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: SEEED-RETERMINAL-D1001
     update_interval: never

@@ -868,7 +868,8 @@
         "grid": "Choose a grid this screen takes.",
         "build_gone": "This build is no longer known. The newest builds are under Firmware & USB.",
         "log_gone": "This build log is no longer kept.",
-        "friendly_name_quote": "A screen's name cannot hold \" or \\. Write 4 inch as 4in, for example."
+        "friendly_name_quote": "A screen's name cannot hold \" or \\. Write 4 inch as 4in, for example.",
+        "chip_revision": "The chip revision must be a whole number, such as 302 for v3.2."
       },
       "updates": {
         "automatic": "Choose on or off for automatic updates.",
@@ -3961,6 +3962,7 @@
         "connect": "The board didn't answer. Hold the BOOT button on the board while you choose the port, until the installation starts, and try again. Unplugging and plugging in the cable can help too.",
         "wrong_chip": "The board on the cable has an {found} chip, but this screen's firmware is for an {expected}. Plug in the right screen, or choose its board.",
         "wrong_image": "The firmware Tessera built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
+        "wrong_revision": "The firmware Tessera built is for chip revisions {from} to {to}, but the chip on the cable is {found}. Nothing was written. Start again, so Tessera builds for this chip.",
         "disconnected": "The screen was disconnected. Plug it in again and try again.",
         "download": "Couldn't fetch the firmware from Tessera: {error}",
         "failed": "Installing didn't work: {error}"

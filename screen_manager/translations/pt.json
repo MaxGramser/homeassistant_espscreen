@@ -868,7 +868,8 @@
         "grid": "Escolha uma grelha que este ecrã aceite.",
         "build_gone": "Esta compilação já não é conhecida. As mais recentes estão em Firmware e USB.",
         "log_gone": "Este registo de compilação já não é guardado.",
-        "friendly_name_quote": "O nome de um ecrã não pode ter \" nem \\. Escreve 4 polegadas como 4in, por exemplo."
+        "friendly_name_quote": "O nome de um ecrã não pode ter \" nem \\. Escreve 4 polegadas como 4in, por exemplo.",
+        "chip_revision": "A revisão do chip tem de ser um número inteiro, como 302 para v3.2."
       },
       "updates": {
         "automatic": "Escolha se as atualizações automáticas ficam ativadas ou desativadas.",
@@ -4452,6 +4453,7 @@
         "connect": "A placa não respondeu. Mantenha premido o botão BOOT da placa enquanto escolhe a porta, até a instalação começar, e tente novamente. Desligar e voltar a ligar o cabo também pode ajudar.",
         "wrong_chip": "A placa ligada tem um chip {found}, mas o firmware deste ecrã é para um {expected}. Ligue o ecrã certo ou escolha a sua placa.",
         "wrong_image": "O firmware compilado pelo Tessera é para um {expected}, mas a placa ligada tem um {found}. Nada foi escrito.",
+        "wrong_revision": "O firmware que o Tessera criou é para as revisões de chip {from} a {to}, mas o chip no cabo é {found}. Nada foi escrito. Começa de novo, para o Tessera o criar para este chip.",
         "disconnected": "O ecrã foi desligado. Volte a ligá-lo e tente novamente.",
         "download": "Não foi possível obter o firmware do Tessera: {error}",
         "failed": "A instalação não funcionou: {error}"

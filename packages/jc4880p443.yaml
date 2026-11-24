@@ -23,4 +23,4 @@ external_components:
       ref: ${GITHUB_REF}
       path: components
     refresh: 0s
-    components: [esp_aec, smart_display]
+    components: [esp_aec, mipi_dsi_v3, smart_display]

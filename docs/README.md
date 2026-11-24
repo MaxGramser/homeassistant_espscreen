@@ -73,6 +73,8 @@
 - [RESPONSIVE.md](RESPONSIVE.md): how one firmware fits every glass: looks, grids, the font set and card design rules.
 - [MODULES.md](MODULES.md): tiers and modules, the parts of the UI only boards with 8 MB of flash or more get (a recipe).
 - [ADDING_A_BOARD.md](ADDING_A_BOARD.md): adding a board, from its datasheet to the glass.
+- [CHIP_REVISIONS.md](CHIP_REVISIONS.md): why a screen's firmware is built for its chip's silicon revision, where Tessera
+  reads it, and adding a rule when a chip changes its silicon (a recipe).
 - [BOARD_RELEASES.md](BOARD_RELEASES.md): which boards a change reaches, and the firmware number it gets.
 - [PROFILES.md](PROFILES.md): how a screen's YAML is put together from the core, looks, features and board files.
 - [THEME.md](THEME.md): colours and Dark mode, from one table.

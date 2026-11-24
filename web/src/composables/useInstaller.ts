@@ -286,6 +286,9 @@ export function useInstaller() {
       const payload = profileRequest(form, { choices: choices.value, gridChosen: gridChosen.value, wifiMissing: askWifi.value ? wifiMissing.value : null, browser });
       // What stayed ticked on the Plugins step goes into the first firmware; what was unticked is not suggested again.
       if (suggested.value.length) payload.plugins = pluginChoice(suggested.value, picks);
+      // The chip's silicon revision, read from the board on the cable: the first firmware is built for it, so a board
+      // with the newer ESP32-P4 silicon starts as well as one with the older (docs/CHIP_REVISIONS.md).
+      if (browser && flash.state.revision !== null) payload.chip_revision = flash.state.revision;
       if (wifiOther.value) await saveWifi();
       const result = await send("firmware/profiles", "POST", payload);
       Object.assign(installer, { file: result.file, apiKey: result.api_key, friendly: form.friendly_name.trim(), calibrate: !!chosen.value?.calibrate,
@@ -304,7 +307,7 @@ export function useInstaller() {
         // Again from this click: pick the port, then write the image that is already built, or build it first.
         if (!(await flash.connect(installer.chip))) return;
         if (job.value?.state === "success") return;
-        showProgress(await builds.askBuild({ file: installer.file!, action: "download" }));
+        showProgress(await builds.askBuild({ file: installer.file!, action: "download", chip_revision: flash.state.revision }));
         return;
       }
       if (!download.value) {

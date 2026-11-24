@@ -8,29 +8,38 @@ import FirmwareView from "../src/components/FirmwareView.vue";
 import { t } from "../src/i18n";
 import { useInventoryStore } from "../src/stores/inventory";
 import InstallerView from "../src/components/InstallerView.vue";
-import { chipMatches, connectProblem, flashSupport, imageChip, pickProblem, writtenPercent } from "../src/flasher/logic";
+import { chipMatches, connectProblem, flashSupport, imageChip, imageRevisions, pickProblem, revisionFits, revisionOf, revisionText, writtenPercent } from "../src/flasher/logic";
 import { setFlasherLoader, useBrowserFlash } from "../src/flasher/session";
 
 // A factory image as ESPHome writes it: erased flash (0xFF) up to the bootloader, whose header starts with 0xE9 and
-// carries the chip id at byte 12.
-function factoryImage(chipId: number, offset: number) {
+// carries the chip id at byte 12 and the range of chip revisions it runs on at bytes 15 and 17 (ESP-IDF's
+// esp_image_header_t), here every revision unless a test says otherwise.
+function factoryImage(chipId: number, offset: number, revisions = { min: 0, max: 0xffff }) {
   const data = new Uint8Array(offset + 64).fill(0xff);
   data[offset] = 0xe9;
   data[offset + 12] = chipId & 0xff;
   data[offset + 13] = chipId >> 8;
+  data[offset + 15] = revisions.min & 0xff;
+  data[offset + 16] = revisions.min >> 8;
+  data[offset + 17] = revisions.max & 0xff;
+  data[offset + 18] = revisions.max >> 8;
   return data;
 }
+// What ESP-IDF builds an ESP32-P4 for: the silicon before revision 3, or revision 3 (docs/CHIP_REVISIONS.md).
+const P4_PRE_V3 = { min: 0, max: 199 };
+const P4_V3 = { min: 300, max: 399 };
 
 function fakePort() {
   return Object.assign(new EventTarget(), { getInfo: () => ({ usbVendorId: 0x1a86 }) }) as unknown as SerialPort;
 }
 
 // The flasher module's stand-in: what esptool.ts exports, recording what the session asked of it.
-function fakeFlasher(chip = "ESP32") {
+function fakeFlasher(chip = "ESP32", revision: number | null = null) {
   const flasher = {
     createLoader: vi.fn((port: SerialPort) => ({ port })),
     connect: vi.fn(async () => chip),
     readMac: vi.fn(async () => "aa:bb:cc:dd:ee:ff"),
+    readRevision: vi.fn(async () => revision),
     writeImage: vi.fn(async (_loader: unknown, _data: Uint8Array, erase: boolean, onErase: () => void, onProgress: (p: number) => void) => {
       if (erase) onErase();
       onProgress(0);
@@ -93,6 +102,24 @@ describe("reading a factory image", () => {
     expect(imageChip(factoryImage(0, 0x1000))).toBe("ESP32");
     expect(imageChip(factoryImage(9, 0x0))).toBe("ESP32-S3");
     expect(imageChip(factoryImage(18, 0x2000))).toBe("ESP32-P4");
+  });
+  it("reads the range of chip revisions the image runs on from the same header", () => {
+    expect(imageRevisions(factoryImage(18, 0x2000, P4_PRE_V3))).toEqual({ min: 0, max: 199 });
+    expect(imageRevisions(factoryImage(18, 0x2000, P4_V3))).toEqual({ min: 300, max: 399 });
+    expect(imageRevisions(new Uint8Array(0x3000).fill(0xff))).toBeNull();
+  });
+  it("tells whether the chip on the cable is one the image runs on, and lets the unknown through", () => {
+    expect(revisionFits(302, P4_V3)).toBe(true);
+    expect(revisionFits(302, P4_PRE_V3)).toBe(false);
+    expect(revisionFits(103, P4_V3)).toBe(false);
+    expect(revisionFits(null, P4_V3)).toBe(true);
+    expect(revisionFits(302, null)).toBe(true);
+  });
+  it("reads a revision from esptool-js's description, and writes one as esptool does", () => {
+    expect(revisionOf("ESP32-P4 (revision v3.2)")).toBe(302);
+    expect(revisionOf("ESP32-D0WD-V3 (revision 3)")).toBeNull();  // the major alone says too little
+    expect(revisionText(302)).toBe("v3.2");
+    expect(revisionText(199)).toBe("v1.99");
   });
   it("says nothing about a file it can't read", () => {
     expect(imageChip(new Uint8Array(0))).toBeNull();
@@ -160,6 +187,38 @@ describe("one installation from the browser", () => {
     expect(flash.state.phase).toBe("failed");
     expect(flash.state.problem).toBe("no_port");
     expect(flasher.createLoader).not.toHaveBeenCalled();
+  });
+
+  it("reads the chip's silicon revision, and refuses an image for other revisions before it writes", async () => {
+    // A JC4880P443 sold with rev3 silicon and a firmware built for the earlier one: it would write, then stay black.
+    const flasher = fakeFlasher("ESP32-P4", 302);
+    addon(factoryImage(18, 0x2000, P4_PRE_V3));
+    const flash = useBrowserFlash();
+    expect(await flash.connect("ESP32-P4")).toBe(true);
+    expect(flash.state.revision).toBe(302);
+    expect(await flash.install("hall.yaml", true)).toBe(false);
+    expect([flash.state.problem, flash.state.params]).toEqual(["wrong_revision", { found: "v3.2", from: "v0.0", to: "v1.99" }]);
+    expect(flasher.writeImage).not.toHaveBeenCalled();
+    expect(t("editor.webflash.errors.wrong_revision", flash.state.params)).toContain("v3.2");
+  });
+
+  it("writes an image built for the chip's revision", async () => {
+    const flasher = fakeFlasher("ESP32-P4", 302);
+    addon(factoryImage(18, 0x2000, P4_V3));
+    const flash = useBrowserFlash();
+    await flash.connect("ESP32-P4");
+    expect(await flash.install("hall.yaml", true)).toBe(true);
+    expect(flasher.writeImage).toHaveBeenCalledOnce();
+  });
+
+  it("goes on without a revision when the chip can't say it", async () => {
+    const flasher = fakeFlasher("ESP32-P4");
+    flasher.readRevision.mockRejectedValueOnce(new Error("no eFuse"));
+    addon(factoryImage(18, 0x2000, P4_PRE_V3));
+    const flash = useBrowserFlash();
+    await flash.connect("ESP32-P4");
+    expect(flash.state.revision).toBeNull();
+    expect(await flash.install("hall.yaml", true)).toBe(true);
   });
 
   it("refuses a board of another chip before anything is built", async () => {
@@ -269,7 +328,7 @@ describe("New screen from this browser", () => {
   });
 
   it("picks the port on the click, builds with the download target, and installs erased", async () => {
-    const flasher = fakeFlasher("ESP32");
+    const flasher = fakeFlasher("ESP32", 301);  // an ESP32 of revision v3.1
     const { posted, calls } = addonWithBuild(factoryImage(0, 0x1000));
     const view = installer();
     await flush();
@@ -280,6 +339,8 @@ describe("New screen from this browser", () => {
     await flushPromises();
     expect(requestPort).toHaveBeenCalledOnce();
     expect(posted[0].target).toBe("download");
+    // The first firmware is built for the chip's own silicon (docs/CHIP_REVISIONS.md).
+    expect(posted[0].chip_revision).toBe(301);
     // Waiting its turn, the page keeps the port and writes nothing yet.
     expect(view.find("#progress-title").text()).toBe(t("editor.installer.progress.waiting"));
     expect(view.find("#progress-detail").text()).toBe(t("editor.installer.detail.waiting_browser", 1));
@@ -371,7 +432,7 @@ describe("Firmware & USB fills in a paired screen's address", () => {
 
 describe("Firmware & USB from this browser", () => {
   it("builds the profile, then writes it without erasing", async () => {
-    const flasher = fakeFlasher("ESP32");
+    const flasher = fakeFlasher("ESP32", 301);
     let job: any = null;
     addon(factoryImage(0, 0x1000), (url, options) => {
       if (url.endsWith("api/firmware")) {
@@ -394,6 +455,7 @@ describe("Firmware & USB from this browser", () => {
     await view.find("#firmware-install").trigger("click");
     for (let i = 0; i < 5; i++) await flushPromises();
     expect(job.action).toBe("download");
+    expect(job.chip_revision).toBe(301);
     expect(flasher.writeImage).toHaveBeenCalledOnce();
     expect(flasher.writeImage.mock.calls[0][2]).toBe(false);
     expect(view.find("#webflash-line").text()).toContain("Installed");

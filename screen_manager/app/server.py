@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 import automations
 import ha_entities
 import calendar_feed
+import chip_revision
 import todo_feed
 import alarm_screens
 import doorbell
@@ -1211,6 +1212,8 @@ class Manager:
         self.region = Region(self.path.parent / 'language.json', ha_language=lambda: getattr(self.ha, 'ha_language', None))
         self.ha.language_of = self.region.language
         self.firmware.language = self.region.language
+        # The chip revision a build of a profile is made for, when no cable says it (docs/CHIP_REVISIONS.md).
+        self.firmware.chip_of = self.chip_of_profile
         self.ha.on_config = self.language_changed
         self.ha.on_time_zone = self.time_zone_changed
         self._clock_resync = None
@@ -1678,6 +1681,17 @@ class Manager:
             self._screens_key, self._screens = key, discover_screens(items, ha.states, ha.devices, ha.areas)
             self.follow_renamed_inboxes(items)
         return [dict(screen) for screen in self._screens]
+
+    def chip_of_profile(self, file):
+        """What this app knows of the chip of the screen a profile builds, without a cable (chip_revision.known): the
+        screen's own "Screen chip" sensor, else its Override YAML. None when neither says."""
+        profiles = self.firmware.profile_names()
+        screen = next((s for s in self.screens() if self.updates.resolve(s, profiles)[0] == file), None)
+        try:
+            override = self.firmware.override(file).get('content')
+        except (OSError, ValueError):
+            override = None
+        return chip_revision.known(screen, override)
 
     def screen(self, inbox):
         screens = self.screens()

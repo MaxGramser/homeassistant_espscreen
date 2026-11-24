@@ -23,4 +23,4 @@ external_components:
       ref: ${GITHUB_REF}
       path: components
     refresh: 0s
-    components: [smart_display]
+    components: [mipi_dsi_v3, smart_display]

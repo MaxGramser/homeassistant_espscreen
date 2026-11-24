@@ -139,6 +139,7 @@ esphome:
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/hand_standby.h>
+    - <esphome/components/smart_display/chip_revision.h>
   name: ${DEVICE_NAME}
   friendly_name: ${DEVICE_FRIENDLY_NAME}
   on_boot:
@@ -1745,6 +1746,14 @@ text_sensor:
     name: "Screen board"
     entity_category: diagnostic
     lambda: 'return {"${BOARD_ID}"};'
+    update_interval: 60s
+  # The chip and its silicon revision (firmware after 0.63.0), "ESP32-P4 v3.2": ESP Screen Manager builds every later
+  # firmware of this screen for that revision (CHIP_REVISION in the screen's own YAML, docs/CHIP_REVISIONS.md), also
+  # when it was installed some other way than through the app. chip_revision.h reads it from the eFuses.
+  - platform: template
+    name: "Screen chip"
+    entity_category: diagnostic
+    lambda: 'return {chip_revision::said()};'
     update_interval: 60s
   # What this screen is able to do (firmware 0.2.99+): the words of settings_screen::features(), which is where the
   # list of abilities lives. ESP Screens used to read these facts from a table it keeps per board (boards.json),

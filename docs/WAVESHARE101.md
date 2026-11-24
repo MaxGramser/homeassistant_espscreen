@@ -21,15 +21,16 @@ Tessera:
 | Waveshare, ESP32-P4-WIFI6-Touch-LCD-10.1 | pre-v3 ("chip revision: v1.3") | `packages/boards/waveshare101.yaml` |
 | Waveshare, ESP32-P4-WIFI6-Touch-LCD-10.1 V3 | rev3 ("chip revision: v3.x"), what Waveshare ships now | `packages/boards/waveshare101-v3.yaml` |
 
-The two differ in two lines: the chip revision, and the display driver. On rev3 silicon ESPHome's own MIPI-DSI driver
-stops the chip while the display starts, so the V3 board takes the repository's copy of it, `components/mipi_dsi_v3`,
-as the Guition JC8012P4A1 V3 and the Waveshare 7B do. Everything else, the flash, the touch panel and the backlight,
-stands once in `packages/hardware/waveshare101.yaml`.
+The two differ in one line: the chip revision each assumes when nobody has read the chip. Tessera reads it when it
+installs a screen and builds for the revision it finds, whichever of the two was chosen ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)). On rev3 silicon two
+things change: the chip revision switch, and the display driver, the repository's `components/mipi_dsi_v3` in place of
+ESPHome's own, which stops the chip while the display starts. Everything else, the flash, the panel, the touch panel and
+the backlight, stands once in `packages/hardware/waveshare101.yaml`.
 
-Choosing the wrong one does no harm and shows at once: the screen stays dark and the USB log repeats its first lines
-over and over. A pre-v3 firmware on a rev3 chip restarts straight after the bootloader; a firmware with only the chip
-revision changed (`engineering_sample: false` in an Override YAML, without the other display driver) gets as far as
-"Performing bus recovery" and then stops in `esp_lcd_new_dsi_bus`, again and again. Install the other board.
+On rev3 silicon a firmware for the earlier one restarts straight after the bootloader; one with only the chip revision
+switch changed, without the other display driver, gets as far as "Performing bus recovery" and then stops in
+`esp_lcd_new_dsi_bus`, again and again. Tessera's own installer no longer writes a firmware for other silicon than the
+chip on the cable.
 
 **Seen on glass, rev3:** one unit with chip revision v3.2 (a board sold as SKU 33672) starts with the V3 board file,
 joins Wi-Fi, shows its pages lying down and the right way up, and takes touches where the finger is. Sections, Dark

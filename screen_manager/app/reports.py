@@ -278,7 +278,7 @@ class LogBuffer(logging.Handler):
 
 # The firmware's own sensors a report holds, by their name in lower case (Reports._device_sensors).
 SENSORS = ('heap free', 'heap fragmentation', 'heap largest block', 'heap minimum free', 'psram free', 'psram largest block',
-           'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen flash', 'screen layout',
+           'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen chip', 'screen flash', 'screen layout',
            'wi-fi co-processor', 'loop stack free')
 
 

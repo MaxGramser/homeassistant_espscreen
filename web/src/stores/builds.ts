@@ -209,7 +209,8 @@ export const useBuildsStore = defineStore("builds", () => {
   const lineEnded = (build: LineBuild | null | undefined) => Boolean(build && build.state !== "queued" && build.state !== "running");
   /** One ESPHome action the page asks for (New screen's retry, Firmware & USB, the YAML check). It waits its turn in the
    * line; the answer is the build, followed by its id, and the line comes with the next live answer. */
-  async function askBuild(request: { file: string; action: string; target?: string }): Promise<LineBuild> {
+  // `chip_revision`: what the browser read from the chip on the cable, which the build is made for (docs/CHIP_REVISIONS.md).
+  async function askBuild(request: { file: string; action: string; target?: string; chip_revision?: number | null }): Promise<LineBuild> {
     const build = await send<LineBuild>("firmware/jobs", "POST", request);
     await inv.refresh(false).catch(() => null);
     return build;

@@ -19,6 +19,7 @@ import build_cache
 import build_logs
 import build_memory
 import build_server
+import chip_revision
 from core import BOARD_KEYS, REF, REPO, SHAPES, channel, hotspot_name, installation_yaml, old_hotspot_name, our_ref, ref
 from i18n import t
 
@@ -187,8 +188,9 @@ class Firmware:
     # and quietly win on one built lying down. That is worse than being told, so it is refused here with its own
     # sentence rather than the general "these stay managed" one: people were told to override display settings (GitHub
     # #12 and #15), and the sentence has to say where the choice lives now.
+    # CHIP_REVISION is read from the chip itself and written into the profile before each build (chip_revision.py).
     PROTECTED_SUBSTITUTIONS = frozenset({'DEVICE_NAME', 'DEVICE_FRIENDLY_NAME', 'SCREEN_FIRMWARE_VERSION', 'LANGUAGE',
-                                         'LVGL_ROTATION'})
+                                         'LVGL_ROTATION', chip_revision.KEY})
     # ESPHome's "Factory format" (bootloader, partition table and app from address 0), the file ESPHome Web
     # flashes on a board. A build writes it next to firmware.bin: under .pioenvs/<node>/ with PlatformIO,
     # under build/ with ESPHome's native ESP-IDF toolchain.
@@ -230,6 +232,9 @@ class Firmware:
         self.downloaded = set()
         self._names = {}  # file -> (stat signature, meta or None); parsed only when the file changes
         self.language = None  # the language builds speak: the manager's Settings -> Language & region (app 0.2.90)
+        # What the app knows of a profile's chip without a cable (chip_revision.known): the manager's, from the screen's
+        # "Screen chip" sensor or its Override YAML. A callable of the profile's file name; None on its own (a test).
+        self.chip_of = None
         # The app's build line (build_queue.BuildQueue), which alone starts a job here; None on its own (a test).
         self.builds = None
         # The build server builds go to first when it is on (build_server.BuildServer, docs/BUILDS.md "On a build
@@ -405,6 +410,26 @@ class Firmware:
         changed or added without reformatting the user's YAML. A profile that doesn't build from ESP Screens' packages is
         left alone, as is an English one without the line (English is the packages' own default). True when it changed."""
         return self._set_substitution(name, 'LANGUAGE', language, default='en', what='language')
+
+    def set_chip_revision(self, name, revision):
+        """Build the profile for the chip's silicon revision (docs/CHIP_REVISIONS.md): the CHIP_REVISION line of its
+        substitutions, changed or added as the language is. True when it changed."""
+        revision = chip_revision.valid(revision)
+        if revision is None:
+            return False
+        changed = self._set_substitution(name, chip_revision.KEY, str(revision), what='chip revision')
+        if changed:
+            LOG.info('%s: built for chip revision v%d.%d from now on', name, revision // 100, revision % 100)
+        return changed
+
+    def chip_revision(self, name):
+        """The revision a profile's own YAML builds for, or None when it has no line (the board's default builds)."""
+        try:
+            data = yaml.load(self.profile(name).read_text(), Loader=LenientLoader)
+        except (OSError, ValueError, yaml.YAMLError):
+            return None
+        substitutions = data.get('substitutions') if isinstance(data, dict) else None
+        return chip_revision.valid(substitutions.get(chip_revision.KEY)) if isinstance(substitutions, dict) else None
 
     def _set_substitution(self, name, key, value, default=None, what='setting'):
         """One substitution of an existing profile, changed or added without reformatting the user's YAML.
@@ -1079,6 +1104,21 @@ packages:
                 self.set_language(profile.name, self.language())
             except (OSError, ValueError, yaml.YAMLError) as error:
                 LOG.warning('Could not write the language into %s (%s)', profile.name, error)
+        # The silicon revision of the screen's chip (docs/CHIP_REVISIONS.md): what the installer read from the chip on the
+        # cable and sent with this job, else what the screen's own sensor or its Override YAML says. A port of Home
+        # Assistant's machine is read in `run`, right before the build, and wins over both.
+        if managed:
+            revision = chip_revision.valid(data.get('chip_revision'))
+            if revision is None and callable(self.chip_of):
+                try:
+                    revision = self.chip_of(profile.name)
+                except Exception as error:  # noqa: BLE001 - the build goes on with what the YAML says
+                    LOG.warning('Could not tell the chip revision of %s (%s)', profile.name, error)
+            if revision is not None:
+                try:
+                    self.set_chip_revision(profile.name, revision)
+                except (OSError, ValueError, yaml.YAMLError) as error:
+                    LOG.warning('Could not write the chip revision into %s (%s)', profile.name, error)
         # What the app's channel builds from (core.ref): the stable app's own release tag, dev for an app added from the
         # `#dev` URL. An app with no channel (a local copy, a fork) leaves it as it is.
         if managed and channel():
@@ -1282,6 +1322,16 @@ packages:
     async def run(self, profile, action, target):
         env = self.build_env(profile)
         try:
+            if action == 'install' and target.startswith('/dev/') and not profile.name.endswith(self.BRIDGE_SUFFIX):
+                # The chip on Home Assistant's own USB port, read before the build so the firmware fits its silicon
+                # (docs/CHIP_REVISIONS.md). A chip that does not answer leaves the YAML as it is; the upload says more.
+                revision = await chip_revision.read_usb(target)
+                if revision is not None:
+                    self.logs.append(f'The chip on {target} is revision v{revision // 100}.{revision % 100}.')
+                    try:
+                        self.set_chip_revision(profile.name, revision)
+                    except (OSError, ValueError, yaml.YAMLError) as error:
+                        LOG.warning('Could not write the chip revision into %s (%s)', profile.name, error)
             if action not in ('validate', 'widen', 'upload'):
                 await self.retire_platformio()
                 # A build the server makes needs no compile cache here; one that falls back gets it then.

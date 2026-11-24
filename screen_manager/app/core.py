@@ -17,6 +17,7 @@ import meter
 import text_tile
 import catalogue
 import tile_icons
+import chip_revision
 
 # The entity types a tile shows, as the tile catalogue has them (catalogue/*.yaml, catalogue.py): a type exists here only
 # where it has a file there, which comes after the firmware's UI for it (docs/CATALOGUE.md).
@@ -569,9 +570,12 @@ NAME_SCREEN_FEATURES = ('Screen features',)
 # components/flash_layout, docs/FLASH_LAYOUT.md): "wide", ready for the wide one ("widen", or "widen_next" when it
 # takes one more update first), or "old" and "other" when it keeps what it has. No other board has the sensor.
 NAME_SCREEN_FLASH = ('Screen flash',)
+# The chip and its silicon revision (firmware after 0.63.0), "ESP32-P4 v3.2": every build of the screen is made for that
+# revision (chip_revision.py, docs/CHIP_REVISIONS.md). Older firmware says nothing.
+NAME_SCREEN_CHIP = ('Screen chip',)
 SCREEN_ENTITY_NAMES = frozenset(NAME_TILE_SETTINGS + NAME_SCREEN_FIRMWARE + NAME_GUITION_TYPE + NAME_DEVICE_NAME + NAME_IP_ADDRESS
                                 + NAME_SCREEN_LANGUAGE + NAME_SCREEN_LAYOUT + NAME_SCREEN_BOARD + NAME_SCREEN_FEATURES
-                                + NAME_SCREEN_FLASH)
+                                + NAME_SCREEN_FLASH + NAME_SCREEN_CHIP)
 
 # What a board looks like: the glass it draws on and the cells of one page, for each way the board can hang. These
 # come straight from the board files (tools/generate_board_shapes.py writes boards.json from PANEL_W, GRID_COLS and
@@ -3025,6 +3029,7 @@ def discover_screens(registry, states, devices, areas):
     features = diagnostic(NAME_SCREEN_FEATURES, FEATURES_TEXT)
     # What a screen with 4 MB of flash says about its partition table (app 0.4.56); nothing for every other screen.
     flash = diagnostic(NAME_SCREEN_FLASH, r'[a-z][a-z_]{0,15}')
+    chips = diagnostic(NAME_SCREEN_CHIP, r'ESP32(-[A-Z0-9]+)? v\d{1,2}\.\d{1,2}')
     addresses = diagnostic(NAME_IP_ADDRESS, r'\d{1,3}(\.\d{1,3}){3}')
     languages = diagnostic(NAME_SCREEN_LANGUAGE, r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})?')
     # Firmware from before the languages (0.2.75 and older) has no such sensor: it speaks English, with fewer letters.
@@ -3053,6 +3058,7 @@ def discover_screens(registry, states, devices, areas):
                         # What this screen can do with its backlight, in its own words (firmware 0.2.99).
                         'features': features.get(item.get('device_id')),
                         'flash': flash.get(item.get('device_id')),
+                        'chip': chips.get(item.get('device_id')),
                         'node': nodes.get(item.get('device_id')), 'ip': addresses.get(item.get('device_id')),
                         'language': languages.get(item.get('device_id')),
                         'language_sensor': item.get('device_id') in speaks,
@@ -3182,6 +3188,13 @@ def installation_yaml(data):
     if not isinstance(chosen, dict) or any(key not in offered or value not in offered[key] for key, value in chosen.items()):
         raise ValueError(t('addon.errors.firmware.choice'))
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
+    # The revision of the chip the screen goes on, when the installer read it from the chip on the cable (app after
+    # 0.4.100): the packages build what that revision needs (chip_revision.py, docs/CHIP_REVISIONS.md). Unknown, the
+    # line is left out and the board's own default builds, as before.
+    revision = chip_revision.valid(data.get('chip_revision'))
+    if 'chip_revision' in data and data['chip_revision'] is not None and revision is None:
+        raise ValueError(t('addon.errors.firmware.chip_revision'))
+    chip_line = f'  {chip_revision.KEY}: {quote(str(revision))}\n' if revision is not None else ''
     # Swipe between pages is on for a screen set up here: the line is the screen's start value until it stores a choice
     # of its own (packages/core.yaml, SWIPE_PAGES_DEFAULT). A profile written before has no line and keeps the core's off,
     # so an update never turns swiping on for a screen that is out there.
@@ -3212,7 +3225,7 @@ substitutions:
   DEVICE_FRIENDLY_NAME: {quote(friendly.strip())}
   LANGUAGE: {quote(language)}
   SWIPE_PAGES_DEFAULT: "1"
-{rotation_line}{grid_lines}{choice_lines}{branch_line}
+{rotation_line}{grid_lines}{choice_lines}{chip_line}{branch_line}
 esphome:
   name: {quote(name)}
   friendly_name: {quote(friendly.strip())}

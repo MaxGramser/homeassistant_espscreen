@@ -868,7 +868,8 @@
         "grid": "Kies een raster dat dit scherm aanneemt.",
         "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB.",
         "log_gone": "Dit build-log wordt niet meer bewaard.",
-        "friendly_name_quote": "De naam van een scherm mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in."
+        "friendly_name_quote": "De naam van een scherm mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in.",
+        "chip_revision": "De chipversie moet een heel getal zijn, zoals 302 voor v3.2."
       },
       "updates": {
         "automatic": "Kies aan of uit voor automatisch bijwerken.",
@@ -3961,6 +3962,7 @@
         "connect": "Het bord reageerde niet. Houd de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, tot de installatie begint, en probeer het opnieuw. De kabel los en weer vast maken helpt soms ook.",
         "wrong_chip": "Het bord aan de kabel heeft een {found}-chip, maar de firmware van dit scherm is voor een {expected}. Sluit het juiste scherm aan, of kies het juiste bord.",
         "wrong_image": "De firmware die Tessera bouwde is voor een {expected}, maar het bord aan de kabel heeft een {found}. Er is niets geschreven.",
+        "wrong_revision": "De firmware die Tessera bouwde is voor chipversies {from} tot en met {to}, maar de chip aan de kabel is {found}. Er is niets geschreven. Begin opnieuw, dan bouwt Tessera voor deze chip.",
         "disconnected": "Het scherm is losgekoppeld. Sluit het opnieuw aan en probeer het nog eens.",
         "download": "Kon de firmware niet ophalen bij Tessera: {error}",
         "failed": "Installeren is niet gelukt: {error}"

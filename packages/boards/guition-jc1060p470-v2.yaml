@@ -84,7 +84,8 @@ esphome:
 # esp_lcd_jd9165), as that pull request carries them. ESPHome adds the pixel format, the orientation and the
 # display-on commands itself.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: CUSTOM
     update_interval: never

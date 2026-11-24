@@ -105,7 +105,7 @@ async function runBrowser() {
   const name = file.value;
   if (!(await flash.connect(chipOf(name)))) return;
   try {
-    const build = await builds.askBuild({ file: name, action: "download", target: "" });
+    const build = await builds.askBuild({ file: name, action: "download", target: "", chip_revision: flash.state.revision });
     asked.value = { id: build.id, file: name, browser: true };
   } catch (e: any) {
     flash.cancel();
