@@ -712,6 +712,7 @@
       "not_paired": "Este não é um ecrã ESP emparelhado. Recarregue a vista geral.",
       "choose_icon": "Escolha um ícone da lista.",
       "skill_not_written": "Não foi possível escrever a habilidade em {folder} ({reason}).",
+      "skill_no_home_assistant": "A skill não pode ser instalada a partir daqui: {folder} não é a pasta de configuração do Home Assistant. Em vez disso, transfira-a para o claude.ai.",
       "settings": {
         "unknown": "Definições do ecrã desconhecidas; recarregue a página de gestão.",
         "invalid_value": "Valor inválido para {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Posição inválida no mapa",
         "workspace_conflict": "O mapa foi alterado noutro editor",
         "layout_conflict": "A disposição foi alterada noutro editor; recarrega e compara o rascunho",
-        "adaptation": "A grelha do ecrã mudou; é necessária uma adaptação explícita da disposição",
+        "adaptation": "Não foi possível guardar esta alteração da grelha. Guarde o ecrã uma vez com a grelha que tem agora e depois altere a grelha. Se alguém guardou este ecrã entretanto noutra janela, recarregue-o primeiro.",
         "normalization": "As opções dos cartões precisam de ser normalizadas antes de guardar a página",
         "on_tile": "Página {page}, cartão «{tile}»: {problem}",
         "ambiguous_tile": "O evento do cartão tem uma origem ambígua; indica a página",

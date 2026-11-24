@@ -712,6 +712,7 @@
       "not_paired": "Questo non è uno schermo ESP associato. Ricarica la panoramica.",
       "choose_icon": "Scegli un'icona dall'elenco.",
       "skill_not_written": "Impossibile scrivere la skill in {folder} ({reason}).",
+      "skill_no_home_assistant": "La skill non può essere installata da qui: {folder} non è la cartella di configurazione di Home Assistant. Scaricala invece per claude.ai.",
       "settings": {
         "unknown": "Impostazioni dello schermo sconosciute; ricarica la pagina di gestione.",
         "invalid_value": "Valore non valido per {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Posizione non valida sulla mappa",
         "workspace_conflict": "La mappa è stata modificata in un altro editor",
         "layout_conflict": "La disposizione è stata modificata in un altro editor; ricarica e confronta la bozza",
-        "adaptation": "La griglia dello schermo è cambiata; occorre adattare esplicitamente la disposizione",
+        "adaptation": "Questo cambio di griglia non è stato salvato. Salva lo schermo una volta con la griglia che ha ora, poi cambia la griglia. Se nel frattempo qualcuno ha salvato questo schermo in un'altra finestra, ricaricalo prima.",
         "normalization": "Le opzioni delle tessere devono essere normalizzate prima di salvare la pagina",
         "on_tile": "Pagina {page}, tessera «{tile}»: {problem}",
         "ambiguous_tile": "L’evento della tessera ha un’origine ambigua; specifica la pagina",

@@ -712,6 +712,7 @@
       "not_paired": "To nie jest sparowany ekran ESP. Odśwież listę ekranów.",
       "choose_icon": "Wybierz ikonę z listy.",
       "skill_not_written": "Nie udało się zapisać umiejętności w {folder} ({reason}).",
+      "skill_no_home_assistant": "Nie można stąd zainstalować skilla: {folder} nie jest folderem konfiguracji Home Assistant. Zamiast tego pobierz go dla claude.ai.",
       "settings": {
         "unknown": "Nieznane ustawienia ekranu; odśwież stronę zarządzania.",
         "invalid_value": "Nieprawidłowa wartość: {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Nieprawidłowa pozycja na mapie",
         "workspace_conflict": "Mapa została zmieniona w innym edytorze",
         "layout_conflict": "Układ został zmieniony w innym edytorze; wczytaj go ponownie i porównaj wersję roboczą",
-        "adaptation": "Siatka ekranu uległa zmianie; wymagane jest jawne dostosowanie układu",
+        "adaptation": "Nie udało się zapisać tej zmiany siatki. Zapisz ekran raz z jego obecną siatką, a potem zmień siatkę. Jeśli ktoś w międzyczasie zapisał ten ekran w innym oknie, najpierw go przeładuj.",
         "normalization": "Opcje kafelków wymagają normalizacji przed zapisaniem strony",
         "on_tile": "Strona {page}, kafelek „{tile}”: {problem}",
         "ambiguous_tile": "Zdarzenie kafelka ma niejednoznaczne źródło; podaj jego stronę",

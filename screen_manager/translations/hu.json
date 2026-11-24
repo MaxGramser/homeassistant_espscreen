@@ -712,6 +712,7 @@
       "not_paired": "Ez nem párosított ESP kijelző. Frissítsd az áttekintést.",
       "choose_icon": "Válassz ikont a listából.",
       "skill_not_written": "Nem sikerült a skillt ide írni: {folder} ({reason}).",
+      "skill_no_home_assistant": "A skill innen nem telepíthető: a(z) {folder} nem a Home Assistant konfigurációs mappája. Töltsd le inkább a claude.ai-hoz.",
       "settings": {
         "unknown": "Ismeretlen kijelzőbeállítások; frissítsd a kezelőoldalt.",
         "invalid_value": "Érvénytelen érték: {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Érvénytelen munkaterület-pozíció",
         "workspace_conflict": "A munkaterület egy másik szerkesztőben módosult",
         "layout_conflict": "Az elrendezés egy másik szerkesztőben módosult; töltsd újra, és egyeztesd a vázlatot",
-        "adaptation": "A kijelző rácsa megváltozott; az elrendezést kifejezetten át kell igazítani",
+        "adaptation": "Ezt a rácsváltozást nem sikerült menteni. Mentsd el egyszer a képernyőt a mostani rácsával, és csak utána változtasd meg a rácsot. Ha közben valaki egy másik ablakban mentette ezt a képernyőt, előbb töltsd újra.",
         "normalization": "A csempebeállításokat normalizálni kell az oldaldokumentum mentése előtt",
         "on_tile": "{page}. oldal, „{tile}” csempe: {problem}",
         "ambiguous_tile": "A csempeesemény forrása nem egyértelmű; add meg az oldalát",

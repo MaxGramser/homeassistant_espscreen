@@ -712,6 +712,7 @@
       "not_paired": "Ce n'est pas un écran ESP associé. Actualisez la vue d'ensemble.",
       "choose_icon": "Choisissez une icône dans la liste.",
       "skill_not_written": "Impossible d'écrire la compétence dans {folder} ({reason}).",
+      "skill_no_home_assistant": "Le skill ne peut pas être installé d'ici : {folder} n'est pas le dossier de configuration de Home Assistant. Téléchargez-le plutôt pour claude.ai.",
       "settings": {
         "unknown": "Paramètres d'écran inconnus ; actualisez la page de gestion.",
         "invalid_value": "Valeur non valide pour {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Position invalide sur la carte",
         "workspace_conflict": "La carte a été modifiée dans un autre éditeur",
         "layout_conflict": "La disposition a été modifiée dans un autre éditeur ; rechargez et vérifiez le brouillon",
-        "adaptation": "La grille de l’écran a changé ; une adaptation explicite de la disposition est nécessaire",
+        "adaptation": "Ce changement de grille n'a pas pu être enregistré. Enregistrez l'écran une fois avec sa grille actuelle, puis changez la grille. Si quelqu'un a enregistré cet écran entre-temps dans une autre fenêtre, rechargez-le d'abord.",
         "normalization": "Les options des tuiles doivent être normalisées avant d’enregistrer la page",
         "on_tile": "Page {page}, tuile « {tile} » : {problem}",
         "ambiguous_tile": "La source de l’événement de tuile est ambiguë ; précisez sa page",

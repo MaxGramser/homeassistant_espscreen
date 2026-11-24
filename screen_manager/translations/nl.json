@@ -712,6 +712,7 @@
       "not_paired": "Dit is geen gekoppeld ESP-scherm. Vernieuw het overzicht.",
       "choose_icon": "Kies een icoon uit de lijst.",
       "skill_not_written": "Kon de skill niet naar {folder} schrijven ({reason}).",
+      "skill_no_home_assistant": "De skill kan hiervandaan niet worden geïnstalleerd: {folder} is niet de configuratiemap van Home Assistant. Download hem in plaats daarvan voor claude.ai.",
       "settings": {
         "unknown": "Onbekende scherminstellingen; vernieuw de beheerpagina.",
         "invalid_value": "Ongeldige waarde voor {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Ongeldige positie op de kaart",
         "workspace_conflict": "De kaart is gewijzigd in een andere editor",
         "layout_conflict": "De indeling is gewijzigd in een andere editor; laad opnieuw en vergelijk je wijzigingen",
-        "adaptation": "Het schermraster is gewijzigd; beoordeel en bevestig de aangepaste indeling",
+        "adaptation": "Deze rasterwijziging kon niet worden opgeslagen. Sla het scherm eerst één keer op met het raster dat het nu heeft en wijzig daarna het raster. Heeft iemand dit scherm intussen in een ander venster opgeslagen, laad het dan eerst opnieuw.",
         "normalization": "De tegelinstellingen moeten worden aangepast voordat de pagina kan worden opgeslagen",
         "on_tile": "Pagina {page}, tegel “{tile}”: {problem}",
         "ambiguous_tile": "De tegelopdracht heeft meerdere mogelijke bronnen; geef de pagina op",

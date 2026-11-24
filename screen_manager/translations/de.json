@@ -712,6 +712,7 @@
       "not_paired": "Das ist kein gekoppelter ESP-Bildschirm. Lade die Übersicht neu.",
       "choose_icon": "Wähle ein Symbol aus der Liste.",
       "skill_not_written": "Der Skill konnte nicht nach {folder} geschrieben werden ({reason}).",
+      "skill_no_home_assistant": "Der Skill kann von hier nicht installiert werden: {folder} ist nicht der Konfigurationsordner von Home Assistant. Lade ihn stattdessen für claude.ai herunter.",
       "settings": {
         "unknown": "Unbekannte Bildschirmeinstellungen; lade die Verwaltungsseite neu.",
         "invalid_value": "Ungültiger Wert für {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Ungültige Position auf der Karte",
         "workspace_conflict": "Die Karte wurde in einem anderen Editor geändert",
         "layout_conflict": "Das Layout wurde in einem anderen Editor geändert; lade es neu und gleiche den Entwurf ab",
-        "adaptation": "Das Bildschirmraster hat sich geändert; eine ausdrückliche Layoutanpassung ist erforderlich",
+        "adaptation": "Diese Rasteränderung konnte nicht gespeichert werden. Speichere den Bildschirm einmal mit seinem jetzigen Raster und ändere danach das Raster. Hat jemand den Bildschirm inzwischen in einem anderen Fenster gespeichert, lade ihn zuerst neu.",
         "normalization": "Die Kacheleinstellungen müssen vor dem Speichern der Seite angepasst werden",
         "on_tile": "Seite {page}, Kachel „{tile}“: {problem}",
         "ambiguous_tile": "Der Kachelbefehl hat mehrere mögliche Quellen; gib die Seite an",

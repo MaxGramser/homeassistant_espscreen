@@ -712,6 +712,7 @@
       "not_paired": "This isn't a paired ESP screen. Refresh the overview.",
       "choose_icon": "Choose an icon from the list.",
       "skill_not_written": "Couldn't write the skill to {folder} ({reason}).",
+      "skill_no_home_assistant": "The skill cannot be installed from here: {folder} is not Home Assistant's configuration folder. Download it for claude.ai instead.",
       "settings": {
         "unknown": "Unknown screen settings; refresh the management page.",
         "invalid_value": "Invalid value for {setting}.",
@@ -927,7 +928,7 @@
         "workspace_position": "Invalid workspace position",
         "workspace_conflict": "Workspace changed in another editor",
         "layout_conflict": "Layout changed in another editor; reload and reconcile the draft",
-        "adaptation": "Screen grid changed; explicit layout adaptation is required",
+        "adaptation": "This change of grid could not be saved. Save the screen once on the grid it has now, then change the grid. If someone saved this screen in another window meanwhile, reload it first.",
         "normalization": "Tile options need normalization before saving the page document",
         "on_tile": "Page {page}, tile “{tile}”: {problem}",
         "ambiguous_tile": "Tile event has an ambiguous source; specify its page",
