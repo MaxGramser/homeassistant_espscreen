@@ -43,7 +43,7 @@ const title = computed(() => {
         <h2><Icon name="alert-circle-outline" />{{ t("editor.installer.known.title", { name: install.installer.known.name }) }}</h2>
         <p>{{ t("editor.installer.known.text", { name: install.installer.known.name, new: install.form.friendly_name.trim() }) }}</p>
         <div class="ob-ask-keys">
-          <button type="button" class="btn" id="known-keep" @click="install.keepKnown">{{ t("editor.installer.known.reinstall", { name: install.installer.known.name }) }}</button>
+          <button type="button" class="btn" id="known-keep" :disabled="install.submitting" @click="install.againKnown">{{ t("editor.installer.known.reinstall", { name: install.installer.known.name }) }}</button>
           <button type="button" class="btn primary" id="known-replace" :disabled="install.submitting" @click="install.replaceKnown">{{ t("editor.installer.known.replace", { name: install.installer.known.name, new: install.form.friendly_name.trim() }) }}</button>
         </div>
       </div>

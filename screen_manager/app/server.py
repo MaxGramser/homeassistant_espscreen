@@ -1921,7 +1921,10 @@ class Manager:
         first = next((d for d in devices if d.get('id') == (screen or {}).get('device_id')), devices[0])
         name = (screen or {}).get('name') or first.get('name_by_user') or first.get('name') or wanted
         entries = sorted({e for d in devices for e in d.get('config_entries') or [] if isinstance(e, str)})
-        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
+        # The profile this app builds that screen from, so New screen installs it again itself, on the port it holds
+        # (app after 0.4.101); None for a screen built elsewhere, which Firmware & USB cannot build either.
+        file = self.updates.resolve(screen, self.firmware.profile_names())[0] if screen else None
+        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'), 'file': file,
                 'screen': (screen or {}).get('id'), 'device_id': first.get('id'), 'device_ids': sorted(ids),
                 'entries': entries}
 
