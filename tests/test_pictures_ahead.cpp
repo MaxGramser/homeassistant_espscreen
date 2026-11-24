@@ -7,6 +7,7 @@
 // picture fetched ahead is taken only when the store with it in stays at or under the level, so nothing is let go and
 // the downloads stop; two that fit together are both fetched ahead.
 #include "../components/smart_display/picture_loader.h"
+#include "../components/smart_display/picture_loader.cpp"  // the loader's bodies (its own compilation unit)
 #include "../components/smart_display/picture_store.h"
 #include <cassert>
 #include <cstdio>
