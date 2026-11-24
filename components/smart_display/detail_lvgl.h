@@ -289,7 +289,7 @@ inline void detail_command(int cmd){
   if(cmd>=600&&cmd<=621){alarm_command(cmd);return;}
   // A lock's keys (700-702): Lock, Unlock, Open door.
   if(cmd>=700&&cmd<=709){lock_command(cmd);return;}
-  // A cover group's key (720): its page of covers over the card.
+  // A group's key (720): its page over the card, of covers (the cover card) or of lamps (the light card, GitHub #458).
   if(cmd==720){if(const Tile *t=detail_tile())group_page::open(t->entity);return;}
   // History ranges (firmware 0.2.51+): redraw after this event, which belongs to a key the redraw deletes.
   if(cmd>=160&&cmd<163){

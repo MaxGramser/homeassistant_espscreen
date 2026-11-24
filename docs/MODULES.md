@@ -57,7 +57,8 @@ the add-on and the editor offer a module's options only on boards that have it.
   card's block (`vc`); lite keeps the card it had (`render_vacuum_detail`). The same module draws a robot's larger tile
   (`module_vacuum_tile.cpp`): its hello says `vacuum_tile` too, and any other screen gets the tile's keys instead.
 - **cover_groups** (full): a cover group's page, a card per cover (`module_cover_groups.h`, included by
-  `group_page.h`), behind a key on the group's cover card where a light group's lamps key stands (docs/RESPONSIVE.md,
+  `group_page.h`), behind a key on the group's cover card where a light group's lamps key stands (on its colour card,
+  or beside the power key on its light card when the group only dims or switches, GitHub #458) (docs/RESPONSIVE.md,
   "A cover's controls by its room"). Its screens say `group_covers` in their hello and ESP Screens sends them the
   group's covers (`covers`, `cover_groups.py`); lite keeps the cover card alone.
 - **clock_faces** (full): the screensaver's clock faces Glass, Classic and Bauhaus beside the digital clock
