@@ -52,7 +52,7 @@ The host render cannot see it: the host has no dim on the glass.
 - `components/smart_display/alert_life.h`: `show` wakes the screen (`glass.wake`), then reveals the card (`glass.reveal`).
 - `components/smart_display/screen_standby.h`: `wake` (the light, the wake overlay, the cards).
 
-## Solved (to be seen on glass)
+## Solved
 
 2026-11-24, the same day, in 1c38b1d2. Candidate 1 was it, and what leaves LVGL the whole screen at a wake is the sheet over a
 screen in standby that takes the waking tap: it covers the glass, and hiding it invalidates all of it. `show` revealed
@@ -64,3 +64,7 @@ nothing pending and pays nothing. `hide` needed no change: it ends by having LVG
 The proof is glass, since the host has no dim on it: `alert_glass.py <node> <prefix> standby` on a board with the dim
 on the glass, light look, and the pixel of the page behind the card reads as on a lit screen, (98, 105, 106) on the
 Guition 10.1, where it read (49, 56, 57).
+
+Seen on glass on 2026-11-24, on the release candidate of 0.4.102 (firmware 0.64.0) on a Guition 10.1: the pixel read
+(98, 105, 106) in two runs of `alert_glass.py <node> <prefix> standby`, and the dark look was unchanged (the page
+black, the card (24, 24, 24)). No bright moment before the dim was looked for with a camera; nobody reported one.

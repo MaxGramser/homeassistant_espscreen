@@ -16,8 +16,10 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [watchdog-reset-after-an-update.md](watchdog-reset-after-an-update.md) | A Guition 4 inch reports "Other Watchdog" for the restart after an update, on 0.64.0 and on a firmware before it, and the app records it as a crash; the other boards do not | 2026-11-24 |
+| [preview-last-run-in-utc.md](preview-last-run-in-utc.md) | The editor's preview shows when a script or scene last ran in UTC where the screen shows local time: the preview's stand-in for ESPHome's local time uses `gmtime` | 2026-11-24 |
 | [module-files-asked-for-on-a-direct-link.md](module-files-asked-for-on-a-direct-link.md) | A page opened straight on a screen asks for the module lists and files of the other screens' plugins (the overview's previews ask before they leave): a few small requests once a day per browser, nobody sees it; the one change of order that fixes it and its test | 2026-11-24 |
-| [alert-in-standby-dims-twice.md](alert-in-standby-dims-twice.md) | An alert that arrived in standby left the page behind its card dimmed twice in the light look, on a board with the dim on the glass: `screen_motion::show` now lets LVGL finish drawing first. Solved 2026-11-24, to be seen on glass | 2026-11-24 |
+| [alert-in-standby-dims-twice.md](alert-in-standby-dims-twice.md) | An alert that arrived in standby left the page behind its card dimmed twice in the light look, on a board with the dim on the glass. Solved 2026-11-24 in 1c38b1d2, seen on a Guition 10.1 | 2026-11-24 |
 | [standby-by-hand-answers-a-ring.md](standby-by-hand-answers-a-ring.md) | Sleep, the board's key or the home button held during a doorbell's ring closes it as `closed`, which the app counts as an answer: the ring ends on every screen and Home Assistant hears it answered; the two readings and what would decide | 2026-11-24 |
 | [plugin-modules-with-esphome-entities.md](plugin-modules-with-esphome-entities.md) | Eleven plugins keep their placeholder in the editor: their plugin.yaml makes ESPHome entities, and a module does not run the component's code generation; what the road needs, waste_collection as the first proof | 2026-11-24 |
 | [phone-save-in-the-dock.md](phone-save-in-the-dock.md) | Save in the phone editor's dock does nothing for some phones in Home Assistant's app (GitHub #438); not reproduced, what was read and tried, what to ask | 2026-11-24 |
