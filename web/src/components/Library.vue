@@ -176,7 +176,9 @@ const LEAST_SCALE = 0.5;
 const { height: listHeight } = useElementSize(list, undefined, { box: "border-box" });
 const shelfChrome = ref(0), drawerChrome = ref(0), strip = ref({ width: 0, gap: 0 });
 // A measure is taken a frame after the drawing it reads, and kept only when it moved by more than a pixel: what it
-// changes is drawn again and measured once more, and that settles instead of going round.
+// changes is drawn again and measured once more, and that settles instead of going round. The frame is what keeps the
+// page alive: a measure in the same tick as the drawing (nextTick) chains every pass into one microtask queue, and a
+// scale that flips between two values then never lets the browser draw again (it froze the page at 1440 x 1000).
 const settle = (target: { value: number }, next: number) => { if (Math.abs(target.value - next) > 1) target.value = next; };
 function measureShelves() {
   const shelf = list.value?.querySelector<HTMLElement>(".shelf"), row = shelf?.querySelector<HTMLElement>(".shelf-row");

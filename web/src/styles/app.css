@@ -746,7 +746,7 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .sw button:hover { transform: scale(1.08); }
 .sw button i { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.1); display: block; }
 .sw button i.auto { background: linear-gradient(135deg, #fff 50%, #e5e7eb 50%); }
-.sw button i.none { background: linear-gradient(135deg, transparent 45%, #8b95a1 45%, #8b95a1 55%, transparent 55%), #e7e7e7; border-style: dashed; }
+.sw button i.none { background: linear-gradient(135deg, transparent 45%, #8b95a1 45%, #8b95a1 55%, transparent 55%), var(--glass-page); border-style: dashed; }
 .sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .picker { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .picker input { background: var(--surface); }
@@ -805,8 +805,8 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
    (more than six) stand under the title in lines of their own. The bar stays while the part under it scrolls. */
 .bar-body, .page-body, .tile-body { padding-top: 0; }
 .bar-anchor, .page-anchor { position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 12px 16px 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.bar-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; font-family: "Bar Roboto", var(--ui-font); min-width: 0; }
-.strip-slot { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 6px; border-radius: 8px; color: #1b1b1b; font-size: 12.5px; white-space: nowrap; flex: none; touch-action: pan-y; }
+.bar-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: var(--glass-page); color: var(--glass-ink); font-family: "Bar Roboto", var(--ui-font); min-width: 0; }
+.strip-slot { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 6px; border-radius: 8px; color: var(--glass-ink); font-size: 12.5px; white-space: nowrap; flex: none; touch-action: pan-y; }
 .strip-slot .mdi { font-size: 17px; line-height: 1; }
 .strip-slot:hover:not(:disabled):not([data-state="active"]) { background: rgba(0, 0, 0, 0.06); }
 .strip-slot[data-state="active"] { background: #ffffff; box-shadow: 0 1px 3px rgba(20, 24, 40, 0.18), 0 0 0 2px var(--accent); }
@@ -849,8 +849,8 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .bar-part > .insp-sec > .insp-sec-head, .bar-part > .insp-sec > .insp-sec-body { padding-left: 0; padding-right: 0; }
 /* The page in small at the head of its settings (app 0.4.89, PageInspector.vue): its top bar, which opens the bar's
    inspector, its cells, and its place in the Dock. The part chosen is ringed in the accent. */
-.mini-page { display: grid; gap: 4px; padding: 5px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; }
-.mini-page > button { border-radius: 8px; color: #1b1b1b; }
+.mini-page { display: grid; gap: 4px; padding: 5px; border-radius: 12px; background: var(--glass-page); color: var(--glass-ink); }
+.mini-page > button { border-radius: 8px; color: var(--glass-ink); }
 .mini-page > button:hover { background: rgba(0, 0, 0, 0.06); }
 .mini-page > button[aria-selected="true"] { box-shadow: 0 0 0 2px var(--accent); }
 .mini-bar { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
@@ -878,7 +878,7 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 /* As tall as the folded library beside it (Library.vue HEAD), so their top lines meet. */
 .dr-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; min-height: 49px; padding: 7px 12px; border-top: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
 .dr-foot .spacer { flex: 1; }
-.live { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #e7e7e7; color: #1b1b1b; justify-items: start; }
+.live { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass-page); color: var(--glass-ink); justify-items: start; }
 .live small { color: #5a5f66; }
 .live svg { display: block; height: 28px; }
 .option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); width: 100%; text-align: left; }
@@ -1032,7 +1032,7 @@ fieldset:disabled { opacity: 0.6; }
 .orient { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; cursor: pointer; }
 .orient:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .orient input { width: auto; margin: 0; accent-color: var(--accent); flex: none; }
-.orient-glass { flex: none; height: 68px; aspect-ratio: var(--glass-aspect, 1 / 1); background: #e7e7e7; border-radius: 7px; padding: 4px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 3px; }
+.orient-glass { flex: none; height: 68px; aspect-ratio: var(--glass-aspect, 1 / 1); background: var(--glass-page); border-radius: 7px; padding: 4px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 3px; }
 .orient-bar { height: 6px; border-radius: 3px; background: #cfcfcf; }
 .orient-cells { display: grid; grid-template-columns: repeat(var(--glass-columns, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--glass-rows, 3), minmax(0, 1fr)); gap: 3px; min-height: 0; }
 .orient-cells i { background: #fff; border-radius: 3px; }

@@ -18,6 +18,11 @@ describe("the glass's colours", () => {
     expect(document.documentElement.style.getPropertyValue("--glass-page")).toBe(role("PAGE"));
     const css = readFileSync("src/styles/app.css", "utf8");
     expect(css).toMatch(/\.device \{ background: var\(--glass-page\);[^}]*color: var\(--glass-ink\);/);
+    // The glass has one colour in the stylesheet: no rule writes the page's own number.
+    const page = role("PAGE"), ink = role("INK");
+    expect(css.toLowerCase()).not.toContain(`background: ${page}`);
+    expect(css.toLowerCase()).not.toContain(`${page};`);
+    expect(css.toLowerCase()).not.toMatch(new RegExp(`\\.(bar-strip|mini-page|live|orient-glass|strip-slot)[^{]*\\{[^}]*${ink}`));
   });
 });
 
