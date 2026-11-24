@@ -1074,6 +1074,8 @@ details.log-wrap pre { margin-top: 8px; }
 .notice .mdi { font-size: 18px; color: var(--muted); flex: none; }
 .notice strong { display: block; font-weight: 600; margin-bottom: 2px; }
 .notice-text { flex: 1; min-width: 0; }
+/* A notice's words wrap, also in a notice with choices (.choice span keeps a picker's choices on one line). */
+.notice .notice-text { white-space: normal; }
 .notice.warn { background: var(--warn-soft); border-color: transparent; color: var(--ink); }
 .notice.warn .mdi { color: var(--warn); }
 /* A notice that asks for a choice (unsaved changes kept, another tab): on a phone its keys go under the words, at the right. */
@@ -1593,7 +1595,7 @@ section.advanced code { font-size: 11.5px; }
 .phone-status .dot.update { background: var(--led-update); }
 .phone-status.dirty { color: var(--warn); }
 .app.phone .body { display: block; overflow: visible; }
-.app.phone .canvas { padding: 10px 16px calc(112px + env(safe-area-inset-bottom)); overflow: visible; }
+.app.phone .canvas { padding: 10px 16px calc(112px + var(--safe-bottom)); overflow: visible; }
 .app.phone #layout-preview { display: flex; flex-direction: column; align-items: center; gap: 0; overflow: visible; padding: 0; margin: 0; touch-action: pan-y; }
 .app.phone .page-head { display: none; }
 .app.phone #layout-preview .page { flex: none; width: var(--mockup-width); max-width: 100%; }
@@ -1608,14 +1610,14 @@ section.advanced code { font-size: 11.5px; }
 .phone-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
 .phone-dots i.on { background: var(--ink); }
 .phone-hint { max-width: 300px; color: var(--muted); font-size: 13px; line-height: 1.45; text-align: center; }
-.phone-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+.phone-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; padding: 14px 16px calc(14px + var(--safe-bottom));
   background: linear-gradient(to bottom, color-mix(in srgb, var(--ground) 0%, transparent), var(--ground) 34%); }
 .phone-dock .btn { flex: 1; height: 50px; border-radius: 14px; font-size: 16px; font-weight: 600; gap: 8px; }
 .phone-dock .btn .ui-icon { font-size: 21px; margin: 0; }
 .phone-dock .btn.soft { background: var(--seg); color: var(--ink); }
 .phone-dock .btn.square { flex: 0 0 50px; padding: 0; }
 .phone-dock .btn:disabled { opacity: 0.5; }
-.app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
+.app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + var(--safe-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
   padding: 13px 16px; font-size: 14.5px; }
 /* With a sheet open the word goes to the top, clear of the sheet's buttons. */
 .app.phone:has(.drawer, .library.open, .phone-sheet) .toast, body:has(.ui-sheet) .app.phone .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
@@ -1649,7 +1651,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .lib-domains button[aria-pressed="true"] small { color: inherit; opacity: 0.7; }
 .app.phone .lib-domains .dn { overflow: visible; }
 .app.phone .lib-domains .domain-icon.all { display: none; }
-.app.phone .lib-list { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); }
+.app.phone .lib-list { padding: 0 16px calc(24px + var(--safe-bottom)); }
 .app.phone .lib-group-title { background: var(--ground); font-size: 13px; color: var(--muted); padding: 16px 4px 7px; }
 .app.phone .lib-grid { grid-template-columns: minmax(0, 1fr); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .app.phone .lib-list > .lib-group:only-child .lib-grid, .app.phone .lib-list > .lib-group:first-child:not(:has(.lib-group-title)) .lib-grid { margin-top: 12px; padding-top: 0; }
@@ -1670,7 +1672,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .drawer-enter-from, .app.phone .drawer-leave-to { width: auto; opacity: 1; transform: translateY(100%); }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
-.app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + var(--safe-bottom)); }
 /* On a phone the sheet starts with what a tile is changed for most: the tile itself at the head, a way to another
    entity when its own is gone, then its name, then its icon and colour. */
 .app.phone .dr-body > .bar-anchor { order: -4; }
@@ -1688,7 +1690,7 @@ section.advanced code { font-size: 11.5px; }
 
 /* The pages of a screen. */
 .phone-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 84vh; display: flex; flex-direction: column; background: var(--ground);
-  border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + env(safe-area-inset-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + var(--safe-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .sheet-list { list-style: none; margin: 8px 16px 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: auto; }
 .sheet-list li { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 6px; background: var(--surface); transition: transform 0.15s; }
 .sheet-list li.carried { transition: none; }

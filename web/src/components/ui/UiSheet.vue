@@ -56,7 +56,7 @@ const style = computed(() => ({
 
 <style scoped>
 .ui-sheet { z-index: 62; padding-bottom: 0; transition: max-height .28s cubic-bezier(.2, .8, .2, 1); overflow: hidden; }
-.ui-sheet:not(.typing) { padding-bottom: env(safe-area-inset-bottom); }
+.ui-sheet:not(.typing) { padding-bottom: var(--safe-bottom); }
 .ui-sheet.typing { border-radius: 18px 18px 0 0; transition: none; }
 .ui-sheet-grab { display: block; width: 100%; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; flex: none; }
 .ui-sheet-grab .sheet-grab { margin: 8px auto 0; }

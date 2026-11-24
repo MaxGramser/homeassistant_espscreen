@@ -1,5 +1,10 @@
 /* Design tokens. Light is the default; dark follows the browser (Home Assistant's "auto" theme does too). */
 :root {
+  /* The room a phone's system bar takes at the bottom (GitHub #438). env(safe-area-inset-bottom) says it in a browser or
+     an app that draws to the edge, but the editor in Home Assistant's app runs in an iframe, where it is 0 while an
+     Android phone that draws edge to edge puts its gesture bar over the page's foot: the dock's Save went under it.
+     On a touch screen the foot keeps at least a gesture bar's height free. One value for every part at the foot. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light dark;
   /* Neutral greys in small steps, the way Attio layers its surfaces: depth from the step, not from a shadow (app 0.4.32). */
   --ground: #f7f7f8;
@@ -126,4 +131,9 @@
   font-weight: 700;
   src: url("../assets/bar-roboto-700.woff") format("woff");
   font-display: block;
+}
+
+/* A touch screen keeps a gesture bar's height at its foot even where the inset reads 0 (--safe-bottom above). */
+@media (pointer: coarse) {
+  :root { --safe-bottom: max(env(safe-area-inset-bottom, 0px), 24px); }
 }
