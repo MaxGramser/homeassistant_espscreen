@@ -1010,6 +1010,17 @@ class Run:
         height = await self.until(lambda l: probe(l, 'tile=0 label height'), 10, 'the height of a label', start)
         if re.search(r'height=(\d+) line=(\d+)', height).group(1) != re.search(r'height=(\d+) line=(\d+)', height).group(2):
             self.failures.append(f'a label is not one line high: {height}')
+        # A tile renamed in the editor (plugin API 0.29, plugin_host made_from): the editor's save of a name reaches the
+        # plugin, whose card is made again and gets the new name in create(); then the old name back for the rest.
+        probe_tile = next(t for page in record['layout']['pages'] for t in page['tiles']
+                          if (t.get('appearance') or {}).get('label') == 'Probe')
+        for label in ('Renamed', 'Probe'):
+            start_name = len(self.lines)
+            probe_tile['appearance']['label'] = label
+            compiled = send_layout.compile_tiles(record['layout'], grid)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(1), bars)
+            await self.until(lambda l: probe(l, 'tile=0 create') and f'name=[{label}]' in l, 10,
+                             f'tile 0 made again with its new name {label}', start_name)
         # Boot came before the harness listened: the probe repeats what it heard then with every tile it makes.
         status = await self.until(lambda l: probe(l, 'status ready='), 10, 'the probe status', start)
         assert 'ready=1 settings=5 interval=1' in status, f'the moments of boot: {status}'
