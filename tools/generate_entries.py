@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import profiles  # noqa: E402
 
 ROOT = profiles.ROOT
-REPO = 'https://github.com/MaxGramser/homeassistant_espscreen'
+REPO = 'https://github.com/haarspalter/homeassistant_espscreen'
 
 
 def components(board):
@@ -59,7 +59,7 @@ substitutions:
   # The branch the components and the fonts come from: main, or dev for a screen of the app's dev channel, which
   # writes GITHUB_REF into the screen's own YAML next to the `ref:` of this package (docs/RELEASING.md, "Testing dev").
   GITHUB_REF: "main"
-  FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${{GITHUB_REF}}/fonts"
+  FONT_DIR: "https://raw.githubusercontent.com/haarspalter/homeassistant_espscreen/${{GITHUB_REF}}/fonts"
 
 packages:
   core: !include core.yaml
