@@ -1,0 +1,58 @@
+# ESP Screens - Freenove FNK0104N, experimental: a 3.5-inch 320 x 480 ST77922 TDDI panel over QSPI with built-in
+# capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and octal PSRAM. Freenove's 2.8 and 4-inch boards of the
+# same series (FNK0104A, B and S) have other glass and other controllers and are not this file.
+#
+# The pins and init sequence come from Freenove's Freenove_ESP32_S3_Display repository (docs/FREENOVEFNK0104N.md); the
+# project has not tried this file on real hardware yet.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/freenovefnk0104n.yaml (a build on this computer) and packages/freenovefnk0104n.yaml (the package a screen
+# builds from over GitHub).
+packages:
+  hardware: !include ../hardware/freenove-fnk0104n.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  # The BOOT key, GPIO0, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "freenovefnk0104n"
+  DEVICE_NAME: "freenovefnk0104n-new"
+  DEVICE_FRIENDLY_NAME: "My Freenove 3.5"
+  TOUCH_CONTROLLER: "ST77922"                   # built-in TDDI touch uses ESPHome's st7123 protocol
+  STANDBY_KEY_PIN: GPIO0                        # the standby key (features/standby-key.yaml)
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # The st7123 touch driver arrived in ESPHome 2026.7.0; 2026.9.0 matches the add-on's ESPHome.
+  # A board file's min_version wins over packages/core.yaml.
+  min_version: 2026.9.0

@@ -28,7 +28,7 @@ STILL_HELD = {
     ),
     'esp_ldo': ('crowpanel101',),
     'esphome': (
-        'crowpanel101', 'cyd-2432s028', 'cyd-2432s028-ili9342', 'guition-jc1060p470-v2', 'guition-jc1060p470',
+        'crowpanel101', 'cyd-2432s028', 'cyd-2432s028-ili9342', 'freenove-fnk0104n', 'guition-jc1060p470-v2', 'guition-jc1060p470',
         'guition-jc4880p443', 'hosyond40', 'seeed-sensecap-indicator-d1',
         'guition-jc8012p4a1-v2', 'guition-jc8012p4a1-v3', 'guition-jc8012p4a1', 'reterminald1001', 'tab5',
         'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7b', 'waveshare101', 'waveshare101-v3', 'waveshare43c', 'wavesharep4', 'wavesharep47',
