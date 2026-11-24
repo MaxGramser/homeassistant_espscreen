@@ -1,7 +1,7 @@
 // moved.h: whether the board itself moved, from its accelerometer and gyroscope (Wake when moved).
 // Readings ten times a second, as the board file reads them, in g and degrees a second as ESPHome's `motion` reports.
-// tests/data/moved_*.csv are readings of a reTerminal D1001 (t ms, ax, ay, az g, gx, gy, gz degrees a second) when
-// present; the shapes below cover what each of them shows.
+// The shapes below are made, after the LSM6DS3TR-C's datasheet noise. Recordings of a reTerminal D1001 (t ms, ax, ay,
+// az g, gx, gy, gz degrees a second) go in tests/data/moved_*.csv and are replayed when present; none are measured yet.
 #include "components/smart_display/moved.h"
 #include <cassert>
 #include <cmath>

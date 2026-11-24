@@ -10,7 +10,8 @@
 // with 1.0, a whole g, which only a shake reached.
 //
 // Free of LVGL and ESPHome: a board feeds it every reading and runs its wake when it says so.
-// tests/test_moved.cpp drives it with readings of a reTerminal D1001 (tests/data/moved_*.csv).
+// tests/test_moved.cpp drives it with made readings shaped after the LSM6DS3TR-C's datasheet noise; the thresholds
+// are not yet measured on a board (recordings of a D1001 at rest and picked up are still to come, tests/data/moved_*.csv).
 #include <cmath>
 #include <cstdint>
 
