@@ -345,6 +345,10 @@ describe("New screen from this browser", () => {
     expect(view.find("#progress-title").text()).toBe(t("editor.installer.progress.waiting"));
     expect(view.find("#progress-detail").text()).toBe(t("editor.installer.detail.waiting_browser", 1));
     expect(flasher.writeImage).not.toHaveBeenCalled();
+    // The page writes the screen itself: no Close that "keeps going" while it has yet to, since closing would let go of the
+    // port and nothing would be written, and no word that the window may close.
+    expect(view.find("#install-close").exists()).toBe(false);
+    expect(view.text()).not.toContain(t("editor.installer.flow.may_close"));
     // The add-on's next live answer: built, and the page writes it.
     useInventoryStore().applyLive({ line: [build("success") as any] });
     await flush();

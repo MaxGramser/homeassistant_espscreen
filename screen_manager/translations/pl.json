@@ -3981,6 +3981,7 @@
           "ha": "Dodawanie do Home Assistant"
         },
         "may_close": "możesz zamknąć to okno",
+        "keep_open": "nie zamykaj tej strony, dopóki nie trafi na ekran",
         "show_log": "Co dokładnie się dzieje",
         "to_pages": "Stwórz jego strony",
         "another": "Dodaj kolejny ekran",

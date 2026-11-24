@@ -3490,6 +3490,7 @@
           "ha": "Adding it to Home Assistant"
         },
         "may_close": "you can close this window",
+        "keep_open": "keep this page open until it is on the screen",
         "show_log": "What happens exactly",
         "to_pages": "Make its pages",
         "another": "Add another screen",

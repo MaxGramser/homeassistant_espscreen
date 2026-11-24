@@ -3981,6 +3981,7 @@
           "ha": "Hozzáadás a Home Assistanthoz"
         },
         "may_close": "bezárhatod ezt az ablakot",
+        "keep_open": "hagyd nyitva ezt az oldalt, amíg rá nem kerül a kijelzőre",
         "show_log": "Mi történik pontosan",
         "to_pages": "Oldalak létrehozása",
         "another": "Újabb kijelző hozzáadása",

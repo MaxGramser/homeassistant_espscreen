@@ -3981,6 +3981,7 @@
           "ha": "A adicionar ao Home Assistant"
         },
         "may_close": "pode fechar esta janela",
+        "keep_open": "mantém esta página aberta até estar no ecrã",
         "show_log": "O que acontece exatamente",
         "to_pages": "Criar as suas páginas",
         "another": "Adicionar outro ecrã",

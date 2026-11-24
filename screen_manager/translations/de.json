@@ -3981,6 +3981,7 @@
           "ha": "Zu Home Assistant hinzufügen"
         },
         "may_close": "du kannst dieses Fenster schließen",
+        "keep_open": "lass diese Seite offen, bis sie auf dem Bildschirm ist",
         "show_log": "Was genau passiert",
         "to_pages": "Seiten erstellen",
         "another": "Noch einen Bildschirm hinzufügen",

@@ -3981,6 +3981,7 @@
           "ha": "Aggiunta a Home Assistant"
         },
         "may_close": "puoi chiudere questa finestra",
+        "keep_open": "lascia aperta questa pagina finché non è sullo schermo",
         "show_log": "Cosa succede esattamente",
         "to_pages": "Crea le sue pagine",
         "another": "Aggiungi un altro schermo",

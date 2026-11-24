@@ -6,7 +6,7 @@
 
 - **A thermostat on another page shows its new mode's colour.** A thermostat that went from Auto to Heat, or a lamp that changed colour, while its page was out of sight came back in its old colour. It now comes back in the colour it has. New firmware. ([#349](https://github.com/MaxGramser/homeassistant_espscreen/issues/349))
 
-- **New screen finishes what it starts.** When the board on the cable is already one of your screens, "Install it again" now installs it right there: the same cable, that screen's own firmware built for the chip on the cable, without wiping its settings or its calibration, and the same steps until it is back in Home Assistant. It used to send you to Firmware & USB with another screen picked.
+- **New screen finishes what it starts.** When the board on the cable is already one of your screens, "Install it again" now installs it right there: the same cable, that screen's own firmware built for the chip on the cable, without wiping its settings or its calibration, and the same steps until it is back in Home Assistant. It used to send you to Firmware & USB with another screen picked. While it installs from this browser, it no longer says you can close the window: the page itself puts the software on the screen, so it asks you to keep it open until that is done.
 
 - **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
 

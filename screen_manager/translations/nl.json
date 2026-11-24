@@ -3490,6 +3490,7 @@
           "ha": "Toevoegen aan Home Assistant"
         },
         "may_close": "je mag dit venster sluiten",
+        "keep_open": "laat deze pagina open tot hij op het scherm staat",
         "show_log": "Wat er precies gebeurt",
         "to_pages": "Pagina's maken",
         "another": "Nog een scherm toevoegen",

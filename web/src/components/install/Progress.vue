@@ -26,6 +26,9 @@ useStickToBottom(logBox, () => install.logs.length, { near: 40 });
 const name = computed(() => install.installer.friendly);
 const saved = computed(() => install.installer.view === "done" && !install.installer.build);
 const ready = computed(() => install.journey.done);
+// From this browser the page itself writes the firmware once it is built: until it is on the screen, closing the page
+// would let go of the cable's port and nothing would be written, so the page says to keep it open and offers no Close.
+const tied = computed(() => install.installer.browser && install.flash.state.phase !== "done");
 // The step it is at: the first that is not done.
 const now = computed(() => install.journey.steps.find((step) => step.state !== "done")?.key ?? null);
 const failed = computed(() => (!install.running && !install.ok) || install.journey.failed);
@@ -99,7 +102,7 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
           <span v-if="step.state === 'running' && step.percent !== null" class="ob-journey-pct">{{ step.percent }} %</span>
         </li>
       </ol>
-      <p v-if="install.elapsed && install.running" class="ob-meta">{{ t("editor.installer.elapsed", { time: install.elapsed }) }} · {{ t("editor.installer.flow.may_close") }}</p>
+      <p v-if="install.elapsed && install.running" class="ob-meta">{{ t("editor.installer.elapsed", { time: install.elapsed }) }} · {{ t(tied ? "editor.installer.flow.keep_open" : "editor.installer.flow.may_close") }}</p>
     </template>
 
     <!-- The memory the build has (app 0.4.65): a slower build the person understands, or why it stopped. -->
@@ -153,7 +156,7 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
         <button type="button" class="ob-go" @click="install.close">{{ t("editor.installer.done") }}</button>
         <button type="button" class="ob-quiet" id="install-close" @click="install.reset">{{ t("editor.installer.flow.another") }}</button>
       </template>
-      <button v-else type="button" class="ob-quiet" id="install-close" :disabled="install.flash.busy()" @click="install.close">{{ t("editor.installer.flow.close_follow") }}</button>
+      <button v-else-if="!tied" type="button" class="ob-quiet" id="install-close" @click="install.close">{{ t("editor.installer.flow.close_follow") }}</button>
     </footer>
   </div>
 </template>
