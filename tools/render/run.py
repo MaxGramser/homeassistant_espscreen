@@ -1894,7 +1894,7 @@ class Run:
 
         self.client.switch_command(auto.key, True)
         await asyncio.sleep(0.6)
-        state = await press(sleep, 'Sleep from Home Assistant')
+        state = await press(sleep, "Standby from Home Assistant's Sleep")
         if not state['dimmed']:
             failed('Sleep did not dim the screen')
         # Auto standby turned off, which applies the settings again: a Sleep holds.
@@ -1923,7 +1923,7 @@ class Run:
         if state['idle'] > 1500 or state['use'] < 3000:
             failed(f'Auto standby turned on: {state} (the standby clock restarts, the page clock goes on)')
         # A tap on the dimmed glass ends a Sleep the way Wake does.
-        await press(sleep, 'Sleep from Home Assistant')
+        await press(sleep, "Standby from Home Assistant's Sleep")
         await self.tap(width // 2, height // 2)
         await asyncio.sleep(0.6)
         state = await self.standby_state()
@@ -1938,6 +1938,23 @@ class Run:
         start = len(self.lines)
         self.client.button_command(sleep.key)
         await self.until(lambda l: 'dismissed: remote' in l, 10, 'Sleep did not close the alert as closed from Home Assistant', start)
+        await press(wake, 'Wake from Home Assistant')
+        # GitHub #457: with Back to page 1 on standby, a Sleep from Home Assistant (inside the API's call) goes to page 1 on
+        # the loop's next pass and shows itself after it: the screen is in standby, on page 1, and stays there. The order
+        # itself, the screensaver last, is tests/test_screen_standby.cpp's.
+        on_standby = entities['Back to page 1 on standby']
+        self.client.switch_command(on_standby.key, True)
+        await asyncio.sleep(0.6)
+        await self.call('show_page', page=2)
+        await asyncio.sleep(1)
+        if (await self.standby_state())['page'] != 1:
+            failed('show_page 2 before the Sleep that goes home')
+        await press(sleep, "Standby from Home Assistant's Sleep")
+        await asyncio.sleep(1)
+        state = await self.standby_state()
+        if not state['dimmed'] or state['page'] != 0:
+            failed(f'Sleep with Back to page 1 on standby: {state} (in standby, on page 1)')
+        self.client.switch_command(on_standby.key, False)
         await press(wake, 'Wake from Home Assistant')
         # Back to page 1 counts from the last touch: page 2 opened from Home Assistant, Wake pressed every few seconds,
         # and the page still goes home once its time is over.
