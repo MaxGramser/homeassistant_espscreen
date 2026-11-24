@@ -47,6 +47,8 @@ Then choose what the board includes:
 - `features/standby-key.yaml` with `STANDBY_KEY_PIN` on a board that can go dark: its own key if it has one the chip
   reads, else its BOOT key (GPIO0 on the ESP32 and ESP32-S3, GPIO35 on the ESP32-P4). Check the schematic or the
   vendor's code, and leave it out when the display uses that pin (`esphome config` then says the pin is used twice);
+- `features/wake-when-moved.yaml` on a board with a motion sensor (accelerometer and gyroscope): name it `board_motion`,
+  read it every 100 ms, list `wake_when_moved` in its boards.yaml `settings` and push its row in `BOOT_BOARD_SETTINGS`;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for
   a second frame;
 - its audio as parts: name the parts, give the pins, done. `hardware/parts/es7210.yaml` for an ES7210's microphones,

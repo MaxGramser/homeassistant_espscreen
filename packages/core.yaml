@@ -139,6 +139,7 @@ esphome:
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/hand_standby.h>
+    - <esphome/components/smart_display/moved.h>
     - <esphome/components/smart_display/chip_revision.h>
   name: ${DEVICE_NAME}
   friendly_name: ${DEVICE_FRIENDLY_NAME}
@@ -2951,7 +2952,18 @@ button:
       - script.execute:
           id: wake_from
           source: "Home Assistant"
-          # Automations press it on every motion: sensed, as a plugin's wake (hand_standby.h).
+          # A person or an automation that means it: it always wakes, also right after a standby by hand.
+          sensed: false
+  # Motion (firmware 0.64.0+): what an automation presses on motion, someone sensed, as a plugin's wake. It wakes as Wake
+  # does, except right after a standby by hand: then it waits until the room went quiet (hand_standby.h).
+  - platform: template
+    id: motion_button
+    name: "Motion"
+    icon: "mdi:motion-sensor"
+    on_press:
+      - script.execute:
+          id: wake_from
+          source: "Home Assistant's Motion"
           sensed: true
   - platform: template
     id: sleep_button

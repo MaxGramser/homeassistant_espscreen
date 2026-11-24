@@ -48,12 +48,11 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
 - **16 MB of the 32.** ESPHome takes OTA on 32 MB of flash only with ESP-IDF's experimental features, so the firmware
   uses the first 16 MB, as the other P4 boards do.
 - **Wake when moved** feels the board itself: picked up, tilted, turned or knocked. It does not see someone walking
-  past. The LSM6DS3TR-C is read ten times a second, and each axis of its accelerometer and its gyroscope keeps its own
-  resting value: the board moved when an axis leaves it by more than 0.03 g (a tilt of about two degrees) or 5 degrees a
-  second. The resting value follows the board, so a board that lies still at any angle is still, and the gyroscope's
-  own offset of a few degrees a second at rest falls away. ESPHome's `motion` reports acceleration in g, not in m/s²:
-  a threshold of 1.0 is a whole g, which only shaking reaches. The log names the axis and how far it moved
-  (`moved (gyroscope y by 12.400)`), at the debug level while the screen is awake.
+  past. The board reads its LSM6DS3TR-C ten times a second and hands every reading to
+  `features/wake-when-moved.yaml`, whose detector (`components/smart_display/moved.h`, `tests/test_moved.cpp`) keeps a
+  resting value per axis and says the board moved when one leaves it by more than 0.03 g or 5 degrees a second.
+  ESPHome's `motion` reports acceleration in g, not in m/s²: the first version compared two readings with 1.0, a whole
+  g, which only shaking reached. The log names the axis and how far it moved (tag `moved`, debug level).
 
 ## The camera
 

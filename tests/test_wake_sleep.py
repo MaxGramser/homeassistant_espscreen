@@ -69,12 +69,18 @@ class Profiles(unittest.TestCase):
                 self.assertNotIn('internal', button, f'{name}: {label} must reach Home Assistant')
 
     def test_every_wake_that_is_not_a_finger_takes_wake_from(self):
-        # Home Assistant's button, a board's sensor (it presses that button), a plugin (tessera::wake through
-        # plugin_host::wake) and the board's key wake the screen one way, the script wake_from (plugin API 0.16).
+        # Home Assistant's button, a plugin (tessera::wake through plugin_host::wake), the board's key and, on a board
+        # with a motion sensor, the board moved (features/wake-when-moved.yaml) wake the screen one way, the script
+        # wake_from (plugin API 0.16). A board moved is sensed, as Home Assistant's Wake is.
         for name, text in self.profiles.items():
-            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 4,
+            moved = script(text, 'board_moved')
+            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 5 if moved else 4,
                              f'{name}: wake the screen through the script wake_from, from the Wake button, the '
-                             f'board\'s key and plugin_host::wake only; a board\'s sensor presses the Wake button')
+                             f'board\'s key, plugin_host::wake and a board moved only')
+            if moved:
+                self.assertIn('id: wake_from', moved, name)
+                self.assertIn('sensed: true', moved, f'{name}: a board moved is a sensed wake')
+                self.assertNotIn('wake_button', moved, f'{name}: the board enters wake_from as what it is')
 
     def test_a_sensed_wake_waits_for_the_quiet_after_a_standby_by_hand(self):
         # Walking away from a screen sent to standby by hand is motion: it must not light the screen again.
