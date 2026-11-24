@@ -23,6 +23,11 @@ The library shows what a tile can show in one of two views, switched at its top 
   `web/src/model/light-presets.ts`). Only a tile the add-on saves is shown. A click puts that very tile on the marked
   cell or the first free one, a drag where it is let go. `web/src/editor/library-tiles.ts` chooses the tiles,
   `web/src/components/LibraryShelf.vue` draws one entity. A phone keeps the list.
+  The cards scale with the drawer: a card of two rows fills the height the list has under a shelf's name and sizes, never
+  larger than on the page and never under half of it, and the drawer opens at least that high. The strip they stand
+  on takes the screen's own colours, the firmware's roles (`web/src/model/glass-colours.ts`), as the page mockup does.
+  A plugin's tile shows its placeholder face on the shelf for now, as a placed one does in the page editor: drawing a
+  plugin's real card in the editor is the plugin preview's work, and the shelf will show it once that lands.
 - **List**: the entities as rows, as the library always was.
 
 A device's extras stand apart, the way Home Assistant's device page puts them apart from the controls: a setting
@@ -70,6 +75,8 @@ Menus, lists to pick from and switches use Reka UI (app 0.3.19), wrapped in `web
 panel uses the same few building blocks. Build a new control from Reka's rich parts, never from a hand-made list or
 popup: `UiMenu` for a few fixed actions, `UiSelect` for one value from a short fixed list, and `UiPicker` (a Reka
 Popover with a Combobox) for anything picked from the user's own Home Assistant, such as entities, players or areas.
+`UiSegmented` (Reka's ToggleGroup, one at a time) switches between a few views or modes that all stay in sight, such
+as the library's Tiles and List; the older hand-made `.seg` rows move to it as they are touched.
 Such a list can run to dozens of items, so it needs a search field and a list that scrolls inside the window. When
 Reka has a part for what you need (Combobox, Popover, Tooltip, Dialog, Tabs, Slider, ...), wrap it in
 `web/src/components/ui/` first and use that wrapper. The inspector groups a tile's settings in five cards (Text, Look,

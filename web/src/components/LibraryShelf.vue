@@ -55,10 +55,9 @@ const palette = computed(() => tilePalette(props.entity.id, entities.liveOf(prop
       <span v-if="mark !== '+'" class="shelf-mark">{{ mark === "✓" ? t("editor.library.tiles.placed") : mark }}</span>
     </header>
     <div class="shelf-row">
-      <div v-for="sample in samples" :key="sample.size" class="sample" :class="{ disabled }" :style="{ width: `${box(sample).width * zoomOf(sample)}px` }" :title="controlsOf(sample) || undefined" role="button" :tabindex="disabled ? -1 : 0"
-        :aria-label="t('editor.library.tiles.add_size', { name, columns: sample.columns, rows: sample.rows })" :aria-disabled="disabled ? 'true' : undefined"
-        v-drag="disabled ? null : { kind: 'entity', id: entity.id, tile: sample.tile }"
-        @click="!disabled && emit('add', sample.tile)" @keydown.enter.prevent="!disabled && emit('add', sample.tile)" @keydown.space.prevent="!disabled && emit('add', sample.tile)">
+      <button v-for="sample in samples" :key="sample.size" type="button" class="sample" :style="{ width: `${box(sample).width * zoomOf(sample)}px` }"
+        :title="controlsOf(sample) || undefined" :disabled="disabled" :aria-label="t('editor.library.tiles.add_size', { name, columns: sample.columns, rows: sample.rows })"
+        v-drag="disabled ? null : { kind: 'entity', id: entity.id, tile: sample.tile }" @click="emit('add', sample.tile)">
         <span class="sample-glass" :style="{ width: `${box(sample).width * zoomOf(sample)}px`, height: `${box(sample).height * zoomOf(sample)}px` }">
           <span class="sample-zoom" :style="{ transform: `scale(${zoomOf(sample)})` }">
             <span class="page sample-page" :style="canvas.deviceStyle">
@@ -76,7 +75,7 @@ const palette = computed(() => tilePalette(props.entity.id, entities.liveOf(prop
           <span>{{ sample.columns }} × {{ sample.rows }}</span>
           <small v-if="controlsOf(sample)">{{ controlsOf(sample) }}</small>
         </span>
-      </div>
+      </button>
     </div>
   </article>
 </template>
@@ -94,26 +93,26 @@ const palette = computed(() => tilePalette(props.entity.id, entities.liveOf(prop
 .shelf-name b { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shelf-name small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shelf-mark { font-size: 11px; color: var(--muted); background: var(--seg); border-radius: 999px; padding: 2px 8px; flex: none; }
-/* The strip of glass the tiles stand on: the screen's own background, as on the mockup, with the gap of its grid. */
-.shelf-row { display: flex; align-items: flex-end; gap: 16px 18px; flex-wrap: wrap; padding: 14px 14px 10px; border-radius: 10px; background: #e7e7e7; }
-.sample { display: grid; gap: 6px; justify-items: start; cursor: grab; border-radius: 10px; outline: none; touch-action: manipulation; }
-.sample.disabled { cursor: default; }
+/* The strip of glass the tiles stand on: the screen's own page and words, as the mockup draws them (model/glass-colours.ts). */
+.shelf-row { display: flex; align-items: flex-end; gap: 16px 18px; flex-wrap: wrap; padding: 14px 14px 10px; border-radius: 10px; background: var(--glass-page); }
+.sample { display: grid; gap: 6px; justify-items: start; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: grab; border-radius: 10px; outline: none; touch-action: manipulation; }
+.sample:disabled { cursor: default; }
 /* The patch of glass the card stands on: the screen's own background, as on the mockup. */
 .sample-glass { position: relative; display: block; border-radius: 12px; outline: 2px solid transparent; outline-offset: 3px; transition: outline-color 0.12s, transform 0.12s; }
-.sample:not(.disabled):hover .sample-glass, .sample:focus-visible .sample-glass { outline-color: var(--accent); }
-.sample:not(.disabled):active .sample-glass { transform: scale(0.98); }
+.sample:not(:disabled):hover .sample-glass, .sample:focus-visible .sample-glass { outline-color: var(--accent); }
+.sample:not(:disabled):active .sample-glass { transform: scale(0.98); }
 /* Scaled, not zoomed: the card is laid out at its own size, as its faces measure it (a zoom made them measure it small). */
 .sample-zoom { display: block; pointer-events: none; transform-origin: 0 0; width: max-content; }
 .sample-page { display: block; }
 .sample-page .device { display: block; padding: 0; background: transparent; aspect-ratio: auto; border-radius: 0; }
 .sample-page .tiles { display: grid; gap: var(--frame-gap-y) var(--frame-gap-x); }
-.sample-add { position: absolute; right: -6px; top: -6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff;
+.sample-add { position: absolute; right: -6px; top: -6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink);
   font-weight: 600; font-size: 15px; opacity: 0; transform: scale(0.8); transition: opacity 0.12s, transform 0.12s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
-.sample:not(.disabled):hover .sample-add, .sample:focus-visible .sample-add { opacity: 1; transform: none; }
-.sample-foot { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6b6f76; padding-left: 2px; width: 100%; min-width: 0; white-space: nowrap; }
+.sample:not(:disabled):hover .sample-add, .sample:focus-visible .sample-add { opacity: 1; transform: none; }
+.sample-foot { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--glass-muted); padding-left: 2px; width: 100%; min-width: 0; white-space: nowrap; }
 .sample-foot > * { flex: none; }
 .sample-foot > small { flex: 1 1 auto; min-width: 0; }
-.sample-foot span { font-weight: 600; color: #3a3d42; }
+.sample-foot span { font-weight: 600; color: var(--glass-ink-soft); }
 .sample-foot small { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
 .sample-shape { display: inline-block; border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.7; }
 </style>

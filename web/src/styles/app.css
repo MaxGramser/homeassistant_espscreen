@@ -220,7 +220,7 @@ a:hover { text-decoration: underline; }
 .seg { display: inline-flex; padding: 2px; background: var(--seg); border-radius: 8px; gap: 2px; max-width: 100%; }
 .seg button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); white-space: nowrap; transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
 .seg button .ui-icon { font-size: 16px; }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 24, 40, 0.14), 0 0 0 0.5px rgba(20, 24, 40, 0.06); }
+.seg button[aria-pressed="true"], .seg button[data-state="on"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 24, 40, 0.14), 0 0 0 0.5px rgba(20, 24, 40, 0.06); }
 /* A size drawn as the shape it takes on the grid. */
 .seg-shape { display: inline-block; border: 1.5px solid currentColor; border-radius: 3px; opacity: 0.55; flex: none; }
 .seg-shape.whole { background: color-mix(in srgb, currentColor 30%, transparent); }
@@ -396,7 +396,8 @@ a:hover { text-decoration: underline; }
 /* The mockup is the screen's own glass and its own grid of cells: --screen-aspect, --screen-columns and
    --screen-rows come from what the screen reported (stores/canvas.ts deviceStyle). The .compact class is the compact look
    of a small screen, not a board any more. */
-.device { background: #e7e7e7; border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: #1b1b1b; aspect-ratio: var(--screen-aspect, 1 / 1); }
+/* The glass's colours are the firmware's roles (model/glass-colours.ts). */
+.device { background: var(--glass-page); border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: var(--glass-ink); aspect-ratio: var(--screen-aspect, 1 / 1); }
 .bar-wrap { cursor: pointer; border-radius: 8px; padding: 0 2px; }
 .bar-wrap:hover { background: #dedede; }
 /* Inside the bar, not around it: on a compact look the bar meets the glass's top edge, and a ring outside it stood on
