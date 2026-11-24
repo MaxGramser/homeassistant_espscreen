@@ -173,7 +173,7 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   <!-- What an update brings, before the person presses it: the changelog's lines from the version they run. -->
   <section v-if="newsFrom" class="pd-section pd-news" id="plugin-news">
     <h3>{{ t("editor.plugins.news.title", { version: plugin.version }) }}</h3>
-    <PluginReadme v-if="news" :source="news" :repo="plugin.repo" />
+    <PluginReadme v-if="news" :source="news" :repo="plugin.repo" :plugin="plugin.id" :version="plugin.ref" />
     <p v-else class="pd-room">{{ t("editor.plugins.news.none") }}</p>
     <a v-if="newsCompare" class="pd-news-link" :href="newsCompare" target="_blank" rel="noopener">{{ t("editor.plugins.changes") }}</a>
   </section>
@@ -200,7 +200,7 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   <!-- The plugin's README: what to do in Home Assistant, where a key comes from. Its own words, safely shown. -->
   <section v-if="text(plugin.readme)" class="pd-section" id="plugin-readme">
     <h3>{{ t("editor.plugins.readme.title") }}</h3>
-    <PluginReadme :source="text(plugin.readme)" :repo="plugin.repo" />
+    <PluginReadme :source="text(plugin.readme)" :repo="plugin.repo" :plugin="plugin.id" :version="plugin.ref" />
   </section>
 
   <section v-if="label !== 'test'" class="pd-section">
@@ -259,7 +259,7 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
 
   <details v-if="history" class="pd-section pd-history" id="plugin-history">
     <summary><h3>{{ t("editor.plugins.news.history") }}</h3><Icon name="chevron-down" /></summary>
-    <PluginReadme :source="history" :repo="plugin.repo" />
+    <PluginReadme :source="history" :repo="plugin.repo" :plugin="plugin.id" :version="plugin.ref" />
   </details>
 
   <p class="pd-links">
