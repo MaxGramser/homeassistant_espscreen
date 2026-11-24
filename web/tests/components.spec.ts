@@ -197,9 +197,9 @@ describe("TileCard", () => {
     useEntitiesStore().liveStates['climate.a'].a.hvac_modes = ['off', 'heat', 'cool', 'dry'];
     const modes = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'mode' } });
     // "Mode" on a taller card is the same bar as under the -/+ of "Temperature and mode".
-    expect(modes.findAll('.glass-row .mode-bar .seg').map((s) => s.classes('on'))).toEqual([false, true, false]);
+    expect(modes.findAll('.glass-row .mode-bar .mode-seg').map((s) => s.classes('on'))).toEqual([false, true, false]);
     const both = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
-    expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
+    expect(both.findAll('.mode-bar .mode-seg')).toHaveLength(3);
   });
 
   it("draws a humidifier as a thermostat in percent, with its action, its own modes in blue and its slider (firmware 0.42.0)", () => {
@@ -230,13 +230,13 @@ describe("TileCard", () => {
     expect(square.find('.glass-tall .now').text()).toBe('Now 68%');
     // Its modes as the mode bar with Home Assistant's icons, the one it is in filled blue.
     const modes = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'mode' } });
-    const segs = modes.findAll('.ctl .mode-bar .seg');
+    const segs = modes.findAll('.ctl .mode-bar .mode-seg');
     expect(segs.map((s) => s.find('.mdi').text())).toEqual([String.fromCodePoint(0xF058E), String.fromCodePoint(0xF032A), String.fromCodePoint(0xF14DE)]);
     expect(segs.map((s) => s.classes('on'))).toEqual([false, true, false]);
     expect(segs[1].attributes('style')).toContain('#2196f3');
     const both = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
     expect(both.find('.glass-tall .number').text()).toBe('55%');
-    expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
+    expect(both.findAll('.mode-bar .mode-seg')).toHaveLength(3);
     // The slider fills to the humidity it is set to over its own range: 55 of 30 to 80 is half.
     const slider = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'slider' } });
     expect(slider.find('.ctl .range').attributes('style')).toContain('50%');
@@ -283,11 +283,11 @@ describe("TileCard", () => {
     useEntitiesStore().liveStates['climate.m'] = { state: 'heat', word: 'Heat', a: { supported_features: 1, hvac_modes: ['off', 'heat', 'cool'], temperature: 20 } };
     const modes = placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } });
     // Its mode bar, as the screen draws it: heat and cool, its own modes; off is the tile's circle.
-    expect(modes.findAll('.ctl .mode-bar .seg')).toHaveLength(2);
-    expect(modes.find('.mode-bar .seg.on').exists()).toBe(true);
+    expect(modes.findAll('.ctl .mode-bar .mode-seg')).toHaveLength(2);
+    expect(modes.find('.mode-bar .mode-seg.on').exists()).toBe(true);
     useEntitiesStore().liveStates['climate.m'].a.hvac_modes = ['off', 'heat'];
     // One mode besides off makes no bar.
-    expect(placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } }).findAll('.mode-bar .seg')).toHaveLength(0);
+    expect(placed({ entity: 'climate.m', name: 'Modes', slot: 0, options: { size: 'wide', controls: 'mode' } }).findAll('.mode-bar .mode-seg')).toHaveLength(0);
     useInventoryStore().inventory.controls!.vacuum = { default: 'buttons', choices: [] };
     useEntitiesStore().liveStates['vacuum.v'] = { state: 'docked', word: 'Docked', a: { supported_features: 8192 | 8 } };
     const vacuum = placed({ entity: 'vacuum.v', name: 'Robot', slot: 0, options: { size: 'wide', controls: 'buttons' } });

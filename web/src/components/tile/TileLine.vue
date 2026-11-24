@@ -26,7 +26,7 @@ const card = props.card;
   <img v-if="card.artwork" :key="card.artwork" class="line-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
   <template v-if="card.face.kind === 'graph'">
     <span class="head"><span class="ic mdi">{{ glyph(card.icon) }}</span><span class="tx"><span class="nm">{{ card.texts.name }}</span><span class="st">{{ card.texts.line }}</span></span></span>
-    <SensorHistory :entity="card.tile.entity" :hours="Number(card.tile.options?.history_hours || 24)" />
+    <SensorHistory class="graph" :entity="card.tile.entity" :hours="Number(card.tile.options?.history_hours || 24)" />
   </template>
   <!-- A card over the whole page as the glass lays it out (render_full): one big button, or a player's media card. -->
   <span v-else-if="card.fullStyle" class="glass-head glass-full" :class="card.fullStyle.kind" :style="card.fullStyle.box">
@@ -168,4 +168,11 @@ const card = props.card;
 .tile .ctl.glass-panel > .dot { position: absolute; }
 .tile .ctl.glass-panel { overflow: visible; }
 .tile .ctl .dot-loose { width: 22px; height: 22px; flex: none; font-size: 9px; }
+/* A sensor's graph where the screen puts it (runtime_tiles, graph_side and graph_strip): on a wide card the right 55 %
+   of the content at its full height, the name and value beside it; on a card of one column, or over the whole page,
+   the strip under the head. */
+.head:has(+ .graph) { flex: 1 1 0; min-width: 0; }
+.graph { flex: 0 0 55%; align-self: stretch; }
+.tile:not(.wide) .head:has(+ .graph), .tile.full .head:has(+ .graph) { flex: none; }
+.tile:not(.wide) .graph, .tile.full .graph { flex: 1 1 0; }
 </style>

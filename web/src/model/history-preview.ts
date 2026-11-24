@@ -1,21 +1,35 @@
 // A sensor's history as the add-on sends it (history-preview, asked for by the entities store, stores/entities.ts), and
-// the lines its graph draws.
+// the line a card's graph draws through it.
 export type HistoryPreview = { start: number; end: number; values: (number | null)[]; dom?: [number, number]; hi?: [number, number]; lo?: [number, number]; unit: string };
-/** Bucket centers retain their time positions; missing buckets break the line.
- * The recorder's extrema are drawn separately, so the average cannot hide them.
+
+/** The graph on a card as the screen draws it (render_graph in weather_tile_lvgl.h): the 24 averages, each at its own
+ * place across the width, scaled between the lowest and the highest of them, a missing one left out and the line run
+ * past it, smoothed through Catmull-Rom (smooth() in tile_widgets_lvgl.h, four steps a part), with the area under it
+ * filled. The recorder's highest and lowest moments belong to the history card the screen opens, not to the card.
+ * `width` and `height` are the graph's own, `stroke` the line's width: the line keeps half of it inside each edge.
  */
-export function historyGeometry(data: HistoryPreview) {
-  const known = data.values.filter((value): value is number => value !== null && Number.isFinite(value));
-  if (!known.length || data.end <= data.start) return null;
-  const extrema = [data.hi, data.lo].filter((value): value is [number, number] => !!value && value.every(Number.isFinite));
-  const [low, high] = data.dom || [Math.min(...known, ...extrema.map(([v]) => v)), Math.max(...known, ...extrema.map(([v]) => v))];
-  const y = (value: number) => high === low ? 25 : 47 - (value - low) / (high - low) * 44;
-  const x = (time: number) => 3 + (time - data.start) / (data.end - data.start) * 194;
-  const paths: string[] = []; let segment: string[] = [];
-  data.values.forEach((value, index) => {
-    if (value === null || !Number.isFinite(value)) { if (segment.length) paths.push(segment.join(' ')); segment = []; return; }
-    segment.push(`${segment.length ? 'L' : 'M'}${x(data.start + (index + .5) * (data.end - data.start) / data.values.length)},${y(value)}`);
+export function cardGraph(values: (number | null)[], width: number, height: number, stroke: number) {
+  const known = values.slice(0, 24).map((value, i) => [i, value] as const).filter((p): p is readonly [number, number] => p[1] !== null && Number.isFinite(p[1]));
+  if (!known.length || width < 2 || height < 2) return null;
+  const minimum = Math.min(...known.map(([, v]) => v)), maximum = Math.max(...known.map(([, v]) => v));
+  const top = stroke;
+  let raw = known.map(([i, v]) => {
+    const level = maximum > minimum ? (v - minimum) / (maximum - minimum) : 0.5;
+    return { x: Math.floor(stroke / 2) + i * (width - stroke - 1) / 23, y: height - Math.floor(stroke / 2) - 1 - level * (height - stroke - 1 - top) };
   });
-  if (segment.length) paths.push(segment.join(' '));
-  return { paths, points: extrema.filter(([, time]) => time >= data.start && time <= data.end).map(([value, time]) => ({ x: x(time), y: y(value) })) };
+  if (raw.length === 1) raw = [raw[0], { x: width - 1, y: raw[0].y }];
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i + 1 < raw.length; ++i) {
+    const p0 = raw[i ? i - 1 : 0], p1 = raw[i], p2 = raw[i + 1], p3 = raw[Math.min(i + 2, raw.length - 1)];
+    for (let s = 0; s < 4; ++s) {
+      const t = s / 4, t2 = t * t, t3 = t2 * t;
+      const at = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      points.push({ x: Math.min(Math.max(at(p0.x, p1.x, p2.x, p3.x), 0), width - 1), y: Math.min(Math.max(at(p0.y, p1.y, p2.y, p3.y), 0), height - 1) });
+    }
+  }
+  points.push(raw[raw.length - 1]);
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const line = points.map((p, i) => `${i ? "L" : "M"}${round(p.x)},${round(p.y)}`).join(" ");
+  const area = `${line} L${round(points[points.length - 1].x)},${height} L${round(points[0].x)},${height} Z`;
+  return { line, area };
 }

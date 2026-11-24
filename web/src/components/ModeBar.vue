@@ -66,7 +66,7 @@ const style = computed(() => {
 <template>
   <span class="mode-bar" :class="place">
     <span v-if="keys.length" class="track" :style="style">
-      <span v-for="(k, i) in keys" :key="i" class="seg" :class="{ on: k.mode === current }"
+      <span v-for="(k, i) in keys" :key="i" class="mode-seg" :class="{ on: k.mode === current }"
         :style="k.mode === current ? { '--mode': thermostatModeColor(domain, k.mode) } : undefined">
         <span class="mdi">{{ icon(k) }}</span><span v-if="words && k.mode" class="word">{{ word(k.mode) }}</span>
       </span>
@@ -78,8 +78,8 @@ const style = computed(() => {
 .mode-bar { display: flex; width: 100%; min-width: 0; justify-content: center; }
 .mode-bar.row { justify-content: flex-end; }
 .track { display: flex; box-sizing: border-box; min-width: 0; height: 24px; padding: 2px; border-radius: 999px; background: #f1f1f1; }
-.seg { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: #46525e; overflow: hidden; }
-.seg .mdi { font-size: var(--icon, 14px); line-height: 1; }
-.seg .word { font-size: var(--word, 10px); white-space: nowrap; }
-.seg.on { background: var(--mode); color: #fff; }
+.mode-seg { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: #46525e; overflow: hidden; }
+.mode-seg .mdi { font-size: var(--icon, 14px); line-height: 1; }
+.mode-seg .word { font-size: var(--word, 10px); white-space: nowrap; }
+.mode-seg.on { background: var(--mode); color: #fff; }
 </style>

@@ -96,7 +96,7 @@ describe("New screen, one question a step", () => {
     expect(view.find(".pick-none").text()).toContain("nothing like it");
     await view.find("#board-search").setValue("");
     // How far a board has been tried, in plain words, on the ones not proven.
-    expect(view.find('input[value="waveshare7"]').element.closest("label")!.textContent).toContain("Not tested yet");
+    expect(view.find('input[value="waveshare4b"]').element.closest("label")!.textContent).toContain("Not tested yet");
     expect(view.find('input[value="cyd"]').element.closest("label")!.querySelector(".ob-tag")).toBeNull();
     // Back closes the list before it leaves the step.
     await view.find("#setup-back").trigger("click");

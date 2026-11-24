@@ -4,6 +4,8 @@
 
 - **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
 
+- **The editor draws a sensor's graph and a thermostat's modes as the screen does.** A graph card keeps its name and value beside the graph, which now runs as the screen draws it, smooth and filled, without the stray dots of the highest and lowest moment. The mode keys of a thermostat no longer turn dark when your computer is in dark mode.
+
 - **A device's settings and diagnostics are tucked away.** Entities Home Assistant files under Configuration or Diagnostic (a lamp's power-on behaviour, a signal strength) and the ones hidden there now stand folded under "extras" below each room in the library, so the lights, switches and sensors you use come first. They can still be found and added.
 
 - **The screensaver stays up with "Back to page 1 on standby".** With that setting on, a screensaver that shows a camera or what plays opened and closed again right away, leaving the dimmed tiles of page 1. The screen now goes to page 1 first and then opens its screensaver. New firmware. ([#457](https://github.com/MaxGramser/homeassistant_espscreen/issues/457))
