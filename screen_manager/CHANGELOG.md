@@ -1,5 +1,9 @@
 ## Unreleased
 
+- **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
+
+- **A device's settings and diagnostics are tucked away.** Entities Home Assistant files under Configuration or Diagnostic (a lamp's power-on behaviour, a signal strength) and the ones hidden there now stand folded under "extras" below each room in the library, so the lights, switches and sensors you use come first. They can still be found and added.
+
 - **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, the way it goes when the standby time runs out. A tap still goes to the Home page. It works where Auto standby is on. New firmware.
 
 - **New screen asks one thing at a time, and stays with you until the screen really works.** Each step is one question with a large title and one Continue key: which screen, which version (only when there are more), its name (the rooms of your home are offered), which way it hangs, its plugins and the Wi-Fi (only when needed). Before any USB port, it asks where the cable is: in this computer or in your Home Assistant, each drawn, with the Home Assistant machine's ports watched until the screen shows up and a Zigbee or Z-Wave stick kept out of the way. After the install it follows four steps, the software, putting it on the screen, the Wi-Fi and adding it to Home Assistant, and only says the screen is ready once Home Assistant has it online and allowed to control your home.

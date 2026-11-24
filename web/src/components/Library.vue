@@ -5,13 +5,16 @@
 // entity stand in a column on the left and the entities beside them, grouped by room until a search ranks them.
 // Its top edge drags it taller or lower, and both are remembered.
 // A click adds the entity to the marked empty cell or the first free one; a drag puts it exactly where it lands.
+// Two views of the same results (docs/PAGES.md "The library"): Tiles, the default, draws every entity as the tiles it can
+// be at its sizes (LibraryShelf.vue), List the rows it always had. A room's extras (Home Assistant's settings, diagnosis
+// and hidden entities) stand folded under the rest in both.
 import { useEventListener, useInfiniteScroll, useTimeoutFn } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, ROWS_AT_ONCE, shortName as short, tileCounts,
+import { isExtra, entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, ROWS_AT_ONCE, shortName as short, tileCounts,
   type Entry, type LibraryFilter } from "../model/library";
 import { tilePalette } from "../model/tile-palette";
 import { usePreference } from "../composables/usePreference";
@@ -20,6 +23,9 @@ import { useListNavigation } from "../composables/useListNavigation";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
 import Icon from "./ui/Icon.vue";
+import LibraryShelf from "./LibraryShelf.vue";
+import { cardHeight } from "../model/ui-scale";
+import { useCanvasStore } from "../stores/canvas";
 import UiSwitch from "./ui/UiSwitch.vue";
 import { useUiStore } from "../stores/ui";
 import { useEntitiesStore } from "../stores/entities";
@@ -39,6 +45,7 @@ const scr = useScreenStore();
 const inv = useInventoryStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
+const canvas = useCanvasStore();
 
 // Open: on a wider page the drawer along the bottom, remembered; on a phone (app 0.4.40) a sheet that opens for a tile
 // and goes once it is added, closed or swiped away. Closing it there forgets the cell it was opened for.
@@ -108,20 +115,37 @@ const flat = computed(() => allGroups.value.flatMap((group) => group.entities));
 // Everything is listed, but a home's thousand entities don't stand on the page at once: the rows come as the list is
 // scrolled towards them, and a new search or kind starts at the top again.
 const list = ref<HTMLElement | null>(null);
-const rows = ref(ROWS_AT_ONCE);
-const groups = computed(() => libraryWindow(allGroups.value, rows.value));
-useInfiniteScroll(list, () => { rows.value += ROWS_AT_ONCE; }, { distance: 400, canLoadMore: () => open.value && rows.value < flat.value.length });
-watch(() => [ui.search, ui.filter, ui.room, ui.hidePlaced], () => { rows.value = ROWS_AT_ONCE; list.value?.scrollTo?.({ top: 0 }); });
+// The Tiles view draws three cards an entity: fewer come at once, and more as the list is scrolled.
+const tilesView = computed(() => ui.libraryView === "tiles" && !ui.phone);
+const step = computed(() => (tilesView.value ? 12 : ROWS_AT_ONCE));
+const rows = ref(step.value);
+// While browsing a room's extras stand folded apart and are left out of the window: they come whole when unfolded.
+const groups = computed(() => {
+  if (!grouped.value) return libraryWindow(allGroups.value, rows.value).map((group) => ({ ...group, extras: [] as Entry[] }));
+  let left = rows.value;
+  return allGroups.value.flatMap((group) => {
+    const main = group.entities.filter((e) => !isExtra(e)), extras = group.entities.filter(isExtra);
+    if (left <= 0) return [];
+    const shown = main.slice(0, left);
+    left -= shown.length;
+    // A room is shown once its turn comes; its fold after the last of its own entities.
+    const done = shown.length === main.length;
+    return shown.length || (done && extras.length) ? [{ ...group, entities: shown, count: group.entities.length, extras: done ? extras : [] }] : [];
+  });
+});
+useInfiniteScroll(list, () => { rows.value += step.value; }, { distance: 400, canLoadMore: () => open.value && rows.value < flat.value.length });
+watch(() => [ui.search, ui.filter, ui.room, ui.hidePlaced, ui.libraryView], () => { rows.value = step.value; list.value?.scrollTo?.({ top: 0 }); });
 // The rows the list shows now.
 function rowsInView() {
   const box = list.value?.getBoundingClientRect();
   if (!box) return [];
-  return [...list.value!.querySelectorAll<HTMLElement>(".ent")].filter((row) => { const place = row.getBoundingClientRect(); return place.bottom >= box.top && place.top <= box.bottom; })
+  return [...list.value!.querySelectorAll<HTMLElement>(".ent, .shelf")].filter((row) => { const place = row.getBoundingClientRect(); return place.bottom >= box.top && place.top <= box.bottom; })
     .map((row) => row.id.slice("lib-".length));
 }
 // The states of the rows in view, asked once the list has stood still a moment (180 ms), again every minute, and never for
 // a folded drawer; the wait goes with the drawer.
-const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(rowsInView(), doc.stillSelected()), 180, { immediate: false });
+// The Tiles view also asks what each can do, which decides the controls its larger tiles get.
+const loadSoon = useTimeoutFn(() => { const ids = rowsInView(); void entities.loadLibraryStates(ids, doc.stillSelected()); if (tilesView.value) void entities.loadCapabilities(ids); }, 180, { immediate: false });
 watch(() => [open.value, groups.value, Math.floor(ui.now / 60000)],
   () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
@@ -132,6 +156,21 @@ const full = computed(() => (doc.layout?.tiles.length || 0) >= doc.tileLimit);
 const memoryFull = computed(() => doc.memory?.level === "full" || doc.memory?.level === "over");
 const count = computed(() => inv.inventory.entities.length);
 const detail = (e: Entry) => entryDetail(e, grouped.value, pluginOf(e.id));
+// A room's extras (Home Assistant's settings, diagnosis and hidden entities) stand folded under the rest while browsing;
+// a search lists them where they rank, and the room's fold is opened by a click.
+const unfolded = ref(new Set<string>());
+const mainOf = (group: { entities: Entry[] }) => group.entities;
+const extrasOf = (group: { extras: Entry[] }) => group.extras;
+function unfold(key: string) { const next = new Set(unfolded.value); if (next.has(key)) next.delete(key); else next.add(key); unfolded.value = next; }
+const extraKinds = (list: Entry[]) => [...new Set(list.map((e) => (e.category ?? "hidden")))].map((kind) => t(`editor.library.extras.${kind}`)).join(", ");
+// The Tiles view's cards, all at one scale so their sizes compare: a card of two rows stands SHELF_HEIGHT pixels high,
+// never larger than on the mockup.
+const SHELF_HEIGHT = 150;
+const shelfTwoRows = computed(() => {
+  const shape = doc.screenShape as Parameters<typeof cardHeight>[0], grid = doc.editorLayout.grid, glass = Number(canvas.deviceStyle["--glass"]) || 1;
+  return cardHeight(shape, grid.rows, Math.min(2, grid.rows), 0, canvas.pageBarShown) * glass;
+});
+const shelfZoom = computed(() => Math.min(1, SHELF_HEIGHT / Math.max(1, shelfTwoRows.value)));
 
 // ---- Keyboard: type anywhere to search, arrows to walk, Enter to add ----
 const search = ref<HTMLInputElement | null>(null);
@@ -142,7 +181,7 @@ const results = useListNavigation(flat, {
   wrap: true,
   onPick: (entity) => (addable(entity) ? (addTile(entity.id), true) : false),
   resetOn: () => [ui.search, ui.filter, ui.room],
-  onMove: (index) => { if (index >= rows.value) rows.value = index + ROWS_AT_ONCE; nextTick(() => (list.value?.querySelector(".ent.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })); },
+  onMove: (index) => { if (index >= rows.value) rows.value = index + step.value; nextTick(() => (list.value?.querySelector(".ent.active, .shelf.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })); },
 });
 const active = results.active;
 function onSearchKey(e: KeyboardEvent) {
@@ -188,6 +227,8 @@ const heightChosen = (() => { try { return localStorage.getItem("esp-screens.lib
 const height = ref(heightChosen ? keptHeight.value : Math.min(300, Math.max(MIN, Math.round(window.innerHeight * 0.3))));
 const maxHeight = () => Math.max(MIN, Math.round(window.innerHeight * 0.7));
 function toggle() { open.value = !open.value; }
+function showView(view: "tiles" | "list") { ui.libraryView = view; open.value = true; }
+
 // Typing in the folded bar opens the drawer on what it finds.
 watch(() => ui.search, (q) => { if (q) open.value = true; });
 // An empty cell or a clock's key marked for the next entity opens the drawer and puts the cursor in the search.
@@ -208,6 +249,8 @@ const edge = useResizeHandle({
   onEnd: () => { keptHeight.value = height.value; },
 });
 const resizing = edge.resizing;
+// The Tiles view needs room for a card of two rows with its name above and its size below: it opens at least that high.
+const shownHeight = computed(() => (tilesView.value ? Math.max(height.value, Math.min(maxHeight(), 330)) : height.value));
 function onResizeKey(e: KeyboardEvent) {
   if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
   e.preventDefault();
@@ -219,7 +262,7 @@ function onResizeKey(e: KeyboardEvent) {
 
 <template>
   <div v-if="ui.phone && open" class="sheet-dim" @click="open = false"></div>
-  <aside class="library" id="library" :class="{ open, resizing }" :style="ui.phone ? undefined : { height: `${open ? height : HEAD}px` }">
+  <aside class="library" id="library" :class="{ open, resizing, 'tiles-view': tilesView }" :style="ui.phone ? undefined : { height: `${open ? shownHeight : HEAD}px` }">
     <div v-if="ui.phone" class="sheet-head">
       <span class="sheet-title"><b>{{ t("editor.phone.add_tile") }}</b><small>{{ destination }}</small></span>
       <button type="button" class="icon-btn sheet-close" :aria-label="t('editor.common.close')" @click="open = false"><Icon name="close" /></button>
@@ -239,6 +282,12 @@ function onResizeKey(e: KeyboardEvent) {
         <kbd v-if="!ui.search && !searching" aria-hidden="true">/</kbd>
       </label>
       <span v-if="!open" class="lib-count">{{ t("editor.library.entities", count) }}</span>
+      <div v-if="!ui.phone" class="lib-view seg" role="group" :aria-label="t('editor.library.tiles.view')">
+        <button type="button" :aria-pressed="ui.libraryView === 'tiles' ? 'true' : 'false'" :title="t('editor.library.tiles.tiles_title')" @click="showView('tiles')">
+          <Icon name="view-grid-outline" />{{ t("editor.library.tiles.tiles") }}</button>
+        <button type="button" :aria-pressed="ui.libraryView === 'list' ? 'true' : 'false'" :title="t('editor.library.tiles.list_title')" @click="showView('list')">
+          <Icon name="format-list-bulleted" />{{ t("editor.library.tiles.list") }}</button>
+      </div>
     </div>
     <div class="lib-body" id="library-body" :inert="!open || undefined">
       <div class="lib-rail">
@@ -275,8 +324,12 @@ function onResizeKey(e: KeyboardEvent) {
         </section>
         <section v-for="group in groups" :key="group.key" class="lib-group">
           <h4 v-if="group.title" class="lib-group-title">{{ group.title }} <small>{{ group.count }}</small></h4>
-          <div class="lib-grid">
-            <button v-for="entity in group.entities" :id="`lib-${entity.id}`" :key="entity.id" type="button" class="ent" role="option"
+          <div v-if="tilesView" class="lib-shelves">
+            <LibraryShelf v-for="entity in mainOf(group)" :key="entity.id" :entity="entity" :name="short(entity)" :detail="detail(entity)" :mark="mark(entity.id)"
+              :disabled="placed(entity.id) || full" :zoom="shelfZoom" :max-height="shelfZoom * shelfTwoRows" :active="!!ui.search && flat[active]?.id === entity.id" @add="(tile) => addTile(entity.id, tile)" />
+          </div>
+          <div v-else class="lib-grid">
+            <button v-for="entity in mainOf(group)" :id="`lib-${entity.id}`" :key="entity.id" type="button" class="ent" role="option"
               :class="{ active: ui.search && flat[active]?.id === entity.id }" :aria-selected="ui.search && flat[active]?.id === entity.id ? 'true' : 'false'"
               :title="onScreen(entity.id) && !placed(entity.id) ? `${entity.id} · ${t('editor.library.again')}` : entity.id"
               :disabled="placed(entity.id) || full" v-drag="{ kind: 'entity', id: entity.id }" @click="addTile(entity.id)">
@@ -288,6 +341,21 @@ function onResizeKey(e: KeyboardEvent) {
               <span class="add" :class="{ done: onScreen(entity.id) }">{{ mark(entity.id) }}</span>
             </button>
           </div>
+          <template v-if="extrasOf(group).length">
+            <button type="button" class="lib-extras" :aria-expanded="unfolded.has(group.key) ? 'true' : 'false'" @click="unfold(group.key)">
+              <Icon name="chevron-down" class="lib-extras-chevron" />
+              <span>{{ t("editor.library.extras.title", extrasOf(group).length) }}</span>
+              <small>{{ extraKinds(extrasOf(group)) }}</small>
+            </button>
+            <div v-if="unfolded.has(group.key)" class="lib-grid lib-extras-list">
+              <button v-for="entity in extrasOf(group)" :id="`lib-${entity.id}`" :key="entity.id" type="button" class="ent ent-extra" role="option"
+                :title="entity.id" :disabled="placed(entity.id) || full" v-drag="{ kind: 'entity', id: entity.id }" @click="addTile(entity.id)">
+                <span class="av mdi" :class="tone(entity)" :style="{ color: tilePalette(entity.id, entities.liveOf(entity.id)).icon, background: tilePalette(entity.id, entities.liveOf(entity.id)).circle }">{{ glyph(entities.automaticIcon(entity.id)) }}</span>
+                <span class="tx"><b>{{ short(entity) }}</b><small>{{ [detail(entity), t(`editor.library.extras.${entity.category ?? "hidden"}`)].filter(Boolean).join(" · ") }}</small></span>
+                <span class="add" :class="{ done: onScreen(entity.id) }">{{ mark(entity.id) }}</span>
+              </button>
+            </div>
+          </template>
         </section>
         <p v-if="elsewhere" class="hint lib-empty">{{ t("editor.library.found_elsewhere", elsewhere) }} <button type="button" class="lib-everything" @click="searchEverything">{{ t("editor.library.search_everything") }}</button></p>
         <p v-else-if="!matches.length" class="hint lib-empty">{{ ui.hidePlaced && !ui.search && !ui.filter && !ui.room ? t("editor.library.all_placed") : t("editor.library.none_found") }}</p>
@@ -297,3 +365,18 @@ function onResizeKey(e: KeyboardEvent) {
     </div>
   </aside>
 </template>
+
+<style scoped>
+.lib-shelves { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+.lib-extras { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 8px; border-radius: 8px; color: var(--muted); font-size: 12px; width: 100%; text-align: left; }
+.lib-extras:hover { background: var(--surface-2); color: var(--ink-2); }
+.lib-extras span { font-weight: 500; }
+.lib-extras small { font-size: 11px; opacity: 0.8; }
+.lib-extras-chevron { transform: rotate(-90deg); transition: transform 0.12s; }
+.lib-extras[aria-expanded="true"] .lib-extras-chevron { transform: none; }
+.lib-extras-list { margin-top: 6px; }
+.ent-extra .av { opacity: 0.75; }
+.lib-view { display: inline-flex; flex: none; margin-left: auto; }
+.lib-view button { display: inline-flex; align-items: center; gap: 5px; }
+.lib-view :deep(svg), .lib-view .icon { width: 15px; height: 15px; }
+</style>

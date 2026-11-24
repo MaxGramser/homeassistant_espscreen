@@ -11,7 +11,7 @@ import TileInspector from "../src/components/TileInspector.vue";
 import { canonicalOptions, controlChoices, optionsSave, presetsOffered } from "../src/model/tile-options";
 import { tilePanel } from "../src/editor/tiles";
 import { cleanPreset, darkInk, fromLight, hsRgb, kelvinRgb, levelShown, lightNow, luminosity, pale, presetPanel, presetSizes, presetsOf, row, shown,
-  shows, startPreset } from "../src/model/light-presets";
+  shows, startPreset, starterPresets } from "../src/model/light-presets";
 import { tileFace } from "../src/model/tile-face";
 import { resolveControls } from "../src/model/catalogue";
 import { useDocumentStore } from "../src/stores/document";
@@ -387,5 +387,23 @@ describe("the inspector's presets on a WLED", () => {
     const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
     expect(card.findAll(".ctl .preset-level").map((n) => n.text())).toEqual(["Ra", "80"]);
     expect(card.findAll(".ctl .preset-disc")[0].classes()).toContain("plain");
+  });
+});
+
+describe("the presets a light starts with in the library", () => {
+  // A tile the library shows with its presets gets a first set that suits the light (model/light-presets.ts).
+  const light = (modes: string[], more: Record<string, unknown> = {}) => ({ state: "off", a: { supported_color_modes: modes, ...more } });
+  it("gives a light that only dims steps of brightness", () => {
+    expect(starterPresets(light(["brightness"]))).toEqual([{ b: 100 }, { b: 60 }, { b: 30 }, { b: 10 }]);
+  });
+  it("gives whites within the light's own range, and a colour beside them where it has colours", () => {
+    const whites = starterPresets(light(["color_temp"], { min_color_temp_kelvin: 2500, max_color_temp_kelvin: 5000 }));
+    expect(whites.map((p) => p.k)).toEqual([2700, 4000, 5000, 2500]);
+    const both = starterPresets(light(["color_temp", "xy"]));
+    expect(both.some((p) => p.h !== undefined)).toBe(true);
+    expect(both.every((p) => cleanPreset(p))).toBe(true);
+  });
+  it("never gives more than a tile keeps", () => {
+    for (const modes of [["onoff"], ["brightness"], ["hs"], ["color_temp"], ["color_temp", "rgbww"]]) expect(starterPresets(light(modes)).length).toBeLessThanOrEqual(4);
   });
 });

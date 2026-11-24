@@ -2057,7 +2057,22 @@
       "hint": "Arraste para uma página ou toque em + para adicionar ao primeiro espaço livre. ⌘K procura em tudo.",
       "resize": "Arraste para redimensionar a biblioteca",
       "filter_label": "Filtrar por tipo",
-      "no_room": "Sem divisão"
+      "no_room": "Sem divisão",
+      "tiles": {
+        "view": "Como a biblioteca mostra as entidades",
+        "tiles": "Mosaicos",
+        "list": "Lista",
+        "tiles_title": "Mostrar cada entidade como os mosaicos que pode ser, nos seus tamanhos",
+        "list_title": "Mostrar as entidades como lista",
+        "placed": "Neste ecrã",
+        "add_size": "Adicionar {name} como mosaico de {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extras",
+        "config": "Definições",
+        "diagnostic": "Diagnóstico",
+        "hidden": "Oculta no Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugins",

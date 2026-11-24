@@ -20,7 +20,7 @@ import { useDragStore, type DragPreview, type KeyPlace } from "./stores/drag";
 import { useUiStore } from "./stores/ui";
 import { useEntitiesStore } from "./stores/entities";
 
-export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number }
+export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string; tile?: Tile } | { kind: "page"; page: number }
   // A section carried whole by its band (docs/PAGES.md "Sections"): it goes as one block, its tiles with it.
   | { kind: "section"; id: string };
 type Drag = {
@@ -108,7 +108,7 @@ function beginDrag(e: PointerEvent) {
   if (source.kind === "section" && !block) { dragging.active = false; return; }
   dragging.section = block ? block.id : null;
   dragging.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile
-    : block ? sectionTile(block, blockSlot(block)) : startTile((source as { id: string }).id);
+    : block ? sectionTile(block, blockSlot(block)) : (source as { tile?: Tile }).tile ?? startTile((source as { id: string }).id);
   // A page keeps its own place until the pointer names another one; the ghost is the label you grabbed it by.
   dragging.page = source.kind === "page" ? { from: source.page, to: source.page, order: pageOrder(pages, source.page, source.page) } : null;
   dragging.preview = null;

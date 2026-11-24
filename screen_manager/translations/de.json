@@ -2057,7 +2057,22 @@
       "hint": "Ziehe eine Entität auf eine Seite oder tippe auf +, um sie auf den ersten freien Platz zu setzen. ⌘K durchsucht alles.",
       "resize": "Ziehen, um die Bibliothek zu vergrößern oder zu verkleinern",
       "filter_label": "Nach Art filtern",
-      "no_room": "Ohne Raum"
+      "no_room": "Ohne Raum",
+      "tiles": {
+        "view": "Wie die Bibliothek Entitäten zeigt",
+        "tiles": "Kacheln",
+        "list": "Liste",
+        "tiles_title": "Jede Entität als die Kacheln zeigen, die sie sein kann, in ihren Größen",
+        "list_title": "Die Entitäten als Liste zeigen",
+        "placed": "Auf diesem Bildschirm",
+        "add_size": "{name} als Kachel von {columns} × {rows} hinzufügen"
+      },
+      "extras": {
+        "title": "{n} Extra | {n} Extras",
+        "config": "Einstellungen",
+        "diagnostic": "Diagnose",
+        "hidden": "In Home Assistant ausgeblendet"
+      }
     },
     "plugins": {
       "title": "Plugins",

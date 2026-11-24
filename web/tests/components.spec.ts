@@ -362,7 +362,8 @@ describe("TileCard", () => {
 });
 
 describe("Library", () => {
-  beforeEach(() => { useUiStore().libraryOpen = true; });
+  // The list view (the Tiles view, the default since the tile library, has its own tests below).
+  beforeEach(() => { useUiStore().libraryOpen = true; useUiStore().libraryView = "list"; });
   const room = (library: ReturnType<typeof mount>, name: string) => library.findAll("#room button").find((b) => b.find(".dn").text() === name)!;
   it("groups by room, filters by room and hides what is placed, and tints the avatars by state", async () => {
     appendTiles({ entity: "light.a", name: "", slot: 0 });
@@ -405,7 +406,8 @@ describe("Library: the drawer along the bottom, with every domain in one column 
     { id: "fan.f", name: "Fan", state: "off" }, { id: "scene.n", name: "Night", state: "on" },
     { id: "media_player.m", name: "Sonos", state: "idle" }, { id: "person.p", name: "Sam", state: "home" },
   ) as unknown as void;
-  beforeEach(() => { useUiStore().libraryOpen = true; });
+  // The list view (the Tiles view, the default since the tile library, has its own tests below).
+  beforeEach(() => { useUiStore().libraryOpen = true; useUiStore().libraryView = "list"; });
 
   it("offers the domains the results hold, each with its count, and narrows them as the search narrows the list", async () => {
     const library = mount(Library);
@@ -594,6 +596,7 @@ describe("full-page and navigation tiles on the mockup", () => {
 });
 
 describe("several tiles of one entity in the library (firmware 0.2.65 for a page tile, 0.16.0 for any)", () => {
+  beforeEach(() => { useUiStore().libraryView = "list"; });
   it("keeps offering a placed navigation tile when the screen takes several, and adds another copy", async () => {
     Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.65", page_tiles_repeat: true, entity_tiles_repeat: false });
     appendTiles({ entity: "screen.page_1", name: "", slot: 0 }, { entity: "light.a", name: "", slot: 1 });
@@ -1422,4 +1425,59 @@ describe("a favourite from a pasted link (app 0.4.84)", () => {
     await picker.find(".linked .pick").trigger("click");
     expect(picker.emitted("pick")).toEqual([[favorite]]);
   });
+});
+
+describe("the library's Tiles view (docs/PAGES.md, \"The library\")", () => {
+  beforeEach(() => { useUiStore().libraryOpen = true; });
+
+  it("is the default: every entity as the real tiles it can be, and the list one click away and remembered", async () => {
+    const library = mount(Library, { attachTo: document.body });
+    expect(useUiStore().libraryView).toBe("tiles");
+    const shelf = library.find(".shelf");
+    expect(shelf.exists()).toBe(true);
+    expect(library.find(".ent:not(.ent-section)").exists()).toBe(false);
+    // The mockup's own cards, a size each, said under it.
+    expect(shelf.findAll(".sample .tile").length).toBeGreaterThan(0);
+    expect(shelf.find(".sample-foot").text()).toContain("1 × 1");
+    await library.findAll(".lib-view button")[1].trigger("click");
+    expect(useUiStore().libraryView).toBe("list");
+    expect(localStorage.getItem("esp-screens.library-view")).toBe("list");
+    expect(library.find(".shelf").exists()).toBe(false);
+    expect(library.find(".ent").exists()).toBe(true);
+    library.unmount();
+  });
+
+  it("adds the tile it showed, at its size, on a click", async () => {
+    const library = mount(Library, { attachTo: document.body });
+    const shelf = library.findAll(".shelf").find((item) => item.attributes("id") === "lib-light.b")!;
+    const samples = shelf.findAll(".sample");
+    await samples.at(-1)!.trigger("click");
+    await flushPromises();
+    const added = useDocumentStore().layout!.tiles.find((tile) => tile.entity === "light.b");
+    expect(added?.options?.size).toBe(samples.length > 2 ? "square" : "wide");
+    library.unmount();
+  });
+});
+
+describe("a device's extras in the library", () => {
+  beforeEach(() => {
+    useUiStore().libraryOpen = true;
+    useInventoryStore().inventory.entities.push(
+      { id: "select.a_power_on", name: "Power-on behaviour", area: "Kitchen", state: "on", category: "config" },
+      { id: "sensor.a_signal", name: "Signal", area: "Kitchen", state: "-60", category: "diagnostic" },
+    );
+  });
+  for (const view of ["tiles", "list"] as const)
+    it(`stand folded under the rest of their room in the ${view} view, and open on a click`, async () => {
+      useUiStore().libraryView = view;
+      const library = mount(Library, { attachTo: document.body });
+      const fold = library.find(".lib-extras");
+      expect(fold.text()).toContain("2 extras");
+      expect(fold.text()).toContain("Settings");
+      expect(fold.text()).toContain("Diagnosis");
+      expect(library.find("#lib-select\\.a_power_on").exists()).toBe(false);
+      await fold.trigger("click");
+      expect(library.find("#lib-select\\.a_power_on").exists()).toBe(true);
+      library.unmount();
+    });
 });

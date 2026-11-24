@@ -4,6 +4,8 @@
 domain: image
 memory: {bytes: 144, extras: false}
 firmware: 0.2.57   # the first firmware that draws this type
+# The library shows it with the picture itself from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: live
 displays:
   standard: {}
   live:

@@ -2057,7 +2057,22 @@
       "resize": "Sleep om de bibliotheek groter of kleiner te maken",
       "filter_label": "Filter op soort",
       "no_room": "Zonder ruimte",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "tiles": {
+        "view": "Hoe de bibliotheek entities toont",
+        "tiles": "Tegels",
+        "list": "Lijst",
+        "tiles_title": "Toon elke entity als de tegels die hij kan zijn, op hun maten",
+        "list_title": "Toon de entities als lijst",
+        "placed": "Op dit scherm",
+        "add_size": "Voeg {name} toe als tegel van {columns} × {rows}"
+      },
+      "extras": {
+        "title": "1 extra | {n} extra's",
+        "config": "Instellingen",
+        "diagnostic": "Diagnose",
+        "hidden": "Verborgen in Home Assistant"
+      }
     },
     "memory": {
       "label": "Geheugen voor tegels",

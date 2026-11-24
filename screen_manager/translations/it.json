@@ -2057,7 +2057,22 @@
       "hint": "Trascina su una pagina, o tocca + per aggiungere al primo spazio libero. ⌘K cerca ovunque.",
       "resize": "Trascina per ridimensionare la libreria",
       "filter_label": "Filtra per tipo",
-      "no_room": "Senza stanza"
+      "no_room": "Senza stanza",
+      "tiles": {
+        "view": "Come la libreria mostra le entità",
+        "tiles": "Riquadri",
+        "list": "Elenco",
+        "tiles_title": "Mostra ogni entità come i riquadri che può essere, nelle loro dimensioni",
+        "list_title": "Mostra le entità come elenco",
+        "placed": "Su questo schermo",
+        "add_size": "Aggiungi {name} come riquadro {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extra",
+        "config": "Impostazioni",
+        "diagnostic": "Diagnostica",
+        "hidden": "Nascosta in Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugin",

@@ -2057,7 +2057,22 @@
       "hint": "Arrastra a una página o toca + para añadir al primer hueco libre. ⌘K busca en todo.",
       "resize": "Arrastra para cambiar el tamaño de la biblioteca",
       "filter_label": "Filtrar por tipo",
-      "no_room": "Sin estancia"
+      "no_room": "Sin estancia",
+      "tiles": {
+        "view": "Cómo muestra la biblioteca las entidades",
+        "tiles": "Mosaicos",
+        "list": "Lista",
+        "tiles_title": "Mostrar cada entidad como los mosaicos que puede ser, en sus tamaños",
+        "list_title": "Mostrar las entidades como lista",
+        "placed": "En esta pantalla",
+        "add_size": "Añadir {name} como mosaico de {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extras",
+        "config": "Ajustes",
+        "diagnostic": "Diagnóstico",
+        "hidden": "Oculta en Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugins",

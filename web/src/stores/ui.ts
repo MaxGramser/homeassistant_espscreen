@@ -201,6 +201,9 @@ export const useUiStore = defineStore("ui", () => {
   const search = ref("");
   const room = ref("");
   const hidePlaced = ref(false);
+  // How the library shows what can go on a page (app 0.4.10x): as the tiles themselves, at their sizes, or as the list of
+  // entities it always was. Remembered in this browser.
+  const libraryView = usePreference<"tiles" | "list">("esp-screens.library-view", "tiles", { serializer: { read: (raw) => (raw === "list" ? "list" : "tiles"), write: (view) => view } });
 
   // ---- The tip beside a tile that grew (app 0.4.89, components/GrowTip.vue) ----
   // Which tile, the size it had and has, and the control set its growing put on it (null: it kept its own). Asking is
@@ -239,7 +242,7 @@ export const useUiStore = defineStore("ui", () => {
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     route, go, setMainView, chatOpen, openChat, settingsPart, openSettings, screenSettingsPart, openScreenSettings, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
-    libraryOpen, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
+    libraryOpen, libraryView, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
     now, fontsVersion, start,
   };
 });

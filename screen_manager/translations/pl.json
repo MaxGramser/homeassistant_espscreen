@@ -2057,7 +2057,22 @@
       "hint": "Przeciągnij na stronę albo kliknij +, aby dodać w pierwszym wolnym miejscu. ⌘K przeszukuje wszystko.",
       "resize": "Przeciągnij, aby zmienić rozmiar biblioteki",
       "filter_label": "Filtruj według typu",
-      "no_room": "Bez pomieszczenia"
+      "no_room": "Bez pomieszczenia",
+      "tiles": {
+        "view": "Jak biblioteka pokazuje encje",
+        "tiles": "Kafelki",
+        "list": "Lista",
+        "tiles_title": "Pokaż każdą encję jako kafelki, którymi może być, w ich rozmiarach",
+        "list_title": "Pokaż encje jako listę",
+        "placed": "Na tym ekranie",
+        "add_size": "Dodaj {name} jako kafelek {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} dodatkowa | {n} dodatkowe | {n} dodatkowych",
+        "config": "Ustawienia",
+        "diagnostic": "Diagnostyka",
+        "hidden": "Ukryta w Home Assistant"
+      }
     },
     "plugins": {
       "title": "Wtyczki",

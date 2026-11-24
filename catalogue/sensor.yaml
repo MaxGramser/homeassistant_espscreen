@@ -3,6 +3,8 @@
 # docs/CATALOGUE.md says what every key means.
 domain: sensor
 memory: {bytes: 192, extras: false}
+# The library shows it with its history as a curve from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: graph
 displays:
   standard: {}
   watch: {}

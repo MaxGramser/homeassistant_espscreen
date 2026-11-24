@@ -19,6 +19,8 @@ controls:
     one_row: volume
 inline:
   needs: {actions: [media_player.volume_set]}
+# The library shows it with the album cover behind it from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: cover
 displays:
   standard: {}
   watch: {}

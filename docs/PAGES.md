@@ -10,6 +10,27 @@ The toolbar above the pages switches between two views, **Row** and **Map**, and
 
 The library lists everything a tile can show: the rows come as the list is scrolled (`libraryWindow` in `web/src/model/library.ts`), and a room's number is the whole room's. A search (`web/src/model/search.ts`) takes each word on its own, in any order, in the name, the entity id, the device, the room or what the entity is: its kind in the editor's language and its device class in Home Assistant's words (`kind_words` in `core.py`). Case, accents and whether words are joined by a space, a dash or an underscore make no difference, and a match in the name stands first.
 
+### The library
+
+The library shows what a tile can show in one of two views, switched at its top right and remembered in the browser:
+
+- **Tiles** (the default): every entity as the tiles it can be on this screen, side by side on a strip of the screen's
+  background: one cell, a row of two and two rows of two (the tall size where the grid has no 2 x 2), each size the
+  screen or the type does not take left out. These are the mockup's own cards (`TileCard`) at the sizes the glass gives
+  them, scaled alike so the sizes compare, and each is as rich as the screen draws it there: from two cells up the face
+  its type is shown in (catalogue `showcase`, docs/CATALOGUE.md "The library's tiles"), and of the control sets that
+  fit, the one with the most parts. A light shown with presets gets a first set that suits it (`starterPresets` in
+  `web/src/model/light-presets.ts`). Only a tile the add-on saves is shown. A click puts that very tile on the marked
+  cell or the first free one, a drag where it is let go. `web/src/editor/library-tiles.ts` chooses the tiles,
+  `web/src/components/LibraryShelf.vue` draws one entity. A phone keeps the list.
+- **List**: the entities as rows, as the library always was.
+
+A device's extras stand apart, the way Home Assistant's device page puts them apart from the controls: a setting
+(`entity_category: config`, such as a lamp's power-on behaviour), a reading for diagnosis (`diagnostic`) and an entity
+hidden in Home Assistant. The add-on marks them (`category`, `hidden` in the inventory, `discover` in `core.py`), and the
+library lists them after the rest of their room, folded under "N extras", in both views. A search finds them, after an
+equally good match that is not an extra.
+
 **Map** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Row removes the map connections and keeps the same pages and tiles.
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.

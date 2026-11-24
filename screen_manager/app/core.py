@@ -3099,7 +3099,11 @@ def discover(registry, states, devices, areas, word_sets=()):
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
                          **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
-                         **({} if tile else {'tile': False}), **unavailable_since(state)})
+                         **({} if tile else {'tile': False}), **unavailable_since(state),
+                         # What Home Assistant's device page puts apart from the controls: a setting (Configuration) or
+                         # a reading for diagnosis, and an entity hidden there. The library shows them as extras.
+                         **({'category': category} if (category := item.get('entity_category')) in ('config', 'diagnostic') else {}),
+                         **({'hidden': True} if item.get('hidden_by') else {})})
     # YAML entities may not have an entity-registry entry. Their icon is the one the screen gets (tile_icon): Home
     # Assistant's own, else the one its frontend shows for the state, as for a registered entity (app 0.4.90; before, a
     # player or a lock of YAML showed the power icon on the mockup and its cast or lock icon on the glass).

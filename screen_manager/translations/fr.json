@@ -2057,7 +2057,22 @@
       "hint": "Faites glisser sur une page, ou appuyez sur + pour ajouter au premier emplacement libre. ⌘K recherche partout.",
       "resize": "Faites glisser pour redimensionner la bibliothèque",
       "filter_label": "Filtrer par type",
-      "no_room": "Sans pièce"
+      "no_room": "Sans pièce",
+      "tiles": {
+        "view": "Comment la bibliothèque montre les entités",
+        "tiles": "Tuiles",
+        "list": "Liste",
+        "tiles_title": "Montrer chaque entité sous forme des tuiles qu'elle peut être, à leurs tailles",
+        "list_title": "Montrer les entités sous forme de liste",
+        "placed": "Sur cet écran",
+        "add_size": "Ajouter {name} comme tuile de {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extras",
+        "config": "Paramètres",
+        "diagnostic": "Diagnostic",
+        "hidden": "Masquée dans Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugins",

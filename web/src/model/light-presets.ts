@@ -278,6 +278,20 @@ export function startPreset(live: { state?: string; a?: Record<string, any> } | 
   return { b: 100 };
 }
 
+/** A first set of presets that suits the light, for a tile that shows them before any were chosen (the library's Tiles
+ * view): whites from warm to cool and a dimmed warm one where it has whites, a colour beside them where it has colours,
+ * and steps of brightness for a light that only dims. Changed in the tile's Presets like any other. */
+export function starterPresets(live: { state?: string; a?: Record<string, any> } | null | undefined): Preset[] {
+  const a = live?.a || {}, modes = lightModes(a);
+  if (modes.white) {
+    const [lo, hi] = kelvinRange(a), at = (k: number) => Math.min(hi, Math.max(lo, k));
+    return modes.colour ? [{ b: 100, k: at(2700) }, { b: 100, k: at(5000) }, { b: 30, k: at(2200) }, { b: 80, h: 30, s: 80 }]
+      : [{ b: 100, k: at(2700) }, { b: 100, k: at(4000) }, { b: 100, k: at(6000) }, { b: 20, k: at(2200) }];
+  }
+  if (modes.colour) return [{ b: 100, h: 35, s: 30 }, { b: 80, h: 30, s: 80 }, { b: 80, h: 210, s: 70 }, { b: 60, h: 300, s: 60 }];
+  return [{ b: 100 }, { b: 60 }, { b: 30 }, { b: 10 }];
+}
+
 // ---- What a preset may set beside its colour (the add-on's api/light-choices, light_effects.choices) ----
 /** A row of the light's effects page with every choice it has: a select's options, a number's range; `key` its
  * translation key (color_palette, preset, playlist, speed, intensity, ...), `value` where it stands. */

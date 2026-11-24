@@ -2057,7 +2057,22 @@
       "resize": "Drag to resize the library",
       "filter_label": "Filter by type",
       "no_room": "No room",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "tiles": {
+        "view": "How the library shows entities",
+        "tiles": "Tiles",
+        "list": "List",
+        "tiles_title": "Show every entity as the tiles it can be, at their sizes",
+        "list_title": "Show the entities as a list",
+        "placed": "On this screen",
+        "add_size": "Add {name} as a tile of {columns} × {rows}"
+      },
+      "extras": {
+        "title": "1 extra | {n} extras",
+        "config": "Settings",
+        "diagnostic": "Diagnosis",
+        "hidden": "Hidden in Home Assistant"
+      }
     },
     "memory": {
       "label": "Memory for tiles",
