@@ -101,6 +101,15 @@ The add-on's normal state packets for the plugin tile (its options, its data) â”
   editor first asks for it, checks it and keeps it under `data/plugins/modules`. A plugin someone is making in a folder
   brings its own: `<folder>/.preview/<id>.wasm`, where `build_plugin.py` writes it. A plugin from a link or a branch has
   none.
+- **When a new number has its modules.** The plugins repository's workflow `modules` builds what is missing after each
+  run of its index, which is every hour, and by hand; a full run for a new number took 2 minutes 50 seconds on
+  2026-11-24. So on dev, a change to one of the headers the number is made of shows placeholders until the next run:
+  up to an hour, plus those minutes. Tessera's workflows have no token that reaches the plugins repository, so the
+  preview's own build cannot start that run. A release does not wait for the hour: `tools/release.py publish` looks
+  whether every plugin the plugins repository's main offers has its module, or the reason it has none, for the number
+  of the released preview, has the workflow build what is missing, and says the release is not done while one is
+  (docs/RELEASING.md, `tools/release_plugins.py`). The release commit is a commit of dev and the number is made of
+  headers, not of a version, so in most releases the modules built for dev are the release's and nothing is built.
 - **What the add-on checks** (`plugin_module.py`, before any byte reaches a browser): the module names this plugin, this
   version and this preview's number; a published one is the file the list names (its size and SHA-256); and its only
   way out is the preview. A module's imports must come from the preview itself (`env`, `GOT.func`, `GOT.mem`); one that
@@ -124,7 +133,8 @@ Known limits, each with its cause:
   tile on a screen, and does not read those files; an address that is a stand-in gives no picture. A tile on a page
   shows its real pictures.
 - **No module** for a plugin that needs or brings hardware, one whose `plugin.yaml` makes ESPHome entities of its own,
-  and one added with a link or from a branch. Each keeps the editor's own drawing.
+  and one added with a link or from a branch. Each keeps the editor's own drawing. The second kind is eleven plugins
+  of the index today, and what building them takes is in docs/open-issues/plugin-modules-with-esphome-entities.md.
 - **A card on a page out of sight of the hidden firmware** (more asked faces than one page holds) follows the clock
   once a minute, not each second: a countdown on it steps by the minute until its page has the glass.
 

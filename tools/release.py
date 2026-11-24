@@ -26,6 +26,7 @@ upgrade from main, and then moves main to it.
                                            FILE as its notes, and the candidate branch goes; from dev, dev then names
                                            the app "(dev)" again in a commit of its own, and the plugins repository's
                                            dev goes to its main with its index built and checked against this release
+                                           and the editor's modules of its plugins there for this release's preview
                                            (tools/release_plugins.py). Only for a commit that is pushed, green in CI
                                            and the one the candidate was made of, and plugins that fit it; without
                                            --yes it says what it would do and does nothing
@@ -308,7 +309,7 @@ def plugins_report():
     api, fits = release_plugins.core_api(ROOT)
     try:
         with plugins_clone() as plugins:
-            return release_plugins.report(plugins, api, fits)
+            return release_plugins.report(plugins, api, fits, release_plugins.preview_number(ROOT))
     except release_plugins.Problem as problem:
         return [f'tessera-plugins: could not look ({problem})']
 
@@ -395,7 +396,8 @@ def prepare(args):
         'upgrade test can run meanwhile.',
         'tools/release.py candidate, then the upgrade test (docs/TESTING.md, "6. The upgrade").',
         'Write the GitHub release notes in English in a file, then tools/release.py publish --notes <file> --yes. '
-        'It also takes the plugins repository\'s dev to its main and checks its index against this release (below).',
+        'It also takes the plugins repository\'s dev to its main, checks its index against this release and sees '
+        'that the editor has the plugins\' modules for it (below).',
     ]
     print('\nNext:')
     for number, step in enumerate(steps, 1):
@@ -542,7 +544,8 @@ def publish(args):
         plan.append(f'name the app "{name_of(with_name(read(CONFIG), dev=True))}" on {WORK} again, in a commit pushed to {WORK}')
     if with_plugins:
         plan.append('merge the plugins repository\'s dev into its main, build its index against this release and check '
-                    'it (every plugin fits, every one dev offered is there, its check green), then move its dev up to main')
+                    'it (every plugin fits, every one dev offered is there, its check green), move its dev up to main, '
+                    'and see that the editor has every plugin\'s module for this release\'s preview (built when missing)')
     if not args.yes:
         print('Would:\n- ' + '\n- '.join(plan) + '\nNothing done: run again with --yes.')
         return 0
@@ -582,7 +585,7 @@ def plugins_step(version):
     api, fits = release_plugins.core_api(ROOT)
     try:
         with plugins_clone() as plugins:
-            release_plugins.release(plugins, api, fits, version)
+            release_plugins.release(plugins, api, fits, version, release_plugins.preview_number(ROOT))
         return True
     except release_plugins.Problem as problem:
         print(f'\nThe release is out, but the plugins are not done: {problem}\n'
@@ -596,14 +599,15 @@ def plugins(args):
     api, fits = release_plugins.core_api(ROOT)
     version = version_of(read(CONFIG))
     with plugins_clone() as clone:
-        for line in release_plugins.report(clone, api, fits):
+        for line in release_plugins.report(clone, api, fits, release_plugins.preview_number(ROOT)):
             print(line)
         problems = release_plugins.preflight(clone, api, fits)
     if problems:
         raise Refusal('The plugins cannot go along:\n- ' + '\n- '.join(problems))
     if not args.yes:
         print(f'Would merge the plugins\' dev into their main for Tessera {version} (plugin API '
-              f'{release_plugins.api_text(api)}), build and check the index, and move their dev up. Run again with --yes.')
+              f'{release_plugins.api_text(api)}), build and check the index, move their dev up, and see that the '
+              'editor has every plugin\'s module. Run again with --yes.')
         return 0
     return 0 if plugins_step(version) else 1
 
