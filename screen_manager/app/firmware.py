@@ -16,6 +16,7 @@ import yaml
 import zipfile
 import atomic
 import build_cache
+import build_files
 import build_logs
 import build_memory
 import build_server
@@ -194,9 +195,9 @@ class Firmware:
     # ESPHome's "Factory format" (bootloader, partition table and app from address 0), the file ESPHome Web
     # flashes on a board. A build writes it next to firmware.bin: under .pioenvs/<node>/ with PlatformIO,
     # under build/ with ESPHome's native ESP-IDF toolchain.
-    FACTORY_IMAGES = ('*/.pioenvs/*/firmware.factory.bin', '*/build/firmware.factory.bin')
+    FACTORY_IMAGES = build_files.in_build('firmware.factory.bin')
     # The image an update over Wi-Fi sends, beside it.
-    OTA_IMAGES = ('*/.pioenvs/*/firmware.ota.bin', '*/build/firmware.ota.bin')
+    OTA_IMAGES = build_files.in_build('firmware.ota.bin')
     # One update slot of ESPHome's own table for 4 MB of flash, in bytes: what a screen that still has that table can
     # take. A board whose flash takes the wide table (boards.json `wide_slots`, app 0.4.56) builds for slots of
     # 2,031,616 bytes, and a firmware larger than this goes to a screen with the old table over a bridge
