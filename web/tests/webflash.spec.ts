@@ -356,6 +356,47 @@ describe("New screen from this browser", () => {
     expect(view.find('#follow-steps [data-step="write"]').classes()).toContain("done");
   });
 
+  it("installs a board Home Assistant already has again inside the wizard, on the port it holds, without wiping", async () => {
+    // The board on the cable is a screen of this app's already (its MAC, app 0.4.96): "Install it again" finishes here,
+    // with that screen's own profile, built for the chip on the cable, instead of sending the person to Firmware & USB.
+    const flasher = fakeFlasher("ESP32", 301);
+    const jobs: any[] = [];
+    const again = { id: 7, by: "install", file: "tablet.yaml", action: "download", asked: 1 };
+    const { posted } = addonWithBuild(factoryImage(0, 0x1000));
+    const calls = addon(factoryImage(0, 0x1000), (url, options) => {
+      if (url.endsWith("api/firmware")) {
+        return new Response(JSON.stringify({ available: true, ports: [], profiles: [], logs: [], wifi: { state: "ready" }, boards, taken: { nodes: [], prefixes: [] } }));
+      }
+      if (url.includes("api/boards/known")) {
+        return new Response(JSON.stringify({ known: true, mac: "aa:bb:cc:dd:ee:ff", name: "Tablet", node: "tablet", file: "tablet.yaml",
+          screen: "text.tablet_tile_settings", device_id: "d1", entries: ["E1"] }));
+      }
+      if (url.endsWith("api/firmware/jobs") && options.method === "POST") {
+        jobs.push(JSON.parse(options.body));
+        return new Response(JSON.stringify({ ...again, state: "queued", place: 0 }));
+      }
+      if (/api\/firmware\/builds\/\d+\/log$/.test(url)) return new Response(JSON.stringify({ build: { ...again, state: "success" }, logs: [] }));
+      return null;
+    });
+    const view = installer();
+    await flush();
+    await toInstall(view);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(view.find("#known-board").exists()).toBe(true);
+    await view.find("#known-keep").trigger("click");
+    await flush();
+    // That screen's own profile, for the chip that was read, and no new profile.
+    expect(jobs).toEqual([{ file: "tablet.yaml", action: "download", chip_revision: 301 }]);
+    expect(posted).toEqual([]);
+    expect(calls.some((call) => call.url.endsWith("api/firmware/profiles") && call.method === "POST")).toBe(false);
+    useInventoryStore().applyLive({ line: [{ ...again, state: "success", started: 2, finished: 3 } as any] });
+    await flush();
+    await vi.waitFor(() => expect(flasher.writeImage).toHaveBeenCalledOnce());
+    expect(flasher.writeImage.mock.calls[0][2]).toBe(false);
+    expect(requestPort).toHaveBeenCalledOnce();  // the port picked on Install is the one written to
+  });
+
   it("writes nothing and makes no profile for a board of another chip", async () => {
     fakeFlasher("ESP32-S3");
     const { posted } = addonWithBuild(factoryImage(9, 0));

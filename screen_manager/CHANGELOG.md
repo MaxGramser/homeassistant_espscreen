@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **New screen finishes what it starts.** When the board on the cable is already one of your screens, "Install it again" now installs it right there: the same cable, that screen's own firmware built for the chip on the cable, without wiping its settings or its calibration, and the same steps until it is back in Home Assistant. It used to send you to Firmware & USB with another screen picked.
+
 - **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
 
 - **The editor draws a sensor's graph and a thermostat's modes as the screen does.** A graph card keeps its name and value beside the graph, which now runs as the screen draws it, smooth and filled, without the stray dots of the highest and lowest moment. The mode keys of a thermostat no longer turn dark when your computer is in dark mode.

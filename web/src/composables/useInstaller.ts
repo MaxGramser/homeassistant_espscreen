@@ -44,6 +44,9 @@ export function useInstaller() {
     // whether to install that one again or to replace it; `replace` once replacing was chosen, until the add-on took
     // the old screen out after the write.
     known: null as KnownBoard | null, replace: null as KnownBoard | null,
+    // Whether the write wipes the flash first: a new screen yes, as ESPHome does for a new device; a screen installed
+    // again keeps its settings and its calibration, as Firmware & USB does.
+    erase: true,
   });
   // This computer (browser): the add-on builds as for Download, and this page writes the image over Web Serial, in Chrome
   // or Edge on a page served over https. The fallback for a screen that can't reach the Home Assistant machine; Download
@@ -184,10 +187,10 @@ export function useInstaller() {
   const running = computed(() => waiting.value || job.value?.state === "running" || flashing.value);
   const ok = computed(() => installer.view === "done" || (job.value?.state === "success" && (!installer.browser || flash.state.phase === "done")));
   const download = computed(() => installer.action === "download" && !installer.browser);
-  // The build is done: write it, erased first as ESPHome does for a new device. A retry after a finished build connects
+  // The build is done: write it, erased first as ESPHome does for a new device (not a screen installed again, `erase`). A retry after a finished build connects
   // again, and that writes the image it already has.
   watch(() => [job.value?.state, flash.state.phase] as const, ([state, phase]) => {
-    if (installer.browser && installer.file && afterBrowserBuild(state, phase) === "write") flash.install(installer.file, true);
+    if (installer.browser && installer.file && afterBrowserBuild(state, phase) === "write") flash.install(installer.file, installer.erase);
   });
   // A build that fails lets go of the port. Only when the build ends: a retry connects while the failed job is on screen.
   watch(() => job.value?.state, (state) => {
@@ -273,6 +276,26 @@ export function useInstaller() {
     installer.known = null;
     await whileSubmitting(() => build(true));
   }
+  /** Install the screen Home Assistant has for this board again, here: the port stays open, the add-on builds that screen's
+   * own profile for the chip on the cable, and the page writes it without wiping, so the screen keeps its settings, its
+   * calibration and its place in Home Assistant. The steps that follow are the ones of a new screen. A screen this app
+   * has no profile for (built elsewhere) is left to Firmware & USB, as before. */
+  async function againKnown() {
+    const known = installer.known;
+    if (!known) return;
+    if (!known.file) { keepKnown(); return; }
+    installer.known = null;
+    await whileSubmitting(async () => {
+      try {
+        Object.assign(installer, { file: known.file, apiKey: null, friendly: known.name, calibrate: !!chosen.value?.calibrate,
+          target: "browser", browser: true, chip: chosen.value?.chip || null, erase: false });
+        showProgress(await builds.askBuild({ file: known.file!, action: "download", chip_revision: flash.state.revision }));
+      } catch (err: any) {
+        status.value = err.message;
+        flash.cancel();
+      }
+    });
+  }
   /** Keep the screen Home Assistant has: let the port go and send the person to that screen's Firmware & USB. */
   function keepKnown() {
     const known = installer.known;
@@ -325,7 +348,7 @@ export function useInstaller() {
   function reset() {
     mode.value = "physical";
     flash.cancel();
-    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null,
+    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null, erase: true,
       build: null, asked: null });
     Object.assign(form, { board: firstBoard(boardRows.value), orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
     bestGrid();
@@ -377,11 +400,11 @@ export function useInstaller() {
     browse, cable, more, haPorts, canGoOn, journey, made, rooms, job,
     boardRows, previews, previewForm, chosen, abilities, choices, orientations, range, gridChosen, siblings, clash, wifi, askWifi, wifiMissing,
     wifiNote, goDisabled, art, running, ok, download, memory, progressDetail, image, progress, elapsed, artState, arrival,
-    bestGrid, submit, retry, reset, close, next, back, tryVirtual, realScreen, pickWay, fixWifi, replaceKnown, keepKnown, later, downloadInstead,
+    bestGrid, submit, retry, reset, close, next, back, tryVirtual, realScreen, pickWay, fixWifi, replaceKnown, againKnown, keepKnown, later, downloadInstead,
   });
 }
 /** What the add-on knows of the board on the cable: the screen Home Assistant has with its MAC (boards/known). */
-export type KnownBoard = { known: true; mac: string; name: string; node: string | null; screen: string | null; device_id: string; entries: string[] };
+export type KnownBoard = { known: true; mac: string; name: string; node: string | null; file?: string | null; screen: string | null; device_id: string; entries: string[] };
 export type Installer = ReturnType<typeof useInstaller>;
 // The steps work on the one installer of the view that holds them: InstallerView.vue provides it, a step injects it. It
 // is no prop of a step, since a step changes the form as a person fills it in, and a prop is read, never written.
