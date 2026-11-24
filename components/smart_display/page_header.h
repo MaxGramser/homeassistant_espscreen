@@ -99,6 +99,13 @@ struct View {
 };
 class Renderer {
   void (*leading_action)() = nullptr;
+  // A finger held on the leading key for HOLD_MS (firmware 0.64.0+) asks the runtime for the screensaver: true when
+  // the screen went to standby, and then the lift that follows is no tap. false (no standby on this screen, or Back
+  // on the key) leaves the lift a tap as ever. Timed here, not by LVGL's long press, so the time is the key's own.
+  bool (*leading_hold)() = nullptr;
+  static constexpr uint32_t HOLD_MS = 500;
+  uint32_t leading_down = 0;
+  bool leading_asked = false, leading_held = false;
   // A tap on the screen's own items (firmware 0.38.0) opens "This screen" on the settings page, which names the network
   // and says what is connected; the runtime supplies it, guarded like the leading key.
   void (*status_action)() = nullptr;
@@ -148,6 +155,7 @@ class Renderer {
 public:
   lv_obj_t *leading_target() const { return header_home_tap; }
   void on_status(void (*action)()) { status_action = action; }
+  void on_leading_hold(bool (*action)()) { leading_hold = action; }
   void on_item(void (*action)(size_t item)) { item_action = action; }
   void restyle() { for (auto &slot : header_slots) { slot.own = true; slot.icon_color = UINT32_MAX; } }
   // Used only when a host renderer replaces its preview surface.
@@ -206,8 +214,20 @@ public:
                                           : lv_obj_get_index(header_root) + 1);
       lv_obj_add_event_cb(header_home_tap, [](lv_event_t *event) {
         auto *renderer = static_cast<Renderer *>(lv_event_get_user_data(event));
-        if (renderer->leading_action) renderer->leading_action();
-      }, LV_EVENT_CLICKED, this);
+        const auto code = lv_event_get_code(event);
+        if (code == LV_EVENT_PRESSED) {
+          renderer->leading_down = lv_tick_get();
+          renderer->leading_asked = renderer->leading_held = false;
+        } else if (code == LV_EVENT_PRESSING) {
+          if (!renderer->leading_asked && renderer->leading_hold && lv_tick_elaps(renderer->leading_down) >= HOLD_MS) {
+            renderer->leading_asked = true;  // once a press
+            renderer->leading_held = renderer->leading_hold();
+          }
+        } else if (code == LV_EVENT_CLICKED) {
+          if (renderer->leading_held) return;
+          if (renderer->leading_action) renderer->leading_action();
+        }
+      }, LV_EVENT_ALL, this);
       // The same kind of finger's area over the screen's own items, in the same place in the drawing order.
       status_tap = lv_obj_create(page);
       lv_obj_remove_style_all(status_tap);

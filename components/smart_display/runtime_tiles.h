@@ -3130,6 +3130,9 @@ inline const void *header_home_mark = nullptr;  // the Tessera mark of the home 
 inline const lv_font_t *header_back_font = nullptr;
 inline const lv_font_t *header_status_font = nullptr;  // the Wi-Fi item's bars (firmware 0.38.0)
 inline std::function<void()> back_home;
+// The home key held for half a second (firmware 0.64.0+): the screensaver at once, the way the standby time running
+// out brings it. True when the screen went to standby; core.yaml supplies it.
+inline std::function<bool()> hold_home;
 // The battery the top bar can show (firmware 0.41.0, docs/BATTERY.md): the first of the screen's sensors in Home
 // Assistant's `battery` device class (percent), and the first binary sensor in its `battery_charging` class. Whatever the
 // board measures them with, a fuel gauge, a power chip, a voltage on a pin and a formula or the Tab5's INA226, the
@@ -3198,6 +3201,8 @@ inline void draw_header(bool live) {
 inline std::function<void()> open_this_screen;
 inline void render_header() {
   if (!enabled) return;
+  // Only the home key: Back held is still Back.
+  header_renderer.on_leading_hold([]() { return !header_back() && hold_home && hold_home(); });
   header_renderer.on_status([]() {
     if (!allowed(esphome::millis(), 14, "header navigation")) return;
     if (open_this_screen) open_this_screen();

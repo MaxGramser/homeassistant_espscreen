@@ -375,7 +375,9 @@ screen is back on its Home page, from wherever it stands. Since firmware 0.10.0 
 in its own colours (a house before that). It stands on the baseline of the page title, the page title
 moves behind it with the same air between them as between the logo and the edge of the glass, and the
 items on the right of the bar keep every pixel they had. **Show home button** in the **Screen settings** tab, and on
-the screen's own settings page, takes it away.
+the screen's own settings page, takes it away. Holding the logo for half a second (firmware 0.64.0+) sends the
+screen to standby at once, with its screensaver, as when the standby time runs out. That needs **Auto standby** on;
+without it, the hold is an ordinary tap home.
 The default standby time is ten minutes. For offline devices, the screen blocks
 actions. If the connection to Home Assistant drops, the screen immediately shows
 "HA not connected"; if the app sends nothing for two rounds (about five minutes),
@@ -564,7 +566,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On for a screen set up with New screen, off for one set up before |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
 | Loop pages | On: past the last page comes the first, and before the first the last. Off: the pages stop at their ends | On |
-| Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
+| Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+; holding it half a second starts standby and its screensaver, firmware 0.64.0+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |
 
 The Waveshare 4.3-inch, 5-inch and 7-inch have a backlight that is only on or off and no standby, so they show no

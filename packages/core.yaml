@@ -271,6 +271,16 @@ esphome:
           // over any card or the settings page 0.28.0+): the same script the Back to page 1 timeout and Home Assistant
           // use, so there is one way home, and it closes everything on the way.
           runtime_tiles::back_home = []() { id(go_home).execute(); };
+          // The home key held for half a second (firmware 0.64.0+): standby now, with its screensaver, as when the standby
+          // time runs out. Only where Auto standby is on: with it off nothing would hold the screen dark, and the lift
+          // is then a tap home as ever.
+          runtime_tiles::hold_home = []() {
+            if (!settings_screen::can_standby || !screen_settings::current.standby_enabled) return false;
+            if (id(display_dimmed) || id(calibration_active) || id(alert_active)) return false;
+            ESP_LOGI("standby", "Standby from the home key held");
+            id(dim_display).execute();
+            return true;
+          };
           // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
           // card (firmware 0.3.3+): Back to page 1 counts from now.
           runtime_tiles::alarm_wake = []() { id(last_use_ms) = millis(); id(wake_display).execute(); };
