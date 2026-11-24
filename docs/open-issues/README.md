@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [standby-by-hand-answers-a-ring.md](standby-by-hand-answers-a-ring.md) | Sleep, the board's key or the home button held during a doorbell's ring closes it as `closed`, which the app counts as an answer: the ring ends on every screen and Home Assistant hears it answered; the two readings and what would decide | 2026-11-24 |
 | [plugin-modules-with-esphome-entities.md](plugin-modules-with-esphome-entities.md) | Eleven plugins keep their placeholder in the editor: their plugin.yaml makes ESPHome entities, and a module does not run the component's code generation; what the road needs, waste_collection as the first proof | 2026-11-24 |
 | [phone-save-in-the-dock.md](phone-save-in-the-dock.md) | Save in the phone editor's dock does nothing for some phones in Home Assistant's app (GitHub #438); not reproduced, what was read and tried, what to ask | 2026-11-24 |
 | [first-save-after-a-grid-change.md](first-save-after-a-grid-change.md) | A screen never saved refuses a grid change at its first save (GitHub #355); only the message changed on 2026-11-24, the fix in the file is not built | 2026-11-24 |
