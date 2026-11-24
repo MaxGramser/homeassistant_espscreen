@@ -51,7 +51,13 @@ Then choose what the board includes:
   for it: `STANDBY_KEY_PIN`, the pin (always); `STANDBY_KEY_INVERTED` and `STANDBY_KEY_PULLUP`, `"false"` for a key
   that reads high while pressed; and for a key on an IO expander, `STANDBY_KEY` with the expander and `mode: INPUT`
   (`{pca9554: io_expander, mode: INPUT}`), which ESPHome merges into the feature's pin. The feature's header has both
-  forms;
+  forms. A BOOT key is on a strapping pin, so a build logs ESPHome's `WARNING GPIO0 is a strapping PIN` for it, next to
+  the ones the display pins of many boards already give. That is harmless: the pin only decides how the chip starts,
+  and the key is read after that. Nothing in the app reads a WARNING as trouble: a build is judged by ESPHome's exit
+  code, the reason of a failed one is its last line with `error` in it (`build_failures.py`), Save & check runs
+  `esphome --quiet config`, which logs no warnings, and a report carries the build log as it is. The line is only seen
+  in the full log, and for a moment as the newest line under a screen's update in the sidebar. The note stays because
+  an expander's pin refuses `ignore_strapping_warning`, and one definition serves both;
 - `features/wake-when-moved.yaml` on a board with a motion sensor (accelerometer and gyroscope): name it `board_motion`,
   read it every 100 ms, list `wake_when_moved` in its boards.yaml `settings` and push its row in `BOOT_BOARD_SETTINGS`;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for
