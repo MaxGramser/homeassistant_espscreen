@@ -96,8 +96,10 @@ describe("New screen, one question a step", () => {
     await view.find("#board-search").setValue("nothing like it");
     expect(view.find(".pick-none").text()).toContain("nothing like it");
     await view.find("#board-search").setValue("");
-    // How far a board has been tried, in plain words, on the ones not proven.
-    expect(view.find('input[value="waveshare4b"]').element.closest("label")!.textContent).toContain("Experimental");
+    // How far a board has been tried, in plain words, on the ones not proven: whichever board the data still marks so.
+    const untried = Object.keys(BOARD_CHOICES).find((key) => BOARD_CHOICES[key].status === "experimental");
+    expect(untried).toBeTruthy();
+    expect(view.find(`input[value="${untried}"]`).element.closest("label")!.textContent).toContain("Experimental");
     expect(view.find('input[value="cyd"]').element.closest("label")!.querySelector(".ob-tag")).toBeNull();
     // Back closes the list before it leaves the step.
     await view.find("#setup-back").trigger("click");

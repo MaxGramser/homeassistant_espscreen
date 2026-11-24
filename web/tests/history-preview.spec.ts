@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { cardGraph } from '../src/model/history-preview';
 describe('the graph on a card (render_graph)', () => {
-  it('runs the line past a missing average and scales between the lowest and the highest', () => {
+  // The points themselves are the firmware's: tests/test_editor_parity.py (Graph) compares them with render_graph.
+  it('runs one line past a missing average, from the bottom to the top, with the area under it closed', () => {
     const graph = cardGraph([0, 2, null, 4], 200, 50, 2)!;
-    // The first average at the bottom, the last at the top, each at its own place of 24 across the width.
     expect(graph.line.startsWith('M1,48')).toBe(true);
-    expect(graph.line.endsWith(`L${Math.round((1 + 3 * 197 / 23) * 100) / 100},3`)).toBe(true);
+    expect(graph.line.endsWith('L26,3')).toBe(true);
     expect(graph.line.match(/M/g)).toHaveLength(1);
     expect(graph.area.endsWith('L1,50 Z')).toBe(true);
     expect(cardGraph([null, null], 200, 50, 2)).toBeNull();
   });
   it('draws one level in the middle, and a single average across the width', () => {
-    expect(cardGraph([5, 5, 5], 200, 50, 2)!.line).toContain(',25.5');
-    expect(cardGraph([5], 200, 50, 2)!.line.endsWith('L199,25.5')).toBe(true);
+    expect(new Set(cardGraph([5, 5, 5], 200, 50, 2)!.line.match(/,\d+/g))).toEqual(new Set([',25']));
+    expect(cardGraph([5], 200, 50, 2)!.line.endsWith('L199,25')).toBe(true);
   });
 });
 
