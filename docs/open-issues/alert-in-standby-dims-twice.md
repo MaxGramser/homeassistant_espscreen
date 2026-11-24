@@ -54,7 +54,7 @@ The host render cannot see it: the host has no dim on the glass.
 
 ## Solved (to be seen on glass)
 
-2026-11-24, the same day. Candidate 1 was it, and what leaves LVGL the whole screen at a wake is the sheet over a
+2026-11-24, the same day, in 1c38b1d2. Candidate 1 was it, and what leaves LVGL the whole screen at a wake is the sheet over a
 screen in standby that takes the waking tap: it covers the glass, and hiding it invalidates all of it. `show` revealed
 the overlay and then called `lv_refr_now` for the card, which drew that pending whole screen with the overlay's scrim
 in it; the dim on the glass came on top. `screen_motion::show` now lets LVGL finish what it still has to draw before
