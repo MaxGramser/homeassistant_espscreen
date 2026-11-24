@@ -48,6 +48,8 @@ script:
           id(last_touch_ms) = millis();
           id(display_dimmed) = false;
           id(sleep_requested) = false;
+          id(sleep_dark) = false;
+          hand_standby::end();
           // The screensaver goes with the standby, and the touch that woke the screen does nothing else (0.29.0+).
           // From a screensaver the light is up at once: a finger on it must see that it was heard, and the page comes
           // in sight under that light. From the dark it fades in over 200 ms (ESPHome's default of 1 s felt sluggish).

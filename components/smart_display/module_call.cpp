@@ -665,7 +665,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
     claim_audio();
     show_out();
   } else if (state == "ring") {
-    if (plugin_host::wake) plugin_host::wake("call");
+    if (plugin_host::wake) plugin_host::wake("call", false);
     settings_screen::close();
     close_list();
     stage = Stage::RING;

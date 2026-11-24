@@ -530,7 +530,8 @@ void refresh();
 // page 1 keeps counting from the last touch, so waking on every motion holds no card or page 2 up. The log names the
 // plugin. Call it from the plugin's own calls (the screen's loop, as every call here), never from a task of its own,
 // and at most once a second or two while what it senses goes on. A plugin that wakes the screen by what it senses has
-// a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen").
+// a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen"). After a standby someone asked
+// for by hand (firmware 0.64.0+) it lights the screen only after a minute without one: the person is walking away.
 void wake(const Plugin *plugin);
 // What a plugin captures on the screen itself (0.17): its own camera, watched (CAMERA: someone sees what it sees), or
 // for sensing alone (SENSING, 0.20: a light level, motion, and no picture leaves the screen or reaches a person), or

@@ -426,7 +426,7 @@ void refresh() {
 // The screen wakes as Home Assistant's Wake button does (0.16): packages/core.yaml points plugin_host::wake at the
 // script every wake that is not a finger takes (wake_from), which logs who asked.
 void wake(const Plugin *plugin) {
-  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + (plugin ? plugin->plugin_id() : "?"));
+  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + (plugin ? plugin->plugin_id() : "?"), true);
 }
 
 // A plugin that uses the screen's own camera on the screen itself says so (0.17), watched or for sensing alone (0.20):
@@ -1258,8 +1258,8 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
                 const std::string &popup_key) {
   if (!plugin || !make) return false;
   // A dark screen lights up first, as tessera::wake does (a lit one counts its standby time from now): a popup is
-  // something to see.
-  tessera::wake(plugin);
+  // something to see, so it is no sensing and lights a standby by hand too (hand_standby.h).
+  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + plugin->plugin_id(), false);
   // The popup shown now goes first: another plugin's hears on_dismiss, this plugin's own was replaced by its plugin. And
   // whatever that on_dismiss showed in its place, as this one is the popup asked for last.
   if (popup_open) popup_end(popup_open->plugin != plugin, "another popup");
