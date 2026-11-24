@@ -379,6 +379,118 @@
   "wide_slots": true,
   "width": 320
  },
+ "checkout/freenovefnk0104n.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "freenovefnk0104n",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "FNK0104N",
+   "name": "Freenove",
+   "order": 26,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "ST77922"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.64.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "own_icons": true,
+  "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/freenovefnk0104s.yaml": {
   "alert": {
    "line": 21,
@@ -2746,7 +2858,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -2924,7 +3036,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": true,
    "settings": [
     "media_player",
@@ -3339,7 +3451,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -4391,7 +4503,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -4569,7 +4681,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [
     "media_player",
@@ -4725,7 +4837,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -5222,6 +5334,118 @@
   "tier": "lite",
   "wide_slots": true,
   "width": 320
+ },
+ "freenovefnk0104n": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "freenovefnk0104n",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "FNK0104N",
+   "name": "Freenove",
+   "order": 26,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "ST77922"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.64.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "own_icons": true,
+  "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "freenovefnk0104s": {
   "alert": {
@@ -7309,6 +7533,118 @@
   "tier": "lite",
   "wide_slots": true,
   "width": 320
+ },
+ "packages/freenovefnk0104n.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": false,
+  "board": "freenovefnk0104n",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "FNK0104N",
+   "name": "Freenove",
+   "order": 26,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "ST77922"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.64.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "own_icons": true,
+  "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "packages/freenovefnk0104s.yaml": {
   "alert": {
@@ -9677,7 +10013,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -9855,7 +10191,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": true,
    "settings": [
     "media_player",
@@ -10270,7 +10606,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -11322,7 +11658,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -11500,7 +11836,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [
     "media_player",
@@ -11656,7 +11992,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -12434,7 +12770,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -12612,7 +12948,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": true,
    "settings": [
     "media_player",
@@ -13027,7 +13363,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -14079,7 +14415,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -14257,7 +14593,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [
     "media_player",
@@ -14413,7 +14749,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",

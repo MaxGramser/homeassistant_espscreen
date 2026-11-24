@@ -228,6 +228,13 @@ freenovefnk0104s:
   status: experimental
   # The 4-inch board of Freenove's ESP32-S3 display series (GitHub #285); its 2.8 and 3.5-inch boards are other glass.
 
+freenovefnk0104n:
+  file: freenove-fnk0104n.yaml
+  name: Freenove
+  model: FNK0104N
+  status: experimental
+  # The 3.5-inch board of Freenove's ESP32-S3 display series (ST77922 QSPI + built-in TDDI touch); its 2.8 and 4-inch boards are other glass.
+
 wt32sc01plus:
   file: wt32sc01plus.yaml
   name: WT32
