@@ -312,8 +312,8 @@ screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 - After a standby by hand (firmware 0.64.0+: Home Assistant's Sleep, the board's key, the home key held) it waits for
   the room to go quiet. The person who sent the screen to standby is still there, and walking away is motion, so a
   sensed wake lights the screen only after a minute without one (`hand_standby.h`); each wake it holds starts that
-  minute again. Home Assistant's Wake counts as sensed too, as automations press it on motion. A popup, a call, a
-  doorbell, an alert, the board's key and a finger always wake the screen.
+  minute again. Home Assistant's Motion button counts as sensed too; its Wake does not. A popup, a call, a doorbell,
+  an alert, the board's key, Wake and a finger always wake the screen.
 
 A plugin that wakes the screen by what it senses:
 

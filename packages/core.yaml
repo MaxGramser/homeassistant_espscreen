@@ -2650,7 +2650,7 @@ script:
             - script.execute: go_home
 
   # Wake that is light, not a tap (0.2.56+): the one way in for every wake that is not a finger on the glass. Home
-  # Assistant's Wake button, a board's own sensor (which presses that button) and a plugin (tessera::wake, plugin API
+  # Assistant's Wake and Motion buttons, a board's own sensor and a plugin (tessera::wake, plugin API
   # 0.16, through plugin_host::wake) all come here; `source` only goes into the log. A dimmed screen lights up the way
   # the tap on its wake overlay does, then goes to page 1 at once when that time ran out during standby; one that is on
   # only restarts the standby time. Back to page 1 keeps counting from the last touch (last_use_ms), so a wake on every
@@ -2942,8 +2942,9 @@ button:
   # script wake_from): it lights a dimmed screen and counts the standby time from now, while Back to
   # page 1 keeps counting from the last touch, so Wake on every motion no longer holds a card or page 2
   # up. Sleep is the standby time running out, right away and also with Auto standby off; it holds until
-  # a tap, Wake or an alert, and closes an alert that is up. Neither saves anything, so an automation may
-  # press them on every motion. No entity_category: they are controls, not settings.
+  # a tap, Wake or an alert, and closes an alert that is up (the script standby_by_hand). Motion (0.64.0+) is Wake
+  # for an automation on motion. None saves anything, so an automation may press them as often as it likes. No
+  # entity_category: they are controls, not settings.
   - platform: template
     id: wake_button
     name: "Wake"

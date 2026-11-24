@@ -61,7 +61,7 @@ class Profiles(unittest.TestCase):
         # Automations press them (README), so every board has both, as controls Home Assistant shows.
         for name, text in self.profiles.items():
             buttons = section(text, 'button')
-            for label in ('Wake', 'Sleep'):
+            for label in ('Wake', 'Sleep', 'Motion'):
                 button = item(buttons, 'name', label)
                 self.assertTrue(button, f'{name}: no {label} button')
                 self.assertIn('platform: template', button, name)
@@ -69,13 +69,13 @@ class Profiles(unittest.TestCase):
                 self.assertNotIn('internal', button, f'{name}: {label} must reach Home Assistant')
 
     def test_every_wake_that_is_not_a_finger_takes_wake_from(self):
-        # Home Assistant's button, a plugin (tessera::wake through plugin_host::wake), the board's key and, on a board
-        # with a motion sensor, the board moved (features/wake-when-moved.yaml) wake the screen one way, the script
-        # wake_from (plugin API 0.16). A board moved is sensed, as Home Assistant's Wake is.
+        # Home Assistant's Wake and Motion buttons, a plugin (tessera::wake through plugin_host::wake), the board's key
+        # and, on a board with a motion sensor, the board moved (features/wake-when-moved.yaml) wake the screen one way,
+        # the script wake_from (plugin API 0.16). A board moved is sensed, as Home Assistant's Motion is.
         for name, text in self.profiles.items():
             moved = script(text, 'board_moved')
-            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 5 if moved else 4,
-                             f'{name}: wake the screen through the script wake_from, from the Wake button, the '
+            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 6 if moved else 5,
+                             f'{name}: wake the screen through the script wake_from, from the Wake and Motion buttons, the '
                              f'board\'s key, plugin_host::wake and a board moved only')
             if moved:
                 self.assertIn('id: wake_from', moved, name)
@@ -88,8 +88,10 @@ class Profiles(unittest.TestCase):
             self.assertIn('hand_standby::sensed_wakes(millis())', script(text, 'wake_from'), name)
             self.assertIn('hand_standby::begin(millis());', script(text, 'standby_by_hand'), name)
             self.assertIn('hand_standby::end();', script(text, 'wake_display'), f'{name}: every wake ends the hold')
-            # Home Assistant's Wake is pressed by motion automations: sensed. The board's key is a person: not.
-            self.assertIn('sensed: true', item(section(text, 'button'), 'name', 'Wake'), name)
+            # Home Assistant's Wake is a person or an automation that means it: never held. Its Motion is someone
+            # sensed, as a plugin's wake. The board's key is a person.
+            self.assertIn('sensed: false', item(section(text, 'button'), 'name', 'Wake'), name)
+            self.assertIn('sensed: true', item(section(text, 'button'), 'name', 'Motion'), name)
             self.assertIn('sensed: false', script(text, 'standby_key'), name)
 
     def test_one_way_into_standby_and_one_out_of_a_sleep(self):

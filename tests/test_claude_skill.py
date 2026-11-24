@@ -53,7 +53,7 @@ class SkillText(unittest.TestCase):
             self.assertIn(f'`{entity}`', standby)
         self.assertIn(AUTO_STANDBY_MIN_FIRMWARE, standby)
         # Wake and Sleep (0.2.53): the buttons, when they arrived, and how to press several at once.
-        for entity in ('button.<screen>_wake', 'button.<screen>_sleep'):
+        for entity in ('button.<screen>_wake', 'button.<screen>_motion', 'button.<screen>_sleep'):
             self.assertIn(f'`{entity}`', standby)
         self.assertIn(f'Firmware {WAKE_SLEEP_MIN_FIRMWARE} or newer', standby)
         # Dark mode (0.2.63): the switch and the firmware that has it.
@@ -115,7 +115,7 @@ class SkillText(unittest.TestCase):
             self.assertEqual(step['action'], 'button.press')
             targets = step['target']['entity_id']
             pressed.append([targets] if isinstance(targets, str) else targets)
-        self.assertTrue(all(entity.startswith('button.') and entity.endswith('_wake') for entity in pressed[0]))
+        self.assertTrue(all(entity.startswith('button.') and entity.endswith('_motion') for entity in pressed[0]))
         self.assertTrue(all(entity.startswith('button.') and entity.endswith('_sleep') for entity in pressed[1]))
         self.assertGreater(len(pressed[1]), 1, 'shows how to reach several screens at once')
         awake = parsed[10]

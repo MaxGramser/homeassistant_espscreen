@@ -221,7 +221,7 @@ LINT_KEEP = {
     # The rate limiter's reason for a tap on the top bar's doorbell item (runtime_tiles.h, allowed()).
     'header doorbell',
     # Who woke the screen or sent it to standby, in the log (packages/core.yaml, wake_from's and standby_by_hand's source).
-    'Home Assistant', "Home Assistant's Sleep", "the board's key", 'the home key held',
+    'Home Assistant', "Home Assistant's Sleep", "the board's key", 'the home key held', "Home Assistant's Motion", 'the board moved',
     # The picture loader's log of a picture's steps (picture_loader.h, note()).
     'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     'history range', 'card button ', 'header navigation', 'header item', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
