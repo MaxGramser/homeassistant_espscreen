@@ -31,9 +31,15 @@ class Startup(unittest.TestCase):
         # (select's `replace`), so Back never lands on one of them (web/tests/layoutbot-phone.spec.ts).
         # session.openTab opens a screen on one of its tabs (select(id)) for the person's tap on a build's message, a
         # screen's plugin key in the sidebar, a row of Settings, ⌘K or a plugin tile's key: those are its only callers.
+        # New screen opens the screen it just installed (install.made) only under the person's tap on "To your pages" at
+        # its end (components/install/Progress.vue, toPages), never when the install finishes by itself.
         self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^),]*)[,)]', SCRIPT)),
-                         {'screen.id', 'null', 'other.id', 'home', 'id'},
+                         {'screen.id', 'null', 'other.id', 'home', 'id', 'install.made.id'},
                          'a screen opens only when the person chooses it: a new select() needs a person\'s tap behind it')
+        progress = editor_sources.source('components/install/Progress.vue')
+        self.assertRegex(progress, r'function toPages\(\) \{ if \(install\.made\) session\.select\(install\.made\.id\)')
+        self.assertRegex(progress, r'id="install-pages" @click="toPages"', 'New screen opens its screen only on the tap on To your pages')
+        self.assertEqual(progress.count('toPages'), 2, 'toPages is the button\'s alone')
         session = editor_sources.source('stores/session.ts')
         body = session[session.index('async function openTab('):]
         self.assertIn('await select(id)', body[:body.index('\n  }\n')], 'openTab opens the screen it is given')
