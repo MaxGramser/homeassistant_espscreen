@@ -1535,7 +1535,7 @@ std::string receive(const std::string &payload) {
       if(tile.edit_sent && std::fabs(tile.extra().target_high-tile.edit_high)<0.051f)tile.edit_high=NAN;
     }else if(std::isfinite(tile.edit_value) && tile.edit_sent && std::fabs(tile_controls::edit_target(tile)-tile.edit_value)<0.051f)tile.edit_value=NAN;
     tile.received = true;
-    for(auto &w:widgets)if(w.index==index)w.cached_active=-1;
+    for(auto &w:widgets)if(w.index==index)w.paint_again();
     last_received = esphome::millis();
     if (initial) {
       transfer.tile(index);

@@ -643,8 +643,27 @@ inline void persist_settings() {
 }
 // One page of a picker's names (op "options", app 0.2.83+), for the light's effects page.
 inline std::function<void(const std::string &, unsigned, unsigned, std::vector<std::string> &&)> options_received;
+// What a card was painted from (GitHub #349): everything the palette pass of render_slot reads, kept as one value and
+// compared whole. A card skips that pass only when all of it is as it was. The pass once compared a list of fields and
+// the state's colour was missing from it (a thermostat from Auto to Heat on a kept page came back in its old colour); a
+// new input of the pass goes in here, and web/wasm/test_kept_colour.mjs changes one input at a time on a kept page.
+struct PaintedFrom {
+  int palette = -1;     // available, active, the slider's colour, a picture over the card, a lock's colour and question;
+                        // -1: not painted yet, or asked to paint again (Widgets::paint_again)
+  uint64_t look = 0;    // the card's face, "Background: none", its look and ground in a section
+  uint32_t accent = 0;  // the state's colour, a lamp's own while it is on
+  bool key = false, page = false, letterbox = false, bar = false;  // a bedside key, a page tile, a letterboxed picture, the slider's bar
+  std::string mode;     // the parts the card draws (extra_mode), each painted its own way
+  bool operator==(const PaintedFrom &o) const {
+    return palette == o.palette && look == o.look && accent == o.accent && key == o.key && page == o.page &&
+           letterbox == o.letterbox && bar == o.bar && mode == o.mode;
+  }
+};
 struct Widgets {
-  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; int cached_active = -1; lv_obj_t *slider{}, *progress{}, *unit{};
+  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; lv_obj_t *slider{}, *progress{}, *unit{};
+  // What the card's colours were last painted from (render_slot); paint_again() makes the next render paint them.
+  PaintedFrom painted;
+  void paint_again() { painted = PaintedFrom{}; }
   const lv_font_t *value_font{}, *icon_font{};
   // Wide cards span both columns; custom cards (clock, forecast, graph) draw into `extra`.
   // Full (firmware 0.2.62+) takes the whole page: the double-width card's head on top, a control at the bottom.
@@ -656,18 +675,6 @@ struct Widgets {
   // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
   // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
   uint8_t alarm_look=0; uint32_t alarm_mark=0;
-  // The state's colour the card was last painted in (tile_controls::accent, a lamp's own while it is on), next to
-  // `cached_active`: a thermostat from Auto to Heat stays active and changes only its colour, and a card on a kept page
-  // keeps its cache, so it would come back in the old colour (GitHub #349).
-  uint32_t cached_accent=UINT32_MAX;
-  // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
-  // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
-  // which an idle timer never sends).
-#ifdef SD_MOD_SECTIONS
-  uint64_t cached_paint=UINT64_MAX;  // with the card's look and ground (render_slot)
-#else
-  uint32_t cached_paint=UINT32_MAX;
-#endif
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -1360,6 +1367,9 @@ inline constexpr int CLIMATE_MODE_FIRST=200,CLIMATE_ROW_FIRST=210,CLIMATE_POWER=
 inline void climate_paint_ends(const Tile &t);
 // The power key of a light or fan card (firmware 0.2.80), in the same top bar.
 inline constexpr int LIGHT_POWER=240;
+// A group's key in a card's top bar: its page over the card, of covers (the cover card, firmware 0.57.0) or of lamps (the
+// light card of a group that only dims or switches, GitHub #458). Handled in detail_lvgl.h.
+inline constexpr int GROUP_PAGE=720;
 // The rows of the select card (render_select_detail): option i is SELECT_OPTION_FIRST + i.
 inline constexpr int SELECT_OPTION_FIRST=900;
 // A remote's keypad (firmware 0.22.0+): key i of Extra::keypad is REMOTE_KEY_FIRST + i.
@@ -2454,8 +2464,11 @@ inline void render_slot(size_t slot) {
   // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
   if(d=="light" && on && t.has_hs_color)
     accent=tile_controls::lamp_color(t.hue,t.saturation);
-  if (w.cached_active == palette_state && w.cached_paint == paint && w.cached_accent == accent && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
-  w.cached_active = palette_state;w.cached_paint=paint;w.cached_accent=accent;w.panel_dirty=false;
+  // Everything the pass below reads, compared whole (PaintedFrom): a card whose background alone changed (firmware 0.17.0)
+  // or whose colour alone changed (GitHub #349) is painted again, one whose inputs are all as they were is not.
+  const PaintedFrom from{palette_state, uint64_t(paint), accent, w.key, t.is_page(), letterboxed(w), slider_bar_shown(t, slider_on), w.extra_mode};
+  if (w.painted == from && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
+  w.painted = from;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
   auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
@@ -3506,7 +3519,7 @@ inline void key_shape(Widgets &w,bool key){
   // still, the next render starts it on the new one.
   alarm_still(key?w.circle:w.tile);
   w.alarm_look=LOOK_NONE;w.alarm_mark=0;
-  w.key=key;w.cached_active=-1;
+  w.key=key;w.paint_again();
 }
 // The keys of the bedside clock on this page where its layout puts them, once the grid has placed the clock's card.
 inline void place_keys(){
@@ -3562,7 +3575,7 @@ inline int place_page(int page, bool kept = false) {
     }
   for(size_t slot=0;slot<widgets.size();++slot){
     auto &w=widgets[slot];
-    if(!kept || w.index!=shown[slot])w.cached_active=-1;
+    if(!kept || w.index!=shown[slot])w.paint_again();
     w.index=shown[slot];
     w.wide=w.index<model.count && model.tiles[w.index].wide;w.full=w.index<model.count && model.tiles[w.index].full;
     const bool key=w.index<model.count && model.tiles[w.index].is_key();
@@ -3864,7 +3877,7 @@ inline void forget_kept() {
 #endif
   for (auto *set : kept_sets) if (set) for (auto &w : *set) {
     end_extra(w);
-    w.index = grid.max_tiles(); w.cached_active = -1; w.art_key.clear();
+    w.index = grid.max_tiles(); w.paint_again(); w.art_key.clear();
 #if LV_USE_IMAGE
     // Their pictures go with what they showed: a picture object still pointing at a copy counts as drawing it, and the
     // store frees nothing a card draws, so the old layout's pictures stayed beside the new ones until the set showed
@@ -4077,7 +4090,7 @@ inline int applied_buttons=-1;
 inline void page_buttons_changed() {
   if(!shown_page || !nav_number || applied_page<0 || applied_buttons==(page_buttons?1:0))return;
   applied_buttons=page_buttons?1:0;
-  each_card([](Widgets &w){w.cached_active=-1;w.panel_dirty=true;});
+  each_card([](Widgets &w){w.paint_again();w.panel_dirty=true;});
   apply_page(applied_page);
 }
 
@@ -4284,7 +4297,7 @@ inline void tick() {
 // A change of look (Dark mode). The paints follow by themselves (theme::set_dark); what the tiles, the top bar and an
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
-  each_card([](Widgets &w) { w.cached_active = -1; w.panel_dirty = true; });
+  each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
@@ -4611,7 +4624,7 @@ inline void cancel_layout_input(bool invalidate_widgets) {
   history_asked_entity.clear();
   history = History{};
   if (invalidate_widgets) {
-    for (auto &w : widgets) { w.index = grid.max_tiles(); w.cached_active = -1; }
+    for (auto &w : widgets) { w.index = grid.max_tiles(); w.paint_again(); }
     // The next layout's cover cards start at their primary control: an index may be another cover's now.
     cover_swapped.fill(0);
     forget_kept();

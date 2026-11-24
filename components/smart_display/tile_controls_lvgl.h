@@ -506,7 +506,7 @@ inline void cover_tile_key_event(lv_event_t *e){
   const auto &t=model.tiles[w.index];
   if(part==15){
     if(!enabled||!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
-    cover_swapped[w.index]^=1;w.cached_active=-1;refresh_tile(w.index,redraw_log::TileWhy::finger);return;
+    cover_swapped[w.index]^=1;w.paint_again();refresh_tile(w.index,redraw_log::TileWhy::finger);return;
   }
   // The cards of this layout: the tilt cards and, since the one-row cards (0.57.0), the 1x1 with buttons or a
   // position, whose keys answered nothing while this asked for the slats alone (GitHub #363).

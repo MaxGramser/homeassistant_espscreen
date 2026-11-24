@@ -390,10 +390,10 @@ inline void begin_extra(Widgets &w,const char *mode,int width,int height) {
                                                lv_obj_get_style_space_right(tile,LV_PART_MAIN),lv_obj_get_style_space_bottom(tile,LV_PART_MAIN)}));
     },LV_EVENT_REFR_EXT_DRAW_SIZE,nullptr);
   }
-  if(w.extra_mode!=mode || w.extra_full!=w.full){end_extra(w);w.extra_mode=mode;w.extra_full=w.full;w.points=(w.extra_mode=="tall"||w.extra_mode=="cover_tilt")?nullptr:new_points();w.cached_active=-1;}
+  if(w.extra_mode!=mode || w.extra_full!=w.full){end_extra(w);w.extra_mode=mode;w.extra_full=w.full;w.points=(w.extra_mode=="tall"||w.extra_mode=="cover_tilt")?nullptr:new_points();w.paint_again();}
   w.fill_points=nullptr;w.fill_count=0;
   // Parts that were hidden kept the colours of the card they last showed.
-  if(lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN)){w.cached_active=-1;lv_obj_remove_flag(w.extra,LV_OBJ_FLAG_HIDDEN);}
+  if(lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN)){w.paint_again();lv_obj_remove_flag(w.extra,LV_OBJ_FLAG_HIDDEN);}
   lv_obj_set_pos(w.extra,0,0);lv_obj_set_size(w.extra,width,height);
   // A clock face may use the card's padding (firmware 0.3.6+): a dial or flip blocks reach nearer the card's edge
   // on a one-row card, and a big font's letters below the line (a date's y and p) are not cut off.
