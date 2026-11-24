@@ -222,8 +222,8 @@ class TheLimits(unittest.TestCase):
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         for board in profiles.BOARDS:
             values_ = profiles.board_values(board)
-            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline'), int(values_['FONT_HEADLINE_SIZE']))
-            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big'), int(values_['FONT_SUBLABEL_BIG_SIZE']))
+            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline', values_), int(values_['FONT_HEADLINE_SIZE']))
+            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big', values_), int(values_['FONT_SUBLABEL_BIG_SIZE']))
             for way, side in shapes[board]['orientations'].items():
                 card = alert_layout.layout(side['width'], side['height'], title, sub, False,
                                            round(float(values_['DISPLAY_DPI'])), values_['LOOK'])

@@ -128,7 +128,7 @@ const blue = hex(theme.ha.BLUE), red = hex(theme.ha.RED);
 .td-head { display: flex; align-items: center; gap: 0.6em; flex: 0 0 auto; }
 .td-circle { flex: 0 0 auto; }
 .td-names { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.17; }
-.td-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.td-name { font-weight: var(--label-weight, 700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
 .td-count { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .td-add { flex: 0 0 auto; border-radius: 50%; background: var(--track); color: var(--ink); display: grid; place-items: center; }
 .td-rows { flex: 1 1 auto; min-height: 0; overflow: hidden; }

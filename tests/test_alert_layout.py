@@ -88,8 +88,8 @@ int main() {{
             if 'CAMERA_FULL_W' not in values:
                 self.assertNotIn('camera', shape, board)
                 continue
-            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline'), int(values['FONT_HEADLINE_SIZE']))
-            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big'), int(values['FONT_SUBLABEL_BIG_SIZE']))
+            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline', values), int(values['FONT_HEADLINE_SIZE']))
+            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big', values), int(values['FONT_SUBLABEL_BIG_SIZE']))
             for way, side in shape['orientations'].items():
                 card = alert_layout.layout(side['width'], side['height'], title, sub, True,
                                            round(float(values['DISPLAY_DPI'])), values['LOOK'])

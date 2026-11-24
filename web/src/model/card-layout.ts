@@ -7,14 +7,14 @@
 import ink from "./icon-ink.json";
 import { textPx } from "./text-fit";
 import { presetPanel, presetSizes } from "./light-presets";
-import { cardContent, cardHeight, frameOf, lineOf, touchMin, uiScale, type Shape } from "./ui-scale";
+import { cardContent, cardHeight, frameOf, labelWeight, lineOf, touchMin, uiScale, type Shape } from "./ui-scale";
 
 /** The look's faces and a card's frame on this glass: the board's own sizes, or for a shape stored without them (a
  * preview screen of an older app) the look's, scaled to its density. */
 export function cardLook(shape: Shape) {
   const { large, px } = uiScale(shape), fonts = shape.fonts || {}, frame = frameOf(shape);
   const face = (name: keyof NonNullable<Shape["fonts"]>, standard: number, compact: number) => fonts[name] ?? Math.max(8, px(large ? standard : compact));
-  return { large, radius: frame.radius, pad: frame.tile_pad, circle: frame.circle,
+  return { large, radius: frame.radius, pad: frame.tile_pad, circle: frame.circle, labelWeight: labelWeight(shape),
     label: face("label", 18, 11), sublabel: face("sublabel", 16, 11), sublabelBig: face("sublabel_big", 21, 14), headline: face("headline", 27, 18),
     watch: face("watch_value", 38, 22), setpoint: face("setpoint", 64, 40), icon: face("icon", 42, 28), iconMini: face("icon_mini", 26, 18) };
 }
@@ -74,7 +74,7 @@ export function cardHead(shape: Shape, look: CardLook, room: { width: number; he
     const top = Math.max(0, Math.trunc((room.height - (circle + gap + titleLine + between + valueLine)) / 2));
     return {
       circle: { x: Math.trunc((room.width - circle) / 2), y: top, size: circle, icon: iconFace(look, code, circle) },
-      title: { x: 0, y: top + circle + gap, width: room.width, size: look.label, line: titleLine, weight: 700, center: true },
+      title: { x: 0, y: top + circle + gap, width: room.width, size: look.label, line: titleLine, weight: look.labelWeight, center: true },
       value: withValue ? { x: 0, y: top + circle + gap + titleLine + between, width: room.width, size: look.sublabel, line: valueLine, weight: 400, center: true } : null,
     };
   }
@@ -89,7 +89,7 @@ export function cardHead(shape: Shape, look: CardLook, room: { width: number; he
   const x = circle + px(large ? 10 : 12), width = Math.max(1, room.width - x - panel);
   return {
     circle: { x: 0, y: Math.trunc((room.height - circle) / 2), size: circle, icon: iconFace(look, code, circle) },
-    title: { x, y: titleY, width, size: titleSize, line: titleLine, weight: roomy ? 400 : 700 },
+    title: { x, y: titleY, width, size: titleSize, line: titleLine, weight: roomy ? 400 : look.labelWeight },
     value: withValue ? { x, y: titleY + titleLine + gap, width, size: look.sublabel, line: valueLine, weight: 400 } : null,
   };
 }

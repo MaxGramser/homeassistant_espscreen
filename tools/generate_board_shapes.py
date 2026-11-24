@@ -62,21 +62,26 @@ def section_metrics(values):
     """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
     its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
     core = (profiles.ROOT / 'packages/core.yaml').read_text()
-    # The label's file may be a substitution of the look (TILE_NAME_FONT_FILE): bold, or medium on the compact look.
-    name = re.sub(r'\$\{(\w+)\}', lambda m: values[m[1]], font_metrics.font_file(core, 'label'))
-    font, size = profiles.ROOT / name, int(values['FONT_LABEL_SIZE'])
+    font, size = profiles.ROOT / font_metrics.font_file(core, 'label', values), int(values['FONT_LABEL_SIZE'])
     inset = int(values['GRID_GAP_Y']) + int(values['TILE_PAD'])
     ink = font_metrics.ink_top(font, size)
     return {'band': inset - ink + font_metrics.line_height(font, size), 'title_top': inset - ink, 'ink_top': ink,
             'line': font_metrics.line_height(font, size)}
 
 
+def label_weight(values):
+    """The weight of a tile's name on this board (Roboto-700 bold, Roboto-500 medium on the compact look), read from the
+    file its font is built from, so the editor's mockup draws the name as the glass does."""
+    core = profiles.CORE.read_text()
+    return int(re.fullmatch(r'fonts/Roboto-(\d+)\.ttf', font_metrics.font_file(core, 'label', values))[1])
+
+
 def alert_lines(values):
     """The line heights of the alert card's two fonts on this board, which its layout needs (title and subtitle)."""
     core = profiles.CORE.read_text()
-    return {'title_line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'headline'),
+    return {'title_line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'headline', values),
                                                    int(values['FONT_HEADLINE_SIZE'])),
-            'line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'sublabel_big'),
+            'line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'sublabel_big', values),
                                              int(values['FONT_SUBLABEL_BIG_SIZE']))}
 
 
@@ -214,6 +219,8 @@ def shapes():
                  # panel's top as from its side, so the band is that inset less the font's room above its capitals,
                  # plus the font's line. The mockup's rows and titles take these, so a card is as high as on the glass.
                  'section': section_metrics(values),
+                 # The weight of a tile's name (TILE_NAME_FONT_FILE of the look): the mockup draws its names in it.
+                 'label_weight': label_weight(values),
                  # The sizes of the faces a card's controls draw their numbers in (app 0.4.32): the editor's mockup picks
                  # among them as runtime_tiles::stepper_keys does, the largest that fits, instead of sizes of its own;
                  # and the icons of a card's keys, which a thermostat's mode bar measures its words beside.

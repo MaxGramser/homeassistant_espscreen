@@ -36,14 +36,14 @@ const card = props.card;
 .tile .camera-art.contain { object-fit: contain; }
 .tile.camera .camera-art { opacity: 1; }
 /* The shade the add-on puts under the name (picture_paint.FADE_SHARE, FADE_DEPTH). */
-.tile .camera-name { position: absolute; inset: auto 0 0 0; height: 42%; padding: 0 9px 8px; display: flex; align-items: end; color: white; font-weight: 700; background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .59)); border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; pointer-events: none; }
+.tile .camera-name { position: absolute; inset: auto 0 0 0; height: 42%; padding: 0 9px 8px; display: flex; align-items: end; color: white; font-weight: var(--label-weight, 700); background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .59)); border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; pointer-events: none; }
 /* A live camera beyond the screen's live tiles at once: a still every 15 seconds on the screen (model/live-tiles.ts). */
 .tile .live-paused { position: absolute; top: 6px; left: 6px; padding: 1px 7px; border-radius: 8px; background: rgba(0, 0, 0, .66); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .tile .camera-name > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* A favourite (app 0.4.42): the picture dimmed as the screen dims it (a third of its light), the words and the key over it. */
 .tile .favorite-art { filter: brightness(.333); }
 .tile .favorite-text { position: absolute; inset: auto 0 0 0; padding: 0 calc(var(--key, 34px) + 14px) 8px 9px; display: flex; flex-direction: column; color: white; pointer-events: none; min-width: 0; }
-.tile .favorite-text .nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .favorite-text .nm { font-weight: var(--label-weight, 700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile .favorite-text .st { font-size: .85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile .favorite-key { position: absolute; right: 8px; bottom: 8px; width: var(--key, 34px); height: var(--key, 34px); border-radius: 50%; background: #f2f2f2; color: #000; display: grid; place-items: center; font-size: 20px; pointer-events: none; }
 </style>

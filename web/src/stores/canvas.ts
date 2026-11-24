@@ -7,7 +7,7 @@ import { computed, ref } from "vue";
 import { usePreference } from "../composables/usePreference";
 import * as pages from "../model/pages";
 import { barMetricsFor } from "../model/topbar";
-import { frameOf, pillMetrics, uiScale } from "../model/ui-scale";
+import { frameOf, labelWeight, pillMetrics, uiScale } from "../model/ui-scale";
 import { useDocumentStore } from "./document";
 import { useSettingsStore } from "./settings";
 import { useUiStore } from "./ui";
@@ -72,6 +72,8 @@ export const useCanvasStore = defineStore("canvas", () => {
     const g = (n: number) => `${(n * glass).toFixed(2)}px`;
     return {
       "--glass": String(glass),
+      // A tile's name: bold, or medium on the compact look (model/ui-scale.ts labelWeight).
+      "--label-weight": String(labelWeight(shape)),
       "--frame-top": g(frame.top),
       "--frame-side": g(frame.margin),
       "--frame-bottom": g(paged ? 0 : frame.margin),
