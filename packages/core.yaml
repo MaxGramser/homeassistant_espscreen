@@ -2614,6 +2614,12 @@ script:
     mode: restart
     then:
       - delay: 0ms
+      - script.execute: go_home_now
+
+  # go_home's steps themselves, done at once, for a caller that is on the loop's pass already: standby (dim_display),
+  # whose screensaver opens right after and would be closed by a go_home that came one pass later (GitHub #457).
+  - id: go_home_now
+    then:
       - lambda: 'settings_screen::close();'
       - script.execute: close_cards
       - lambda: 'runtime_tiles::navigation_history.clear(); id(tile_page) = runtime_tiles::home_page();'
@@ -2832,8 +2838,12 @@ script:
             - if:
                 condition:
                   lambda: 'return screen_settings::current.home_on_standby;'
+                # Page 1 is built on the loop's next pass (Sleep from Home Assistant comes inside the API's call, as
+                # go_home says), and the screensaver opens only after it: a go_home behind it closed the saver's
+                # camera or media view 0.2 s after it opened (GitHub #457).
                 then:
-                  - script.execute: go_home
+                  - delay: 0ms
+                  - script.execute: go_home_now
                 else:
                   - lambda: 'settings_screen::close();'
                   - script.execute: close_cards

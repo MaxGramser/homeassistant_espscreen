@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta, timezone
 import math
 from urllib.parse import urlsplit
 import automations
+import ha_entities
 import calendar_feed
 import todo_feed
 import alarm_screens
@@ -123,6 +124,10 @@ REGISTRY_EVENTS = ('entity_registry_updated', 'device_registry_updated', 'area_r
 # layout message declares this number, so the firmware sizes its feed watchdog from it
 # (firmware 0.2.22+). Firmware before 0.2.33 still gets the whole layout every round.
 KEEPALIVE_SECONDS = 120
+# Home Assistant's first list of every state (ha_entities.py): a large home on a small machine needs well over the 15 s
+# of a command (GitHub #428), and the commands in a row without an answer after which the link is made again (#399).
+ENTITIES_SECONDS = 180
+LOST_ANSWERS = 3
 # Safety net for screens that answer every ping: everything again once an hour.
 FULL_REPEAT_SECONDS = 3600
 # Sensor history is refreshed in a background task, never inside the sync loop.
@@ -289,6 +294,9 @@ class HomeAssistant:
         # Assistant's own list; refreshed when a device registers its actions again.
         self.responses = set()
         self.services_changed = asyncio.Event()
+        # The states follow Home Assistant's `subscribe_entities` (ha_entities.py, GitHub #315): the id of that
+        # subscription on this connection, the first list's arrival, and the commands in a row that got no answer.
+        self.entities_sub, self.entities_ready, self.lost_answers = None, None, 0
         # Every action Home Assistant describes (get_services), which the editor's choices per entity follow (app
         # 0.2.67); `services_rev` counts the refreshes. `targets` keeps Home Assistant's answer per entity, and
         # `target_lookup` stays None until it is known whether Home Assistant answers get_services_for_target (2025.12+).
@@ -333,9 +341,19 @@ class HomeAssistant:
         self.pending[key] = future
         try:
             await self.ws.send_json({'id': key, 'type': kind, **data})
-            return await asyncio.wait_for(future, wait)
+            answer = await asyncio.wait_for(future, wait)
+        except TimeoutError:
+            # A link that stays open but answers nothing (GitHub #399: a busy network for hours) is closed after a few
+            # commands in a row without an answer, and run() connects again.
+            self.lost_answers += 1
+            if self.lost_answers >= LOST_ANSWERS and self.ws is not None and not self.ws.closed:
+                LOG.warning('Home Assistant answered %d commands in a row with nothing: connecting again', self.lost_answers)
+                asyncio.ensure_future(self.ws.close())
+            raise
         finally:
             self.pending.pop(key, None)
+        self.lost_answers = 0
+        return answer
 
     async def read(self):
         async for msg in self.ws:
@@ -354,7 +372,9 @@ class HomeAssistant:
                 event = data.get('event', {})
                 body = event.get('data', {})
                 callback = self.template_subs.get(data.get('id'))
-                if callback is not None:
+                if self.entities_sub is not None and data.get('id') == self.entities_sub:
+                    self.take_entities(event)
+                elif callback is not None:
                     callback(event)
                 elif event.get('event_type') == 'esphome.screen_setting':
                     self.setting_events.append(body)
@@ -411,6 +431,44 @@ class HomeAssistant:
                 elif event.get('event_type') == CALL_EVENT:
                     self.call_events.put_nowait(body)
         raise ConnectionError('Home Assistant connection lost.')
+
+    async def follow_entities(self, reader=None):
+        """Every state of Home Assistant, kept up to date by `subscribe_entities` as its frontend does (ha_entities.py):
+        returns once the first list is in `self.states`. A Home Assistant without that command gets the old way, every
+        state in one message and each change whole."""
+        self.entities_ready = asyncio.get_running_loop().create_future()
+        # Registered before the request: the first list may come right behind the answer.
+        self.entities_sub = self.next_id + 1
+        try:
+            await self.request('subscribe_entities')
+        except Refused:
+            self.entities_sub = None
+            await self.request('subscribe_events', event_type='state_changed')
+            self.states = {s['entity_id']: s for s in await self.request('get_states', wait=ENTITIES_SECONDS)}
+            return
+        # A large home on a small machine takes a while to put its first list together (GitHub #428: 6,360 entities);
+        # a link that is lost meanwhile ends the wait at once.
+        waiting = [self.entities_ready] + ([reader] if reader is not None else [])
+        done, _ = await asyncio.wait(waiting, timeout=ENTITIES_SECONDS, return_when=asyncio.FIRST_COMPLETED)
+        if reader is not None and reader in done:
+            await reader
+        if not self.entities_ready.done():
+            raise TimeoutError('no list of states from Home Assistant')
+
+    def take_entities(self, update):
+        """One message of the entities subscription. The first of a connection is the whole list and replaces what the
+        app kept (run() then tells everyone at once); a later one says each entity it touched, as a state_changed did."""
+        if not self.entities_ready.done():
+            states = {}
+            ha_entities.apply(states, update)
+            self.states = states
+            self.entities_ready.set_result(True)
+            return
+        for eid in ha_entities.apply(self.states, update):
+            self.state_events.notify(eid)
+            if self.relevant is None or eid in self.relevant:
+                self.dirty.add(eid)
+                self.changed.set()
 
     async def subscribe_template(self, template, callback):
         """A render_template subscription (a template tile, template_service.py): `callback(event)` takes each result
@@ -683,16 +741,16 @@ class HomeAssistant:
         while True:
             reader, connected = None, None
             try:
-                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=16*1024*1024) as ws:
+                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=0) as ws:
                     self.ws = ws
                     self.connection += 1
                     self.template_subs = {}
+                    self.entities_sub, self.lost_answers = None, 0
                     await ws.receive_json(timeout=15)
                     await ws.send_json({'type': 'auth', 'access_token': self.token})
                     if (await ws.receive_json(timeout=15)).get('type') != 'auth_ok':
                         raise ConnectionError('Home Assistant authentication failed.')
                     reader = asyncio.create_task(self.read())
-                    await self.request('subscribe_events', event_type='state_changed')
                     await self.request('subscribe_events', event_type='esphome.screen_setting')
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
@@ -707,7 +765,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='repairs_issue_registry_updated')
                     for event_type in (*REGISTRY_EVENTS, *BROADCAST_EVENTS, ALERT_EVENT, *TILE_EVENTS, *SERVICE_EVENTS, *doorbell.EVENTS, doorbell.EVENT):
                         await self.request('subscribe_events', event_type=event_type)
-                    self.states = {s['entity_id']: s for s in await self.request('get_states')}
+                    await self.follow_entities(reader)
                     await self.registries()
                     # The config first: its language decides the language of the words for states (app 0.2.90).
                     await self.request('subscribe_events', event_type='core_config_updated')

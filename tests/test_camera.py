@@ -1128,7 +1128,7 @@ class App(unittest.IsolatedAsyncioTestCase):
         subscribed = []
 
         async def request(kind, **data):
-            if kind == 'get_states':
+            if kind == 'subscribe_entities':
                 raise asyncio.CancelledError  # the subscriptions are made: stop here
             if kind == 'subscribe_events':
                 subscribed.append(data['event_type'])

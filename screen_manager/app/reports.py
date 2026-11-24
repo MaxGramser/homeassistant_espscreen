@@ -196,21 +196,29 @@ class Decoder:
     def __init__(self, data):
         self.data = Path(data)
 
+    # ESPHOME_BUILD_PATH is /data/build/<stem> (firmware.py), and ESPHome builds one folder deeper, in the node's own:
+    # <node>/build/ with ESP-IDF, <node>/.pioenvs/<node>/ with PlatformIO, the same places the update finds its images
+    # (Firmware.OTA_IMAGES). The shallower places are an older layout (GitHub #463).
+    ELF_PATTERNS = ('*/build/firmware.elf', '*/.pioenvs/*/firmware.elf', 'build/firmware.elf', '.pioenvs/*/firmware.elf',
+                    'build/*.elf')
+
     def elf(self, stem):
-        for pattern in (f'build/{stem}/build/firmware.elf', f'build/{stem}/.pioenvs/*/firmware.elf', f'build/{stem}/build/*.elf'):
-            found = sorted(glob.glob(str(self.data / pattern)))
+        for pattern in self.ELF_PATTERNS:
+            found = [Path(p) for p in glob.glob(str(self.data / 'build' / stem / pattern)) if Path(p).is_file()]
             if found:
-                return Path(found[0])
+                return max(found, key=lambda path: path.stat().st_mtime_ns)
         return None
 
     def addr2line(self, stem, chip=''):
-        cache = self.data / 'build' / stem / 'build' / 'CMakeCache.txt'
-        with contextlib.suppress(OSError, UnicodeDecodeError):
-            for line in cache.read_text().splitlines():
-                if line.startswith('CMAKE_ADDR2LINE:') and '=' in line:
-                    path = line.split('=', 1)[1].strip()
-                    if path and Path(path).exists():
-                        return path
+        elf = self.elf(stem)
+        caches = ([elf.parent / 'CMakeCache.txt'] if elf else []) + [self.data / 'build' / stem / 'build' / 'CMakeCache.txt']
+        for cache in caches:
+            with contextlib.suppress(OSError, UnicodeDecodeError):
+                for line in cache.read_text().splitlines():
+                    if line.startswith('CMAKE_ADDR2LINE:') and '=' in line:
+                        path = line.split('=', 1)[1].strip()
+                        if path and Path(path).exists():
+                            return path
         family = 'riscv32' if chip in ('esp32p4', 'esp32c6', 'esp32c3', 'esp32h2') else 'xtensa'
         idf = os.environ.get('ESPHOME_ESP_IDF_PREFIX', str(self.data / 'idf'))
         for root in (idf, str(Path.home() / '.platformio' / 'packages')):
