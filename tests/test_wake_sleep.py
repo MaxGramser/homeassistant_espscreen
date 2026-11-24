@@ -127,7 +127,7 @@ class Profiles(unittest.TestCase):
         for name, text in self.profiles.items():
             owned = re.search(r'glass\.owned = \[\]\(\) -> uint8_t \{(.*?)\};', text, re.S)
             self.assertTrue(owned, name)
-            for guard, bit in (('id(calibration_active)', 'screen_standby::CALIBRATION'), ('id(alert_active)', 'screen_standby::ALERT'),
+            for guard, bit in (('id(calibration_active)', 'screen_standby::CALIBRATION'), ('alert_life::the().up()', 'screen_standby::ALERT'),
                                ('runtime_tiles::doorbell_holds()', 'screen_standby::RING')):
                 self.assertIn(f'({guard} ? {bit} : 0)', owned[1], name)
 

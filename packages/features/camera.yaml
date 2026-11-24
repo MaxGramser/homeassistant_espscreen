@@ -155,7 +155,7 @@ lvgl:
                             condition:
                               lambda: 'return screen_input::touch_guard.accept(millis(), 14) && !runtime_tiles::alert_camera.empty();'
                             then:
-                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, id(alert_title_text));'
+                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, alert_life::the().title());'
                       widgets:
                         - label:
                             id: alert_image_icon

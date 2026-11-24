@@ -116,9 +116,10 @@ class Paints(unittest.TestCase):
             self.assertEqual(re.findall(r'(\w+::\w*restyle)\(\);', redraw), PREVIEW_REDRAW,
                              f'{path}: theme::redraw calls what the preview\'s does, in its order')
             # The alert card is no part of the preview: core.yaml paints it again itself.
-            self.assertIn('theme::surface(id(alert_card_color))', redraw, f'{path}: the alert card is painted again')
-            self.assertIn('id(alert_card_color) = alert.color;', text)
-            self.assertIn('lv_color_hex(theme::surface(alert.color))', text)
+            self.assertIn('theme::surface(alert_life::the().color())', redraw, f'{path}: the alert card is painted again')
+            # The colour it is painted in again is the one the alert that is up named (alert_life.h keeps it), and the
+            # card got when it was filled.
+            self.assertIn('lv_color_hex(theme::surface(card.color))', text)
 
     def test_the_firmware_draws_long_lived_parts_with_paints(self):
         # Rule: a part that lives across a change of look wears a paint, which theme.h fills again, never a colour.

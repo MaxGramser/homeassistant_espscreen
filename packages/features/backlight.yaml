@@ -2,8 +2,8 @@
 #
 # The board file names the output that drives the glass, `id: gpio_backlight_pwm` (a PWM pin, or a line on an
 # expander that is lit or dark); this file puts the light on it and the one script that sets its level. Which level and
-# how fast is the standby's to say (components/smart_display/screen_standby.h: waking, standby and night), and an
-# alert's, whose blinks and end are below.
+# how fast is the standby's to say (components/smart_display/screen_standby.h: waking, standby and night) and an
+# alert's (alert_life.h: its blinks and its end).
 # A backlight that must never go dark adds features/backlight-always-on.yaml after this file.
 substitutions:
   # An update coming in (ota_status::wake, firmware 0.38.0): the glass at its brightness at once. ESPHome's update holds
@@ -34,37 +34,3 @@ script:
     then:
       - lambda: |-
           id(back_light).turn_on().set_transition_length(ms).set_brightness(level / 100.0f).perform();
-
-  - id: alert_dismiss
-    parameters:
-      reason: string
-    then:
-      - if:
-          condition:
-            lambda: 'return id(alert_active);'
-          then:
-            - lambda: |-
-                id(alert_active) = false;
-                // The standby time counts from the alert's end.
-                screen_standby::the().stir(millis());
-                runtime_tiles::alert_clear();
-                ESP_LOGI("alert", "dismissed: %s", reason.c_str());
-            - lambda: 'screen_motion::hide(id(alert_overlay), id(alert_card));'
-            - script.stop: alert_timeout
-            - script.stop: alert_flash
-            - lambda: 'id(set_backlight).execute(screen_settings::current.brightness, 80);'
-            - script.execute:
-                id: alert_report
-                action: !lambda 'return reason;'
-
-  # Four backlight blinks when the alert arrives; the screen then stays on as usual.
-  - id: alert_flash
-    mode: restart
-    then:
-      - repeat:
-          count: 4
-          then:
-            - lambda: 'id(set_backlight).execute(0, 60);'
-            - delay: 140ms
-            - lambda: 'id(set_backlight).execute(screen_settings::current.brightness, 60);'
-            - delay: 180ms
