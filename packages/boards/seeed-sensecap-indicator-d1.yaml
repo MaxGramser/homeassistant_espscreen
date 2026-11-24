@@ -34,7 +34,6 @@ substitutions:
   DEVICE_NAME: "sensecapd1-new"
   DEVICE_FRIENDLY_NAME: "My SenseCAP Indicator"
   STANDBY_KEY_PIN: GPIO38                        # the standby key (features/standby-key.yaml)
-  STANDBY_KEY_STRAPPING: "false"
 
   # The glass: the panel's own pixels and its density, 679 diagonal pixels over its 3.95-inch diagonal.
   PANEL_W: "480"

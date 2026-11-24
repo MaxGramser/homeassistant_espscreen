@@ -9,33 +9,40 @@
 # code (2026-11-24). None where the display or other hardware drives that pin (the Guition 4848S040, the Waveshare
 # RGB boards and the WT32-SC01 Plus, GPIO0 in their picture; the Waveshare 4 rev 4.0's CAN line), on the Waveshare 86
 # panel (a wall panel, and GPIO35 is its Ethernet line), and on the M5Stack Tab5 (its only key is its power chip's).
-# The Waveshare 3.5's key is on its expander: that board file reads it and runs the same script.
+#
+# How a board reaches its key is its part of the contract (docs/ADDING_A_BOARD.md). A key on a pin of the chip, low
+# while pressed and with a pull-up, as a BOOT key is, needs only the pin:
 #
 #   substitutions:
 #     STANDBY_KEY_PIN: GPIO0
 #
-# The key reads low while it is pressed and the pin has a pull-up, as a BOOT key does; a key wired the other way
-# names STANDBY_KEY_INVERTED "false" and STANDBY_KEY_PULLUP "false"; a key on a pin that is no strapping pin names
-# STANDBY_KEY_STRAPPING "false" (ESPHome refuses the strapping note there). It is the entity Button in Home Assistant
-# too, for an automation of its own. A BOOT key also sits on the USB chip's auto-download line, so opening a board's
-# USB port can read as a press.
+# A key wired the other way adds STANDBY_KEY_INVERTED "false" and STANDBY_KEY_PULLUP "false" (the D1001's, high while
+# pressed). A key on a pin of an IO expander names the expander's pin and adds the expander to STANDBY_KEY, the whole
+# pin as ESPHome reads it: ESPHome merges a board's mapping into this file's, and a `mode` of its own replaces the
+# chip's input with pull-up, which an expander's pin has not (the Waveshare 3.5's PWR key, EXIO6, high while pressed):
+#
+#   substitutions:
+#     STANDBY_KEY_PIN: "6"
+#     STANDBY_KEY_INVERTED: "false"
+#     STANDBY_KEY: {pca9554: io_expander, mode: INPUT}
+#
+# A BOOT key's pin is a strapping pin, so ESPHome warns about it; that is right and stays (an expander's pin takes no
+# ignore_strapping_warning, and one definition serves both). A BOOT key also sits on the USB chip's auto-download
+# line, so opening a board's USB port can read as a press. The key is the entity Button in Home Assistant too, for an
+# automation of its own.
 substitutions:
   STANDBY_KEY_INVERTED: "true"
   STANDBY_KEY_PULLUP: "true"
-  STANDBY_KEY_STRAPPING: "true"
+  STANDBY_KEY:
+    number: ${STANDBY_KEY_PIN}
+    inverted: ${STANDBY_KEY_INVERTED}
+    mode: {input: true, pullup: "${STANDBY_KEY_PULLUP}"}
 
 binary_sensor:
   - platform: gpio
     id: board_button
     name: "Button"
-    pin:
-      number: ${STANDBY_KEY_PIN}
-      inverted: ${STANDBY_KEY_INVERTED}
-      mode:
-        input: true
-        pullup: ${STANDBY_KEY_PULLUP}
-      # A strapping pin decides how the chip starts and is free after that; the key only pulls it while pressed.
-      ignore_strapping_warning: ${STANDBY_KEY_STRAPPING}
+    pin: ${STANDBY_KEY}
     # The contacts bounce for a few milliseconds: without this one press could put the screen in standby and wake it.
     filters:
       - delayed_on_off: 20ms
