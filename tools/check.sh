@@ -6,7 +6,8 @@
 #                                    tests, its sizes against the firmware's, types and build, and whether the editor bundle in Git
 #                                    equals that build
 #   tools/check.sh --firmware        compiles every board profile (tools/profiles.py) and applies the flash budget to every
-#                                    board with 4 MB of flash (the CYD's rule, docs/RELEASING.md step 2)
+#                                    board with 4 MB of flash (the CYD's rule, docs/RELEASING.md step 2) and the Xtensa
+#                                    literal margin to every build (tools/literal_margin.py, LITERAL_FLOOR)
 #   --board KEY                      with --firmware: only this board (repeat for more); a fix for one board builds one
 #   --affected                       with --firmware: only the boards a build of the change needs (affected_boards.py --build-keys);
 #                                    nothing to build when it reaches none (docs/BOARD_RELEASES.md); a change that reaches
@@ -396,6 +397,17 @@ EOF
 
 flash_budget() { flash_report "$1" budget; }
 
+# literal_margin BOARD: on the ESP32 and the ESP32-S3, the room left before a function of main.cpp falls out of an
+# l32r's reach of its literals (docs/RELEASING.md, "The Xtensa literal range"; tools/literal_margin.py). Under LITERAL_FLOOR
+# KB it fails, before the link does: 2026-11-24 the S3 boards stood at about 25 KB after the picture loader left main.cpp,
+# the link having failed at -16 KB before. An ESP32-P4 (RISC-V) has no literals and passes.
+LITERAL_FLOOR=8
+literal_margin() {
+  local map="$ESPHOME_DATA_DIR/build/check-$1/build/check-$1.map"
+  [[ -f $map ]] || { echo "no map: $map"; return 1; }
+  "$PYTHON" "$ROOT/tools/literal_margin.py" "$map" --floor "$LITERAL_FLOOR"
+}
+
 # The bridge (packages/bridge.yaml, app 0.4.56): the firmware a screen with ESPHome's own table for 4 MB runs for a
 # minute while ESP Screen Manager replaces that table, when its own firmware no longer fits the old slot
 # (docs/FLASH_LAYOUT.md). It builds from checkout/bridge.yaml with this tree's component, and it has to fit that old
@@ -563,6 +575,7 @@ if ((want_firmware)); then
         continue
       fi
       run "Firmware: $board" compile_board "$board"
+      if ((last_ok)); then run "Literal margin: $board" literal_margin "$board"; fi
       if [[ $board == guition ]]; then
         if ((last_ok)); then run "Firmware: a plugin in the Guition" compile_plugin; else skip "Firmware: a plugin in the Guition" "no build"; fi
       fi

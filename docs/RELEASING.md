@@ -261,9 +261,13 @@ from at most 256 KB back, and ESP-IDF puts a function's literals in front of the
 header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
 then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
 while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
-`components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
-in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
-about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
+`components/smart_display/page_receiver.cpp` since 0.3.8, the picture loader's bodies in `picture_loader.cpp` since
+2026-11-24), not a global compiler flag. `tools/literal_margin.py BUILD.map` prints the margin: for each function, the
+distance from its own `.literal.<name>` to the end of its own `.text.<name>`, against the 256 KB reach, the tightest
+first. `tools/check.sh --firmware` runs it on every build and fails under `LITERAL_FLOOR` (8 KB). 0.3.8 left about
+14 KB on the S3 boards and 66 KB on the CYD; on 2026-11-24 the S3 boards failed at -16 KB (picture_loader::Loader::end,
+an inline function laid out far from its literals) and stood at 24 KB on the Guition and 50 KB on the CYD once the loader
+left main.cpp. The ESP32-P4 is RISC-V and has no such limit.
 
 Before a release, test app start, saving, restarting and updating with existing layouts, reconnecting to Home
 Assistant and an ESP restart (the upgrade test walks them), and a new card on real hardware. A good build doesn't
