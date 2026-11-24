@@ -799,7 +799,7 @@ SAVER_PROBE = '''    - action: render_standby
         enter: int
       then:
         - lambda: |-
-            if (enter) id(dim_display).execute(); else id(wake_display).execute();
+            if (enter) screen_standby::the().standby_by_time(millis()); else screen_standby::the().wake(millis());
             ESP_LOGI("render", "standby %d", enter);
     - action: render_saver
       then:
@@ -814,7 +814,7 @@ SAVER_PROBE = '''    - action: render_standby
             }
             lv_area_t words{};
             if (runtime_tiles::saver_first) lv_obj_get_coords(runtime_tiles::saver_first, &words);
-            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) id(display_dimmed), keys.c_str(), (int) words.x2);
+            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) screen_standby::the().in_standby(), keys.c_str(), (int) words.x2);
 '''
 # A board with the calibration wizard shows it on the first start; the renders skip it, as a calibrated screen does.
 # The host's microphone (talk_uplink.h under USE_HOST): whether the board hears, how far a talk is (talk_uplink::State:

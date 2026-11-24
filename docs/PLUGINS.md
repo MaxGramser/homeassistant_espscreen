@@ -255,7 +255,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
 | The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_press` and `on_step(Step)` (0.11, "Touch feedback" below) | | |
 | Pictures in one system (0.17) | `ui::picture(parent, Placeholder::NONE)`, a place without its block; `on_picture(place, PictureState)` on a `Tile`, a `Card` and a `Saver` (`plugin_host::picture_outcome`, from `tile_picture_done`); the core's own sources as an address; `slide_pictures` from any call; `ui::live`, a tile's place that streams its camera on a P4 (`plugin_host::live_places`, `runtime_tiles` live places, the answer `plive`); `tessera::capturing` and the camera's dot (`plugin_host::camera_dot_update`); "Pictures on a plugin tile" below | `plugin_pictures.py` reads `cover:`, `camera:`, `entity:` and `step:`; `Manager.plugin_picture`; `picture_service._stream` streams a live place's own camera | nothing |
-| Waking the screen (0.16) | `tessera::wake(plugin)`: `plugin_host::wake`, which `packages/core.yaml` points at the script `wake_from`, the one way Home Assistant's Wake button and a board's sensor take; "Waking the screen" below | nothing | nothing |
+| Waking the screen (0.16) | `tessera::wake(plugin)`: `plugin_host::wake`, which `packages/core.yaml` points at `screen_standby::wake_from`, the one way Home Assistant's Wake button and a board's sensor take; "Waking the screen" below | nothing | nothing |
 | Entities chosen per tile (0.15) | nothing new: the tile reads `x.entities.<option id>` (state, name, attributes, updated) from its data | an option of kind `entity` (`plugin_manifest.check_option`, `option_value`); `Plugins.tile_message` puts each chosen entity's `state_part` under `entities`, `related_entities` follows them | the tile's inspector: a searchable entity picker per option (`PluginOptions.vue`) |
 | A screensaver (0.14) | `Saver`, `add_saver(id, step, make)`, `SaverContext`; `ui::takes_taps` (only for `taps: true`, `Plugin::set_taps`); `wish()`; `drift()`; "A screensaver" below | the manifest's `savers`; `Plugins.saver_kinds`, `saver_plugins`, `saver_step`, `refresh_savers`; `screen_saver.message`'s `pf`; `answer_plugin_pictures` with `question.saver` and `saver:picture` | the Screensaver card: a face per step, a step of its own in the order, its options |
 | A popup (0.18) | `Popup`, `show_popup`, `close_popup`, `popup_shown`, `PopupWidth`; `ui::animate` with `Motion` and `ui::still`; `plugin_host` "A plugin's popup"; "A popup" below | nothing | nothing |
@@ -298,9 +298,10 @@ So a new control needs at most one line, by what it is:
 `tessera::wake(this)` wakes the screen the way Home Assistant's Wake button does. It is for a plugin that senses
 someone come: motion in front of a camera, a light coming on, a sound.
 
-Every wake that is not a finger on the glass takes one way, the script `wake_from` in `packages/core.yaml`. Home
-Assistant's Wake button runs it, a board's own sensor presses that button (the reTerminal D1001's Wake when moved),
-and `tessera::wake` reaches it through `plugin_host::wake`, which the core sets at boot. The log says who woke the
+Every wake that is not a finger on the glass takes one way, `screen_standby::wake_from`
+(`components/smart_display/screen_standby.h`). Home Assistant's Wake and Motion buttons run it, as does a board's own
+sensor (the reTerminal D1001's Wake when moved), and `tessera::wake` reaches it through `plugin_host::wake`, which the
+core sets at boot. The log says who woke the
 screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 
 - A screen in standby lights up at its brightness, also in the night hours. Its screensaver goes, a Sleep is over, and
@@ -311,7 +312,7 @@ screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 - A board that cannot go dark (`CAN_STANDBY` false) has no standby, so there is nothing to wake.
 - After a standby by hand (firmware 0.64.0+: Home Assistant's Sleep, the board's key, the home key held) it waits for
   the room to go quiet. The person who sent the screen to standby is still there, and walking away is motion, so a
-  sensed wake lights the screen only after a minute without one (`hand_standby.h`); each wake it holds starts that
+  sensed wake lights the screen only after a minute without one (`screen_standby.h`); each wake it holds starts that
   minute again. Home Assistant's Motion button counts as sensed too; its Wake does not. A popup, a call, a doorbell,
   an alert, the board's key, Wake and a finger always wake the screen.
 

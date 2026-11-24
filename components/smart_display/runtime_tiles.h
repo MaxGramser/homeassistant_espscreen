@@ -4410,7 +4410,7 @@ inline void swipe_glow(Edge edge) {
 }
 
 namespace touch_input {
-// A finger arrived or left: the standby clock, the "back to page 1" clock and `touch_down`.
+// A finger arrived or left: the standby clock, the "back to page 1" clock and the finger itself (screen_standby::contact).
 inline std::function<void(bool down)> contact;
 // A touchscreen's report in the screen's own coordinates: ESPHome's LvglComponent::rotate_coordinates,
 // which already carries the board's quarter turn and the turn the user chose.

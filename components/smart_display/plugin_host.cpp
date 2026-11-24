@@ -1264,7 +1264,7 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
                 const std::string &popup_key) {
   if (!plugin || !make) return false;
   // A dark screen lights up first, as tessera::wake does (a lit one counts its standby time from now): a popup is
-  // something to see, so it is no sensing and lights a standby by hand too (hand_standby.h).
+  // something to see, so it is no sensing and lights a standby by hand too (screen_standby.h).
   if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + plugin->plugin_id(), false);
   // The popup shown now goes first: another plugin's hears on_dismiss, this plugin's own was replaced by its plugin. And
   // whatever that on_dismiss showed in its place, as this one is the popup asked for last.

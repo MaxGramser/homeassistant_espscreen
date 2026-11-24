@@ -22,8 +22,7 @@ script:
           count: 10
           then:
             - lambda: |-
-                id(last_touch_ms) = millis();
-                id(last_use_ms) = millis();
+                screen_standby::the().touch(millis());
                 static unsigned test_page=0;
                 id(tile_page) = runtime_tiles::enabled ? test_page++ % runtime_tiles::page_count() : 1;
             - script.execute: show_tile_page

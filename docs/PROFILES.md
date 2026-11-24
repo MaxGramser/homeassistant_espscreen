@@ -160,7 +160,7 @@ Some of the core's lambdas have a line that differs between boards, for instance
 the touch panel, or the camera images a board with PSRAM sets up. The core writes a `${NAME}` there, a *hook*, and
 gives it a default (empty, or what most boards do). A hook is for a choice of the board that exactly one package makes:
 `features/capacitive-touch.yaml` and `features/resistive-touch.yaml` set `BOOT_TOUCH` and `BOOT_PAGE_GESTURE`;
-`features/backlight.yaml` sets `APPLY_BACKLIGHT` and `OTA_BACKLIGHT`; `features/camera.yaml` sets `BOOT_CAMERA_HOOKS`,
+`features/backlight.yaml` sets `OTA_BACKLIGHT`; `features/camera.yaml` sets `BOOT_CAMERA_HOOKS`,
 its code at boot. Every screen reads a touch panel and lights a backlight, so those have no default and a board without
 them does not build. A board file would set a hook only for code no other board has; since app 0.2.129 none does (the CYD
 used to drive its backlight and run its self test its own way).

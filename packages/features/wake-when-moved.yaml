@@ -7,7 +7,7 @@
 # detector. A board lists `wake_when_moved` in its boards.yaml `settings` and pushes the switch's row in its
 # BOOT_BOARD_SETTINGS, so it shows under Extras (docs/SETTINGS.md, "A board's own settings").
 #
-# A wake from here is sensed: after a standby by hand it waits until the board lay still for a while (hand_standby.h,
+# A wake from here is sensed: after a standby by hand it waits until the board lay still for a while (screen_standby.h,
 # the core's script wake_from), so putting the board down after pressing its key does not light it again.
 
 switch:
@@ -77,7 +77,7 @@ script:
                    "xyz"[d.last_axis()], d.last_away(), d.last_kind() == moved::ACCELERATION ? "g" : "degrees a second");
       - if:
           condition:
-            lambda: 'return id(board_wake_when_moved).state && id(display_dimmed);'
+            lambda: 'return id(board_wake_when_moved).state && screen_standby::the().in_standby();'
           then:
             - script.execute:
                 id: wake_from
