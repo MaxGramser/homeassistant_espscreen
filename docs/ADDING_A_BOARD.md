@@ -44,9 +44,14 @@ Then choose what the board includes:
   `features/resistive-touch.yaml` (XPT2046: calibrated on the glass, and the board states the raw range it measured,
   `TOUCH_CAL_*`);
 - `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark;
-- `features/standby-key.yaml` with `STANDBY_KEY_PIN` on a board that can go dark: its own key if it has one the chip
-  reads, else its BOOT key (GPIO0 on the ESP32 and ESP32-S3, GPIO35 on the ESP32-P4). Check the schematic or the
-  vendor's code, and leave it out when the display uses that pin (`esphome config` then says the pin is used twice);
+- `features/standby-key.yaml` on a board that can go dark: its own key if it has one the chip reads, else its BOOT key
+  (GPIO0 on the ESP32 and ESP32-S3, GPIO35 on the ESP32-P4). Check the schematic or the vendor's code, and leave it out
+  when other hardware drives that pin (`esphome config` says so when the display uses it, not when a chip ESPHome does
+  not drive does). How the board reaches its key is the board's part of the contract, and these are the only names
+  for it: `STANDBY_KEY_PIN`, the pin (always); `STANDBY_KEY_INVERTED` and `STANDBY_KEY_PULLUP`, `"false"` for a key
+  that reads high while pressed; and for a key on an IO expander, `STANDBY_KEY` with the expander and `mode: INPUT`
+  (`{pca9554: io_expander, mode: INPUT}`), which ESPHome merges into the feature's pin. The feature's header has both
+  forms;
 - `features/wake-when-moved.yaml` on a board with a motion sensor (accelerometer and gyroscope): name it `board_motion`,
   read it every 100 ms, list `wake_when_moved` in its boards.yaml `settings` and push its row in `BOOT_BOARD_SETTINGS`;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for

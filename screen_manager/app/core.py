@@ -8,6 +8,7 @@ import math
 import os
 import re
 import secrets
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from i18n import english, screen_t, t
 import calendar_feed
@@ -2443,6 +2444,17 @@ def vacuum_extras(tile, states, device):
         result['room'] = short(room, 32)
     return result or None
 
+SIGNATURES = frozenset(('token', 'authSig'))
+
+
+def unsigned(address):
+    """An address of Home Assistant without the signature in its query (`token`, `authSig`), the rest of the query
+    as it was, wherever the signature stood (GitHub #456: Lyrion's `?token=...&media_image_id=...`)."""
+    parts = urlsplit(address)
+    query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in SIGNATURES]
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
 def media_cover(attrs):
     """The address a media player's cover is fetched from, or '' without one. Home Assistant's own proxy for the player
     (`entity_picture_local`) goes first (app 0.4.15, GitHub #77): a player whose picture lies elsewhere, on the internet
@@ -2483,7 +2495,7 @@ def media_extras(attrs):
         # Without Home Assistant's access token (app 0.3.7): it changes every few minutes on its own while the picture
         # stays, and each new token made every screen fetch the same cover again. The link's `cache` part is the
         # picture's own hash, so the mark still changes with the picture.
-        stable = re.sub(r'([?&])token=[^&]*(&|$)', lambda m: m.group(1) if m.group(2) else '', picture)
+        stable = unsigned(picture)
         result['pic'] = hashlib.sha1(stable.encode()).hexdigest()[:10]
     return result or None
 

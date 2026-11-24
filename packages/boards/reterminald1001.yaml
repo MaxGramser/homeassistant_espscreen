@@ -73,7 +73,6 @@ substitutions:
   STANDBY_KEY_PIN: GPIO3
   STANDBY_KEY_INVERTED: "false"
   STANDBY_KEY_PULLUP: "false"
-  STANDBY_KEY_STRAPPING: "false"
 
   # The battery (docs/BATTERY.md): ADC1 channel 2 through two equal resistors, read only while the XL9535 switches
   # the divider on (pin 6, below). Seeed's BSP turns the voltage into a level with a curve of 21 points in steps of

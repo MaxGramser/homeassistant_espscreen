@@ -1,6 +1,7 @@
 """Home Assistant's states through `subscribe_entities` (screen_manager/app/ha_entities.py, GitHub #315, #392, #399,
 #428): the compressed messages become the same states `get_states` gave, a change carries only what changed, and the
-connection keeps the states, wakes what follows an entity and falls back on an older Home Assistant."""
+connection keeps the states, wakes what follows an entity, falls back on an older Home Assistant and is made
+again when Home Assistant answers no ping."""
 import asyncio
 import importlib.util
 import sys
@@ -131,26 +132,43 @@ class Connection(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ConnectionError):
             await asyncio.wait_for(ha.follow_entities(asyncio.ensure_future(lost())), 2)
 
-    async def test_commands_in_a_row_without_an_answer_close_the_link(self):
+    async def test_a_slow_action_keeps_the_link_and_a_missing_pong_closes_it(self):
+        """GitHub #399: Home Assistant that stops listening is found by its own ping; a call_service that takes long
+        (it is answered when the action is done) says nothing about that."""
         import server
+        from unittest import mock
+        from aiohttp import WSMsgType
         ha = self.home()
-        closed = []
+        closed, sent = [], []
 
         class Socket:
             closed = False
-            async def send_json(self, data): pass
+            def __init__(self): self.answers = asyncio.Queue()
+            async def send_json(self, data):
+                sent.append(data['type'])
+                if data['type'] == 'ping' and pongs:
+                    self.answers.put_nowait({'id': data['id'], 'type': 'pong'})
             async def close(self): closed.append(True)
+            async def __aiter__(self):
+                while True:
+                    answer = await self.answers.get()
+                    yield SimpleNamespace(type=WSMsgType.TEXT, json=lambda answer=answer: answer)
         ha.ws = Socket()
-        for _ in range(server.LOST_ANSWERS - 1):
+        reader = asyncio.ensure_future(ha.read())
+        for _ in range(4):
             with self.assertRaises(TimeoutError):
-                await ha.request('ping', wait=0.01)
-        await asyncio.sleep(0)
-        self.assertEqual(closed, [])
-        with self.assertRaises(TimeoutError):
-            await ha.request('ping', wait=0.01)
-        await asyncio.sleep(0)
-        self.assertEqual(closed, [True])
-
+                await ha.request('call_service', wait=0.01)
+        self.assertEqual(closed, [], 'slow actions never close the link')
+        with mock.patch.object(server, 'PING_SECONDS', 0.01), mock.patch.object(server, 'PONG_SECONDS', 0.05):
+            pongs = True
+            prober = asyncio.ensure_future(ha.listen_for_answers())
+            await asyncio.sleep(0.1)
+            self.assertGreaterEqual(sent.count('ping'), 2)
+            self.assertEqual(closed, [], 'a pong keeps the link')
+            pongs = False
+            await asyncio.wait_for(prober, 1)
+            self.assertEqual(closed, [True], 'a missing pong closes the link, and run() connects again')
+        reader.cancel()
 
 if __name__ == '__main__':
     unittest.main()

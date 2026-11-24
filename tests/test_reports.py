@@ -274,7 +274,7 @@ class Crashes(unittest.TestCase):
             decoder = reports.Decoder(tmp)
             decoded, why = asyncio.run(decoder.decode('office-1', 'esp32p4', self.CRASH))
             self.assertEqual((decoded, why), ([], 'no_elf'))
-            elf = Path(tmp) / 'build' / 'office-1' / 'build' / 'firmware.elf'
+            elf = Path(tmp) / 'build' / 'office-1' / 'office-1' / 'build' / 'firmware.elf'
             elf.parent.mkdir(parents=True)
             elf.write_bytes(b'not an elf')
             decoded, why = asyncio.run(decoder.decode('office-1', 'esp32p4', self.CRASH, expected_sha='000000000'))

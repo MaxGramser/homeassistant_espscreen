@@ -126,9 +126,12 @@ REGISTRY_EVENTS = ('entity_registry_updated', 'device_registry_updated', 'area_r
 # (firmware 0.2.22+). Firmware before 0.2.33 still gets the whole layout every round.
 KEEPALIVE_SECONDS = 120
 # Home Assistant's first list of every state (ha_entities.py): a large home on a small machine needs well over the 15 s
-# of a command (GitHub #428), and the commands in a row without an answer after which the link is made again (#399).
+# of a command (GitHub #428). Whether Home Assistant still listens is asked with its own `ping` every PING_SECONDS; a
+# pong that does not come within PONG_SECONDS closes the link and run() makes it again (#399). A slow action (a
+# call_service is answered when the action is done) says nothing about that and never closes the link.
 ENTITIES_SECONDS = 180
-LOST_ANSWERS = 3
+PING_SECONDS = 30
+PONG_SECONDS = 20
 # Safety net for screens that answer every ping: everything again once an hour.
 FULL_REPEAT_SECONDS = 3600
 # Sensor history is refreshed in a background task, never inside the sync loop.
@@ -296,8 +299,8 @@ class HomeAssistant:
         self.responses = set()
         self.services_changed = asyncio.Event()
         # The states follow Home Assistant's `subscribe_entities` (ha_entities.py, GitHub #315): the id of that
-        # subscription on this connection, the first list's arrival, and the commands in a row that got no answer.
-        self.entities_sub, self.entities_ready, self.lost_answers = None, None, 0
+        # subscription on this connection and the first list's arrival.
+        self.entities_sub, self.entities_ready = None, None
         # Every action Home Assistant describes (get_services), which the editor's choices per entity follow (app
         # 0.2.67); `services_rev` counts the refreshes. `targets` keeps Home Assistant's answer per entity, and
         # `target_lookup` stays None until it is known whether Home Assistant answers get_services_for_target (2025.12+).
@@ -342,26 +345,34 @@ class HomeAssistant:
         self.pending[key] = future
         try:
             await self.ws.send_json({'id': key, 'type': kind, **data})
-            answer = await asyncio.wait_for(future, wait)
-        except TimeoutError:
-            # A link that stays open but answers nothing (GitHub #399: a busy network for hours) is closed after a few
-            # commands in a row without an answer, and run() connects again.
-            self.lost_answers += 1
-            if self.lost_answers >= LOST_ANSWERS and self.ws is not None and not self.ws.closed:
-                LOG.warning('Home Assistant answered %d commands in a row with nothing: connecting again', self.lost_answers)
-                asyncio.ensure_future(self.ws.close())
-            raise
+            return await asyncio.wait_for(future, wait)
         finally:
             self.pending.pop(key, None)
-        self.lost_answers = 0
-        return answer
+
+    async def listen_for_answers(self):
+        """While connected: Home Assistant's `ping` every PING_SECONDS. A link that stays open but where Home Assistant
+        no longer answers (GitHub #399: a busy network for hours) is closed when the pong does not come, and run()
+        connects again. Ends when the pong is missed or the task is cancelled with the link."""
+        while True:
+            await asyncio.sleep(PING_SECONDS)
+            try:
+                await self.request('ping', wait=PONG_SECONDS)
+            except TimeoutError:
+                LOG.warning('Home Assistant answered no ping in %d s: connecting again', PONG_SECONDS)
+                if self.ws is not None and not self.ws.closed:
+                    await self.ws.close()
+                return
 
     async def read(self):
         async for msg in self.ws:
             if msg.type != WSMsgType.TEXT:
                 continue
             data = msg.json()
-            if data.get('type') == 'result':
+            if data.get('type') == 'pong':
+                future = self.pending.get(data.get('id'))
+                if future and not future.done():
+                    future.set_result(None)
+            elif data.get('type') == 'result':
                 future = self.pending.get(data.get('id'))
                 if future and not future.done():
                     if data.get('success'):
@@ -740,13 +751,13 @@ class HomeAssistant:
     async def run(self):
         url = self.ws_url()
         while True:
-            reader, connected = None, None
+            reader, connected, prober = None, None, None
             try:
                 async with self.session.ws_connect(url, heartbeat=30, max_msg_size=0) as ws:
                     self.ws = ws
                     self.connection += 1
                     self.template_subs = {}
-                    self.entities_sub, self.lost_answers = None, 0
+                    self.entities_sub = None
                     await ws.receive_json(timeout=15)
                     await ws.send_json({'type': 'auth', 'access_token': self.token})
                     if (await ws.receive_json(timeout=15)).get('type') != 'auth_ok':
@@ -777,6 +788,7 @@ class HomeAssistant:
                     self.state_events.notify()
                     connected = time.monotonic()
                     LOG.info('Home Assistant connected')
+                    prober = asyncio.create_task(self.listen_for_answers())
                     # Refresh the registry when HA reports a change (debounced), with a slow
                     # fallback; a full fetch is about 1 MB of JSON and used to run every 30 s.
                     fetched = time.monotonic()
@@ -816,6 +828,8 @@ class HomeAssistant:
                     LOG.info('Home Assistant connection closed%s', self.describe_close(connected))
                 self.online = False
                 self.ws = None
+                if prober:
+                    prober.cancel()
                 if reader:
                     reader.cancel()
                     with contextlib.suppress(asyncio.CancelledError, Exception):
