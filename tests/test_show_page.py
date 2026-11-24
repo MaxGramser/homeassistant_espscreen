@@ -93,3 +93,21 @@ class FromTheLoop(unittest.TestCase):
         text = (ROOT / 'packages/core.yaml').read_text()
         self.assertIn('runtime_tiles::layout_changed = []() { id(show_tile_page_soon).execute(); };', text,
                       "a layout's commit asks for its page from the loop")
+
+    def test_standby_goes_to_page_1_before_its_screensaver_opens(self):
+        """GitHub #457: with Back to page 1 on standby, a go_home one pass behind the screensaver closed its camera or
+        media view 0.2 s after it opened. Standby waits the pass itself, goes home at once, and opens the saver last."""
+        import yaml
+
+        class Loader(yaml.SafeLoader):
+            pass
+        Loader.add_multi_constructor('!', lambda loader, suffix, node: None)
+        core = yaml.load((ROOT / 'packages/core.yaml').read_text(), Loader=Loader)
+        scripts = {script['id']: script for script in core['script']}
+        self.assertNotIn({'delay': '0ms'}, scripts['go_home_now']['then'], 'go_home_now does its steps at once')
+        self.assertEqual(scripts['go_home']['then'][1:], [{'script.execute': 'go_home_now'}], 'go_home is its steps, a pass later')
+        dimming = scripts['dim_display']['then'][0]['if']['then']
+        home = next(step['if'] for step in dimming if 'if' in step)
+        self.assertEqual(home['then'], [{'delay': '0ms'}, {'script.execute': 'go_home_now'}])
+        self.assertNotIn('go_home', str(dimming).replace('go_home_now', ''), 'standby never runs the deferred go_home')
+        self.assertIn('apply_screen_settings', str(dimming[-1]), 'the screensaver opens after the cards closed')

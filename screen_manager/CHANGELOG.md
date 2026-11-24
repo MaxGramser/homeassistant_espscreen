@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The screensaver stays up with "Back to page 1 on standby".** With that setting on, a screensaver that shows a camera or what plays opened and closed again right away, leaving the dimmed tiles of page 1. The screen now goes to page 1 first and then opens its screensaver. New firmware. ([#457](https://github.com/MaxGramser/homeassistant_espscreen/issues/457))
+
 - **The app keeps up with a very large Home Assistant.** The app now follows Home Assistant's states the way Home Assistant's own pages do: one compact list when it connects, and after that only what changed, down to the one attribute. A home with thousands of entities, or with a few very large ones (sports scores, network integrations), no longer keeps the app on "Reconnecting to Home Assistant", and Home Assistant no longer sends such an entity whole on every change. A link that stops answering is made again by itself. ([#315](https://github.com/MaxGramser/homeassistant_espscreen/issues/315), [#392](https://github.com/MaxGramser/homeassistant_espscreen/issues/392), [#399](https://github.com/MaxGramser/homeassistant_espscreen/issues/399))
 
 - **Pictures in a Lyrion or Squeezebox library.** The folders and albums of a Lyrion Music Server show their pictures again. ([#456](https://github.com/MaxGramser/homeassistant_espscreen/issues/456))
