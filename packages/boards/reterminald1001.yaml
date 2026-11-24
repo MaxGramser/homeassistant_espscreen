@@ -242,14 +242,16 @@ output:
     id: output_blue
     inverted: true
 
-# The LSM6DS3TR-C motion sensor, four times a second: a change of its acceleration means the board moved (Wake when
-# moved), and the temperature it measures on its own chip, averaged over a minute, is warmer than the room the board
-# stands in: it shows how warm the board runs.
+# The LSM6DS3TR-C motion sensor, ten times a second (ESPHome's own advice for motion): the board moved when it turns
+# or tilts (Wake when moved), and the temperature it measures on its own chip, averaged over a minute, is warmer than
+# the room the board stands in: it shows how warm the board runs. The gyroscope's finest range, 250 degrees a second,
+# is the one that sees a hand pick the board up; a faster turn only reads as the most it can count, which is plenty.
 motion:
   - platform: lsm6ds
     id: board_motion
     i2c_id: board_bus
-    update_interval: 250ms
+    update_interval: 100ms
+    gyroscope_range: 250DPS
 
 sensor:
   - platform: lsm6ds
@@ -260,29 +262,90 @@ sensor:
     accuracy_decimals: 1
     filters:
       - throttle_average: 60s
-  # Each axis tells board_moved when it changed by more than about a tenth of gravity since the last reading; none of
-  # them is ever published.
+  # Wake when moved: each axis follows its own resting value and tells board_moved when it leaves it. Acceleration is
+  # in g, so 0.03 is a tilt of about two degrees, or a hand lifting the board; the resting value follows in about half a
+  # second, so a slow tilt is still a change. The gyroscope reads turning in degrees a second, 5 of them is a slow turn
+  # of the wrist; its resting value follows in about two seconds and takes away the few degrees a second every
+  # gyroscope reads while it lies still. At rest on a table both stay well below these (docs/RETERMINALD1001.md). None
+  # of them is ever published.
   - platform: motion
     motion_id: board_motion
     type: acceleration_x
     id: board_acceleration_x
     internal: true
     filters:
-      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.2f;
+          if (d > 0.03f && !id(board_moved).is_running()) id(board_moved).execute("acceleration x", d);
+          return {};
   - platform: motion
     motion_id: board_motion
     type: acceleration_y
     id: board_acceleration_y
     internal: true
     filters:
-      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.2f;
+          if (d > 0.03f && !id(board_moved).is_running()) id(board_moved).execute("acceleration y", d);
+          return {};
   - platform: motion
     motion_id: board_motion
     type: acceleration_z
     id: board_acceleration_z
     internal: true
     filters:
-      - lambda: 'static float last = NAN; if (!std::isnan(last) && fabsf(x - last) > 1.0f) id(board_moved).execute(); last = x; return {};'
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.2f;
+          if (d > 0.03f && !id(board_moved).is_running()) id(board_moved).execute("acceleration z", d);
+          return {};
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_x
+    id: board_gyroscope_x
+    internal: true
+    filters:
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.05f;
+          if (d > 5.0f && !id(board_moved).is_running()) id(board_moved).execute("gyroscope x", d);
+          return {};
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_y
+    id: board_gyroscope_y
+    internal: true
+    filters:
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.05f;
+          if (d > 5.0f && !id(board_moved).is_running()) id(board_moved).execute("gyroscope y", d);
+          return {};
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_z
+    id: board_gyroscope_z
+    internal: true
+    filters:
+      - lambda: |-
+          static float base = NAN;
+          if (std::isnan(base)) base = x;
+          float d = fabsf(x - base);
+          base += (x - base) * 0.05f;
+          if (d > 5.0f && !id(board_moved).is_running()) id(board_moved).execute("gyroscope z", d);
+          return {};
   # The battery's voltage and level (features/battery-adc.yaml, battery-voltage.yaml) come from board_battery_measure
   # below, not on intervals of their own.
   - id: !extend screen_battery_voltage
@@ -291,17 +354,23 @@ sensor:
     update_interval: never
 
 # The board moved: wake the screen the way Home Assistant's Wake button does, when Wake when moved is on and the screen
-# is in standby; once in two seconds at most.
+# is in standby; once in two seconds at most. The log says which axis felt it and how much, for tuning the thresholds
+# above.
 script:
   - id: board_moved
     mode: single
+    parameters:
+      axis: string
+      by: float
     then:
       - if:
           condition:
             lambda: 'return id(board_wake_when_moved).state && id(display_dimmed);'
           then:
-            - lambda: 'ESP_LOGI("board", "moved: waking the screen");'
+            - lambda: 'ESP_LOGI("board", "moved (%s by %.3f): waking the screen", axis.c_str(), by);'
             - button.press: wake_button
+          else:
+            - lambda: 'ESP_LOGD("board", "moved (%s by %.3f)", axis.c_str(), by);'
       - delay: 2s
 
   # The battery, once a minute: its voltage, then the level from it, measured only while nothing charges it. The level

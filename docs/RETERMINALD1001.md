@@ -47,7 +47,13 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
   GPIO38, the touch bus on this board; UART0 there crashed the first boot. The board file moves the log to the USB port.
 - **16 MB of the 32.** ESPHome takes OTA on 32 MB of flash only with ESP-IDF's experimental features, so the firmware
   uses the first 16 MB, as the other P4 boards do.
-- **Wake when moved** feels the board itself: picked up, moved or knocked. It does not see someone walking past.
+- **Wake when moved** feels the board itself: picked up, tilted, turned or knocked. It does not see someone walking
+  past. The LSM6DS3TR-C is read ten times a second, and each axis of its accelerometer and its gyroscope keeps its own
+  resting value: the board moved when an axis leaves it by more than 0.03 g (a tilt of about two degrees) or 5 degrees a
+  second. The resting value follows the board, so a board that lies still at any angle is still, and the gyroscope's
+  own offset of a few degrees a second at rest falls away. ESPHome's `motion` reports acceleration in g, not in m/s²:
+  a threshold of 1.0 is a whole g, which only shaking reaches. The log names the axis and how far it moved
+  (`moved (gyroscope y by 12.400)`), at the debug level while the screen is awake.
 
 ## The camera
 

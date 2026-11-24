@@ -24,6 +24,8 @@
 
 - **Boards with the newer ESP32-P4 chip start.** Guition, Waveshare and others now sell their ESP32-P4 screens with a newer revision of the chip (v3) under the same name, often without any marking, and the firmware for the older chip left those screens black (#336, #397, #462). Tessera now reads the chip itself while it installs a screen, from the USB cable, and builds the firmware for the chip it finds. A screen that runs reports its chip too, so every later update is built for it, also one installed some other way. Screens that run on the hand-made fix, `engineering_sample: false` in their Override YAML, are recognised and keep working, and they can now be updated from Tessera again. The browser installer also refuses to write a firmware built for another chip revision than the one on the cable. New firmware for the ESP32-P4 boards, with a Screen chip sensor.
 
+- **The reTerminal D1001 wakes when you pick it up.** With Wake when moved on, the reTerminal now feels being lifted, tilted or turned, instead of only a good shake: it reads its motion sensor more often, listens to the gyroscope too and compares each reading with how the board lay still. New firmware.
+
 - **Clearer tile names on the CYD.** On the small screens (the CYD and the Hosyond 4-inch) the names on the tiles are now drawn in medium instead of bold, so their letters no longer run into each other on the glass. They keep their width, so no name gets cut shorter. New firmware.
 
 - **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, also with Auto standby off. A tap still goes to the Home page. New firmware.
