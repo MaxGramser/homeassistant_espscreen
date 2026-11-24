@@ -656,6 +656,10 @@ struct Widgets {
   // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
   // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
   uint8_t alarm_look=0; uint32_t alarm_mark=0;
+  // The state's colour the card was last painted in (tile_controls::accent, a lamp's own while it is on), next to
+  // `cached_active`: a thermostat from Auto to Heat stays active and changes only its colour, and a card on a kept page
+  // keeps its cache, so it would come back in the old colour (GitHub #349).
+  uint32_t cached_accent=UINT32_MAX;
   // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
   // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
   // which an idle timer never sends).
@@ -2444,14 +2448,14 @@ inline void render_slot(size_t slot) {
 #else
   const uint32_t paint=face.key()|(bare?1u<<25:0);  // a board without sections: every card in the screen's look on the page
 #endif
-  if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
-  w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
   uint32_t accent=lock_tile?lock_accent(t):tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
   // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
   if(d=="light" && on && t.has_hs_color)
     accent=tile_controls::lamp_color(t.hue,t.saturation);
+  if (w.cached_active == palette_state && w.cached_paint == paint && w.cached_accent == accent && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
+  w.cached_active = palette_state;w.cached_paint=paint;w.cached_accent=accent;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
   auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));

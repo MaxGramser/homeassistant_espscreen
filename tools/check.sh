@@ -227,6 +227,8 @@ firmware_preview() {
   node web/wasm/test_page_frame.mjs || return 1
   node web/wasm/test_look.mjs || return 1
   node web/wasm/test_colour_card.mjs || return 1
+  node web/wasm/test_light_group_key.mjs || return 1
+  node web/wasm/test_kept_colour.mjs || return 1
   node web/wasm/test_cover_keys.mjs || return 1
   node web/wasm/test_top_bar_cards.mjs || return 1
   node web/wasm/test_images.mjs || return 1

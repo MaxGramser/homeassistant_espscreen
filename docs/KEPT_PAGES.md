@@ -34,6 +34,11 @@ Three rules keep this safe:
   sun, graphs, a playing track, "5 min ago"). Every kept set remembers the number it was drawn up to, and a card is
   drawn again when it comes back only when its tile took a later number. A drawing that was asked for before a page was
   built, and ran after, is then no change that page lacks; the flags this replaced got that wrong.
+- **A card that comes back is painted for what it shows now.** A card skips its paint when nothing it is painted for
+  changed: whether it is on, available and lit, its card's look, and the state's colour itself (a thermostat from Auto
+  to Heat stays on and changes only its colour; a lamp that changes its colour stays on). A kept card keeps that memory
+  while its page is away, so the colour is part of it (GitHub #349, web/wasm/test_kept_colour.mjs, which keeps pages in
+  the preview as a board with PSRAM does).
 
 A page's sections (docs/PAGES.md "Sections") are drawn once, when the page is first placed on the glass or prepared off
 it, and kept: their panels, titles and icons are hidden while another page is on the glass and shown with their page, so

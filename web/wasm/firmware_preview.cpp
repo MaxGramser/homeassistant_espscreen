@@ -212,6 +212,9 @@ void preview_render() {
 }
 const uint32_t *preview_frame() { return framebuffer.data(); }
 int preview_page() { return page; }
+// Pages kept beside the one on the glass, as a board with PSRAM keeps them (docs/KEPT_PAGES.md): the preview keeps none
+// by itself, a test asks for them to read what a kept page shows when it comes back (web/wasm/test_kept_colour.mjs).
+void preview_keep_pages(int pages) { runtime_tiles::kept_limit = pages; }
 // The layout as the firmware laid it out (app 0.4.32), for the geometry tests (tests/test_layout_audit.py): every
 // visible object with its box, its parent and, for a label, how its text fits. Nothing here draws; the tests read
 // whether anything leaves its card, overlaps what it may not, or runs past its line without dots or a marquee.
