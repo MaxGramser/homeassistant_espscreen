@@ -275,6 +275,63 @@ static void an_alert_in_standby() {
   assert(s.in_standby() && !s.by_hand());
 }
 
+// A ring that closes with the cards, as the doorbell's view does (runtime_tiles::dismiss).
+static void cards_take_the_ring() {
+  s.glass.close_cards = []() {
+    if (owners & RING) {
+      owners &= static_cast<uint8_t>(~RING);
+      told("ring closed");
+    }
+    told("close cards");
+  };
+}
+
+static void a_standby_by_hand_closes_a_ring() {
+  // A doorbell's ring is a view on the glass that holds the screen lit: the standby time leaves it alone and the home
+  // key held is refused under it. A standby someone asks for with Home Assistant's Sleep or the board's key takes it
+  // away with every other card (glass.close_cards, where the doorbell reports the ring closed and gives the speaker
+  // back: module_doorbell.cpp through runtime_tiles::dismiss), and the screen goes to standby.
+  fresh();
+  cards_take_the_ring();
+  owners = RING;
+  after(3600 * 1000);
+  s.tick(now_ms);
+  assert(!s.in_standby() && trail.empty());
+  assert(!s.hold_home(now_ms) && trail.empty());
+  s.standby_by_hand("Home Assistant's Sleep", now_ms);
+  assert(s.in_standby() && s.by_hand() && owners == 0);
+  // The ring closes before the standby shows itself.
+  assert(place("ring closed") >= 0 && place("ring closed") < place("apply"));
+  assert(logged("Standby from Home Assistant's Sleep"));
+
+  // The board's key does the same.
+  fresh();
+  cards_take_the_ring();
+  owners = RING;
+  s.key(now_ms);
+  assert(s.in_standby() && has("ring closed") && owners == 0);
+
+  // With Back to page 1 on standby it closes one pass later, with the cards, before page 1 and the screensaver.
+  fresh();
+  cards_take_the_ring();
+  screen_settings::current.home_on_standby = 1;
+  owners = RING;
+  s.standby_by_hand("Home Assistant's Sleep", now_ms);
+  assert(s.in_standby() && !has("ring closed"));
+  pass();
+  assert(place("ring closed") < place("page 1") && place("page 1") < place("saver on") && owners == 0);
+
+  // A ring that comes during a standby is no business of the standby's: the doorbell wakes the screen itself (an
+  // event), and the standby time then waits for it.
+  fresh();
+  s.standby_by_time(now_ms);
+  s.wake_from("the doorbell", Wake::EVENT, now_ms);
+  owners = RING;
+  after(3600 * 1000);
+  s.tick(now_ms);
+  assert(!s.in_standby());
+}
+
 static void page_1_comes_before_the_screensaver() {
   // GitHub #457. With Back to page 1 on standby the standby goes home, never at the bottom of the call that asked
   // (Home Assistant's Sleep comes inside the API's call), and its screensaver opens after page 1, not before.
@@ -606,6 +663,7 @@ int main() {
   the_standby_time();
   a_dark_standby_saves_power();
   by_hand_holds_and_closes_an_alert();
+  a_standby_by_hand_closes_a_ring();
   auto_standby_turned_off_while_dark();
   an_alert_in_standby();
   page_1_comes_before_the_screensaver();
