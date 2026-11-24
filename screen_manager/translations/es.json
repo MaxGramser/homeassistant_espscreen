@@ -3760,8 +3760,8 @@
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status_hint": {
-        "new": "Nuevo: probado en pocas pantallas hasta ahora. Cuéntanos qué tal va.",
-        "experimental": "Experimental: aún no se ha probado en este hardware. Cuéntanos qué tal va."
+        "new": "Nuevo: funciona en pantallas reales, pero aún no se ha probado a fondo. Cuéntanos qué tal va.",
+        "experimental": "Experimental: aún hay muy pocos datos de pantallas reales para saber lo bien que funciona. Cuéntanos qué tal va."
       },
       "abilities": {
         "camera": "Imágenes de cámara",
@@ -3903,6 +3903,7 @@
         "later": "¿No tienes un cable a mano? Guárdalo e instala más tarde",
         "download_instead": "¿Prefieres hacerlo tú? Descarga el archivo",
         "pick_lead": "Elige la pantalla que tienes. Te recomendamos estas: pueden con todo y las probamos cada día.",
+        "more_soon": "Pronto habrá más.",
         "square": "Cuadrada",
         "wide": "Panorámica",
         "versions": "{n} versión | {n} versiones",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Probada",
           "new": "Nueva",
-          "experimental": "Aún sin probar"
+          "experimental": "Experimental"
         },
         "model_title": "¿Qué versión tienes?",
         "model_lead": "La {name} viene en {n} versiones. Se parecen, pero cada una necesita su propio software. En la parte trasera de la placa pone cuál tienes.",

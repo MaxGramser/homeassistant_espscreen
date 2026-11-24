@@ -3760,8 +3760,8 @@
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
       "status_hint": {
-        "new": "Neu: bisher nur auf wenigen Bildschirmen ausprobiert. Sag uns, wie es läuft.",
-        "experimental": "Experimentell: auf dieser Hardware noch nicht ausprobiert. Sag uns, wie es läuft."
+        "new": "Neu: läuft auf echten Bildschirmen, ist aber noch nicht gründlich getestet. Sag uns, wie es läuft.",
+        "experimental": "Experimentell: noch zu wenige Testdaten von echten Bildschirmen, um zu wissen, wie gut er läuft. Sag uns, wie es läuft."
       },
       "abilities": {
         "camera": "Kamerabilder",
@@ -3903,6 +3903,7 @@
         "later": "Kein Kabel zur Hand? Speichere es und installiere später",
         "download_instead": "Lieber selbst machen? Lade die Datei herunter",
         "pick_lead": "Wähle den Bildschirm, den du hast. Diese empfehlen wir: Sie können alles, und wir testen sie jeden Tag.",
+        "more_soon": "Weitere folgen bald.",
         "square": "Quadratisch",
         "wide": "Breitbild",
         "versions": "{n} Version | {n} Versionen",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Bewährt",
           "new": "Neu",
-          "experimental": "Noch nicht getestet"
+          "experimental": "Experimentell"
         },
         "model_title": "Welche Version hast du?",
         "model_lead": "Den {name} gibt es in {n} Versionen. Sie sehen ähnlich aus, brauchen aber jeweils eigene Software. Auf der Rückseite der Platine steht, welche du hast.",

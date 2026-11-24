@@ -3760,8 +3760,8 @@
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
       "status_hint": {
-        "new": "Nuovo: finora provato su pochi schermi. Facci sapere come va.",
-        "experimental": "Sperimentale: non ancora provato su questo hardware. Facci sapere come va."
+        "new": "Nuovo: funziona su schermi reali, ma non è ancora stato provato a fondo. Facci sapere come va.",
+        "experimental": "Sperimentale: ancora troppo pochi dati da schermi reali per sapere quanto funziona bene. Facci sapere come va."
       },
       "abilities": {
         "camera": "Immagini delle telecamere",
@@ -3903,6 +3903,7 @@
         "later": "Non hai un cavo a portata di mano? Salvalo e installa più tardi",
         "download_instead": "Preferisci fare da te? Scarica il file",
         "pick_lead": "Scegli lo schermo che hai. Ti consigliamo questi: sanno fare tutto e li proviamo ogni giorno.",
+        "more_soon": "Altri in arrivo a breve.",
         "square": "Quadrato",
         "wide": "Widescreen",
         "versions": "{n} versione | {n} versioni",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Collaudato",
           "new": "Nuovo",
-          "experimental": "Non ancora provato"
+          "experimental": "Sperimentale"
         },
         "model_title": "Quale versione hai?",
         "model_lead": "Il {name} esiste in {n} versioni. Si assomigliano, ma ognuna ha bisogno del suo software. Sul retro della scheda c'è scritto quale hai.",

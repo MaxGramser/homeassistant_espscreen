@@ -3760,8 +3760,8 @@
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status_hint": {
-        "new": "Novo: até agora experimentado em poucos ecrãs. Diga-nos como corre.",
-        "experimental": "Experimental: ainda não foi experimentado neste hardware. Diga-nos como corre."
+        "new": "Novo: funciona em ecrãs reais, mas ainda não foi testado a fundo. Diga-nos como corre.",
+        "experimental": "Experimental: ainda há poucos dados de ecrãs reais para saber se funciona bem. Diga-nos como corre."
       },
       "abilities": {
         "camera": "Imagens de câmaras",
@@ -3903,6 +3903,7 @@
         "later": "Sem cabo à mão? Guarde e instale mais tarde",
         "download_instead": "Prefere fazer você mesmo? Transfira o ficheiro",
         "pick_lead": "Escolha o ecrã que tem. Recomendamos estes: fazem tudo e testamo-los todos os dias.",
+        "more_soon": "Mais em breve.",
         "square": "Quadrado",
         "wide": "Panorâmico",
         "versions": "{n} versão | {n} versões",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Comprovado",
           "new": "Novo",
-          "experimental": "Ainda não testado"
+          "experimental": "Experimental"
         },
         "model_title": "Que versão tem?",
         "model_lead": "O {name} existe em {n} versões. São parecidas, mas cada uma precisa do seu próprio software. A parte de trás da placa indica qual tem.",

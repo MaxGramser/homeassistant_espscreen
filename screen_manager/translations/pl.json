@@ -3760,8 +3760,8 @@
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
       "status_hint": {
-        "new": "Nowość: na razie wypróbowana na kilku ekranach. Napisz, jak działa.",
-        "experimental": "Eksperymentalny: jeszcze nie wypróbowany na tym sprzęcie. Napisz, jak działa."
+        "new": "Nowość: działa na prawdziwych ekranach, ale nie jest jeszcze dokładnie przetestowany. Napisz, jak działa.",
+        "experimental": "Eksperymentalny: wciąż za mało danych z prawdziwych ekranów, by wiedzieć, jak dobrze działa. Napisz, jak działa."
       },
       "abilities": {
         "camera": "Obrazy z kamer",
@@ -3903,6 +3903,7 @@
         "later": "Nie masz pod ręką kabla? Zapisz i zainstaluj później",
         "download_instead": "Wolisz zrobić to sam? Pobierz plik",
         "pick_lead": "Wybierz ekran, który masz. Polecamy te: potrafią wszystko i testujemy je codziennie.",
+        "more_soon": "Wkrótce kolejne.",
         "square": "Kwadratowy",
         "wide": "Panoramiczny",
         "versions": "{n} wersja | {n} wersje | {n} wersji",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Sprawdzony",
           "new": "Nowy",
-          "experimental": "Jeszcze nie testowany"
+          "experimental": "Eksperymentalny"
         },
         "model_title": "Którą wersję masz?",
         "model_lead": "Model {name} występuje w {n} wersjach. Wyglądają podobnie, ale każda potrzebuje własnego oprogramowania. Z tyłu płytki jest napisane, którą masz.",

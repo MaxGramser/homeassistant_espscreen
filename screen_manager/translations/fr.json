@@ -3760,8 +3760,8 @@
       "board": "Quel écran avez-vous ?",
       "board_title": "{name} · {inch} pouces",
       "status_hint": {
-        "new": "Nouveau : essayé sur peu d'écrans pour l'instant. Dites-nous ce que ça donne.",
-        "experimental": "Expérimental : pas encore essayé sur ce matériel. Dites-nous ce que ça donne."
+        "new": "Nouveau : fonctionne sur de vrais écrans, mais pas encore testé à fond. Dites-nous ce que ça donne.",
+        "experimental": "Expérimental : encore trop peu de retours de vrais écrans pour savoir s'il fonctionne bien. Dites-nous ce que ça donne."
       },
       "abilities": {
         "camera": "Images de caméra",
@@ -3903,6 +3903,7 @@
         "later": "Pas de câble sous la main ? Enregistrez et installez plus tard",
         "download_instead": "Vous préférez le faire vous-même ? Téléchargez le fichier",
         "pick_lead": "Choisissez l'écran que vous avez. Nous recommandons ceux-ci : ils savent tout faire et nous les testons chaque jour.",
+        "more_soon": "D'autres arrivent bientôt.",
         "square": "Carré",
         "wide": "Grand écran",
         "versions": "{n} version | {n} versions",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Éprouvé",
           "new": "Nouveau",
-          "experimental": "Pas encore testé"
+          "experimental": "Expérimental"
         },
         "model_title": "Quelle version avez-vous ?",
         "model_lead": "Le {name} existe en {n} versions. Elles se ressemblent, mais chacune a besoin de son propre logiciel. L'arrière de la carte indique celle que vous avez.",

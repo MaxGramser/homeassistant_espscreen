@@ -3269,8 +3269,8 @@
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status_hint": {
-        "new": "New: tried on only a few screens so far. Tell us how it goes.",
-        "experimental": "Experimental: not yet tried on this hardware. Tell us how it goes."
+        "new": "New: works on real screens, but not yet tested thoroughly. Tell us how it goes.",
+        "experimental": "Experimental: too little test data from real screens yet to know how well it works. Tell us how it goes."
       },
       "abilities": {
         "camera": "Camera pictures",
@@ -3412,6 +3412,7 @@
         "later": "No cable at hand? Save it and install later",
         "download_instead": "Rather do it yourself? Download the file",
         "pick_lead": "Pick the screen you have. We recommend these: they can do everything, and we test them every day.",
+        "more_soon": "More to come soon.",
         "square": "Square",
         "wide": "Widescreen",
         "versions": "{n} version | {n} versions",
@@ -3420,7 +3421,7 @@
         "status": {
           "stable": "Proven",
           "new": "New",
-          "experimental": "Not tested yet"
+          "experimental": "Experimental"
         },
         "model_title": "Which version do you have?",
         "model_lead": "The {name} comes in {n} versions. They look alike, but each needs its own software. The back of the board says which one you have.",

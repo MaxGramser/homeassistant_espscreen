@@ -3269,8 +3269,8 @@
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
       "status_hint": {
-        "new": "Nieuw: tot nu toe op maar een paar schermen geprobeerd. Laat ons weten hoe het gaat.",
-        "experimental": "Experimenteel: nog niet op deze hardware geprobeerd. Laat ons weten hoe het gaat."
+        "new": "Nieuw: werkt op echte schermen, maar is nog niet grondig getest. Laat ons weten hoe het gaat.",
+        "experimental": "Experimenteel: nog te weinig testdata van echte schermen om te weten hoe goed het werkt. Laat ons weten hoe het gaat."
       },
       "abilities": {
         "camera": "Camerabeelden",
@@ -3412,6 +3412,7 @@
         "later": "Geen kabel bij de hand? Bewaar het en installeer later",
         "download_instead": "Liever zelf? Download het bestand",
         "pick_lead": "Kies het scherm dat je hebt. Deze raden we aan: ze kunnen alles en we testen ze elke dag.",
+        "more_soon": "Binnenkort volgen er meer.",
         "square": "Vierkant",
         "wide": "Breedbeeld",
         "versions": "{n} uitvoering | {n} uitvoeringen",
@@ -3420,7 +3421,7 @@
         "status": {
           "stable": "Bewezen",
           "new": "Nieuw",
-          "experimental": "Nog niet getest"
+          "experimental": "Experimenteel"
         },
         "model_title": "Welke uitvoering heb je?",
         "model_lead": "De {name} is er in {n} uitvoeringen. Ze lijken op elkaar, maar elk heeft zijn eigen software nodig. Achterop het bord staat welke je hebt.",

@@ -40,6 +40,7 @@ const listLine = (family: BoardRow[]) => (family.length > 1 ? t("editor.installe
         <span class="ob-tick" aria-hidden="true"><Icon name="check" /></span>
       </label>
     </fieldset>
+    <p class="ob-soon">{{ t("editor.installer.flow.more_soon") }}</p>
     <button type="button" class="ob-more" id="board-other" @click="install.browse = true">{{ t("editor.installer.flow.other_screen") }}<Icon name="chevron-right" /></button>
   </section>
 

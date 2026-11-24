@@ -3760,8 +3760,8 @@
       "board": "Milyen kijelződ van?",
       "board_title": "{name} · {inch} hüvelyk",
       "status_hint": {
-        "new": "Új: eddig csak néhány kijelzőn próbálták ki. Mondd el, hogy működik.",
-        "experimental": "Kísérleti: ezen a hardveren még nem próbálták ki. Mondd el, hogy működik."
+        "new": "Új: valódi kijelzőkön működik, de még nincs alaposan tesztelve. Mondd el, hogy működik.",
+        "experimental": "Kísérleti: még túl kevés a tesztadat valódi kijelzőkről ahhoz, hogy tudjuk, mennyire jól működik. Mondd el, hogy működik."
       },
       "abilities": {
         "camera": "Kameraképek",
@@ -3903,6 +3903,7 @@
         "later": "Nincs kéznél kábel? Mentsd el, és telepítsd később",
         "download_instead": "Inkább magad csinálnád? Töltsd le a fájlt",
         "pick_lead": "Válaszd ki a kijelződet. Ezeket ajánljuk: mindent tudnak, és minden nap teszteljük őket.",
+        "more_soon": "Hamarosan továbbiak jönnek.",
         "square": "Négyzetes",
         "wide": "Széles",
         "versions": "{n} változat | {n} változat",
@@ -3911,7 +3912,7 @@
         "status": {
           "stable": "Bevált",
           "new": "Új",
-          "experimental": "Még nem tesztelt"
+          "experimental": "Kísérleti"
         },
         "model_title": "Melyik változatod van?",
         "model_lead": "A(z) {name} {n} változatban kapható. Hasonlítanak egymásra, de mindegyikhez saját szoftver kell. A panel hátoldalán áll, melyik van meg neked.",

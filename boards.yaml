@@ -14,8 +14,9 @@
 #   file      the board file under packages/boards/
 #   name      what people call the board; New screen shows it with its size in inches
 #   model     what is printed on the board or its box, to tell it from its neighbours
-#   status    stable (tried on the glass by the project), new (tried, few screens out there yet) or experimental
-#             (built and rendered, not yet tried on the hardware)
+#   status    stable (proven, on the project's own glass or by many screens out there), new (tried on real screens,
+#             not yet thoroughly) or experimental (built and rendered, too little test data from real screens to know
+#             how well it works)
 #   recommended  optional, true for a stable board the project recommends: New screen shows it first, in a section of
 #             its own. A stable board without it is proven but not promoted (a CYD does too little to start with).
 #   choices   optional: a substitution the board file offers for a part that differs between boards sold under the same
@@ -269,8 +270,9 @@ waveshare101v3:
   name: Waveshare
   model: ESP32-P4-WIFI6-Touch-LCD-10.1 V3
   status: stable
+  recommended: true
   # The same board with rev3 silicon ("chip revision: v3.x" in the USB log), which Waveshare ships now: it starts only
-  # with the repository's display driver (docs/WAVESHARE101.md). Seen on glass on one unit: picture, touch, pages.
+  # with the repository's display driver (docs/WAVESHARE101.md). Tested at length by the project on its own glass.
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
