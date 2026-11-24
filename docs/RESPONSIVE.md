@@ -199,7 +199,9 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   (2), the rain as flat bars hung from a line with the amount under them (3), and the chance of rain (4). A card takes
   the highest tier that fits at the smallest face, then the largest face that keeps it, and every day the forecast
   has comes before either. A wide, low card puts the weather now in a column beside the week. Where the week fits in
-  no tier, the tile keeps the older forms of `forecast_tile.h`.
+  no tier, the tile keeps the older forms of `forecast_tile.h`. The columns are the forecast's own days: a list that
+  starts tomorrow (Buienradar in the evening) counts the line's hours from tomorrow's midnight
+  (`first_day_from_today`, GitHub #280), so today's hours never stand under tomorrow's column.
 - A thermostat tile of more than one row (`climate_tile.h`) has two groups: the number between - and +, and a
   bar with one segment per mode. Off is not on the bar; the tile's circle switches the thermostat on and off.
   With room the number stands large with the bar under it; otherwise the stepper and the bar share one row, or

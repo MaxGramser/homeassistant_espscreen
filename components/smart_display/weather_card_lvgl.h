@@ -68,6 +68,14 @@ inline weather_chart::Chart weather_chart_of(const Tile &t,bool hourly){
   }
   const auto now=now_time?now_time():esphome::ESPTime{};
   c.now=now.is_valid()?now.hour:(c.hours.empty()?0:c.hours.front().at);
+  // The week's columns are the forecast's days: a list that starts tomorrow (or still yesterday) moves the hours and now
+  // to its first day's midnight, so today's line is not drawn under tomorrow (GitHub #280). The hourly strip keeps today.
+  const int shift=hourly?0:ww::first_day_from_today(x.forecast.empty()?-1:x.forecast[0].weekday,today);
+  if(shift){
+    for(auto &h:c.hours)h.at-=24*shift;
+    c.now=std::max(0,c.now-24*shift);
+    c.today=((c.today+shift)%7+7)%7;
+  }
   return c;
 }
 inline lv_obj_t *weather_chart_object(lv_obj_t *parent,int x,int y,int w,int h,weather_chart::Chart &&chart){
