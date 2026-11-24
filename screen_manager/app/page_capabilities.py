@@ -60,6 +60,10 @@ class CapabilityCache:
         # The grids it takes and keeps (firmware 0.53.0+): the editor offers them while it is offline, and the grid a save
         # gives it then waits for it.
         sender.last_grids = grids_of({'grids': record.get('grids')})
+        # The features of its last hello (GitHub #452): what an offline save is judged by.
+        features = record.get('features')
+        if isinstance(features, list) and all(isinstance(name, str) for name in features):
+            sender.last_features = set(features)
 
     def remember(self, inbox, screen, sender):
         marker = identity(screen)
@@ -73,6 +77,8 @@ class CapabilityCache:
         if measured: record['memory'] = {key: value for key, value in measured.items() if key != 'short'}
         grids = sender.grids or sender.last_grids
         if grids: record['grids'] = grids
+        features = sender.known_features()
+        if features is not None: record['features'] = sorted(features)
         if self.records.get(inbox) == record: return
         self.records[inbox] = record
         self._save()

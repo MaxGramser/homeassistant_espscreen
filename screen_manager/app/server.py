@@ -3052,14 +3052,17 @@ class Manager:
         if needed and not ((self.firmware_version(inbox, screen) or (0,0,0)) >= needed):
             return '.'.join(str(part) for part in needed)
         # A template tile: a screen whose hello names text_card (module text_card, a full-tier build) draws it.
+        # Judged by what the screen said in its last hello, also while it is away (GitHub #452: an offline screen's features
+        # were an empty set, so every template, to-do and call tile asked for a firmware the screen had long had).
         sender = self.page_senders.get(inbox)
-        if sender is not None and getattr(sender, 'features', None) is not None and text_tile.unsupported(layout.get('tiles', []), sender.features):
+        features = sender.known_features() if sender is not None and hasattr(sender, 'known_features') else getattr(sender, 'features', None)
+        if features is not None and text_tile.unsupported(layout.get('tiles', []), features):
             return text_tile.FIRMWARE
         # A to-do tile: a screen whose hello names todo_card (module todo, a full-tier build) draws it.
-        if sender is not None and getattr(sender, 'features', None) is not None and todo_feed.unsupported(layout.get('tiles', []), sender.features):
+        if features is not None and todo_feed.unsupported(layout.get('tiles', []), features):
             return todo_feed.FIRMWARE
         # The Call tile: a screen whose hello names call (module call, a P4 with a microphone and a speaker) draws it.
-        if sender is not None and calls.unsupported(layout.get('tiles', []), getattr(sender, 'features', None)):
+        if calls.unsupported(layout.get('tiles', []), features):
             return calls.FIRMWARE
         return None
 

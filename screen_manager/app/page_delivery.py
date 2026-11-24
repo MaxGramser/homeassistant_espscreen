@@ -349,6 +349,10 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        # The features of its last hello, kept while it is offline (page_capabilities keeps them across restarts of the
+        # app): what a save is judged by while the screen is away, so a template, to-do or call tile is not refused as
+        # "needs newer firmware" only because the screen is off (GitHub #452). None until a hello named them.
+        self.last_features = None
         # What its hardware can do (caps_of): nothing until its hello.
         self.caps = caps_of({})
         # The plugin API the firmware offers and the plugins built into it (docs/PLUGINS.md): None and [] for a firmware
@@ -362,6 +366,11 @@ class Sender:
         # editing while it is offline (page_capabilities keeps them across restarts of the app).
         self.grids = self.last_grids = None
         self.structure, self.appearance = None, None
+
+    def known_features(self):
+        """The features of the screen as last heard: its hello's while it is connected, the last hello's while it is away,
+        None when it never said (then no feature is held against a layout)."""
+        return self.features if self.protocol is not None else self.last_features
 
     def disconnected(self):
         self.session = self.confirmed = self.protocol = None
@@ -414,6 +423,7 @@ class Sender:
             # and none of its own here. climate_range: a thermostat's range on its -/+. The older flags above stay.
             listed = answer.get("features")
             self.features = {name for name in listed if isinstance(name, str)} if isinstance(listed, list) else set()
+            self.last_features = set(self.features)
             # Its hardware's record (firmware hw.h): live video, speaker, microphone, echo cancellation, a camera of its
             # own, the live tiles it runs at once, its memory; from the features alone for an older firmware.
             caps = caps_of(answer)
