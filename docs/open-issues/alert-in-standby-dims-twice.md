@@ -51,3 +51,16 @@ The host render cannot see it: the host has no dim on the glass.
 - `components/smart_display/screen_motion.h`: `show`, `dim`, `room_of` (a rim dimmed twice was fixed there before).
 - `components/smart_display/alert_life.h`: `show` wakes the screen (`glass.wake`), then reveals the card (`glass.reveal`).
 - `components/smart_display/screen_standby.h`: `wake` (the light, the wake overlay, the cards).
+
+## Solved (to be seen on glass)
+
+2026-11-24, the same day. Candidate 1 was it, and what leaves LVGL the whole screen at a wake is the sheet over a
+screen in standby that takes the waking tap: it covers the glass, and hiding it invalidates all of it. `show` revealed
+the overlay and then called `lv_refr_now` for the card, which drew that pending whole screen with the overlay's scrim
+in it; the dim on the glass came on top. `screen_motion::show` now lets LVGL finish what it still has to draw before
+it reveals the overlay, so the page under the dim is always the page as LVGL draws it without one. A lit screen has
+nothing pending and pays nothing. `hide` needed no change: it ends by having LVGL draw the whole screen again.
+
+The proof is glass, since the host has no dim on it: `alert_glass.py <node> <prefix> standby` on a board with the dim
+on the glass, light look, and the pixel of the page behind the card reads as on a lit screen, (98, 105, 106) on the
+Guition 10.1, where it read (49, 56, 57).
