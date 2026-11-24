@@ -1,5 +1,13 @@
 ## Unreleased
 
+- **Save stays in reach on a phone.** In Home Assistant's app on a phone that draws to the screen's edge, the dock with Save could sit under the phone's gesture bar, where a tap does not arrive. The foot of the phone editor now keeps that room free on every touch screen. ([#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
+
+- **Notices with two choices read well on a phone.** "Another editor saved changes" and "the screen's grid changed" put their words on full lines and their keys under them, instead of one word a line.
+
+- **A clearer word when a change of grid cannot be saved.** It now says what to do: save the screen once on the grid it has, then change the grid. ([#355](https://github.com/MaxGramser/homeassistant_espscreen/issues/355))
+
+- **The Claude skill when the app runs on its own.** As with the video integration, an app without Home Assistant beside it no longer offers to install the skill into a folder Home Assistant never reads; the download for claude.ai stays.
+
 - **Saving for a screen that is off.** Saving the tiles of a screen that was off or away said "Install screen firmware 0.58.0 or newer first" for a screen that had a newer firmware long ago. The app now keeps what the screen said it can do while it is away, and the save waits for the screen as it should. ([#452](https://github.com/MaxGramser/homeassistant_espscreen/issues/452))
 
 - **Video in Home Assistant when the app runs on its own.** An app in Docker without Home Assistant beside it no longer writes the video integration into a folder Home Assistant never reads. It offers the integration as a download instead, to unpack in Home Assistant's configuration folder. ([#357](https://github.com/MaxGramser/homeassistant_espscreen/issues/357))
