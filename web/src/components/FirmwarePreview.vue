@@ -410,7 +410,11 @@ function cancel() {
 
 onMounted(async () => {
   try {
-    const loaded = await loadFirmware(await code.codeFor(props.pluginsOf ?? props.screen));
+    // The plugins' code is waited for (stores/plugin-code.ts). A preview that left meanwhile makes no firmware: the
+    // overview's previews do when the page opens on a screen, and each firmware is the whole binary made anew.
+    const plugins = await code.codeFor(props.pluginsOf ?? props.screen);
+    if (disposed) return;
+    const loaded = await loadFirmware(plugins);
     if (disposed) return;
     module = loaded;
     if (!module._preview_init(props.width, props.height, props.dpi ?? 170, props.columns, props.rows)) {
