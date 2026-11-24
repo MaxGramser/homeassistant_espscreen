@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **The app keeps up with a very large Home Assistant.** The app now follows Home Assistant's states the way Home Assistant's own pages do: one compact list when it connects, and after that only what changed, down to the one attribute. A home with thousands of entities, or with a few very large ones (sports scores, network integrations), no longer keeps the app on "Reconnecting to Home Assistant", and Home Assistant no longer sends such an entity whole on every change. A link that stops answering is made again by itself. ([#315](https://github.com/MaxGramser/homeassistant_espscreen/issues/315), [#392](https://github.com/MaxGramser/homeassistant_espscreen/issues/392), [#399](https://github.com/MaxGramser/homeassistant_espscreen/issues/399))
+
+- **Pictures in a Lyrion or Squeezebox library.** The folders and albums of a Lyrion Music Server show their pictures again. ([#456](https://github.com/MaxGramser/homeassistant_espscreen/issues/456))
+
+- **A crash in a troubleshooting report is read again.** The report finds the screen's own build to turn a crash into file names and lines, on every board. ([#463](https://github.com/MaxGramser/homeassistant_espscreen/issues/463))
+
 - **Plugins get the large clock digits.** A plugin can now draw its time in the same large digits Tessera's own flip clock and bedside clock use, up to as large as the page, without bringing a font of its own, so it costs no extra space on the screen. New firmware, plugin API 0.29.
 
 - **An alarm of a plugin can ring louder than the screen.** A plugin may raise the speaker for its sound, as an alarm clock does, and the screen's own volume comes back afterwards, also when a call rings at the same time or the screen restarts in the middle. New firmware, plugin API 0.29.
