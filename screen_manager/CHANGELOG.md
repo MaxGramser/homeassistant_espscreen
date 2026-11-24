@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The temperature line of the week stands under the right day.** With a forecast that starts tomorrow, as Buienradar's does in the evening, the line of today's hours was drawn under tomorrow's column. The week now counts from its own first day. New firmware. ([#280](https://github.com/MaxGramser/homeassistant_espscreen/issues/280))
+
 - **Pictures of other pages no longer push each other out.** A screen with little room for pictures and a large picture on each of two other pages fetched both again and again while it was awake. A picture for a page out of sight now only takes room that is free and never makes another picture go; one that does not fit comes when you open its page. New firmware. ([#415](https://github.com/MaxGramser/homeassistant_espscreen/issues/415))
 
 - **A light group that only dims opens its lamps too.** The card of a light group without colours now has the lamps key beside its power key, as the colour card has, so every lamp of such a group can be reached from the screen. New firmware. ([#458](https://github.com/MaxGramser/homeassistant_espscreen/issues/458))
