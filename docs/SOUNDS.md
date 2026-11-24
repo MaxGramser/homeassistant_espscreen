@@ -28,6 +28,23 @@ Each screen under **Per screen** has a **Test** key: the screen plays its sound 
 real. For a call that is a ring of six seconds at the volume a ring stands at, with "Ringtone test" as the caller and
 nobody on the other end; for a chime and an alert's sound, the sound once. A screen in a call is not rung.
 
+## Louder than the screen
+
+A call's ring, and a plugin's sound that asks for it (plugin API 0.29, `tessera::audio::raise_volume`, as an alarm
+clock does), play louder than the screen's own volume. Each of them lifts the speaker: it plays at the loudest of the
+screen's volume and every lift that is up, and when the last lift comes down the screen's volume comes back. One place
+keeps what that volume was (`volume_lift.h`), so an alarm and a ring that overlap never put back each other's level
+and never leave the speaker loud, in whatever order they stop.
+
+- A lift never makes the screen quieter: where the screen already stands louder, it stays there.
+- A plugin asks on the screen's own scale, 0 to 1 as Home Assistant shows the volume (1 is its 100 %); the ring stands
+  at the top of that scale.
+- Someone who moves the volume while a lift is up (Home Assistant, the settings page) keeps what they chose.
+- Nothing of a lift is stored. The screen's volume is the media player's, which ESPHome keeps and sets at every start,
+  so a restart or an update in the middle of a ring comes back at the screen's own volume. An update takes every lift
+  down before it starts.
+- A muted screen stays muted.
+
 ## A sound of your own
 
 Under any kind, **Add your own sound** opens the audio editor. Drop a sound file on it or choose one (WAV, MP3, M4A,
@@ -88,6 +105,7 @@ needs no feature: the module call reads it since it came. The switch **Call ring
 | The editor | `web/src/components/sounds/SoundPicker.vue` and `AudioEditor.vue` (the audio editor, one for every kind), `web/src/stores/sounds.ts`, `web/src/model/ringtone.ts` |
 | A file kept by its name, the sound that plays once | `components/smart_display/kept_sound.h` |
 | The ring, the chime | `module_call.cpp` (`want_tone`, `ring_tone`), `module_doorbell.cpp` (`chime`) |
+| A sound louder than the screen, and the volume put back | `components/smart_display/volume_lift.h` (`tests/test_volume_lift.cpp`), bound in `packages/features/audio-player.yaml`; `tessera::audio::raise_volume` in `plugin_host.cpp` |
 
 ## A new kind of sound
 

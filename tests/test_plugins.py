@@ -500,6 +500,35 @@ class Everywhere(unittest.TestCase):
             self.assertTrue(core.plugins_enabled(), channel)
 
 
+class Api029(unittest.TestCase):
+    """Plugin API 0.29: the clocks' digits, a sound louder than the screen, and a tile renamed in the editor."""
+
+    def setUp(self):
+        self.host = (FIRMWARE / 'plugin_host.cpp').read_text()
+
+    def test_the_clocks_digits_are_fonts_every_build_has(self):
+        # No font of a plugin's own (docs/PLUGINS.md): the two steps the core's clocks draw with, so a 4 MB board pays nothing.
+        self.assertIn('case Font::DIGITS_LARGE: face = rt::display_font', self.host)
+        self.assertIn('case Font::DIGITS_PAGE: face = rt::bedside_digits();', self.host,
+                      'DIGITS_PAGE is the bedside clock\'s step where a board has one, else the display step, never the 8 px place holder')
+
+    def test_a_raised_volume_goes_through_the_one_set_of_lifts(self):
+        # The call's ring and a plugin's lift share volume_lift::the(), so overlapping lifts never put back each other's level.
+        self.assertIn('volume_lift::the().lift(reinterpret_cast<uintptr_t>(plugin)', self.host)
+        self.assertIn('volume_lift::the().drop(reinterpret_cast<uintptr_t>(plugin))', self.host)
+        update = re.search(r'void before_update\(\) \{(.*?)\n\}', self.host, re.S).group(1)
+        self.assertIn('volume_lift::the().drop_all();', update, 'an update takes every lift down first')
+        call = (FIRMWARE / 'module_call.cpp').read_text()
+        self.assertIn('volume_lift::the().lift(RING_LIFT, ring_top)', call)
+        self.assertIn('volume_lift::the().drop(RING_LIFT)', call)
+        self.assertNotIn('set_volume', call, 'the ring sets the speaker only through the lifts')
+
+    def test_a_tile_renamed_is_made_again(self):
+        render = re.search(r'void render\(rt::Widgets &w, const rt::Tile &t, int width, int height\) \{(.*?)\n\}', self.host, re.S).group(1)
+        self.assertIn('name = hash(t.name)', render)
+        self.assertIn('card->name != name', render, 'a new name makes the card again, so create() gets it')
+
+
 class Boards(unittest.TestCase):
     """A plugin for one board's hardware (P4 panel audio) is offered to that board's screens only, and to a screen
     whose core is too old for its API to none."""

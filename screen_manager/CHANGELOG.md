@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **Plugins get the large clock digits.** A plugin can now draw its time in the same large digits Tessera's own flip clock and bedside clock use, up to as large as the page, without bringing a font of its own, so it costs no extra space on the screen. New firmware, plugin API 0.29.
+
+- **An alarm of a plugin can ring louder than the screen.** A plugin may raise the speaker for its sound, as an alarm clock does, and the screen's own volume comes back afterwards, also when a call rings at the same time or the screen restarts in the middle. New firmware, plugin API 0.29.
+
+- **A plugin tile shows its new name.** Renaming a plugin's tile in the editor now reaches the tile on the screen; before, it kept its old name until the tile was changed in another way. New firmware.
+
 - **The key on the board is the standby key.** A press on the board's own key sends the screen to standby at once, with its screensaver, and a second press wakes it, as Sleep and Wake in Home Assistant do, also with Auto standby off. Until now only the reTerminal D1001's button did this; now every board that can go dark does it with its own key or its BOOT key, except the boards whose BOOT key the display uses (Guition 4848S040, Waveshare 4.3, 4.3C, 5, 7 and 7B, WT32-SC01 Plus), the Waveshare 86 panel in the wall and the M5Stack Tab5. On the Waveshare 3.5 and the Waveshare 4 (revision 4.0) it is the power key. The key also shows up in Home Assistant as Button. New firmware.
 
 - **Clearer tile names on the CYD.** On the small screens (the CYD and the Hosyond 4-inch) the names on the tiles are now drawn in medium instead of bold, so their letters no longer run into each other on the glass. They keep their width, so no name gets cut shorter. New firmware.
