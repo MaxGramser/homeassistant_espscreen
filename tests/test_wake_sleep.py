@@ -123,7 +123,7 @@ class Profiles(unittest.TestCase):
 
     def test_the_clocks_and_the_flag_start_over_with_every_boot(self):
         for name, text in self.profiles.items():
-            for flag in ('sleep_requested', 'sleep_dark', 'last_use_ms'):
+            for flag in ('sleep_requested', 'last_use_ms'):
                 self.assertIn('restore_value: no', item(section(text, 'globals'), 'id', flag),
                               f'{name}: {flag} starts over with every boot, never saved')
             # glass: on a CYD calibrating its touch, press Sleep in Home Assistant: the crosshairs stay lit.

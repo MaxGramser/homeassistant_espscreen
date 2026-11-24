@@ -120,8 +120,9 @@ and a cover only its three keys: no bar, no spinner.
 
 The screensaver shows at **Standby brightness**, the level standby always dimmed to, and during the night hours at
 the night brightness. Raise Standby brightness for a cover that reads from across the room. With a level of 0 the
-screen goes dark and shows no screensaver. Sleep pressed in Home Assistant keeps the screen at its standby level
-without a screensaver.
+screen goes dark and shows no screensaver. Every standby shows it the same way: the standby time running out, **Sleep**
+in Home Assistant, the board's key and the home button held (firmware 0.64.0+; before that, Sleep showed the dimmed
+tiles without one).
 
 When the screensaver has nothing to show (no music playing and no camera or clock chosen), the dimmed tiles stay on the
 glass. Their camera pictures and album covers keep refreshing then, as they do with the screen in use, as long as the

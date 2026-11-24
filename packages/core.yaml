@@ -277,7 +277,7 @@ esphome:
           runtime_tiles::hold_home = []() {
             if (!settings_screen::can_standby || id(display_dimmed) || id(calibration_active) || id(alert_active)) return false;
             if (runtime_tiles::doorbell_holds()) return false;
-            id(standby_by_hand).execute(true, std::string("the home key held"));
+            id(standby_by_hand).execute(std::string("the home key held"));
             return true;
           };
           // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
@@ -954,12 +954,6 @@ globals:
   # Standby by hand (Sleep from Home Assistant 0.2.45+; the board's key and the home key held 0.64.0+, the script
   # standby_by_hand): standby that also holds with Auto standby off, until a tap, Wake or an alert wakes the screen.
   - id: sleep_requested
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-  # Home Assistant's Sleep alone: its standby shows no screensaver (the board's key and the home key held do).
-  - id: sleep_dark
     type: bool
     restore_value: no
     initial_value: 'false'
@@ -2569,8 +2563,8 @@ script:
           if (id(display_dimmed)) { lv_obj_clear_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(id(dim_wake_overlay)); }
           else lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
           // The screensaver (firmware 0.29.0+) in standby, at the standby level: it lies over everything on the top layer
-          // without a tap of its own, so the overlay takes the touch. Sleep pressed in Home Assistant stays without it.
-          runtime_tiles::saver_sync(id(display_dimmed) && !id(sleep_dark) && level > 0);
+          // without a tap of its own, so the overlay takes the touch. Every standby has it, a Sleep too (firmware 0.64.0+).
+          runtime_tiles::saver_sync(id(display_dimmed) && level > 0);
           // The setting numbers and times only publish a changed value (HA keeps identical states anyway); the
           // switches publish their own changes. An open settings page shows a change from Home Assistant too.
           // A number without a state publishes too: a night brightness of 0 equals the number's initial state and
@@ -2693,16 +2687,14 @@ script:
           else:
             - script.execute:
                 id: standby_by_hand
-                saver: true
                 source: "the board's key"
 
-  # Standby by hand (firmware 0.64.0+): Home Assistant's Sleep (without a screensaver), the board's key and the home key
-  # held (with one). The one way a person sends the screen to standby: it holds with Auto standby off too, until a tap,
-  # Wake or an alert, and since the person is still there, a wake on motion waits until the room went quiet
+  # Standby by hand (firmware 0.64.0+): Home Assistant's Sleep, the board's key and the home key held. The one way a
+  # person sends the screen to standby, with its screensaver as every standby: it holds with Auto standby off too, until
+  # a tap, Wake or an alert, and since the person is still there, a wake on motion waits until the room went quiet
   # (hand_standby.h). An alert that is up closes. Not while the touch calibration runs.
   - id: standby_by_hand
     parameters:
-      saver: bool
       source: string
     then:
       - if:
@@ -2714,7 +2706,6 @@ script:
             - lambda: |-
                 ESP_LOGI("standby", "Standby from %s", source.c_str());
                 id(sleep_requested) = true;
-                id(sleep_dark) = !saver;
                 hand_standby::begin(millis());
             - script.execute:
                 id: alert_dismiss
@@ -2960,7 +2951,6 @@ button:
     on_press:
       - script.execute:
           id: standby_by_hand
-          saver: false
           source: "Home Assistant's Sleep"
 
 number:

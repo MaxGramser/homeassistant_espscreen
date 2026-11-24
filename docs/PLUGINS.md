@@ -555,7 +555,7 @@ shows it over the whole glass while Auto standby dims it. A plugin adds to that 
   (`domains`, `attributes`, `fields`, as a tile of an entity), shown while its manifest's `when` holds: `always`,
   `data` (its fetch has an answer) or `{state: [...]}` (its entity is in one of those states).
 
-The core decides when a saver shows: standby at a level above 0, without Sleep from Home Assistant, the cards closed,
+The core decides when a saver shows: standby at a level above 0 (a Sleep from Home Assistant too, firmware 0.64.0+), the cards closed,
 no alert. It goes on a wake, an alert, an update (`before_update` first), a level of 0, a new layout or another word.
 
 **A backdrop.** A face of the music or the photos whose manifest says `backdrop: true` has the step's own picture under
