@@ -171,7 +171,9 @@ Widen the key when something else starts to change the picture, and only then.
 `manual`). It does not run the draft. It runs a layout made of the asked tiles alone, each at a place of its own on
 pages of the screen's own grid. So the add-on shapes messages only for those tiles, a card is drawn in the screen's own
 look whatever section it stands in on its page (the editor's own filter for a contrast section then applies once), and
-there is no second firmware for the library. It lives while a face is asked for and a minute after.
+there is no second firmware for the library. It lives while a face is asked for and a minute after, on the glass it
+was asked for: on another screen, or in another look or language, it goes at once, so a screen whose pages ask for no
+face runs no firmware behind them.
 
 **What it is loaded with, and when it stops.** What a screen runs is read from the add-on's list of installed plugins,
 by the screen's id (`nodeOf` in `model/plugins.ts`, the key every part of the editor reads that list by). `codeFor`

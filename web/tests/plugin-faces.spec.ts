@@ -450,6 +450,32 @@ describe("the firmware behind the editor", () => {
     expect(wrapper.find("i").text()).toBe("drawn 200x100");
   });
 
+  it("ends at once on another screen that asks for no face, and comes back with its own screen", async () => {
+    wrapper = open();
+    await flushPromises();
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("drawn 200x100");
+    // The attic runs no plugin: its page asks for nothing.
+    const inv = useInventoryStore();
+    inv.inventory = { ...inv.inventory, screens: [...inv.inventory.screens, { ...inv.inventory.screens[0], id: "text.attic", node: "attic", name: "Attic" }] } as any;
+    const made = vi.mocked(createModule).mock.calls.length;
+    vi.mocked(send).mockClear();
+    useScreenStore().selected = "text.attic";
+    await flushPromises();
+    expect(wrapper.find("i").text()).toBe("placeholder");
+    expect(wrapper.find(".glass-faces").exists()).toBe(false);
+    // No firmware for the attic, and nothing asked of the add-on for it, for as long as its page is open.
+    await settle(30000);
+    expect(vi.mocked(createModule)).toHaveBeenCalledTimes(made);
+    expect(vi.mocked(send)).not.toHaveBeenCalled();
+    // Back on the hall the firmware is made for it again and the card drawn.
+    useScreenStore().selected = "text.hall";
+    await flushPromises();
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("drawn 200x100");
+    expect(wrapper.find(".glass-faces").exists()).toBe(true);
+  });
+
   it("does not give up when the add-on refuses one refresh", async () => {
     // The app restarted under an open page: a write is refused until the page has the app's new token.
     vi.mocked(send).mockRejectedValueOnce(new Error("Forbidden"));

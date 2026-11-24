@@ -97,11 +97,14 @@ const pages = computed(() => [...new Set(placed.value.map((item) => pageOf(item.
 
 // ---- The firmware ----
 // It lives while a face is asked for, and a minute after the last one was given back: a library scrolled past its
-// plugin tiles and back does not start a firmware anew each time.
+// plugin tiles and back does not start a firmware anew each time. That minute is the glass's own (`kept`, the glass a
+// face was last asked for on): on another screen, in another look or language, the firmware of the glass before goes
+// at once, so a screen that asks for no face runs nothing, not for a minute either.
 const asked = computed(() => Boolean(glass.value && live.value && faces.asks.size));
-const alive = ref(false);
-const rest = useTimeoutFn(() => { alive.value = false; }, 60000, { immediate: false });
-watch(asked, (now) => { if (now) { rest.stop(); alive.value = true; } else rest.start(); }, { immediate: true });
+const kept = ref("");
+const rest = useTimeoutFn(() => { kept.value = ""; }, 60000, { immediate: false });
+watch(() => (asked.value ? glass.value : ""), (now) => { if (now) { rest.stop(); kept.value = now; } else rest.start(); }, { immediate: true });
+const alive = computed(() => Boolean(glass.value) && kept.value === glass.value);
 // A firmware that cannot go on (it did not load, as in a browser that cannot run it, or it threw in a frame) ends it
 // for this glass and this code: the cards keep the editor's own drawing. A refresh that failed does not: the add-on
 // restarting or refusing one write is asked again by the preview itself, and nothing is copied until it answers.
