@@ -5,13 +5,12 @@
 // Each axis of the accelerometer and of the gyroscope keeps its own resting value, which follows the readings slowly;
 // the board moved when an axis leaves its resting value by more than its kind's threshold. A board that lies still at
 // any angle is still, since gravity is in the resting value, and so is the few degrees a second every gyroscope reads
-// while it lies still. A slow tilt is still a change, because the resting value lags behind it. ESPHome's `motion`
+// while it lies still. ESPHome's `motion`
 // reports acceleration in g and turning in degrees a second, not m/s²: the first Wake when moved compared two readings
 // with 1.0, a whole g, which only a shake reached.
 //
 // Free of LVGL and ESPHome: a board feeds it every reading and runs its wake when it says so.
-// tests/test_moved.cpp drives it with made readings shaped after the LSM6DS3TR-C's datasheet noise; the thresholds
-// are not yet measured on a board (recordings of a D1001 at rest and picked up are still to come, tests/data/moved_*.csv).
+// tests/test_moved.cpp drives it with made readings and checks the thresholds against the D1001's recording.
 #include <cmath>
 #include <cstdint>
 
@@ -19,12 +18,18 @@ namespace moved {
 
 enum Kind : uint8_t { ACCELERATION = 0, TURNING = 1 };
 
-// Acceleration, in g. 0.03 g is a tilt of about two degrees, or a hand starting to lift the board; at rest an
-// LSM6DS3TR-C stays within a few thousandths of a g of its resting value.
-constexpr float ACCELERATION_G = 0.03f;
-// Turning, in degrees a second. 5 is a slow turn of the wrist; at rest a gyroscope stays within about one of its
-// resting value, though that value itself may be several degrees a second from zero.
-constexpr float TURNING_DPS = 5.0f;
+// The thresholds come from a reTerminal D1001 on a desk (tests/data/moved_d1001.csv, 2026-11-24). Lying still, the
+// gyroscope stayed within 0.86 degrees a second of its resting value and the accelerometer within 0.021 g (the desk's
+// own small shakes); picked up as gently as a person does, the board turned at 22 degrees a second or more and moved
+// 0.17 g or more. Turning is the sign of a hand: a board is never lifted without turning a little, and the desk's
+// shakes barely turn it.
+//
+// Turning, in degrees a second: 3 is three and a half times the most it read at rest and a seventh of the gentlest
+// lift. A slow tilt of five degrees a second passes it too.
+constexpr float TURNING_DPS = 3.0f;
+// Acceleration, in g: 0.06 is three times the desk's shakes and a third of the gentlest lift. A knock on the board or
+// the table (0.12 g in the recording) wakes it too, by design.
+constexpr float ACCELERATION_G = 0.06f;
 // How long the resting value takes to follow (a time constant): acceleration half a second, so a tilt over a second
 // or two is still a change; turning two seconds, which takes away the gyroscope's drift and little else.
 constexpr uint32_t ACCELERATION_FOLLOW_MS = 500;

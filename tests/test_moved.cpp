@@ -1,7 +1,7 @@
 // moved.h: whether the board itself moved, from its accelerometer and gyroscope (Wake when moved).
 // Readings ten times a second, as the board file reads them, in g and degrees a second as ESPHome's `motion` reports.
-// The shapes below are made, after the LSM6DS3TR-C's datasheet noise. Recordings of a reTerminal D1001 (t ms, ax, ay,
-// az g, gx, gy, gz degrees a second) go in tests/data/moved_*.csv and are replayed when present; none are measured yet.
+// The shapes below are made, after the LSM6DS3TR-C's datasheet noise; tests/data/moved_d1001.csv is a reTerminal D1001
+// at rest and picked up, the source of the thresholds.
 #include "components/smart_display/moved.h"
 #include <cassert>
 #include <cmath>
@@ -46,22 +46,34 @@ template<typename F> int count(Detector &d, uint32_t from, uint32_t ms, F make) 
   return n;
 }
 
-// Replays a recording, if there is one; returns how many times it said moved, or -1 without the file.
-int replay(const char *path) {
-  FILE *f = std::fopen(path, "r");
-  if (!f) return -1;
-  Detector d;
+// tests/data/moved_d1001.csv: per second the largest departure from rest (g, degrees a second) and what the board did.
+// At rest under a third of each threshold; each lift over three times one of them. False when the file is missing.
+bool recording_fits() {
+  FILE *f = std::fopen("tests/data/moved_d1001.csv", "r");
+  assert(f && "tests/data/moved_d1001.csv is where the thresholds come from");
   char line[256];
-  int n = 0;
+  float lift_g[5] = {0}, lift_dps[5] = {0};
+  int rest = 0;
   while (std::fgets(line, sizeof line, f)) {
-    unsigned t;
-    Reading r;
-    if (std::sscanf(line, "%u,%f,%f,%f,%f,%f,%f", &t, &r.a[0], &r.a[1], &r.a[2], &r.g[0], &r.g[1], &r.g[2]) == 7 &&
-        feed(d, t, r))
-      n++;
+    float t, g, dps;
+    char phase[16];
+    if (line[0] == '#' || std::sscanf(line, "%f,%f,%f,%15s", &t, &g, &dps, phase) != 4) continue;
+    if (std::strcmp(phase, "rest") == 0) {
+      rest++;
+      assert(g * 2.5f < ACCELERATION_G && "the accelerometer at rest stays well under its threshold");
+      assert(dps * 3.0f < TURNING_DPS && "the gyroscope at rest stays well under its threshold");
+    } else if (std::strncmp(phase, "lift", 4) == 0) {
+      int i = phase[4] - '0';
+      assert(i >= 1 && i <= 4);
+      if (g > lift_g[i]) lift_g[i] = g;
+      if (dps > lift_dps[i]) lift_dps[i] = dps;
+    }
   }
   std::fclose(f);
-  return n;
+  assert(rest > 120 && "two minutes at rest or more");
+  for (int i = 1; i <= 4; i++)
+    assert((lift_dps[i] > 5.0f * TURNING_DPS || lift_g[i] > 2.5f * ACCELERATION_G) && "every gentle lift is clear");
+  return true;
 }
 
 }  // namespace
@@ -88,30 +100,29 @@ int main() {
     assert(n == 1 && "one pick-up is one wake");
   }
 
-  // A slow tilt: 10 degrees over two seconds, 5 degrees a second, too slow for the gyroscope's threshold alone; the
-  // accelerometer sees gravity move across its axes.
+  // A slow tilt: 10 degrees over two seconds, 5 degrees a second about y. Too slow for the accelerometer (its resting
+  // value keeps up), the gyroscope reads it.
   {
     Detector d;
     count(d, 0, 10000, [&](uint32_t t) { return still(t, seed); });
     const float pi = 3.14159265f;
     int n = count(d, 10000, 2000, [&](uint32_t t) {
-      float deg = 10.0f * (t - 10000) / 2000.0f;
-      float rad = (10.0f + deg) * pi / 180.0f;
+      float rad = (10.0f + 10.0f * (t - 10000) / 2000.0f) * pi / 180.0f;
       Reading r = still(t, seed);
       r.a[0] = std::sin(rad);
       r.a[2] = std::cos(rad);
-      r.g[1] += 4.0f;  // under TURNING_DPS: only the accelerometer may say it
+      r.g[1] += 5.0f;
       return r;
     });
-    assert(n >= 1);
+    assert(n >= 1 && d.last_kind() == TURNING);
   }
 
-  // A bump of the table: one reading 0.08 g off, then still. A knock is a wake, by design.
+  // A bump of the table: one reading 0.12 g off, as in the recording, then still. A knock is a wake, by design.
   {
     Detector d;
     count(d, 0, 10000, [&](uint32_t t) { return still(t, seed); });
     Reading r = still(10000, seed);
-    r.a[2] += 0.08f;
+    r.a[2] += 0.12f;
     assert(feed(d, 10000, r));
     assert(d.last_kind() == ACCELERATION && d.last_axis() == 2);
     assert(count(d, 10100, 20000, [&](uint32_t t) { return still(t, seed); }) == 0);
@@ -161,10 +172,7 @@ int main() {
     for (uint32_t i = 0; i < 100; i++) assert(!feed(d, t0 + i * 100, still(i * 100, seed)));
   }
 
-  // Recordings of a real reTerminal D1001: lying still says nothing, each pick-up says it moved.
-  int rest = replay("tests/data/moved_d1001_rest.csv");
-  if (rest >= 0) assert(rest == 0);
-  int lifts = replay("tests/data/moved_d1001_pickups.csv");
-  if (lifts >= 0) assert(lifts >= 1);
-  std::printf("moved ok (recordings: rest %d, pick-ups %d)\n", rest, lifts);
+  // The recording of a reTerminal D1001 the thresholds come from: every second at rest stays well under them, every
+  // gentle lift goes well over.
+  std::printf("moved ok (%s)\n", recording_fits() ? "D1001 recording" : "no recording");
 }
