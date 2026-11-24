@@ -1062,7 +1062,8 @@ font:
     bpp: 4
     glyphs: ['-','.',',','°','%','0','1','2','3','4','5','6','7','8','9']
 
-  - file: "${FONT_DIR}/Roboto-700.ttf"
+  # A tile's name: bold, or medium on the compact look (TILE_NAME_FONT_FILE), the same glyphs either way.
+  - file: "${FONT_DIR}/${TILE_NAME_FONT_FILE}"
     id: label
     size: ${FONT_LABEL_SIZE}
     bpp: 4
