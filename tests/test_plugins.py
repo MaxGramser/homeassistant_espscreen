@@ -523,10 +523,22 @@ class Api029(unittest.TestCase):
         self.assertIn('volume_lift::the().drop(RING_LIFT)', call)
         self.assertNotIn('set_volume', call, 'the ring sets the speaker only through the lifts')
 
-    def test_a_tile_renamed_is_made_again(self):
+    def test_a_card_is_made_again_when_anything_it_was_made_from_changes(self):
+        # One value, made_from(), holds everything of the tile that create() reads; render() compares only that. So a
+        # new field of TileContext cannot be forgotten in a list of compared fields, as the name was until 0.29.
         render = re.search(r'void render\(rt::Widgets &w, const rt::Tile &t, int width, int height\) \{(.*?)\n\}', self.host, re.S).group(1)
-        self.assertIn('name = hash(t.name)', render)
-        self.assertIn('card->name != name', render, 'a new name makes the card again, so create() gets it')
+        made = re.search(r'static size_t made_from\([^)]*\) \{(.*?)\n\}', self.host, re.S).group(1)
+        self.assertIn('const size_t made = made_from(w, t, width, height);', render)
+        self.assertIn('if (card && card->made != made)', render, 'render() compares one value, nothing beside it')
+        context = re.search(r'tessera::TileContext context\{(.*?)\};', render, re.S).group(1)
+        read = set(re.findall(r'\b(?:t|extra)\.(\w+)', context)) | set(re.findall(r'\bw\.(index)\b', context))
+        read |= {'plugin_options'} if 'doc.as<JsonObjectConst>()' in context else set()   # the options, parsed into doc
+        read |= {'width', 'height'} & set(re.findall(r'\b(width|height)\b', context))
+        self.assertGreaterEqual(read, {'column_span', 'row_span', 'name', 'plugin_entity', 'index', 'plugin_options', 'full', 'width', 'height'})
+        for field in sorted(read):
+            self.assertRegex(made, r'\b' + field + r'\b', f'TileContext reads {field} of the tile: made_from() must hold it, '
+                             'or a change of it never reaches the plugin')
+        self.assertIn('hash(t.entity)', made, 'another tile type makes another card')
 
 
 class Boards(unittest.TestCase):

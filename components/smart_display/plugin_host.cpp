@@ -582,11 +582,8 @@ struct Place {
 };
 struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (roomy.h)
   std::unique_ptr<tessera::Tile> tile;
-  std::string entity;          // what the card was made for: the tile type,
-  size_t index = SIZE_MAX;     // the tile of the layout,
-  int width = 0, height = 0;   // its room,
-  size_t options = 0;          // its options (a hash),
-  size_t name = 0;             // and its name (a hash, 0.29: a tile renamed in the editor is made again with the new one)
+  size_t made = 0;             // what it was made from (made_from): a tile that differs in any of it makes a new card
+  size_t index = SIZE_MAX;     // the tile of the layout, for marking it to be drawn again
   size_t state = 0;            // the data it was last given (a hash), 0 for none yet
   bool dark = false;           // the look it last coloured itself for
   theme::Face face;            // the colour the tile gave its card (0.26): a swatch, an instrument's face, or none
@@ -595,6 +592,20 @@ struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (
 
 // A text's hash, never 0 (0 is "nothing yet"), for a string of any allocator (roomy.h).
 template <class S> static size_t hash(const S &text) { return std::hash<std::string_view>{}(std::string_view(text.data(), text.size())) | 1; }
+
+// What a card is made from, as one number: everything of its tile that create() reads (the tile type, and every field
+// of TileContext but its parent). A tile that differs in any of it gets a new card, so a rename, another option or
+// another size reaches the plugin. A new field of TileContext is read here too, or tests/test_plugins.py fails: a list
+// of compared fields beside the context forgot the name until 0.29.
+static size_t made_from(const rt::Widgets &w, const rt::Tile &t, int width, int height) {
+  const auto &extra = t.extra();
+  size_t made = hash(t.entity);
+  for (size_t part : {static_cast<size_t>(width), static_cast<size_t>(height), static_cast<size_t>(t.column_span()),
+                      static_cast<size_t>(t.row_span()), hash(t.name), hash(extra.plugin_entity), w.index,
+                      hash(extra.plugin_options), static_cast<size_t>(t.full)})
+    made = made * 1000003u ^ part;
+  return made | 1;
+}
 
 // The card whose tile is in a call of the host (create, on_state, on_tick, on_theme, on_tap): a place the tile makes
 // in that call is this card's. Nothing else of a tile's runs (a plugin's own moments are the plugin's, not a tile's).
@@ -645,10 +656,9 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
   } in_render;
   rt::begin_extra(w, "plugin", width, height);
   const auto &extra = t.extra();
-  const size_t options = (hash(extra.plugin_options) * 31u ^ hash(extra.plugin_entity)) | 1, name = hash(t.name);
+  const size_t made = made_from(w, t, width, height);
   Card *card = w.plugin;
-  if (card && (card->entity != t.entity || card->index != w.index || card->width != width || card->height != height ||
-               card->options != options || card->name != name)) {
+  if (card && card->made != made) {
     release(w);
     lv_obj_clean(w.extra);
     card = nullptr;
@@ -659,12 +669,8 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
     if (!tile) return;
     card = w.plugin = new Card();
     card->tile = std::move(tile);
-    card->entity = t.entity;
+    card->made = made;
     card->index = w.index;
-    card->width = width;
-    card->height = height;
-    card->options = options;
-    card->name = name;
     card->dark = theme::dark;
     JsonDocument doc(&json_memory);
     if (extra.plugin_options.empty() || deserializeJson(doc, extra.plugin_options.data(), extra.plugin_options.size()))
