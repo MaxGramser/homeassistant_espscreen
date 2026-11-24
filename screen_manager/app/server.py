@@ -6097,6 +6097,11 @@ def create_app(manager, development=False):
         only on request. Home Assistant loads it at its next start (restart_for_video)."""
         return web.json_response({**screen_video.install(manager.videos.directory), **{
             k: v for k, v in manager.video_status().items() if k in ('loaded', 'screens', 'entries')}})
+    async def download_video(request):
+        """Settings, Video in Home Assistant, Download: the integration as a zip for a Home Assistant this app cannot write
+        to (an app in Docker on its own, GitHub #357); writes nothing."""
+        return web.Response(body=screen_video.archive(), content_type='application/zip',
+                            headers={'Content-Disposition': f'attachment; filename="{screen_video.DOMAIN}.zip"'})
     async def restart_for_video(request):
         """Settings, Video in Home Assistant, Restart Home Assistant: as its own Restart does (homeassistant.restart,
         which checks the configuration first and refuses to restart a broken one)."""
@@ -6798,6 +6803,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/claude-skill.zip', download_claude_skill)
     app.router.add_post('/api/video', install_video)
     app.router.add_post('/api/video/restart', restart_for_video)
+    app.router.add_get('/api/video.zip', download_video)
     app.router.add_get('/api/events', events)
     app.router.add_put('/api/screens/{inbox}', save)
     app.router.add_post('/api/screens/{inbox}/import', import_document)

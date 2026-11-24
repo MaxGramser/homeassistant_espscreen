@@ -293,7 +293,14 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
       <section v-if="inv.pluginsEnabled" class="card" id="video">
         <h2>{{ t("editor.settings.video.title") }}</h2>
         <p>{{ t("editor.settings.video.text") }}</p>
-        <div class="actions">
+        <!-- An app that cannot reach Home Assistant's configuration (in Docker on its own, GitHub #357): the zip to unpack there. -->
+        <template v-if="video && video.home_assistant === false">
+          <p id="video-elsewhere">{{ t("editor.settings.video.no_home_assistant") }}</p>
+          <div class="actions">
+            <a class="btn primary" id="video-download" href="api/video.zip" download="tessera_video.zip">{{ t("editor.settings.video.download") }}</a>
+          </div>
+        </template>
+        <div v-else class="actions">
           <button type="button" id="video-install" class="btn" :class="video?.installed && video.current ? 'quiet' : 'primary'" :disabled="!video || videoBusy" @click="installVideo">
             {{ !video || !video.installed ? t("editor.settings.video.install") : video.current ? t("editor.settings.video.install_again") : t("editor.settings.video.update") }}
           </button>
@@ -305,7 +312,7 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
           </span>
         </div>
         <small id="video-screens">{{ video?.screens.length ? t("editor.settings.video.screens", { names: video.screens.join(", ") }) : t("editor.settings.video.no_screens") }}</small>
-        <i18n-t keypath="editor.settings.video.writes" tag="small" scope="global">
+        <i18n-t v-if="video?.home_assistant !== false" keypath="editor.settings.video.writes" tag="small" scope="global">
           <template #path><code id="video-path">{{ video?.path || "/homeassistant/custom_components/tessera_video" }}</code></template>
         </i18n-t>
       </section>

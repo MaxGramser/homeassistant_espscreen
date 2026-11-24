@@ -464,6 +464,9 @@ export type LineBuild = {
 export type VideoIntegration = {
   path: string; installed: boolean; current: boolean; version: string; loaded: string | null;
   screens: string[]; entries: number; restart?: boolean;
+  // Whether the app can write into a Home Assistant configuration (GitHub #357): false for an app in Docker on its own,
+  // which offers the integration as a zip to unpack there instead. Absent from an older app: it could.
+  home_assistant?: boolean;
 };
 
 export type Inventory = {

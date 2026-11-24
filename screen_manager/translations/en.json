@@ -1021,7 +1021,8 @@
       },
       "video": {
         "not_written": "Tessera video could not be written to {folder}: {reason}.",
-        "not_installed": "Install Tessera video first."
+        "not_installed": "Install Tessera video first.",
+        "no_home_assistant": "Tessera video cannot be installed from here: {folder} is not Home Assistant's configuration folder. Download the integration and unpack it there."
       },
       "report": {
         "depth": "Choose the basic or the full report.",
@@ -3068,7 +3069,9 @@
         "installed": "Tessera video installed. Restart Home Assistant once to load it.",
         "screens": "Screens with video: {names}",
         "no_screens": "No screen has video yet: add Screen camera to a P4 screen with a camera, with its part Video.",
-        "writes": "Writes the folder {path}; installing again replaces it. Tessera adds each screen with video by itself."
+        "writes": "Writes the folder {path}; installing again replaces it. Tessera adds each screen with video by itself.",
+        "no_home_assistant": "This app runs apart from Home Assistant, so it cannot put the integration in place itself. Download it, unpack the zip in Home Assistant's configuration folder (where configuration.yaml is) and restart Home Assistant.",
+        "download": "Download the integration"
       },
       "claude": {
         "installed": "Skill installed. Claude Code picks it up right away.",

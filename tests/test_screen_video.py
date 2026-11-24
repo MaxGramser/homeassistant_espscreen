@@ -151,10 +151,16 @@ RECORDS = {
 }
 
 
+def home_assistant(folder):
+    """A folder that is a Home Assistant configuration, as /homeassistant is under the Supervisor."""
+    Path(folder, 'configuration.yaml').write_text('default_config:\n')
+    return folder
+
+
 class Install(unittest.TestCase):
     def test_install_writes_the_integration_and_status_compares_it(self):
         with tempfile.TemporaryDirectory() as folder:
-            target = screen_video.target(folder)
+            target = screen_video.target(home_assistant(folder))
             self.assertEqual(target, Path(folder) / 'custom_components' / 'tessera_video')
             self.assertEqual(screen_video.status(target)['installed'], False)
             done = screen_video.install(target)
@@ -165,14 +171,33 @@ class Install(unittest.TestCase):
             self.assertFalse(any('__pycache__' in str(p) for p in target.rglob('*')))
             (target / 'camera.py').write_text('# an older copy\n')
             self.assertEqual(screen_video.status(target), {'installed': True, 'current': False, 'path': str(target),
-                                                           'version': screen_video.version()})
+                                                           'version': screen_video.version(), 'home_assistant': True})
 
     def test_a_folder_that_cannot_be_written_says_so(self):
         with tempfile.TemporaryDirectory() as folder:
+            home_assistant(folder)
             blocked = Path(folder) / 'custom_components'
             blocked.write_text('a file where the folder goes')
             with self.assertRaises(ValueError):
                 screen_video.install(blocked / 'tessera_video')
+
+    def test_an_app_without_home_assistant_writes_nothing_and_offers_the_zip(self):
+        # GitHub #357: an app in Docker on its own has a /homeassistant that Home Assistant never reads.
+        with tempfile.TemporaryDirectory() as folder:
+            target = screen_video.target(folder)
+            self.assertFalse(screen_video.status(target)['home_assistant'])
+            with self.assertRaises(ValueError):
+                screen_video.install(target)
+            self.assertFalse(target.exists(), 'nothing written')
+            Path(folder, '.storage').mkdir()
+            self.assertTrue(screen_video.status(target)['home_assistant'], 'a configuration with .storage only counts too')
+        # The zip unpacks in Home Assistant's configuration folder, every file of the integration, nothing else.
+        import io, zipfile
+        with zipfile.ZipFile(io.BytesIO(screen_video.archive())) as bundle:
+            names = set(bundle.namelist())
+            self.assertEqual(names, {f'custom_components/tessera_video/{name}' for name in screen_video.files()})
+            self.assertEqual(bundle.read('custom_components/tessera_video/manifest.json'),
+                             (INTEGRATION / 'manifest.json').read_bytes())
 
     def test_manifest_and_translations(self):
         manifest = json.loads((INTEGRATION / 'manifest.json').read_text())
@@ -234,7 +259,7 @@ class Screens(unittest.TestCase):
 
 class Sync(unittest.TestCase):
     def run_sync(self, ha, folder, installed=True):
-        target = screen_video.target(folder)
+        target = screen_video.target(home_assistant(folder))
         if installed:
             screen_video.install(target)
         videos = screen_video.Videos(target)
@@ -348,7 +373,8 @@ class Endpoint(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             ha = HA()
             manager = Manager(ha, Path(tmp) / 'data' / 'screens.json')
-            manager.videos = screen_video.Videos(screen_video.target(Path(tmp) / 'config'))
+            (Path(tmp) / 'config').mkdir()
+            manager.videos = screen_video.Videos(screen_video.target(home_assistant(Path(tmp) / 'config')))
             async with TestClient(TestServer(create_app(manager, True))) as client:
                 full = await (await client.get('/api/inventory')).json()
                 self.assertEqual(full['video'], {**screen_video.status(manager.videos.directory), 'loaded': None,
@@ -371,6 +397,11 @@ class Endpoint(unittest.IsolatedAsyncioTestCase):
                     restarted = await client.post('/api/video/restart', headers=csrf)
                     self.assertEqual(await restarted.json(), {'restarting': True})
                 self.assertEqual(ha.calls, [('homeassistant', 'restart', {})] * 2)
+                # The zip for a Home Assistant the app cannot write to (GitHub #357): a download, nothing written.
+                download = await client.get('/api/video.zip')
+                self.assertEqual(download.status, 200)
+                self.assertEqual(download.headers['Content-Type'], 'application/zip')
+                self.assertEqual(await download.read(), screen_video.archive())
 
 
 class Loops(unittest.TestCase):

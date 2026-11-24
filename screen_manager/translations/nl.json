@@ -1021,7 +1021,8 @@
       },
       "video": {
         "not_written": "Tessera video kon niet naar {folder} worden geschreven: {reason}.",
-        "not_installed": "Installeer eerst Tessera video."
+        "not_installed": "Installeer eerst Tessera video.",
+        "no_home_assistant": "Tessera video kan hiervandaan niet worden geïnstalleerd: {folder} is niet de configuratiemap van Home Assistant. Download de integratie en pak hem daar uit."
       },
       "report": {
         "depth": "Kies het basisrapport of het volledige rapport.",
@@ -3068,7 +3069,9 @@
         "installed": "Tessera video geïnstalleerd. Herstart Home Assistant één keer om hem te laden.",
         "screens": "Schermen met video: {names}",
         "no_screens": "Nog geen scherm heeft video: voeg Schermcamera toe aan een P4-scherm met camera, met het onderdeel Video.",
-        "writes": "Schrijft de map {path}; opnieuw installeren vervangt hem. Tessera voegt elk scherm met video zelf toe."
+        "writes": "Schrijft de map {path}; opnieuw installeren vervangt hem. Tessera voegt elk scherm met video zelf toe.",
+        "no_home_assistant": "Deze app draait los van Home Assistant en kan de integratie dus niet zelf op zijn plek zetten. Download hem, pak de zip uit in de configuratiemap van Home Assistant (waar configuration.yaml staat) en herstart Home Assistant.",
+        "download": "Integratie downloaden"
       },
       "claude": {
         "installed": "Skill geïnstalleerd. Claude Code vindt hem meteen.",

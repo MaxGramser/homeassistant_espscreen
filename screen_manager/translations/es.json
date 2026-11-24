@@ -1021,7 +1021,8 @@
       },
       "video": {
         "not_written": "No se pudo escribir Tessera video en {folder}: {reason}.",
-        "not_installed": "Instala primero Tessera video."
+        "not_installed": "Instala primero Tessera video.",
+        "no_home_assistant": "Tessera vídeo no se puede instalar desde aquí: {folder} no es la carpeta de configuración de Home Assistant. Descarga la integración y descomprímela allí."
       },
       "report": {
         "depth": "Elige el informe básico o el completo.",
@@ -3559,7 +3560,9 @@
         "installed": "Tessera video instalada. Reinicia Home Assistant una vez para cargarla.",
         "screens": "Pantallas con vídeo: {names}",
         "no_screens": "Ninguna pantalla tiene vídeo aún: añade Cámara de la pantalla, con su parte Vídeo, a una pantalla P4 con cámara.",
-        "writes": "Escribe la carpeta {path}; instalar de nuevo la reemplaza. Tessera añade cada pantalla con vídeo por sí mismo."
+        "writes": "Escribe la carpeta {path}; instalar de nuevo la reemplaza. Tessera añade cada pantalla con vídeo por sí mismo.",
+        "no_home_assistant": "Esta app funciona aparte de Home Assistant, así que no puede colocar la integración por sí misma. Descárgala, descomprime el zip en la carpeta de configuración de Home Assistant (donde está configuration.yaml) y reinicia Home Assistant.",
+        "download": "Descargar la integración"
       },
       "claude": {
         "installed": "Habilidad instalada. Claude Code la detecta al momento.",

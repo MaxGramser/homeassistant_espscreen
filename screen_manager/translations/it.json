@@ -1021,7 +1021,8 @@
       },
       "video": {
         "not_written": "Impossibile scrivere Tessera video in {folder}: {reason}.",
-        "not_installed": "Installa prima Tessera video."
+        "not_installed": "Installa prima Tessera video.",
+        "no_home_assistant": "Tessera video non può essere installato da qui: {folder} non è la cartella di configurazione di Home Assistant. Scarica l'integrazione ed estraila lì."
       },
       "report": {
         "depth": "Scegli il rapporto di base o quello completo.",
@@ -3559,7 +3560,9 @@
         "installed": "Tessera video installata. Riavvia Home Assistant una volta per caricarla.",
         "screens": "Schermi con video: {names}",
         "no_screens": "Nessuno schermo ha ancora il video: aggiungi Fotocamera dello schermo, con la parte Video, a uno schermo P4 con fotocamera.",
-        "writes": "Scrive la cartella {path}; installare di nuovo la sostituisce. Tessera aggiunge da sé ogni schermo con video."
+        "writes": "Scrive la cartella {path}; installare di nuovo la sostituisce. Tessera aggiunge da sé ogni schermo con video.",
+        "no_home_assistant": "Questa app funziona separata da Home Assistant, quindi non può mettere a posto l'integrazione da sola. Scaricala, estrai lo zip nella cartella di configurazione di Home Assistant (dove si trova configuration.yaml) e riavvia Home Assistant.",
+        "download": "Scarica l'integrazione"
       },
       "claude": {
         "installed": "Skill installata. Claude Code la rileva subito.",

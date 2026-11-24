@@ -1021,7 +1021,8 @@
       },
       "video": {
         "not_written": "A Tessera video nem írható ide: {folder}: {reason}.",
-        "not_installed": "Először telepítsd a Tessera videót."
+        "not_installed": "Először telepítsd a Tessera videót.",
+        "no_home_assistant": "A Tessera videó innen nem telepíthető: a(z) {folder} nem a Home Assistant konfigurációs mappája. Töltsd le az integrációt, és bontsd ki ott."
       },
       "report": {
         "depth": "Válaszd az alap vagy a teljes jelentést.",
@@ -3559,7 +3560,9 @@
         "installed": "Tessera video telepítve. Indítsd újra egyszer a Home Assistantot a betöltéshez.",
         "screens": "Képernyők videóval: {names}",
         "no_screens": "Még egyik képernyőn sincs videó: add hozzá a Képernyőkamerát a Videó résszel egy kamerás P4 képernyőhöz.",
-        "writes": "A(z) {path} mappát írja; az újratelepítés lecseréli. A Tessera magától felveszi a videós képernyőket."
+        "writes": "A(z) {path} mappát írja; az újratelepítés lecseréli. A Tessera magától felveszi a videós képernyőket.",
+        "no_home_assistant": "Ez az alkalmazás a Home Assistanttől külön fut, ezért nem tudja maga a helyére tenni az integrációt. Töltsd le, bontsd ki a zip-fájlt a Home Assistant konfigurációs mappájában (ahol a configuration.yaml van), majd indítsd újra a Home Assistantet.",
+        "download": "Integráció letöltése"
       },
       "claude": {
         "installed": "Skill telepítve. A Claude Code azonnal átveszi.",
