@@ -240,9 +240,8 @@ def item_of(raw):
     thumbnail = raw.get('thumbnail')
     if isinstance(thumbnail, str) and thumbnail.startswith('/'):
         # Home Assistant's own proxy for a player's library (Sonos, Music Assistant): this app fetches it with its own
-        # token, so a signature in the address is left out and never stored or shown. The rest of the query stays a
-        # query when the signature came first (Lyrion's `?token=...&media_image_id=...`, GitHub #456).
-        thumbnail = re.sub(r'([?&])(?:token|authSig)=[^&]*(&|$)', lambda m: m.group(1) if m.group(2) else '', thumbnail)
+        # token, so a signature in the address is left out and never stored or shown.
+        thumbnail = core.unsigned(thumbnail)
     return {'title': title, 'id': content_id, 'type': content_type, 'play': play, 'expand': expand,
             'thumb': thumbnail if isinstance(thumbnail, str) and thumbnail else None, 'icon': icon_of(raw),
             'class': raw.get('media_class') if isinstance(raw.get('media_class'), str) else '',
