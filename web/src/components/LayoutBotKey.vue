@@ -42,7 +42,8 @@ function toggle() { bot.open = !bot.open; }
 .bot-body .bulb { fill: white; animation: bot-glow 2.4s ease-in-out infinite; }
 .bot-body .eye { fill: white; transform-box: fill-box; transform-origin: center; animation: bot-blink 5.2s infinite; }
 .bot-body .scan { fill: white; opacity: 0; }
-.bot-ring { position: absolute; inset: -4px; border-radius: 50%; opacity: 0; transition: opacity .3s;
+/* The ring and the z are for the eye: no tap is theirs. */
+.bot-ring { position: absolute; inset: -4px; border-radius: 50%; opacity: 0; transition: opacity .3s; pointer-events: none;
   background: conic-gradient(from 0deg, transparent 0 55%, var(--bot-c) 75%, white 82%, transparent 90%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px)); }
@@ -51,7 +52,7 @@ function toggle() { bot.open = !bot.open; }
 .bot-fab.asleep .bulb { animation: none; opacity: .55; }
 .bot-z { position: absolute; top: -4px; right: -2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
   background: var(--surface); color: var(--bot-b); font-size: 12px; font-weight: 800; box-shadow: 0 2px 6px rgba(20, 24, 40, .18);
-  animation: bot-z 2.6s ease-in-out infinite; }
+  animation: bot-z 2.6s ease-in-out infinite; pointer-events: none; }
 @keyframes bot-z { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-3px); opacity: .6; } }
 .bot-fab.busy { animation: bot-think 1.2s ease-in-out infinite; }
 .bot-fab.busy .bot-ring { opacity: 1; animation: bot-spin 1.1s linear infinite; }
@@ -65,8 +66,11 @@ function toggle() { bot.open = !bot.open; }
 @keyframes bot-glow { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 @keyframes bot-spin { to { transform: rotate(1turn); } }
 @keyframes bot-scan { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
-/* In the phone's dock: as tall as its buttons, still, and its chat is a sheet. */
-.bot-fab.docked { position: static; flex: 0 0 50px; width: 50px; height: 50px; border-radius: 14px; animation: none; }
+/* In the phone's dock: as tall as its buttons, still, and its chat is a sheet. It stays the box its ring and its z are
+   placed in (`position: relative`). A key without a place of its own hands them to the dock: the ring, which nobody
+   sees until the bot thinks, then lay over the whole dock and took every tap meant for Add tile and Save & send
+   (GitHub #438, #471), wherever an AI Task had woken the bot. */
+.bot-fab.docked { position: relative; inset: auto; z-index: auto; flex: 0 0 50px; width: 50px; height: 50px; border-radius: 14px; animation: none; }
 .bot-fab.docked:hover { transform: none; }
 .bot-fab.docked .bot-ring { border-radius: 16px; }
 .bot-fab.docked.busy { animation: none; }
