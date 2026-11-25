@@ -4457,6 +4457,8 @@
         "blocked": "Le navigateur n'autorise pas cette page à utiliser les ports USB. Vérifiez les autorisations du site dans le navigateur, ou choisissez plutôt Télécharger.",
         "busy": "Le port de l'écran est utilisé par un autre programme ou onglet, comme un moniteur série ou ESPHome Web. Fermez-le et réessayez.",
         "connect": "La carte n'a pas répondu. Maintenez le bouton BOOT de la carte pendant que vous choisissez le port, jusqu'au début de l'installation, et réessayez. Débrancher et rebrancher le câble peut aussi aider.",
+        "silent": "Rien n'a répondu sur ce port en {seconds} secondes, donc rien n'a été installé. Si votre navigateur a montré plus d'un port pour l'écran, réessayez et choisissez l'autre. Sinon, maintenez le bouton BOOT de la carte pendant que vous choisissez le port, puis réessayez.",
+        "other_chip": "Ce port appartient à la deuxième puce de la carte (un RP2040), pas à celle qui fait tourner l'écran. Rien n'a été installé. Réessayez et choisissez l'autre port de la carte ; sur un SenseCAP Indicator, c'est celui qui s'appelle USB Serial.",
         "wrong_chip": "La carte branchée a une puce {found}, mais le firmware de cet écran est prévu pour une {expected}. Branchez le bon écran ou choisissez sa carte.",
         "wrong_image": "Le firmware compilé par Tessera est prévu pour une {expected}, mais la carte branchée a une {found}. Rien n'a été écrit.",
         "wrong_revision": "Le firmware créé par Tessera est pour les révisions de puce {from} à {to}, mais la puce sur le câble est {found}. Rien n'a été écrit. Recommence, pour que Tessera le crée pour cette puce.",

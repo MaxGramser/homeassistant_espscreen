@@ -4457,6 +4457,8 @@
         "blocked": "A böngésző nem engedi, hogy ez az oldal USB-portokat használjon. Ellenőrizd a webhely engedélyeit a böngészőben, vagy válaszd inkább a Letöltést.",
         "busy": "A kijelző portját egy másik program vagy lap használja, például egy soros monitor vagy az ESPHome Web. Zárd be, és próbáld újra.",
         "connect": "A panel nem válaszolt. Tartsd nyomva a panel BOOT gombját, amíg kiválasztod a portot, egészen a telepítés indulásáig, és próbáld újra. A kábel ki- és visszadugása is segíthet.",
+        "silent": "Ezen a porton {seconds} másodpercen belül semmi sem válaszolt, ezért semmi sem települt. Ha a böngésző egynél több portot mutatott a képernyőhöz, próbáld újra, és válaszd a másikat. Egyébként tartsd lenyomva a lapon a BOOT gombot, amíg a portot választod, és próbáld újra.",
+        "other_chip": "Ez a port a lap második chipjéhez (egy RP2040-hez) tartozik, nem ahhoz a chiphez, amelyen a képernyő fut. Semmi sem települt. Próbáld újra, és válaszd a lap másik portját; a SenseCAP Indicatoron ez az USB Serial nevű.",
         "wrong_chip": "A kábelen lévő panelen {found} chip van, de ennek a kijelzőnek a firmware-e {expected} chiphez készült. Csatlakoztasd a megfelelő kijelzőt, vagy válaszd ki a paneljét.",
         "wrong_image": "A Tessera által fordított firmware {expected} chiphez készült, de a kábelen lévő panelen {found} van. Semmi sem lett felírva.",
         "wrong_revision": "A Tessera által készített firmware a(z) {from}–{to} chip-revíziókhoz való, de a kábelen lévő chip {found}. Semmi sem lett felírva. Kezdd újra, hogy a Tessera ehhez a chiphez készítse el.",

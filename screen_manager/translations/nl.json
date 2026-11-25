@@ -3966,6 +3966,8 @@
         "blocked": "De browser laat deze pagina geen USB-poorten gebruiken. Controleer de sitemachtigingen in de browser, of kies Downloaden.",
         "busy": "De poort van het scherm is in gebruik door een ander programma of tabblad, zoals een seriële monitor of ESPHome Web. Sluit dat en probeer het opnieuw.",
         "connect": "Het bord reageerde niet. Houd de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, tot de installatie begint, en probeer het opnieuw. De kabel los en weer vast maken helpt soms ook.",
+        "silent": "Op die poort kwam binnen {seconds} seconden geen antwoord, dus er is niets geïnstalleerd. Liet je browser meer dan één poort voor het scherm zien, probeer het dan opnieuw en kies de andere. Houd anders de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, en probeer het opnieuw.",
+        "other_chip": "Die poort hoort bij de tweede chip van het bord (een RP2040), niet bij de chip waarop het scherm draait. Er is niets geïnstalleerd. Probeer het opnieuw en kies de andere poort van het bord; op een SenseCAP Indicator is dat de poort die USB Serial heet.",
         "wrong_chip": "Het bord aan de kabel heeft een {found}-chip, maar de firmware van dit scherm is voor een {expected}. Sluit het juiste scherm aan, of kies het juiste bord.",
         "wrong_image": "De firmware die Tessera bouwde is voor een {expected}, maar het bord aan de kabel heeft een {found}. Er is niets geschreven.",
         "wrong_revision": "De firmware die Tessera bouwde is voor chipversies {from} tot en met {to}, maar de chip aan de kabel is {found}. Er is niets geschreven. Begin opnieuw, dan bouwt Tessera voor deze chip.",

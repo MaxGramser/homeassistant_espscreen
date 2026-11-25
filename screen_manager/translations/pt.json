@@ -4457,6 +4457,8 @@
         "blocked": "O navegador não deixa esta página usar portas USB. Verifique as permissões do site no navegador, ou escolha Descarregar.",
         "busy": "A porta do ecrã está a ser usada por outro programa ou separador, como um monitor série ou o ESPHome Web. Feche-o e tente novamente.",
         "connect": "A placa não respondeu. Mantenha premido o botão BOOT da placa enquanto escolhe a porta, até a instalação começar, e tente novamente. Desligar e voltar a ligar o cabo também pode ajudar.",
+        "silent": "Nada respondeu nessa porta em {seconds} segundos, por isso nada foi instalado. Se o navegador mostrou mais de uma porta para o ecrã, tente de novo e escolha a outra. Caso contrário, mantenha premido o botão BOOT da placa enquanto escolhe a porta e tente de novo.",
+        "other_chip": "Essa porta pertence ao segundo chip da placa (um RP2040), não ao chip em que o ecrã funciona. Nada foi instalado. Tente de novo e escolha a outra porta da placa; num SenseCAP Indicator é a que se chama USB Serial.",
         "wrong_chip": "A placa ligada tem um chip {found}, mas o firmware deste ecrã é para um {expected}. Ligue o ecrã certo ou escolha a sua placa.",
         "wrong_image": "O firmware compilado pelo Tessera é para um {expected}, mas a placa ligada tem um {found}. Nada foi escrito.",
         "wrong_revision": "O firmware que o Tessera criou é para as revisões de chip {from} a {to}, mas o chip no cabo é {found}. Nada foi escrito. Começa de novo, para o Tessera o criar para este chip.",

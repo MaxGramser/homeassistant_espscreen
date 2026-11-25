@@ -30,6 +30,11 @@ firmware. Keep a backup of the factory firmware and Seeed's
 [recovery instructions](https://wiki.seeedstudio.com/SenseCAP_Indicator_How_To_Flash_The_Default_Firmware/) before you
 replace it.
 
+In the browser's list the CH340 is called `USB Serial`. When the RP2040's port is chosen in **New screen**, the page
+says at once that it is the board's second chip and asks for the port again: it knows the port by its USB ids
+(2886:0050). That port takes no bytes at all, so a flasher that waits for its write to end waits for ever on it, which
+is why the page gives the chip on any port 20 seconds to answer.
+
 The remote package is `packages/sensecapd1.yaml` and the checkout entry `checkout/sensecapd1.yaml`. Both combine
 `packages/core.yaml` with the board file `packages/boards/seeed-sensecap-indicator-d1.yaml`, which takes the ESP32-S3's
 memory settings from `packages/hardware/esp32s3-rgb.yaml`.

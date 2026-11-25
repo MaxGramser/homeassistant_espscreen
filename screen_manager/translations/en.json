@@ -3966,6 +3966,8 @@
         "blocked": "The browser doesn't let this page use USB ports. Check the site's permissions in the browser, or choose Download instead.",
         "busy": "The screen's port is in use by another program or tab, such as a serial monitor or ESPHome Web. Close it and try again.",
         "connect": "The board didn't answer. Hold the BOOT button on the board while you choose the port, until the installation starts, and try again. Unplugging and plugging in the cable can help too.",
+        "silent": "Nothing answered on that port within {seconds} seconds, so nothing was installed. If your browser listed more than one port for the screen, try again and choose the other one. Otherwise hold the BOOT button on the board while you choose the port, and try again.",
+        "other_chip": "That port belongs to the board's second chip (an RP2040), not to the chip the screen runs on. Nothing was installed. Try again and choose the board's other port; on a SenseCAP Indicator that is the one called USB Serial.",
         "wrong_chip": "The board on the cable has an {found} chip, but this screen's firmware is for an {expected}. Plug in the right screen, or choose its board.",
         "wrong_image": "The firmware Tessera built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
         "wrong_revision": "The firmware Tessera built is for chip revisions {from} to {to}, but the chip on the cable is {found}. Nothing was written. Start again, so Tessera builds for this chip.",

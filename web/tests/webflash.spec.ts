@@ -8,7 +8,8 @@ import FirmwareView from "../src/components/FirmwareView.vue";
 import { t } from "../src/i18n";
 import { useInventoryStore } from "../src/stores/inventory";
 import InstallerView from "../src/components/InstallerView.vue";
-import { chipMatches, connectProblem, flashSupport, imageChip, imageRevisions, pickProblem, revisionFits, revisionOf, revisionText, writtenPercent } from "../src/flasher/logic";
+import { chipMatches, CONNECT_SECONDS, connectProblem, flashSupport, imageChip, imageRevisions, otherChip, pickProblem, revisionFits, revisionOf, revisionText,
+  writtenPercent } from "../src/flasher/logic";
 import { setFlasherLoader, useBrowserFlash } from "../src/flasher/session";
 
 // A factory image as ESPHome writes it: erased flash (0xFF) up to the bootloader, whose header starts with 0xE9 and
@@ -29,8 +30,8 @@ function factoryImage(chipId: number, offset: number, revisions = { min: 0, max:
 const P4_PRE_V3 = { min: 0, max: 199 };
 const P4_V3 = { min: 300, max: 399 };
 
-function fakePort() {
-  return Object.assign(new EventTarget(), { getInfo: () => ({ usbVendorId: 0x1a86 }) }) as unknown as SerialPort;
+function fakePort(info: { usbVendorId?: number; usbProductId?: number } = { usbVendorId: 0x1a86 }) {
+  return Object.assign(new EventTarget(), { getInfo: () => info, forget: vi.fn(async () => {}) }) as unknown as SerialPort & { forget: ReturnType<typeof vi.fn> };
 }
 
 // The flasher module's stand-in: what esptool.ts exports, recording what the session asked of it.
@@ -53,7 +54,7 @@ function fakeFlasher(chip = "ESP32", revision: number | null = null) {
   return flasher;
 }
 
-let port: SerialPort;
+let port: ReturnType<typeof fakePort>;
 const requestPort = vi.fn();
 const getPorts = vi.fn(async (): Promise<SerialPort[]> => []);
 function secure(on = true, serial = true) {
@@ -250,6 +251,58 @@ describe("one installation from the browser", () => {
     expect(flash.state.problem).toBe("connect");
   });
 
+  it("stops waiting for a port that never answers, says so, and forgets the port so the picker comes back", async () => {
+    // A SenseCAP Indicator shows two ports on one cable. Its RP2040's takes no bytes, and esptool-js waits on its write
+    // without end: Install kept turning and said nothing, and the one remembered port was tried again at every click.
+    vi.useFakeTimers();
+    const flasher = fakeFlasher();
+    flasher.connect.mockImplementation(() => new Promise<string>(() => {}));
+    flasher.disconnect.mockImplementation(() => new Promise<void>(() => {}));  // closing waits for that write as well
+    const flash = useBrowserFlash();
+    const connecting = flash.connect("ESP32-S3");
+    await vi.advanceTimersByTimeAsync((CONNECT_SECONDS - 1) * 1000);
+    expect([flash.state.phase, flash.busy()]).toEqual(["connecting", true]);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await connecting).toBe(false);
+    expect([flash.state.phase, flash.state.problem, flash.state.params, flash.busy()]).toEqual(["failed", "silent", { seconds: String(CONNECT_SECONDS) }, false]);
+    expect(port.forget).toHaveBeenCalledOnce();
+    // The next click connects to whatever is picked then, as if nothing had been tried.
+    vi.useRealTimers();
+    flasher.connect.mockImplementation(async () => "ESP32-S3");
+    expect(await flash.connect("ESP32-S3")).toBe(true);
+    expect(flash.state.phase).toBe("waiting");
+  });
+
+  it("tries nothing on the port of a chip that is no ESP, and says which port it was", async () => {
+    const flasher = fakeFlasher();
+    const flash = useBrowserFlash();
+    // Seeed's "INDICATOR RP2040" (2886:0050) and a board with Raspberry Pi's own USB ids.
+    for (const info of [{ usbVendorId: 0x2886, usbProductId: 0x0050 }, { usbVendorId: 0x2e8a, usbProductId: 0x000a }]) {
+      port = fakePort(info);
+      expect(await flash.connect("ESP32-S3")).toBe(false);
+      expect([flash.state.phase, flash.state.problem]).toEqual(["failed", "other_chip"]);
+      expect(port.forget).toHaveBeenCalledOnce();
+    }
+    expect(flasher.createLoader).not.toHaveBeenCalled();
+    // Seeed's other boards and the USB bridges of real screens are let through.
+    expect([otherChip({ usbVendorId: 0x2886, usbProductId: 0x8056 }), otherChip({ usbVendorId: 0x1a86, usbProductId: 0x7523 }), otherChip({ usbVendorId: 0x303a }), otherChip(undefined)])
+      .toEqual([false, false, false, false]);
+  });
+
+  it("forgets a port whose board did not answer or is another chip, and keeps one that connected", async () => {
+    const flasher = fakeFlasher("ESP32");
+    const flash = useBrowserFlash();
+    expect(await flash.connect("ESP32")).toBe(true);
+    expect(port.forget).not.toHaveBeenCalled();
+    expect(await flash.connect("ESP32-S3")).toBe(false);
+    expect(flash.state.problem).toBe("wrong_chip");
+    expect(port.forget).toHaveBeenCalledOnce();
+    flasher.connect.mockRejectedValue(new Error("Failed to connect with the device"));
+    expect(await flash.connect("ESP32")).toBe(false);
+    expect(flash.state.problem).toBe("connect");
+    expect(port.forget).toHaveBeenCalledTimes(2);
+  });
+
   it("notices a cable pulled out while the add-on builds", async () => {
     fakeFlasher();
     const flash = useBrowserFlash();
@@ -411,6 +464,29 @@ describe("New screen from this browser", () => {
     await flush();
     expect(posted).toEqual([]);
     expect(view.find("#webflash-line").text()).toContain("ESP32-S3");
+  });
+
+  it("gives Install back and says why when the chosen port never answers, with nothing built", async () => {
+    // Found on 2026-11-25 with a SenseCAP Indicator: the wrong one of its two ports picked, and Install turned for ever.
+    const flasher = fakeFlasher("ESP32");
+    flasher.connect.mockImplementation(() => new Promise<string>(() => {}));
+    const { posted } = addonWithBuild(factoryImage(0, 0x1000));
+    const view = installer();
+    await flush();
+    await toInstall(view);
+    vi.useFakeTimers();
+    await view.find("#install-form").trigger("submit");
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(view.find("#install-go").attributes("disabled")).toBeDefined();
+    expect(view.find("#webflash-line").text()).toBe("Connecting to the board…");
+    await vi.advanceTimersByTimeAsync(CONNECT_SECONDS * 1000);
+    vi.useRealTimers();
+    await flush();
+    expect(view.find("#install-go").attributes("disabled")).toBeUndefined();
+    expect(view.find("#webflash-line").text()).toContain(`Nothing answered on that port within ${CONNECT_SECONDS} seconds`);
+    expect(view.find("#webflash").classes()).toContain("bad");
+    expect(posted).toEqual([]);
+    expect(port.forget).toHaveBeenCalledOnce();
   });
 });
 

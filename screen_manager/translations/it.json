@@ -4457,6 +4457,8 @@
         "blocked": "Il browser non consente a questa pagina di usare le porte USB. Controlla le autorizzazioni del sito nel browser, oppure scegli Scarica.",
         "busy": "La porta dello schermo è usata da un altro programma o scheda, come un monitor seriale o ESPHome Web. Chiudilo e riprova.",
         "connect": "La scheda non ha risposto. Tieni premuto il pulsante BOOT sulla scheda mentre scegli la porta, finché l'installazione non inizia, e riprova. Anche scollegare e ricollegare il cavo può aiutare.",
+        "silent": "Su quella porta non ha risposto nulla entro {seconds} secondi, quindi non è stato installato nulla. Se il browser ha mostrato più di una porta per lo schermo, riprova e scegli l'altra. Altrimenti tieni premuto il pulsante BOOT sulla scheda mentre scegli la porta e riprova.",
+        "other_chip": "Quella porta appartiene al secondo chip della scheda (un RP2040), non al chip su cui gira lo schermo. Non è stato installato nulla. Riprova e scegli l'altra porta della scheda; su un SenseCAP Indicator è quella chiamata USB Serial.",
         "wrong_chip": "La scheda collegata ha un chip {found}, ma il firmware di questo schermo è per un {expected}. Collega lo schermo giusto o scegli la sua scheda.",
         "wrong_image": "Il firmware compilato da Tessera è per un {expected}, ma la scheda collegata ha un {found}. Non è stato scritto nulla.",
         "wrong_revision": "Il firmware creato da Tessera è per le revisioni del chip da {from} a {to}, ma il chip sul cavo è {found}. Non è stato scritto nulla. Ricomincia, così Tessera lo crea per questo chip.",

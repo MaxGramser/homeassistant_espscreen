@@ -4457,6 +4457,8 @@
         "blocked": "Przeglądarka nie pozwala tej stronie używać portów USB. Sprawdź uprawnienia witryny w przeglądarce albo wybierz „Pobierz”.",
         "busy": "Port ekranu jest zajęty przez inny program lub kartę, na przykład monitor portu szeregowego albo ESPHome Web. Zamknij go i spróbuj ponownie.",
         "connect": "Płytka nie odpowiedziała. Przytrzymaj przycisk BOOT na płytce podczas wybierania portu, aż zacznie się instalacja, i spróbuj ponownie. Odłączenie i ponowne podłączenie kabla też może pomóc.",
+        "silent": "Na tym porcie nic nie odpowiedziało w ciągu {seconds} sekund, więc niczego nie zainstalowano. Jeśli przeglądarka pokazała więcej niż jeden port ekranu, spróbuj ponownie i wybierz drugi. W przeciwnym razie przytrzymaj przycisk BOOT na płytce podczas wybierania portu i spróbuj ponownie.",
+        "other_chip": "Ten port należy do drugiego układu płytki (RP2040), a nie do układu, na którym działa ekran. Niczego nie zainstalowano. Spróbuj ponownie i wybierz drugi port płytki; w SenseCAP Indicator jest to port o nazwie USB Serial.",
         "wrong_chip": "Podłączona płytka ma układ {found}, a firmware tego ekranu jest dla {expected}. Podłącz właściwy ekran albo wybierz jego płytkę.",
         "wrong_image": "Firmware skompilowany przez Tessera jest dla {expected}, a podłączona płytka ma {found}. Nic nie zostało zapisane.",
         "wrong_revision": "Firmware zbudowany przez Tessera jest dla rewizji układu od {from} do {to}, ale układ na kablu to {found}. Nic nie zostało zapisane. Zacznij od nowa, aby Tessera zbudowała go dla tego układu.",

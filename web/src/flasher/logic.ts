@@ -89,8 +89,25 @@ export function writtenPercent(written: number, total: number): number | null {
 }
 
 /** What went wrong, as a key under editor.webflash.errors; the texts say what to do about it. */
-export type FlashProblem = "no_port" | "blocked" | "busy" | "connect" | "wrong_chip" | "wrong_image" | "wrong_revision" | "disconnected"
-  | "download" | "failed";
+export type FlashProblem = "no_port" | "blocked" | "busy" | "connect" | "silent" | "other_chip" | "wrong_chip" | "wrong_image" | "wrong_revision"
+  | "disconnected" | "download" | "failed";
+
+/**
+ * How long the page waits for the chip on the chosen port, in seconds. A board answers within two or three; esptool-js
+ * gives up by itself on a port that answers nothing, but it waits without end on a port that takes no bytes at all
+ * (its write has no timeout). Measured on a SenseCAP Indicator, whose one cable shows two ports: on "USB Serial" (the
+ * ESP32-S3) the connect took 1.5 s, on "INDICATOR RP2040" it neither answered nor failed in 75 s.
+ */
+export const CONNECT_SECONDS = 20;
+
+// USB ports that are certainly not an ESP: a board's second chip that shows a port of its own beside the screen's.
+// Raspberry Pi's own vendor id (an RP2040 or RP2350 with its stock USB), and Seeed's "INDICATOR RP2040" (2886:0050).
+const OTHER_CHIPS: { vendor: number; product?: number }[] = [{ vendor: 0x2e8a }, { vendor: 0x2886, product: 0x0050 }];
+
+/** Whether a picked port is one of a chip that is no ESP (the USB ids Chrome says of it): nothing is tried on it. */
+export function otherChip(info: { usbVendorId?: number; usbProductId?: number } | undefined): boolean {
+  return OTHER_CHIPS.some((chip) => info?.usbVendorId === chip.vendor && (chip.product === undefined || info?.usbProductId === chip.product));
+}
 
 /** Why the browser's port picker gave no port. */
 export function pickProblem(error: unknown): FlashProblem {

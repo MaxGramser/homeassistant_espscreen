@@ -6,7 +6,8 @@
 // esptool-js comes with ./esptool.ts, which is imported here only when a port has been picked.
 import { reactive } from "vue";
 import { api, send } from "../api";
-import { chipMatches, connectProblem, flashSupport, imageChip, imageRevisions, pickProblem, revisionFits, revisionText, type FlashProblem } from "./logic";
+import { chipMatches, CONNECT_SECONDS, connectProblem, flashSupport, imageChip, imageRevisions, otherChip, pickProblem, revisionFits, revisionText,
+  type FlashProblem } from "./logic";
 
 export type FlashPhase = "idle" | "picking" | "connecting" | "waiting" | "downloading" | "erasing" | "writing"
   | "restarting" | "done" | "failed";
@@ -46,6 +47,12 @@ export function useBrowserFlash() {
     loader = null;
     if (current && flasher) await flasher.disconnect(current);
   }
+  // A port on which no board of ours answered is not kept: Chrome remembers a port once picked, and the one remembered
+  // port is used again without the picker (below), so a wrong pick would be tried again for ever. Forgotten, the picker
+  // comes back at the next click. Not waited for long: a port that takes no bytes may not answer this either.
+  async function forget(port: SerialPort) {
+    try { await Promise.race([port.forget?.(), new Promise((resolve) => setTimeout(resolve, 500))]); } catch { /* An older browser keeps it. */ }
+  }
 
   /**
    * Pick the port and connect: call it straight from a click, before anything else waits. True when a board of the
@@ -71,6 +78,12 @@ export function useBrowserFlash() {
       fail(pickProblem(error), {}, (error as Error)?.message || "");
       return false;
     }
+    // A port of another chip than an ESP (a board's RP2040 beside its ESP32, by its USB ids): said at once, nothing tried.
+    if (otherChip(port.getInfo?.())) {
+      await forget(port);
+      fail("other_chip");
+      return false;
+    }
     state.phase = "connecting";
     try {
       flasher = await loadFlasher();
@@ -85,18 +98,40 @@ export function useBrowserFlash() {
       loader = null;
       if (state.phase !== "idle" && state.phase !== "done") fail("disconnected");
     });
+    // The chip has CONNECT_SECONDS to answer. esptool-js waits without end on a port that takes no bytes, and then the
+    // page waited with it: Install kept turning and said nothing.
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    const silent = new Promise<"silent">((resolve) => { deadline = setTimeout(() => resolve("silent"), CONNECT_SECONDS * 1000); });
+    const connecting = flasher.connect(current);
     try {
-      state.chip = await flasher.connect(current);
+      const answer = await Promise.race([connecting, silent]);
+      if (answer === "silent") {
+        // Whatever the connect still does is nobody's any more, and its port is let go without waiting for it: closing
+        // waits for the write that never ends.
+        connecting.catch(() => {});
+        if (loader === current) {
+          loader = null;
+          void flasher.disconnect(current).catch(() => {});
+          await forget(port);
+          fail("silent", { seconds: String(CONNECT_SECONDS) });
+        }
+        return false;
+      }
+      state.chip = answer;
     } catch (error) {
       console.error(error);
       if (loader === current) {
         await close();
+        await forget(port);
         fail(connectProblem(error), {}, (error as Error)?.message || String(error));
       }
       return false;
+    } finally {
+      clearTimeout(deadline);
     }
     if (!chipMatches(state.chip, expected)) {
       await close();
+      await forget(port);
       fail("wrong_chip", { found: state.chip, expected: expected || "" });
       return false;
     }

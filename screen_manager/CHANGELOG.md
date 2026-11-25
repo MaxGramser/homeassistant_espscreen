@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Installing from the browser stops and says why when the chosen port does not answer.** With the wrong port chosen, Install kept turning and said nothing, and every new try used that same port again without asking. The page now waits 20 seconds for the chip, then stops with what to do, gives Install back and asks for the port again at the next click. On a board that shows two ports on one cable, such as the SenseCAP Indicator ("USB Serial" and "INDICATOR RP2040"), it knows the port of the second chip and says at once to choose the other one.
+
 ## 0.4.104 (firmware 0.64.0)
 
 - **Save & send and Add tile work on a phone again.** With an AI connected for Layoutbot, a tap anywhere in the bar at the bottom of the phone editor opened Layoutbot's chat instead: an invisible part of its key lay over the whole bar. Each key in the bar is its own again. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471), [#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
