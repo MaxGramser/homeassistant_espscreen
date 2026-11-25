@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 29;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 30;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -745,6 +745,25 @@ void rotate(lv_obj_t *part, float degrees);
 // picture, it shows its stills. Lay nothing over a live place (a label, another place): LVGL's drawing there stops the
 // stream. Only on a tile's places; a card's and a saver's places show stills. Call it in create() or on_state.
 void live(lv_obj_t *place, bool on = true);
+
+// On-screen QWERTY keyboard sheet (0.30, docs/KEYBOARD.md), shown at the bottom of a Card's parent (`CardContext::parent`
+// or a container inside it). Returns the Y coordinate in `parent` where the keyboard begins (0 if it covers the whole
+// area, -1 if unavailable). Hidden automatically when the card closes.
+struct KeyboardOptions {
+  std::string initial;
+  std::string hint;
+  std::string send_word;
+  size_t most_bytes = 120;
+  size_t max_chars = 0;
+  size_t min_chars = 0;
+  bool mask = false;
+  std::function<void(const std::string &)> on_changed;
+  std::function<void(const std::string &)> on_send;
+  std::function<void()> on_close;
+};
+int show_keyboard(lv_obj_t *parent, int width, int height, int top, const KeyboardOptions &options);
+void hide_keyboard();
+bool keyboard_shown();
 }  // namespace ui
 
 }  // namespace tessera

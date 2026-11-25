@@ -3110,6 +3110,86 @@ class SeriesManifest(unittest.TestCase):
         self.assertEqual(plugin_fetch.field_value([0.1, None, '0,25', 'x', True, float('nan'), 3], field),
                          [0.1, None, 0.25, None, 1, None, 3])
 
+    def test_answers_list_mapping_needs_030_and_filters_fields(self):
+        base = {
+            'id': 'ma_test', 'version': '1.0.0', 'api': '0.29', 'icon': 'music', 'topics': ['media'],
+            'maintainer': 'test', 'license': 'MIT',
+            'permissions': {'ha_commands': ['call_service:music_assistant.get_library']},
+            'answers': [{
+                'command': 'call_service:music_assistant.get_library',
+                'items': '$.items[*]',
+                'fields': {'name': 'name', 'uri': 'uri', 'image': {'path': 'image', 'as': 'url'}},
+                'sort': 'name',
+                'limit': 12,
+            }],
+        }
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(base, ENGLISH)
+        self.assertIn('0.30', str(caught.exception))
+        checked = pm.check(base | {'api': '0.30'}, ENGLISH)
+        self.assertEqual(checked['answers'][0]['items'], [('key', 'items'), ('all',)])
+        self.assertEqual(checked['answers'][0]['fields']['image']['as'], 'url')
+        self.assertEqual(checked['answers'][0]['limit'], 12)
+
+
+class AnswerListRuntime(unittest.IsolatedAsyncioTestCase):
+    """Mapped list answers (plugin API 0.30): items, fields (including url), sort, limit and byte fitting."""
+
+    async def test_answer_maps_items_and_fits_within_budget(self):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        pdir = config.parent / 'tessera-plugins' / 'ma_test'
+        (pdir / 'translations').mkdir(parents=True)
+        (pdir / 'translations' / 'en.json').write_text(json.dumps({'app': {'name': 'MA Test', 'summary': 'Test'}}))
+        (pdir / 'tessera-plugin.yaml').write_text(
+            'id: ma_test\nversion: 1.0.0\napi: "0.30"\nicon: music\ntopics: [media]\n'
+            'maintainer: test\nlicense: MIT\n'
+            'permissions:\n  ha_commands: ["call_service:music_assistant.get_library"]\n'
+            'answers:\n'
+            '  - command: call_service:music_assistant.get_library\n'
+            '    items: "$.items[*]"\n'
+            '    fields:\n'
+            '      name: name\n'
+            '      uri: uri\n'
+            '      image: {path: image, as: url}\n'
+            '    sort: name\n'
+            '    limit: 48\n'
+        )
+        long_url = 'https://cdn.example.org/' + ('a' * 70) + '.jpg'
+        sent = []
+
+        class FakeHA:
+            time_zone = 'UTC'
+            async def request(self, cmd, **kw):
+                return {'response': {'items': [
+                    {'name': f'Track {i:02d}', 'uri': f'library://track/{i}', 'image': long_url, 'extra': 'ignored'}
+                    for i in range(40, 0, -1)
+                ]}}
+
+        class FakeManager:
+            ha = FakeHA()
+            def screen(self, inbox): return {'id': inbox, 'name': 'Kitchen'}
+            def transport(self, inbox, screen): return 'send'
+            async def send_auxiliary(self, inbox, message, action, request): sent.append(message)
+
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        service.scan_folders()
+        service.store.put('kitchen', {'id': 'ma_test', 'source': 'folder', 'state': 'active'})
+        await service.answer({'inbox': 'kitchen', 'plugin': 'ma_test', 'body': json.dumps({
+            're': 1, 'ask': 'call_service:music_assistant.get_library', 'data': {'media_type': 'track'},
+        })})
+        reply = sent[0]['m']
+        self.assertTrue(reply['ok'])
+        items = reply['result']['items']
+        self.assertGreaterEqual(len(items), 15)
+        self.assertLess(len(items), 40)
+        self.assertEqual(items[0]['name'], 'Track 01')
+        self.assertEqual(items[0]['image'], long_url)
+        self.assertLessEqual(len(json.dumps(reply)), 3400)
+
 
 class PanelSettings(unittest.IsolatedAsyncioTestCase):
     """A plugin's settings on a screen (plugin API 0.6): found by their name in plugin.yaml through the entity registry,

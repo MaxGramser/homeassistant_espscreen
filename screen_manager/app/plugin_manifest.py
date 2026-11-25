@@ -15,12 +15,14 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 29)
+PLUGIN_API = (0, 30)
 # Major 0 is the time before that promise: a minor may still change a name or a signature, or take a form away (a plugin
 # that uses it then fails in the compiler, 0.24). A minor after which an older plugin would still build but work wrongly
 # is listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so such a plugin is told so in one
 # sentence. 0.4: Plugin::on_tick changed its meaning; the old one became on_interval.
 PLUGIN_API_BREAKS = {0: (4,)}
+ANSWERS_MAP_API = (0, 30)
+ANSWER_MAP_KEYS = ('items', 'where', 'skip', 'sort', 'limit')
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
 VERSION = re.compile(r'^\d+\.\d+\.\d+$')
@@ -1169,16 +1171,22 @@ def check(manifest, english=None, strict=True):
 
     # What the screen gets of an answer to a command of `permissions.ha_commands` (0.5): its fields, as a fetch's, so
     # 96 prices of a quarter of an hour arrive as one list of numbers instead of 8 KB of objects cut to a quarter.
+    # From 0.30 on, an answer may also map lists of objects (`items`, `where`, `skip`, `sort`, `limit`) with check_map.
     # A command without an entry here sends its answer as it is, bounded.
     answers = []
     for i, item in enumerate(_list(manifest.get('answers'), 'answers', MAX_ANSWERS)):
         where = f'answers[{i}]'
-        item = _object(item, where, {'command', 'fields'}, ('command', 'fields'))
+        item = _object(item, where, {'command', 'items', 'fields', 'where', 'skip', 'sort', 'limit'}, ('command', 'fields'))
         if item['command'] not in out['permissions']['ha_commands']:
             raise ManifestError(f'{where}.command', 'must be a command of permissions.ha_commands')
         if item['command'] in [a['command'] for a in answers]:
             raise ManifestError(f'{where}.command', f'"{item["command"]}" is mapped twice')
-        answers.append({'command': item['command'], 'fields': check_fields(item['fields'], f'{where}.fields', api=out['api'])})
+        for key in ANSWER_MAP_KEYS:
+            if key in item:
+                needs_api(f'"{key}" in answers', f'{where}.{key}', out['api'], ANSWERS_MAP_API)
+        mapped = check_map({key: value for key, value in item.items() if key != 'command'}, where,
+                           has_items=False, each=False, api=out['api'])
+        answers.append({'command': item['command'], **mapped})
     out['answers'] = answers
 
     cards = []

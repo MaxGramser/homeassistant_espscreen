@@ -19,6 +19,7 @@
 #include "pressure.h"
 #include "live_view.h"
 #include "volume_lift.h"
+#include "keyboard_lvgl.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -1039,6 +1040,84 @@ static void card_state(OpenCard &open, bool force) {
 
 bool card_open() { return shown != nullptr; }
 
+// ---- On-screen keyboard for plugin Cards (0.30, docs/KEYBOARD.md) ----
+static struct {
+  keyboard::lvgl::Sheet sheet;
+  keyboard::Entry entry;
+  tessera::ui::KeyboardOptions opts;
+  lv_obj_t *parent = nullptr;
+  int width = 0, height = 0, top = 0;
+} kb;
+
+static calendar_paint::Faces keyboard_faces() {
+  return {rt::label_font, rt::small_font, rt::control_font, rt::watch_font, rt::watch_value_font, rt::clock_font,
+          rt::mini_icon_font, rt::tile_icon_font()};
+}
+static calendar_card::Measure keyboard_measure() {
+  calendar_card::Measure m;
+  const auto f = keyboard_faces();
+  for (int i = 0; i < calendar_card::FACES; ++i) m.line[i] = f[i] ? lv_font_get_line_height(f[i]) : 0;
+  m.width = [f](calendar_card::Face face, const std::string &s) { return f[face] ? rt::text_width(s, f[face]) : 1 << 20; };
+  m.circle = rt::cell_circle > 0 ? rt::cell_circle : ::ui::px(54);
+  return m;
+}
+static keyboard::Spec keyboard_spec(const tessera::ui::KeyboardOptions &opts) {
+  keyboard::Spec k;
+  k.hint = opts.hint;
+  k.send_word = opts.send_word;
+  k.most = std::max<size_t>(1, opts.most_bytes);
+  k.chars = opts.max_chars;
+  k.least = opts.min_chars;
+  k.mask = opts.mask;
+  k.field = true;
+  return k;
+}
+static void keyboard_forget() {
+  kb.sheet.forget();
+  kb.parent = nullptr;
+  kb.opts = {};
+  keyboard::reset(kb.entry);
+}
+static int keyboard_show(lv_obj_t *parent, int width, int height, int top, const tessera::ui::KeyboardOptions &options) {
+  if (!parent || width <= 0 || height <= 0) return -1;
+  if (kb.parent != parent || kb.opts.initial != options.initial) keyboard::reset(kb.entry, options.initial);
+  kb.parent = parent;
+  kb.width = width;
+  kb.height = height;
+  kb.top = std::max(0, std::min(top, height));
+  kb.opts = options;
+  auto &on = kb.sheet.on;
+  on.allow = [](calendar_card::HitKind kind) {
+    return kind == keyboard::KEY || rt::allowed(esphome::millis(), CARD_TOUCH + 4096 + int(kind), "plugin keyboard");
+  };
+  on.changed = [](const std::string &text) {
+    auto cb = kb.opts.on_changed;
+    if (cb) cb(text);
+  };
+  on.send = [](const std::string &text) {
+    auto cb = kb.opts.on_send;
+    if (cb) cb(text);
+  };
+  on.hidden = []() {
+    auto cb = kb.opts.on_close;
+    kb.sheet.hide();
+    if (cb) cb();
+  };
+  on.moved = []() {
+    if (kb.parent && kb.sheet.shown())
+      kb.sheet.show(kb.parent, keyboard_measure(), keyboard_faces(), kb.width, kb.height, kb.top, kb.entry, keyboard_spec(kb.opts));
+  };
+  const keyboard::Place place =
+      kb.sheet.show(kb.parent, keyboard_measure(), keyboard_faces(), kb.width, kb.height, kb.top, kb.entry, keyboard_spec(kb.opts));
+  return place.whole ? 0 : place.top;
+}
+static void keyboard_hide() { kb.sheet.hide(); }
+static bool keyboard_is_shown() { return kb.sheet.shown(); }
+static void keyboard_theme() {
+  if (kb.parent && kb.sheet.shown())
+    kb.sheet.show(kb.parent, keyboard_measure(), keyboard_faces(), kb.width, kb.height, kb.top, kb.entry, keyboard_spec(kb.opts));
+}
+
 // A tap on the open card's room (Card::on_tap, 0.12). The guard is a tile's (rt::allowed: the finger did not move, was
 // long enough, and no bounce), with the spot as its key: a cell of 8 mm, so a bounce on one row is one tap and the next
 // row right after it is its own. Where the finger let go must be on the room, as for a tile (LVGL clicks an object
@@ -1060,6 +1139,7 @@ static void card_tap(lv_event_t *event) {
 
 void close_card() {
   if (!shown) return;
+  keyboard_forget();
   OpenCard *open = shown;
   card_pictures_end(*open);
   shown = nullptr;  // first: a card that closes or opens a card from its destructor finds nothing open
@@ -1153,6 +1233,7 @@ static void tick_card(uint32_t epoch) {
     if (!call(open, [](tessera::Card &card) { card.on_theme(); })) return;
     // The blocks under its pictures follow the look; the pictures are asked again in it (the look is in their key).
     for (auto &p : open->places) rt::set_color(p.place, LV_STYLE_BG_COLOR, theme::color(theme::TRACK));
+    keyboard_theme();
   }
   call(open, [&](tessera::Card &card) { card.on_tick(epoch); });
 }
@@ -2305,6 +2386,11 @@ void live(lv_obj_t *place, bool on) {
   }
   p->live = on;
 }
+int show_keyboard(lv_obj_t *parent, int width, int height, int top, const KeyboardOptions &options) {
+  return plugin_host::keyboard_show(parent, width, height, top, options);
+}
+void hide_keyboard() { plugin_host::keyboard_hide(); }
+bool keyboard_shown() { return plugin_host::keyboard_is_shown(); }
 size_t turns_count() { return turns.size(); }
 }  // namespace tessera::ui
 namespace plugin_host {
