@@ -4709,7 +4709,11 @@
       "leave": "Togli {name} dalla selezione",
       "copy": "Copia",
       "hint": "{copy} copia i riquadri con tutte le loro impostazioni. Scegli una pagina o una cella, qui o su un altro schermo, e premi {paste}.",
-      "remove": "Rimuovi riquadro | Rimuovi {n} riquadri"
+      "remove": "Rimuovi riquadro | Rimuovi {n} riquadri",
+      "shared": {
+        "hint": "Una modifica qui vale per tutti i {n} riquadri.",
+        "mixed": "Diverso"
+      }
     },
     "menu": {
       "cut": "Taglia",

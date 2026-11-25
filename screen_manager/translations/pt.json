@@ -4709,7 +4709,11 @@
       "leave": "Retirar {name} da seleção",
       "copy": "Copiar",
       "hint": "{copy} copia os mosaicos com todas as definições. Escolha uma página ou uma célula, aqui ou noutro ecrã, e prima {paste}.",
-      "remove": "Remover mosaico | Remover {n} mosaicos"
+      "remove": "Remover mosaico | Remover {n} mosaicos",
+      "shared": {
+        "hint": "Uma alteração aqui vale para os {n} mosaicos.",
+        "mixed": "Diferente"
+      }
     },
     "menu": {
       "cut": "Cortar",

@@ -4709,7 +4709,11 @@
       "leave": "{name} kihagyása",
       "copy": "Másolás",
       "hint": "A(z) {copy} minden beállításukkal együtt másolja a csempéket. Válassz egy oldalt vagy cellát, itt vagy egy másik képernyőn, és nyomd meg a(z) {paste} billentyűt.",
-      "remove": "Csempe eltávolítása | {n} csempe eltávolítása"
+      "remove": "Csempe eltávolítása | {n} csempe eltávolítása",
+      "shared": {
+        "hint": "Az itteni módosítás mind a(z) {n} csempére érvényes.",
+        "mixed": "Eltérő"
+      }
     },
     "menu": {
       "cut": "Kivágás",

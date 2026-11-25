@@ -4709,7 +4709,11 @@
       "leave": "Leave {name} out",
       "copy": "Copy",
       "hint": "{copy} copies the tiles with every setting. Choose a page or a cell, here or on another screen, and press {paste}.",
-      "remove": "Remove tile | Remove {n} tiles"
+      "remove": "Remove tile | Remove {n} tiles",
+      "shared": {
+        "hint": "A change here is for all {n} tiles.",
+        "mixed": "Mixed"
+      }
     },
     "menu": {
       "cut": "Cut",

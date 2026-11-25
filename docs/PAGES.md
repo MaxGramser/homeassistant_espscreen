@@ -68,6 +68,16 @@ already there, and anything past the screen's tile limit or page limit are left 
 went on. Paste, cut and removing several tiles are each one undo step. The pasted tiles stay chosen, so they can be
 moved or pasted again at once.
 
+Under the list stand the settings the chosen tiles share (`web/src/editor/shared-settings.ts`,
+`web/src/components/inspector/SharedSettings.vue`), under the same headings as in one tile's inspector. A setting shows
+when every chosen tile offers it with the same choices: three blinds of the same kind share what a blind can be set to
+(its controls, what a tap does, the small slider), and a blind beside a lamp only what any tile has (the second line,
+the colour). A row shows the value the tiles all have, or the word Mixed where they differ, and a pick is written to
+every one of them as one step of undo. What belongs to one tile alone stays in its own inspector: its name, its entity,
+the page a link goes to, the action to perform, and what is of one entity (a favourite, a map, a calendar, a to-do
+list, a meter, a template, a light's presets). The conditions of a row are those of the tile inspector
+(`TileInspector.vue`): a row added there is added in `offersOf` too, or it is one tile's alone.
+
 Contextual help uses Floating Vue through `HelpTip.vue`: a small help icon beside a label, only where the
 words alone don't say it. Help icons work with keyboard focus, pointer hover and a tap; Escape or leaving the
 help closes it. Errors, compatibility notices and unsaved-change status remain visible.
