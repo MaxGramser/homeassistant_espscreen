@@ -305,5 +305,5 @@ const knob = (p: Preset) => { const c = p.k !== undefined ? kelvinRgb(p.k) : p.h
 .lp-options { display: grid; gap: 1px; max-height: 240px; overflow-y: auto; }
 .lp-option { width: 100%; text-align: left; }
 .lp-option[data-state="checked"] { font-weight: 600; }
-.lp-actions { display: flex; justify-content: space-between; gap: 6px; }
+.lp-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
 </style>

@@ -163,6 +163,26 @@ the pointer, so a page of many tiles carries one menu, not one per card.
   tile's size stays with the handles on its card.
 - The right mouse button is the mouse's alone. A finger held on a tile or a bar item drags it, so on a touch screen
   the ··· is the way to the menu.
+- Under a finger (`@media (pointer: coarse)` in `web/src/styles/app.css`) a menu's rows are 40 px tall and the menu
+  takes the room the window has before it scrolls.
+
+### What is open over the page
+
+What opens over the page stands apart from it, in the light look and the dark one:
+
+- A sheet, a dialog, a wizard and the search dim the page behind them with one colour, `--dim`
+  (`web/src/styles/tokens.css`). A new one uses that token and writes no colour of its own. A `<dialog>`'s backdrop
+  names a fallback beside it, since an older browser's backdrop does not read the page's tokens.
+- A popover (a menu, a list, a picker, a tip: `.ui-popover`) has no dim. It has a line around it, and in the dark look
+  its own greys a step lighter than what it opens over, set on `.ui-popover` so everything inside it reads them. It is
+  never wider than the window.
+- A toast shows above the phone's dock, and at the top of the window while a sheet is open, so it stays clear of the
+  sheet's keys. A sheet at its full height therefore starts 48 px from the top (`.app.phone .library`, `UiSheet`'s
+  `TOP`): the toast never lies on the sheet's head and the key that closes it. A tap on a toast's words sends it away.
+- The smallest keys (a tile's remove key, a switch, a help key) keep their look and get room around them that takes
+  the tap, under a finger. Such a key is the box its room is placed in (`position: relative` or `absolute`): the bot's
+  key in the phone's dock was not, and its ring, placed in the dock instead, took every tap meant for Add tile and
+  Save & send (docs/LAYOUTBOT.md, "On a phone").
 
 ## Home and detail pages
 

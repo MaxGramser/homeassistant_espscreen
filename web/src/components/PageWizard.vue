@@ -109,7 +109,7 @@ onMounted(() => dialog.value?.showModal());
 
 <style scoped>
 .page-wizard { width: 500px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow: auto; padding: 22px 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-.page-wizard::backdrop { background: rgb(10 12 18 / .45); }
+.page-wizard::backdrop { background: var(--dim, rgb(10 12 18 / .55)); }
 form { display: grid; gap: 18px; }
 header, footer { display: flex; align-items: center; gap: 10px; }
 header { justify-content: space-between; } h2 { margin: 0; font-size: 18px; }

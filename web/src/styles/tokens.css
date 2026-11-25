@@ -43,6 +43,9 @@
   --kind-page: #266df0;
   --kind-bar: #101112;
   --shadow: 0 12px 40px rgba(20, 24, 40, 0.12), 0 1px 2px rgba(20, 24, 40, 0.06);
+  /* What lies behind a sheet, a dialog, a wizard or the search is dimmed by this one colour, dark enough that what is
+     open stands apart from the page (it was a third of this, and in the dark look the page behind barely changed). */
+  --dim: rgba(10, 12, 18, 0.52);
   --code-bg: #f1f3f6;
   /* Layoutbot (components/LayoutBot.vue): its gradient, from the accent to violet, and the light of its sweep. */
   --bot-a: #266df0;
@@ -94,12 +97,18 @@
     --kind-page: #3f6fe0;
     --kind-bar: #000000;
     --shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --dim: rgba(0, 0, 0, 0.7);
     --code-bg: #161616;
     --bot-a: #4f7dff;
     --bot-b: #9d74ff;
     --bot-c: #4cc9f0;
     --pop-shadow: 0 16px 44px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.4);
   }
+}
+/* In the dark a shadow shows nothing, so a popover (a menu, a list, a picker, a tip) stands a step lighter than what it
+   opens over: its own greys, which everything inside it reads. */
+@media (prefers-color-scheme: dark) {
+  .ui-popover { --surface: #262626; --surface-2: #2c2c2c; --seg: #343434; --line: #3a3a3a; --line-strong: #4c4c4c; }
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar
    mockup and its cards write in the firmware's Roboto: 400 and 500, and 700 for a card's name. */

@@ -46,7 +46,7 @@ function cancel() { answer(question.value?.kind === "prompt" ? null : false); }
 </template>
 
 <style scoped>
-.confirm-dim { position: fixed; inset: 0; z-index: 90; background: rgba(10, 12, 18, 0.32); animation: confirm-fade 0.14s ease-out; }
+.confirm-dim { position: fixed; inset: 0; z-index: 90; background: var(--dim); animation: confirm-fade 0.14s ease-out; }
 .confirm { position: fixed; z-index: 91; left: 50%; top: 50%; translate: -50% -50%; width: min(400px, calc(100vw - 32px)); padding: 20px;
   display: grid; gap: 16px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px;
   box-shadow: var(--pop-shadow); animation: confirm-in 0.16s ease-out; }
