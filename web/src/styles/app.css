@@ -1919,6 +1919,9 @@ section.advanced code { font-size: 11.5px; }
 .update-hour { max-width: 220px; }
 .pd-misfit .pd-log { margin-top: 6px; }
 /* Firmware & USB: every build's log the add-on keeps on disk, newest first, each to download. */
+/* Firmware & USB keeps its rows at their own height. A row's minimum is 0 for a box that scrolls (the live log), so once
+   the kept logs made the page taller than the window the live log shrank to one line (GitHub #473). */
+#firmware-dialog { grid-auto-rows: max-content; }
 .kept-logs { display: grid; gap: 8px; margin-top: 16px; }
 .kept-logs h3 { font-size: 13px; font-weight: 600; }
 .kept-note { font-size: 12.5px; color: var(--muted); }
