@@ -4709,7 +4709,11 @@
       "leave": "{name} weglassen",
       "copy": "Kopieren",
       "hint": "{copy} kopiert die Kacheln mit allen Einstellungen. Wähle eine Seite oder ein Feld, hier oder auf einem anderen Bildschirm, und drücke {paste}.",
-      "remove": "Kachel entfernen | {n} Kacheln entfernen"
+      "remove": "Kachel entfernen | {n} Kacheln entfernen",
+      "shared": {
+        "hint": "Eine Änderung hier gilt für alle {n} Kacheln.",
+        "mixed": "Verschieden"
+      }
     },
     "menu": {
       "cut": "Ausschneiden",

@@ -45,3 +45,22 @@ browser (not the app); a screenshot (not a video) with Save visible. A tester wi
 
 web/src/components/ScreenView.vue (the dock), web/src/components/LayoutBot.vue and LayoutBotKey.vue, web/src/styles/app.css
 (`.phone-dock`), web/src/styles/tokens.css (`--safe-bottom`).
+
+## Solved
+
+2026-11-25, app 0.4.104 (5154c6cf), after a second report with a clearer video (GitHub #471). Layoutbot's key in the
+dock was `position: static`, so its ring (`.bot-ring`: absolute, inset -4px, opacity 0 until the bot thinks) was placed
+in the dock, the nearest box with a position, and lay over all of it. A tap on Add tile or Save & send hit the ring, a
+child of the bot's key, and opened the chat. A reporter's screenshot of the browser's inspector showed the ring's box
+over the bar.
+
+Why the check under "Ruled out" saw nothing: the local Home Assistant had no AI Task. A sleeping bot has
+`filter: saturate(.75)` (`.bot-fab.asleep`), and a filter makes an element the box its absolute children are placed in,
+so the ring stayed on the key. With an AI Task in the inventory, `elementsFromPoint` at Save's centre is the ring. None
+of the candidates above was it, and the safe area was never involved.
+
+The key is `position: relative` in the dock now, and the ring and the z take no tap. Measured in Chrome as a phone with
+touch points (412 x 800, an AI Task in the inventory): on 0.4.103 the ring is 420 x 86 at (-4, 718), and a tap on Add
+tile and on Save & send opens the chat and saves nothing; with the fix the ring is 58 x 58 on the key, Add tile opens
+the library and Save & send saves. `web/tests/layoutbot-phone.spec.ts` holds the rules, since jsdom lays nothing out,
+and docs/LAYOUTBOT.md ("On a phone") says how a key on a phone is checked.

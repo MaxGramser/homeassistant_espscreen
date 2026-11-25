@@ -79,7 +79,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
 </template>
 <style scoped>
 .navigation-preview { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow: auto; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; box-shadow: var(--shadow); }
-.navigation-preview::backdrop { background: rgb(10 12 18 / .5); }
+.navigation-preview::backdrop { background: var(--dim, rgb(10 12 18 / .55)); }
 .preview-heading b { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
 .preview-heading b .ui-icon { color: var(--accent); }
 .preview-heading, .preview-swipes { display: flex; justify-content: space-between; gap: 12px; align-items: center; }

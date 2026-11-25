@@ -4709,7 +4709,11 @@
       "leave": "Pomiń {name}",
       "copy": "Kopiuj",
       "hint": "{copy} kopiuje kafelki ze wszystkimi ustawieniami. Wybierz stronę lub komórkę, tutaj lub na innym ekranie, i naciśnij {paste}.",
-      "remove": "Usuń kafelek | Usuń {n} kafelki | Usuń {n} kafelków"
+      "remove": "Usuń kafelek | Usuń {n} kafelki | Usuń {n} kafelków",
+      "shared": {
+        "hint": "Zmiana tutaj dotyczy wszystkich {n} kafelków.",
+        "mixed": "Różne"
+      }
     },
     "menu": {
       "cut": "Wytnij",

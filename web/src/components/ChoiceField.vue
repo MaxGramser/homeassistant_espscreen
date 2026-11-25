@@ -3,6 +3,7 @@
 // a field with the current one, whose list opens under it. Either way, the choice the pointer rests on (or the
 // keyboard is on) is drawn on the tile in the pages before it is picked, so what a setting does shows on the card
 // instead of in words. `previewKey` is the tile option it previews; `sample` turns a choice into that option's value.
+// `placeholder` stands in the field while the value is none of the choices (several tiles that differ in it).
 import { computed, onBeforeUnmount, ref } from "vue";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import type { Tile } from "../types";
@@ -13,16 +14,18 @@ const insp = useInspectorStore();
 
 const props = defineProps<{
   choices: readonly (readonly [unknown, string])[]; value: unknown; disabled?: boolean; shapes?: Record<string, [number, number]>;
-  tile?: Tile; previewKey?: string; sample?: (value: any) => unknown; id?: string; ariaLabel?: string;
+  tile?: Tile; previewKey?: string; sample?: (value: any) => unknown; id?: string; ariaLabel?: string; placeholder?: string;
 }>();
 const emit = defineEmits<{ (e: "pick", value: any): void }>();
-// Side by side while they fit the column: three short words, or two longer ones.
+const currentText = computed(() => props.choices.find(([key]) => String(key) === String(props.value))?.[1] ?? "");
+// Side by side while they fit the column: three short words, or two longer ones. A value that is none of them needs the
+// field, which has room to say so.
 const inline = computed(() => {
+  if (props.placeholder && !currentText.value) return false;
   const words = props.choices.reduce((sum, [, text]) => sum + text.length, 0);
   return props.choices.length <= 2 ? words <= 18 : props.choices.length <= 3 && words <= 12;
 });
 const open = ref(false);
-const currentText = computed(() => props.choices.find(([key]) => String(key) === String(props.value))?.[1] ?? "");
 function show(key: unknown) {
   if (!props.tile?.id || !props.previewKey || String(key) === String(props.value)) { hide(); return; }
   insp.optionPreview = { tileId: props.tile.id, key: props.previewKey, value: props.sample ? props.sample(key) : key };
@@ -52,9 +55,9 @@ const shapeStyle = (key: unknown) => {
   </div>
   <PopoverRoot v-else :open="open" @update:open="onOpen">
     <PopoverTrigger as-child>
-      <button :id="id" type="button" class="choice-field" :disabled="disabled" :aria-label="ariaLabel ? `${ariaLabel}: ${currentText}` : undefined">
+      <button :id="id" type="button" class="choice-field" :disabled="disabled" :aria-label="ariaLabel ? `${ariaLabel}: ${currentText || placeholder || ''}` : undefined">
         <i v-if="shapes?.[String(value)]" class="seg-shape" :class="{ whole: String(value) === 'full' }" aria-hidden="true" :style="shapeStyle(value)"></i>
-        <span class="choice-text">{{ currentText }}</span>
+        <span class="choice-text" :class="{ unset: !currentText }">{{ currentText || placeholder }}</span>
         <Icon name="chevron-down" />
       </button>
     </PopoverTrigger>

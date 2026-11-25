@@ -68,6 +68,16 @@ already there, and anything past the screen's tile limit or page limit are left 
 went on. Paste, cut and removing several tiles are each one undo step. The pasted tiles stay chosen, so they can be
 moved or pasted again at once.
 
+Under the list stand the settings the chosen tiles share (`web/src/editor/shared-settings.ts`,
+`web/src/components/inspector/SharedSettings.vue`), under the same headings as in one tile's inspector. A setting shows
+when every chosen tile offers it with the same choices: three blinds of the same kind share what a blind can be set to
+(its controls, what a tap does, the small slider), and a blind beside a lamp only what any tile has (the second line,
+the colour). A row shows the value the tiles all have, or the word Mixed where they differ, and a pick is written to
+every one of them as one step of undo. What belongs to one tile alone stays in its own inspector: its name, its entity,
+the page a link goes to, the action to perform, and what is of one entity (a favourite, a map, a calendar, a to-do
+list, a meter, a template, a light's presets). The conditions of a row are those of the tile inspector
+(`TileInspector.vue`): a row added there is added in `offersOf` too, or it is one tile's alone.
+
 Contextual help uses Floating Vue through `HelpTip.vue`: a small help icon beside a label, only where the
 words alone don't say it. Help icons work with keyboard focus, pointer hover and a tap; Escape or leaving the
 help closes it. Errors, compatibility notices and unsaved-change status remain visible.
@@ -163,6 +173,26 @@ the pointer, so a page of many tiles carries one menu, not one per card.
   tile's size stays with the handles on its card.
 - The right mouse button is the mouse's alone. A finger held on a tile or a bar item drags it, so on a touch screen
   the ··· is the way to the menu.
+- Under a finger (`@media (pointer: coarse)` in `web/src/styles/app.css`) a menu's rows are 40 px tall and the menu
+  takes the room the window has before it scrolls.
+
+### What is open over the page
+
+What opens over the page stands apart from it, in the light look and the dark one:
+
+- A sheet, a dialog, a wizard and the search dim the page behind them with one colour, `--dim`
+  (`web/src/styles/tokens.css`). A new one uses that token and writes no colour of its own. A `<dialog>`'s backdrop
+  names a fallback beside it, since an older browser's backdrop does not read the page's tokens.
+- A popover (a menu, a list, a picker, a tip: `.ui-popover`) has no dim. It has a line around it, and in the dark look
+  its own greys a step lighter than what it opens over, set on `.ui-popover` so everything inside it reads them. It is
+  never wider than the window.
+- A toast shows above the phone's dock, and at the top of the window while a sheet is open, so it stays clear of the
+  sheet's keys. A sheet at its full height therefore starts 48 px from the top (`.app.phone .library`, `UiSheet`'s
+  `TOP`): the toast never lies on the sheet's head and the key that closes it. A tap on a toast's words sends it away.
+- The smallest keys (a tile's remove key, a switch, a help key) keep their look and get room around them that takes
+  the tap, under a finger. Such a key is the box its room is placed in (`position: relative` or `absolute`): the bot's
+  key in the phone's dock was not, and its ring, placed in the dock instead, took every tap meant for Add tile and
+  Save & send (docs/LAYOUTBOT.md, "On a phone").
 
 ## Home and detail pages
 

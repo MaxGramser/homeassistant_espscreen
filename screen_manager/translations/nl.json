@@ -4709,7 +4709,11 @@
       "leave": "{name} weglaten",
       "copy": "Kopiëren",
       "hint": "{copy} kopieert de tegels met al hun instellingen. Kies een pagina of een cel, hier of op een ander scherm, en druk op {paste}.",
-      "remove": "Tegel verwijderen | {n} tegels verwijderen"
+      "remove": "Tegel verwijderen | {n} tegels verwijderen",
+      "shared": {
+        "hint": "Een wijziging hier geldt voor alle {n} tegels.",
+        "mixed": "Verschillend"
+      }
     },
     "menu": {
       "cut": "Knippen",

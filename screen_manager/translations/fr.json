@@ -4709,7 +4709,11 @@
       "leave": "Retirer {name} de la sélection",
       "copy": "Copier",
       "hint": "{copy} copie les tuiles avec tous leurs réglages. Choisissez une page ou une case, ici ou sur un autre écran, et appuyez sur {paste}.",
-      "remove": "Retirer la tuile | Retirer {n} tuiles"
+      "remove": "Retirer la tuile | Retirer {n} tuiles",
+      "shared": {
+        "hint": "Un changement ici vaut pour les {n} tuiles.",
+        "mixed": "Différent"
+      }
     },
     "menu": {
       "cut": "Couper",

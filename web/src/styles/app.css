@@ -1205,7 +1205,7 @@ td code { white-space: nowrap; }
 .log-lines { max-height: 160px; font-size: 11px; }
 
 /* Command palette */
-.palette-backdrop { position: fixed; inset: 0; background: rgba(10, 12, 18, 0.28); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
+.palette-backdrop { position: fixed; inset: 0; background: var(--dim); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
 .palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; animation: pop-in 0.14s ease-out; }
 .palette input { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; font-size: 15px; background: transparent; }
 /* The open palette is the focus itself: its field needs no ring of its own. */
@@ -1269,7 +1269,11 @@ td code { white-space: nowrap; }
 .key-more[open] > .key-box, .key-more[open] > .btn { margin-top: 6px; }
 
 /* ---- Menus, lists and popovers (Reka UI, app 0.3.19) ---- */
-.ui-popover { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--pop-shadow); padding: 5px; z-index: 80; color: var(--ink); font-size: 13px; animation: pop-in 0.12s ease-out; }
+/* A popover has a line around it that shows on any ground (and in the dark its own, lighter greys: tokens.css).
+   No popover is wider than the window: one that takes its width from its words (a light preset's, in a language with
+   long ones) stood past the edge of a phone 360 px wide, its last key cut. */
+.ui-popover { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--pop-shadow); padding: 5px; z-index: 80; color: var(--ink); font-size: 13px; animation: pop-in 0.12s ease-out;
+  max-width: calc(100vw - 16px); }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-3px) scale(0.98); } to { opacity: 1; transform: none; } }
 .ui-menu { min-width: 220px; max-width: min(340px, calc(100vw - 16px)); max-height: min(420px, var(--reka-dropdown-menu-content-available-height, 70vh)); overflow-y: auto; overscroll-behavior: contain; }
 /* A pick from a list that can run long (UiPicker): a search field, the list under it scrolls in the window. */
@@ -1622,8 +1626,23 @@ section.advanced code { font-size: 11.5px; }
 /* With a sheet open the word goes to the top, clear of the sheet's buttons. */
 .app.phone:has(.drawer, .library.open, .phone-sheet) .toast, body:has(.ui-sheet) .app.phone .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
 
+/* ---- A finger (a pointer that is coarse: a phone, a tablet) ----
+   The smallest keys keep their look and get room around them that takes the tap: a key of 22 px is half of what a thumb
+   hits. Each of these keys is the box its room is placed in (LayoutBotKey.vue tells what happens when a key is not: its
+   ring lay over the whole dock), and the room stays inside the gap to the key's neighbours. */
+@media (pointer: coarse) {
+  .tile .remove::after, .round-tile .remove::after, .ui-switch::after, .switch::before, .help-trigger:not(.help-label)::after { content: ""; position: absolute; }
+  .tile .remove::after, .round-tile .remove::after { inset: -9px; }
+  .ui-switch::after, .switch::before { inset: -10px -6px; }
+  .help-trigger:not(.help-label) { position: relative; }
+  .help-trigger:not(.help-label)::after { inset: -8px; }
+  /* A menu's rows are a finger tall, and the menu takes the room the window has before it scrolls. */
+  .ui-menu-item { min-height: 40px; }
+  .ui-menu { max-height: var(--reka-dropdown-menu-content-available-height, 80vh); }
+}
+
 /* Sheets: from the bottom, over a dimmed page; a tap on the dim closes them. */
-.sheet-dim { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 18, 0.32); }
+.sheet-dim { position: fixed; inset: 0; z-index: 40; background: var(--dim); }
 .dim-enter-active, .dim-leave-active { transition: opacity 0.22s; }
 .dim-enter-from, .dim-leave-to { opacity: 0; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
@@ -1634,7 +1653,7 @@ section.advanced code { font-size: 11.5px; }
 .sheet-title small { font-size: 13px; color: var(--muted); }
 .sheet-close { width: 30px; height: 30px; border-radius: 50%; background: var(--seg); }
 .app.phone .library { position: fixed; left: 0; right: 0; bottom: 0; top: 48px; z-index: 41; border-top: 0; border-radius: 18px 18px 0 0; background: var(--ground);
-  box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
+  box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
 .app.phone .library::before { content: ""; position: absolute; top: 7px; left: 50%; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: var(--line-strong); }
 .app.phone .library:not(.open) { transform: translateY(102%); visibility: hidden; box-shadow: none; transition: transform 0.24s ease-in, visibility 0s 0.24s; }
 .app.phone .lib-head { height: auto; padding: 6px 16px 0; }
@@ -1666,7 +1685,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .ent:disabled { opacity: 0.55; }
 
 /* A tile's settings: a sheet that leaves the page above it in sight, taller once More settings is open. */
-.app.phone .drawer { position: fixed; inset: auto 0 0 0; width: auto; max-height: 66vh; z-index: 41; border-left: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); }
+.app.phone .drawer { position: fixed; inset: auto 0 0 0; width: auto; max-height: 66vh; z-index: 41; border-left: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); }
 .app.phone .drawer:not(:has(.phone-more)) { max-height: 88vh; }
 .app.phone .drawer-inner { width: 100%; max-width: none; }
 .app.phone .drawer-enter-from, .app.phone .drawer-leave-to { width: auto; opacity: 1; transform: translateY(100%); }
@@ -1690,7 +1709,7 @@ section.advanced code { font-size: 11.5px; }
 
 /* The pages of a screen. */
 .phone-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 84vh; display: flex; flex-direction: column; background: var(--ground);
-  border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + var(--safe-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  border-radius: 18px 18px 0 0; box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + var(--safe-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .sheet-list { list-style: none; margin: 8px 16px 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: auto; }
 .sheet-list li { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 6px; background: var(--surface); transition: transform 0.15s; }
 .sheet-list li.carried { transition: none; }

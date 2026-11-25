@@ -4,6 +4,8 @@
 // keyboard: while one is up the sheet stands on it and takes the room above it (the visual viewport), so a field in it
 // stays in sight. `low` lets it rest at a lower height, so more of the page shows; a tap on the grab gives it the other
 // height, and another gives it back. A field in it is 16 px or more, so focusing it never zooms the page.
+// At its full height it leaves the top of the window free, as Add tile's sheet does: a toast goes there while a sheet is
+// open (app.css, `.app.phone .toast`), so it never lies on the sheet's head and the key that closes it.
 // It lies above the phone's dock (25) and its other sheets (41), below a picker or menu (.ui-popover, 80), a toast (85)
 // and a confirm (90).
 // Layoutbot's chat is its first user; the phone's other sheets, still built by hand, are its next (docs/LAYOUTBOT.md).
@@ -15,6 +17,8 @@ import { t } from "../../i18n";
 const props = defineProps<{ open: boolean; title: string; low?: boolean }>();
 const emit = defineEmits<{ "update:open": [open: boolean] }>();
 
+// What a sheet at its full height leaves free at the top, the `top` of `.app.phone .library` in app.css: the toast's place.
+const TOP = 48;
 // What the keyboard covers of the window's bottom, and the room left above it.
 const covered = ref(0), room = ref(window.innerHeight);
 function measure() {
@@ -36,7 +40,7 @@ watch(() => props.low, () => { flipped.value = false; });
 const resting = computed(() => props.low !== flipped.value && !typing.value);
 const style = computed(() => ({
   bottom: `${covered.value}px`,
-  maxHeight: `${Math.round(resting.value ? Math.min(room.value * 0.46, 420) : room.value - 12)}px`,
+  maxHeight: `${Math.round(resting.value ? Math.min(room.value * 0.46, 420) : room.value - TOP)}px`,
 }));
 </script>
 

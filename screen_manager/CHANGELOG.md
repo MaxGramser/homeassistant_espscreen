@@ -1,3 +1,15 @@
+## 0.4.104 (firmware 0.64.0)
+
+- **Save & send and Add tile work on a phone again.** With an AI connected for Layoutbot, a tap anywhere in the bar at the bottom of the phone editor opened Layoutbot's chat instead: an invisible part of its key lay over the whole bar. Each key in the bar is its own again. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471), [#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
+
+- **A message no longer keeps Layoutbot's chat open on a phone.** A message such as "Settings added" with Undo lay over the key that closes the chat for as long as it showed. The chat now starts under the place of such a message, and a tap on a message sends it away. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471))
+
+- **Set several tiles at once.** Choose tiles together (⌘ or Shift and a click, or drag a band over them) and the panel on the right now shows the settings they share: what a tap does, the controls on the tile, the small slider, the second line, the icon and the colour. One pick sets it on all of them and is one step of undo; where the tiles differ it says Mixed. Three blinds of the same kind share everything a blind can be set to, and tiles of different kinds what every tile has.
+
+- **What is open stands apart from the page.** The page behind a sheet, a dialog or a wizard is dimmed more, and in the dark look a menu or a list is a step lighter than what it opens over, with a line around it. The page behind barely changed before, most of all in the dark look.
+
+- **Easier under a finger.** On a phone or a tablet a menu's rows are taller and the menu uses the room it has, and the small keys (the cross on a tile, a switch, a help key) take a tap around them too. A light preset's panel no longer runs past the edge of a narrow phone.
+
 ## 0.4.103 (firmware 0.64.0)
 
 - **A plugin's times are right whatever time zone the app's machine is in.** A time that a web service or an entity gives without a time zone (a departure at 17:25, the start of a collection) was read in the zone of the machine the app runs on, not in your Home Assistant's. Where those differ (the app in a container that stands in UTC, a home in another zone than its host), a plugin's tile showed such times off by the difference, and so did the plugins' examples in the library. They are read in Home Assistant's time zone now, as the plugins' documentation says; a plugin that names a zone of its own for a time keeps it.

@@ -53,7 +53,7 @@ const go = (step: number) => emit("update:step", Math.max(1, Math.min(props.step
 </template>
 
 <style scoped>
-.wizard-dim { position: fixed; inset: 0; z-index: 74; background: rgba(10, 12, 18, 0.36); animation: wizard-fade 0.14s ease-out; }
+.wizard-dim { position: fixed; inset: 0; z-index: 74; background: var(--dim); animation: wizard-fade 0.14s ease-out; }
 .wizard { position: fixed; z-index: 75; left: 50%; top: 50%; translate: -50% -50%; width: min(680px, calc(100vw - 32px)); height: min(640px, calc(100vh - 48px));
   display: grid; grid-template-rows: auto auto 1fr auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px;
   box-shadow: var(--pop-shadow); animation: wizard-in 0.16s ease-out; overflow: hidden; }
