@@ -13,9 +13,9 @@ been checked yet (see "What to report while testing" below).
 - **Hardware revision V1.1 or V1.2.** From V1.1 on, Elecrow runs the Wi-Fi link's data lines the other way round
   (D0 on GPIO17 to D3 on GPIO14), and this board file follows that. A V1.0 board has them on GPIO14 to GPIO17 and does
   not get Wi-Fi with this file. The revision is printed on the back of the board.
-- **An ESP32-P4 before silicon revision 3.** The firmware is built for the earlier silicon (`engineering_sample: true`,
-  360 MHz), as Elecrow's own example is. A board with rev3 silicon does not boot it, and a successful flash over USB
-  does not mean otherwise. The chip revision is in the first lines of the USB log ("chip revision: v1.3").
+- **An ESP32-P4 before silicon revision 3**, as Elecrow's own example is ("chip revision: v1.3" in the first lines of
+  the USB log). Tessera reads the chip when it installs a screen and builds for the revision it finds ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)), so a
+  board with rev3 silicon gets a firmware for that, but nobody has run this board on rev3 yet.
 
 ## Install
 

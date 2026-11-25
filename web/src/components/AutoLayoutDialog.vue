@@ -104,7 +104,7 @@ onMounted(() => { dialog.value?.showModal(); propose(); });
 
 <style scoped>
 .auto-layout { width: 760px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow: auto; padding: 22px 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
-.auto-layout::backdrop { background: rgb(10 12 18 / .45); }
+.auto-layout::backdrop { background: var(--dim, rgb(10 12 18 / .55)); }
 header { display: flex; align-items: center; gap: 10px; }
 header h2 { margin: 0; font-size: 18px; flex: 1; }
 .auto-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 18px; }

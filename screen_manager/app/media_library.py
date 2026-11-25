@@ -241,7 +241,7 @@ def item_of(raw):
     if isinstance(thumbnail, str) and thumbnail.startswith('/'):
         # Home Assistant's own proxy for a player's library (Sonos, Music Assistant): this app fetches it with its own
         # token, so a signature in the address is left out and never stored or shown.
-        thumbnail = re.sub(r'[?&](token|authSig)=[^&]*', '', thumbnail)
+        thumbnail = core.unsigned(thumbnail)
     return {'title': title, 'id': content_id, 'type': content_type, 'play': play, 'expand': expand,
             'thumb': thumbnail if isinstance(thumbnail, str) and thumbnail else None, 'icon': icon_of(raw),
             'class': raw.get('media_class') if isinstance(raw.get('media_class'), str) else '',

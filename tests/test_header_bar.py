@@ -408,7 +408,7 @@ class ParityTests(unittest.TestCase):
     def test_second_hand_runs_only_while_the_screen_is_awake(self):
         for name in PROFILES:
             text = profiles.text(name)
-            self.assertIn('runtime_tiles::screen_awake = []() { return !id(display_dimmed); };', text, name)
+            self.assertIn('runtime_tiles::screen_awake = []() { return !screen_standby::the().in_standby(); };', text, name)
         for name in ('packages/cyd.yaml', 'packages/guition.yaml'):
             self.assertIn('runtime_tiles::screen_awake', profiles.text(name), name)
         self.assertIn('inline bool awake() { return !screen_awake || screen_awake(); }', TILES)

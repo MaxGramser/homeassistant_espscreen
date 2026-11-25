@@ -5,7 +5,8 @@ packages:
   core: !include esp32p4-core.yaml
 
 esp32:
-  board: esp32-p4-evboard
+  # Espressif's function EV board, by the chip revision (hardware/esp32p4-core.yaml, docs/CHIP_REVISIONS.md).
+  board: ${P4_EV_BOARD}
   flash_size: 16MB
 
 # The MIPI PHY's supply, not adjustable so the camera's MIPI-CSI can share it (hardware/esp32p4-c6.yaml says why).
@@ -139,3 +140,6 @@ output:
     pin: GPIO22
     id: gpio_backlight_pwm
     channel: 2
+    frequency: ${BACKLIGHT_FREQUENCY}
+    # 0 % is off: no pulse at all, where the dimmest duty left the backlight lit (GitHub #442).
+    zero_means_zero: true

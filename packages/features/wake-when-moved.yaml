@@ -1,0 +1,96 @@
+# ESP Screens - Wake when moved: a motion sensor on the board wakes the screen from standby when the board is picked
+# up, tilted, turned or knocked. It feels the board itself, not someone walking past (that is a camera's or a presence
+# sensor's job). The detector is components/smart_display/moved.h, with its thresholds and tests/test_moved.cpp.
+#
+# The board names its motion sensor `board_motion` (ESPHome's `motion` component, with an accelerometer and a
+# gyroscope) and reads it ten times a second, ESPHome's own advice for motion; this file hands every reading to the
+# detector. A board lists `wake_when_moved` in its boards.yaml `settings` and pushes the switch's row in its
+# BOOT_BOARD_SETTINGS, so it shows under Extras (docs/SETTINGS.md, "A board's own settings").
+#
+# A wake from here is sensed: after a standby by hand it waits until the board lay still for a while (screen_standby.h,
+# the core's script wake_from), so putting the board down after pressing its key does not light it again.
+
+switch:
+  # Off at first, kept over a restart; the same switch in Home Assistant, in the app and on the screen's settings page.
+  - platform: template
+    id: board_wake_when_moved
+    name: "Wake when moved"
+    icon: "mdi:gesture-swipe"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+# Every reading of every axis goes to the detector; none of them is ever published.
+sensor:
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_x
+    id: board_acceleration_x
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::ACCELERATION, 0, x, millis())) id(board_moved).execute(); return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_y
+    id: board_acceleration_y
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::ACCELERATION, 1, x, millis())) id(board_moved).execute(); return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: acceleration_z
+    id: board_acceleration_z
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::ACCELERATION, 2, x, millis())) id(board_moved).execute(); return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_x
+    id: board_gyroscope_x
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::TURNING, 0, x, millis())) id(board_moved).execute(); return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_y
+    id: board_gyroscope_y
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::TURNING, 1, x, millis())) id(board_moved).execute(); return {};'
+  - platform: motion
+    motion_id: board_motion
+    type: gyroscope_z
+    id: board_gyroscope_z
+    internal: true
+    filters:
+      - lambda: 'if (moved::the().feel(moved::TURNING, 2, x, millis())) id(board_moved).execute(); return {};'
+
+# The board moved (at most once in moved::REPEAT_MS): a sensed wake when Wake when moved is on and the screen is in
+# standby. The log names the axis and how far it left its resting value, also while the screen is lit: at INFO, the
+# firmware's level, so a board that wakes by itself shows why.
+script:
+  - id: board_moved
+    then:
+      - lambda: |-
+          const auto &d = moved::the();
+          ESP_LOGI("moved", "the board moved: %s %c by %.3f %s", d.last_kind() == moved::ACCELERATION ? "acceleration" : "turning",
+                   "xyz"[d.last_axis()], d.last_away(), d.last_kind() == moved::ACCELERATION ? "g" : "degrees a second");
+      - if:
+          condition:
+            lambda: 'return id(board_wake_when_moved).state && screen_standby::the().in_standby();'
+          then:
+            - script.execute:
+                id: wake_from
+                source: "the board moved"
+                sensed: true
+
+# With Debug mode on, once a second: the largest departure from rest of any axis in that second, the measurement the
+# thresholds in moved.h come from (a board lying still, then picked up as gently as a person does).
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          auto &d = moved::the();
+          float acceleration = d.take_largest(moved::ACCELERATION), turning = d.take_largest(moved::TURNING);
+          if (settings_screen::debug_mode)
+            ESP_LOGI("moved", "largest in the last second: %.4f g, %.2f degrees a second", acceleration, turning);

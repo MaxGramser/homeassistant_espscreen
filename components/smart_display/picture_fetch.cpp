@@ -9,6 +9,7 @@
 // is told about the new size by the slot's `done`, as it always was.
 #include "picture_fetch.h"
 #include "picture_engine.h"
+#include "picture_store.h"
 // Only a board with pictures builds this (SCREEN_PICTURES, packages/features/camera.yaml): the CYD keeps its flash.
 #ifdef SCREEN_PICTURES
 #include "esphome/core/hal.h"
@@ -112,7 +113,7 @@ static void download(Slot &slot) {
   Head answer;
   size_t body = 0;
   Decoder decoder([&](int width, int height) -> uint16_t * {
-    const size_t needed = static_cast<size_t>(width) * height * 2;
+    const size_t needed = picture_store::bytes_of(width, height);  // what the store books for it
     // In place, the size on the glass (rows without the padding a JPEG's whole MCUs leave).
     if (slot.pixels && slot.bytes == needed && slot.dsc.header.stride == static_cast<uint32_t>(width) * 2) return slot.pixels;
     slot.fresh = static_cast<uint16_t *>(roomy::allocate(needed));

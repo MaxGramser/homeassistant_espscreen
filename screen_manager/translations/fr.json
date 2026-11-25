@@ -158,6 +158,7 @@
       "extras": "Extras",
       "microphone": "Microphone",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Réveil au mouvement",
       "backlight_pwm": "PWM du rétroéclairage",
       "dimmest_level": "Niveau le plus bas",
@@ -712,6 +713,7 @@
       "not_paired": "Ce n'est pas un écran ESP associé. Actualisez la vue d'ensemble.",
       "choose_icon": "Choisissez une icône dans la liste.",
       "skill_not_written": "Impossible d'écrire la compétence dans {folder} ({reason}).",
+      "skill_no_home_assistant": "Le skill ne peut pas être installé d'ici : {folder} n'est pas le dossier de configuration de Home Assistant. Téléchargez-le plutôt pour claude.ai.",
       "settings": {
         "unknown": "Paramètres d'écran inconnus ; actualisez la page de gestion.",
         "invalid_value": "Valeur non valide pour {setting}.",
@@ -866,7 +868,10 @@
         "unknown_action": "Action de firmware inconnue.",
         "host": "Saisissez l'adresse IP ou le nom d'hôte de l'écran voulu.",
         "grid": "Choisissez une grille que cet écran accepte.",
-        "build_gone": "Cette compilation n'est plus connue. Les plus récentes sont sous Firmware et USB."
+        "build_gone": "Cette compilation n'est plus connue. Les plus récentes sont sous Firmware et USB.",
+        "log_gone": "Ce journal de compilation n'est plus conservé.",
+        "friendly_name_quote": "Le nom d'un écran ne peut pas contenir \" ni \\. Écris 4 pouces comme 4in, par exemple.",
+        "chip_revision": "La révision de la puce doit être un nombre entier, comme 302 pour v3.2."
       },
       "updates": {
         "automatic": "Choisissez activé ou désactivé pour les mises à jour automatiques.",
@@ -880,7 +885,8 @@
         "all_updated": "Tous les écrans joignables sont déjà à jour.",
         "reinstall_dev": "Réinstaller le même firmware n'est possible que sur le canal dev.",
         "all_on_the_way": "Chaque écran ayant une mise à jour l'a déjà en route.",
-        "nothing_to_reinstall": "Aucun écran ne peut être réinstallé maintenant : chacun est hors ligne, déjà en route ou sans profil dans cette app."
+        "nothing_to_reinstall": "Aucun écran ne peut être réinstallé maintenant : chacun est hors ligne, déjà en route ou sans profil dans cette app.",
+        "hour": "Choisis une heure de 0 à 23."
       },
       "remove": {
         "not_allowed": "Cette application ne peut pas supprimer une intégration de Home Assistant. Retirez l'écran dans Home Assistant même, sous Paramètres → Appareils et services.",
@@ -923,7 +929,7 @@
         "workspace_position": "Position invalide sur la carte",
         "workspace_conflict": "La carte a été modifiée dans un autre éditeur",
         "layout_conflict": "La disposition a été modifiée dans un autre éditeur ; rechargez et vérifiez le brouillon",
-        "adaptation": "La grille de l’écran a changé ; une adaptation explicite de la disposition est nécessaire",
+        "adaptation": "Ce changement de grille n'a pas pu être enregistré. Enregistrez l'écran une fois avec sa grille actuelle, puis changez la grille. Si quelqu'un a enregistré cet écran entre-temps dans une autre fenêtre, rechargez-le d'abord.",
         "normalization": "Les options des tuiles doivent être normalisées avant d’enregistrer la page",
         "on_tile": "Page {page}, tuile « {tile} » : {problem}",
         "ambiguous_tile": "La source de l’événement de tuile est ambiguë ; précisez sa page",
@@ -989,7 +995,8 @@
         "rate_not_installed": "Mettez d'abord le plugin sur un de vos écrans, vous pourrez ensuite le noter.",
         "rate_failed": "Les étoiles ne sont pas parties. Réessayez dans un instant.",
         "count_failed": "Le comptage n'a pas pu être désactivé : Tessera était injoignable. Réessayez dans un instant.",
-        "forget_running": "Un écran utilise encore ce plugin. Retirez-le d'abord de l'écran."
+        "forget_running": "Un écran utilise encore ce plugin. Retirez-le d'abord de l'écran.",
+        "no_before": "Il n'y a pas de version précédente de ce plugin à laquelle revenir."
       },
       "extras": {
         "request": "Ce changement d’un extra n’est pas possible sur cet écran."
@@ -1017,7 +1024,8 @@
       },
       "video": {
         "not_written": "Tessera video n'a pas pu être écrite dans {folder} : {reason}.",
-        "not_installed": "Installez d'abord Tessera video."
+        "not_installed": "Installez d'abord Tessera video.",
+        "no_home_assistant": "Tessera vidéo ne peut pas être installé d'ici : {folder} n'est pas le dossier de configuration de Home Assistant. Téléchargez l'intégration et décompressez-la là-bas."
       },
       "report": {
         "depth": "Choisissez le rapport de base ou le rapport complet.",
@@ -1055,6 +1063,9 @@
         "none": "Cet écran ne joue aucun son pour cela. Choisissez-en un d'abord.",
         "older": "Cet écran a besoin d'une mise à jour du firmware pour cela.",
         "busy": "Cet écran est en appel en ce moment."
+      },
+      "steps": {
+        "request": "Cette étape n'existe pas sur cet écran."
       }
     },
     "status": {
@@ -1086,10 +1097,15 @@
       "build_memory_limit": "Pas assez de mémoire pour compiler le firmware, même avec un compilateur à la fois. Arrête quelques modules un moment ou donne plus de mémoire à la machine ; voir Firmware et USB.",
       "no_report": "L'écran n'est pas revenu avec le firmware {version} ; vérifiez l'écran.",
       "dropped_off": "L'écran s'est déconnecté après la mise à jour ; vérifiez l'écran.",
-      "updated": "Mis à jour vers le firmware {version}."
+      "updated": "Mis à jour vers le firmware {version}.",
+      "round_stopped": "Pas mis à jour : un écran plus tôt dans la tournée n'a pas passé son contrôle, la tournée s'est donc arrêtée."
     },
     "notify": {
-      "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés."
+      "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés.",
+      "plugin_failed": "{names} ne s'est pas compilé sur {screen} : {reason} L'écran garde ce qu'il avait. Ouvre Tessera, puis l'onglet Plugins de l'écran pour la raison et le journal.",
+      "updates": "Des mises à jour sont prêtes pour tes écrans. Ouvre Tessera pour les installer.",
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} est compilé pour {screen}, mais {screen} n'était pas joignable. Il s'installe tout seul dès que l'écran revient."
     },
     "labels": {
       "built_into_screen": "Intégré à l'écran",
@@ -1286,6 +1302,10 @@
         "echo_cancellation": {
           "label": "Annulation d'écho",
           "hint": "Réduit le son du haut-parleur de l'écran dans le signal du microphone. Désactivée, l'annulation est contournée ; le microphone et le duplex intégral restent actifs. Nécessite le chemin audio AEC."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Le niveau sonore du buzzer : le carillon de la sonnette, les sons des alertes et les sons d'un plugin. L'écran le conserve après un redémarrage."
         }
       }
     },
@@ -1812,7 +1832,11 @@
         "kept": "{name} a été retiré. Son profil {file} est encore dans le dossier ESPHome."
       },
       "home": "Aperçu de vos écrans",
-      "dev_chip": "C'est la version dev de l'app : chaque écran qu'elle compile vient de la branche dev."
+      "dev_chip": "C'est la version dev de l'app : chaque écran qu'elle compile vient de la branche dev.",
+      "plugins": {
+        "failed": "Un plugin ne s'est pas compilé",
+        "updates": "{n} mise à jour de plugin | {n} mises à jour de plugins"
+      }
     },
     "palette": {
       "groups": {
@@ -2045,7 +2069,22 @@
       "hint": "Faites glisser sur une page, ou appuyez sur + pour ajouter au premier emplacement libre. ⌘K recherche partout.",
       "resize": "Faites glisser pour redimensionner la bibliothèque",
       "filter_label": "Filtrer par type",
-      "no_room": "Sans pièce"
+      "no_room": "Sans pièce",
+      "tiles": {
+        "view": "Comment la bibliothèque montre les entités",
+        "tiles": "Tuiles",
+        "list": "Liste",
+        "tiles_title": "Montrer chaque entité sous forme des tuiles qu'elle peut être, à leurs tailles",
+        "list_title": "Montrer les entités sous forme de liste",
+        "placed": "Sur cet écran",
+        "add_size": "Ajouter {name} comme tuile de {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extras",
+        "config": "Paramètres",
+        "diagnostic": "Diagnostic",
+        "hidden": "Masquée dans Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugins",
@@ -2075,7 +2114,8 @@
         "failed": "Échec de la compilation",
         "not_running": "Ne s'exécute pas sur l'écran",
         "queued": "Attend son tour",
-        "runs_other": "La version {version} tourne sur l'écran"
+        "runs_other": "La version {version} tourne sur l'écran",
+        "update_failed": "Échec de la mise à jour {version}"
       },
       "source": {
         "link": "Depuis un lien",
@@ -2206,8 +2246,6 @@
         "here": "Sur cet écran",
         "add": "Ajouter",
         "misfits": "Ne convient pas à cet écran ({n}) | Ne conviennent pas à cet écran ({n})",
-        "updates": "Une mise à jour pour {n} plugin | Des mises à jour pour {n} plugins",
-        "updates_note": "Une seule compilation pour {screen} : {names}.",
         "updates_rights": "{names} demande d'autres droits qu'avant. | {names} demandent d'autres droits qu'avant.",
         "update_all": "Tout mettre à jour sur cet écran"
       },
@@ -2236,7 +2274,7 @@
       },
       "folder_error": "Le dossier {folder} n'est pas encore un plugin : {why}",
       "rebuild": "Compiler de nouveau",
-      "failed": "Le firmware de {screen} n'a pas pu être compilé avec ce plugin. Son journal se trouve dans Firmware et USB.",
+      "failed": "Le firmware de {screen} ne s'est pas compilé avec ce plugin.",
       "retry": "Réessayer",
       "privacy": "Confidentialité",
       "consent": {
@@ -2306,6 +2344,7 @@
         "too_short": "Au moins {n} caractères."
       },
       "tabs": {
+        "all": "Tous",
         "tiles": "Tuiles",
         "screensavers": "Écrans de veille",
         "functions": "Fonctions",
@@ -2344,6 +2383,7 @@
         "used": "Les plus utilisés"
       },
       "none_in_tab": {
+        "all": "Pas encore de plugins.",
         "tiles": "Pas encore de plugins avec des tuiles.",
         "screensavers": "Pas encore de plugins d'écran de veille.",
         "functions": "Pas encore de plugins pour tout l'écran.",
@@ -2407,7 +2447,7 @@
         "none": "Le créateur n'a pas écrit de notes pour cette mise à jour.",
         "history": "Toutes les versions"
       },
-      "failed_update": "La version {version} n'a pas pu être compilée pour {screen}, qui est donc revenu à {current}, celle qu'il exécute. Son journal se trouve dans Firmware et USB.",
+      "failed_update": "La version {version} ne s'est pas compilée pour {screen}, il est donc revenu à {current}, celle qu'il exécute.",
       "interrupted": "L'application a redémarré pendant la compilation.",
       "stars": {
         "label": "Étoiles pour {name}",
@@ -2474,6 +2514,31 @@
         "building": "{name} est en cours de compilation pour {screen}.",
         "with_update": "{name} arrive avec la prochaine mise à jour de {screen}.",
         "declined": "D'accord. {name} reste sur la page Plugins si vous le voulez plus tard."
+      },
+      "download_log": "Télécharger le journal",
+      "failures": {
+        "update": "{name} {version} ne s'est pas compilé sur {screen}",
+        "added": "{name} ne s'est pas compilé sur {screen}",
+        "update_note": "L'écran exécute toujours la version {current}. Le journal dit pourquoi.",
+        "added_note": "Il n'est pas sur l'écran. Le journal dit pourquoi.",
+        "no_log": "Aucun journal n'a été conservé pour cette compilation.",
+        "details": "Détails",
+        "report": "Signaler à {maker}",
+        "report_hint": "Signaler ouvre un ticket sur le GitHub de l'auteur, déjà rempli. Joins le journal téléchargé.",
+        "why": {
+          "plugin": "Il s'est arrêté dans le code du plugin lui-même, que son auteur peut corriger.",
+          "memory": "Ce Home Assistant a manqué de mémoire pendant la compilation. Un serveur de compilation sur un autre ordinateur le compile sans cette limite.",
+          "offline": "Il a été compilé, mais {screen} ne l'a pas pris, même après son retour. Vérifie qu'il est allumé et sur le Wi-Fi.",
+          "offline_wait": "Il a été compilé, mais {screen} n'était pas joignable. Il s'installe tout seul dès que l'écran revient.",
+          "network": "Un téléchargement nécessaire n'est pas arrivé, même au second essai. Réessaie dans un instant.",
+          "build": "Le journal dit pourquoi.",
+          "interrupted": "L'app a redémarré pendant la compilation, et encore pendant l'essai suivant."
+        },
+        "build_server": "Configurer un serveur de compilation"
+      },
+      "back": {
+        "button": "Revenir à {version}",
+        "not_running": "{screen} est revenu sans {name} après la mise à jour. Revenir à la version précédente aide en général."
       }
     },
     "plugin_tile": {
@@ -3466,9 +3531,14 @@
       "phases": {
         "install": "Compilation et installation…",
         "verify": "En attente du retour de l'écran…",
-        "settle": "Vérification de la stabilité…"
+        "settle": "Vérification de la stabilité…",
+        "ready": "Compilé d'avance : s'installe dès que les écrans d'avant ont passé leur contrôle"
       },
-      "new_language": "Nouvelle langue : {name}"
+      "new_language": "Nouvelle langue : {name}",
+      "restarting": "Redémarre avec le nouveau firmware, de retour dans une minute ou deux",
+      "restarting_short": "Mise à jour",
+      "editor_new": "Une nouvelle version de l'éditeur est prête. Elle se charge toute seule dès que tu as fini ici.",
+      "editor_reload": "Recharger maintenant"
     },
     "settings": {
       "updates": {
@@ -3484,11 +3554,13 @@
         "all": "Mettre à jour {n} écran | Mettre à jour les {n} écrans",
         "whats_new": "Nouveautés du firmware {version}",
         "auto_label": "Mettre à jour automatiquement chaque nuit",
-        "auto_hint": "Entre 03:00 et 06:00, un écran à la fois. S'arrête en cas d'erreur et la signale dans Home Assistant.",
         "reinstall_all": "Réinstaller 1 écran depuis dev | Réinstaller les {n} écrans depuis dev",
         "reinstall_all_hint": "Compile la dev la plus récente pour chaque écran, l'un après l'autre, et l'installe par Wi-Fi. Sur dev, le numéro de version ne change pas : une nouvelle dev n'est donc jamais proposée comme mise à jour.",
         "reinstall_all_confirm": "Réinstaller 1 écran depuis la dev la plus récente ? Il redémarre dès que son firmware est installé. | Réinstaller {n} écrans depuis la dev la plus récente ? Ils sont compilés l'un après l'autre, et chacun redémarre dès que son firmware est installé.",
-        "reinstall_all_go": "Réinstaller"
+        "reinstall_all_go": "Réinstaller",
+        "auto_hint_hour": "Entre {from} et {to}, un écran à la fois. S'arrête à la première erreur et la signale dans Home Assistant.",
+        "hour_label": "Commencer à",
+        "plugin_row": "{screen} : {names}"
       },
       "video": {
         "title": "Vidéo dans Home Assistant",
@@ -3505,7 +3577,9 @@
         "installed": "Tessera video installée. Redémarrez Home Assistant une fois pour la charger.",
         "screens": "Écrans avec vidéo : {names}",
         "no_screens": "Aucun écran n'a encore de vidéo : ajoutez Caméra de l'écran, avec sa partie Vidéo, à un écran P4 doté d'une caméra.",
-        "writes": "Écrit le dossier {path} ; réinstaller le remplace. Tessera ajoute lui-même chaque écran avec vidéo."
+        "writes": "Écrit le dossier {path} ; réinstaller le remplace. Tessera ajoute lui-même chaque écran avec vidéo.",
+        "no_home_assistant": "Cette app fonctionne à part de Home Assistant et ne peut donc pas mettre l'intégration en place elle-même. Téléchargez-la, décompressez le zip dans le dossier de configuration de Home Assistant (là où se trouve configuration.yaml) et redémarrez Home Assistant.",
+        "download": "Télécharger l'intégration"
       },
       "claude": {
         "installed": "Compétence installée. Claude Code la prend en compte tout de suite.",
@@ -3688,18 +3762,26 @@
       "host": "Adresse IP ou nom d'hôte",
       "download_file": "Télécharger {name}",
       "download_how": "Installez-le sur l'écran avec {esphome_web} dans Chrome ou Edge : Connect, choisissez le port USB de l'écran, Install, puis sélectionnez ce fichier. Il contient votre mot de passe Wi-Fi et les clés de l'écran : gardez-le pour vous.",
-      "waiting": "en attente, 1 compilation avant | en attente, {n} compilations avant"
+      "waiting": "en attente, 1 compilation avant | en attente, {n} compilations avant",
+      "kept_title": "Journaux de compilation",
+      "kept_note": "Le journal de chaque compilation reste ici, même après un redémarrage de l'app. Les 40 plus récents sont conservés.",
+      "kept_none": "Aucune compilation pour l'instant.",
+      "kept_download": "Télécharger",
+      "kept_state": {
+        "success": "Réussie",
+        "failed": "Échouée",
+        "interrupted": "Arrêtée, l'app a redémarré",
+        "running": "En cours",
+        "other": "Terminée",
+        "retry": "De nouveau, en fin de file"
+      }
     },
     "installer": {
       "board": "Quel écran avez-vous ?",
       "board_title": "{name} · {inch} pouces",
-      "status": {
-        "new": "Nouveau",
-        "experimental": "Expérimental"
-      },
       "status_hint": {
-        "new": "Nouveau : essayé sur peu d'écrans pour l'instant. Dites-nous ce que ça donne.",
-        "experimental": "Expérimental : pas encore essayé sur ce matériel. Dites-nous ce que ça donne."
+        "new": "Nouveau : fonctionne sur de vrais écrans, mais pas encore testé à fond. Dites-nous ce que ça donne.",
+        "experimental": "Expérimental : encore trop peu de retours de vrais écrans pour savoir s'il fonctionne bien. Dites-nous ce que ça donne."
       },
       "abilities": {
         "camera": "Images de caméra",
@@ -3731,40 +3813,20 @@
       "orientation_landscape": "À l'horizontale",
       "orientation_portrait": "À la verticale",
       "name": "Nom",
-      "name_placeholder": "Écran du salon",
       "device_name": "Nom de l'appareil",
-      "name_hint": "Chaque écran reçoit son propre profil avec ses propres clés. Quatre écrans ? Refaites ces étapes quatre fois avec un nom différent.",
       "name_taken": "Un autre écran s'appelle déjà ainsi. Home Assistant numéroterait les noms d'entités de celui-ci et les automatisations viseraient le mauvais écran.",
       "device_name_hint": "Lettres minuscules, chiffres et tirets. Un nom différent pour chaque écran.",
       "node_taken": "Un autre écran porte déjà ce nom d'appareil. Home Assistant ne peut pas distinguer deux appareils du même nom.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Nom du Wi-Fi (2,4 GHz)",
         "password": "Mot de passe Wi-Fi",
-        "new": "À remplir une seule fois : Tessera l'enregistre dans le secrets.yaml d'ESPHome, et les écrans suivants l'utilisent automatiquement.",
-        "missing": "Il manque encore les informations Wi-Fi dans votre secrets.yaml d'ESPHome. Tessera ne remplit que les lignes manquantes.",
         "ready": "Le Wi-Fi vient de votre secrets.yaml d'ESPHome.",
         "invalid": "Le secrets.yaml du dossier ESPHome n'est pas un YAML valide. Corrigez d'abord le fichier ; il ne sera pas écrasé.",
         "other": "Autre réseau",
         "other_note": "Chaque écran est compilé avec ce Wi-Fi ; les écrans existants le prennent à leur prochaine mise à jour."
       },
-      "install_via": "Installer via",
-      "target": {
-        "usb": "Branchez l'écran avec un câble USB de données sur la machine Home Assistant ; il apparaît ici tout seul. Il est branché sur l'ordinateur que vous utilisez ? Choisissez Depuis cet ordinateur.",
-        "download": "Téléchargez le firmware et installez-le sur l'écran depuis votre propre ordinateur, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
-        "later": "Le profil va dans le dossier ESPHome. Vous pourrez l'installer plus tard via Firmware et USB, ou depuis ESPHome Device Builder.",
-        "several": "Plusieurs écrans sont branchés : choisissez le port de cet écran.",
-        "once": "Une seule fois en USB ; ensuite, tout se fait sans fil."
-      },
-      "install": "Installer",
-      "save_profile": "Enregistrer le profil",
       "no_cli": "La CLI ESPHome est absente de cette installation ; seul l'enregistrement du profil est possible.",
       "progress": {
-        "saved": "{file} est dans le dossier ESPHome",
-        "writing": "Écriture du firmware sur {name}…",
-        "building": "Compilation du firmware…",
-        "ready": "Le firmware pour {name} est prêt",
-        "installed": "Le firmware est sur {name}",
         "build_failed": "Échec de la compilation",
         "install_failed": "Échec de l'installation",
         "waiting": "En attente de son tour…"
@@ -3798,21 +3860,12 @@
         "key": "{bold} ci-dessous si Home Assistant demande une clé de chiffrement.",
         "key_bold": "Collez la clé API",
         "actions": "{bold} intégration ESPHome → Configurer → « Autoriser l'appareil à effectuer des actions Home Assistant ». Sans cela, l'écran voit tout mais ne commande rien.",
-        "actions_bold": "Autorisez les actions HA :",
-        "tiles": "{bold} De retour dans Tessera, l'écran apparaît dans la liste à gauche en une trentaine de secondes ; d'ici là, il y figure comme « pas encore dans Home Assistant ».",
-        "tiles_bold": "Choisissez vos tuiles."
+        "actions_bold": "Autorisez les actions HA :"
       },
       "retry": "Réessayer",
-      "another": "Installer un autre écran",
       "start_over": "Recommencer",
       "done": "Terminé",
       "key_more": "Afficher la clé API",
-      "steps": {
-        "board": "Écran",
-        "setup": "Configurer",
-        "install": "Installer",
-        "plugins": "Plugins"
-      },
       "pick_title": "Quel écran as-tu ?",
       "pick_intro": "Choisis ta carte. Cherche par marque, taille ou ce qui est imprimé dessus.",
       "search": "Chercher par marque, taille ou modèle",
@@ -3824,45 +3877,15 @@
       },
       "none_found": "Aucun écran ne correspond à « {query} ».",
       "try_virtual": "Pas encore d’écran ? Essaie un écran d’aperçu",
-      "setup_title": "Personnalise-le",
-      "install_title": "Comment veux-tu l’installer ?",
-      "next": "Suivant",
-      "advanced": "Avancé",
-      "ways": {
-        "ha_title": "USB sur Home Assistant",
-        "ha_found": "Trouvé : {port}",
-        "ha_waiting": "Branche l’écran sur la machine où tourne Home Assistant",
-        "browser_title": "Depuis cet ordinateur",
-        "browser_detail": "Chrome ou Edge, avec l’écran sur l’USB de cet ordinateur",
-        "download_title": "Télécharger le fichier",
-        "download_detail": "L’installer toi-même avec ESPHome Web",
-        "later_title": "Plus tard",
-        "later_detail": "Garder seulement les réglages"
-      },
-      "steps_done": {
-        "prepare": "Préparation",
-        "build": "Compilation du firmware",
-        "write": "Écriture sur l’écran",
-        "restart": "Démarrage",
-        "done": "Terminé",
-        "download": "Prêt à télécharger"
-      },
       "elapsed": "{time} écoulé",
       "show_log": "Afficher les détails",
       "hide_log": "Masquer les détails",
-      "next_title": "Et ensuite",
       "model": "Quel modèle est-ce ?",
-      "model_hint": "Imprimé au dos de la carte. Ils se ressemblent, mais chacun a besoin de son propre firmware.",
-      "models": "{n} modèle | {n} modèles",
       "arrive": {
-        "waiting": "En attente de {name} sur ton Wi-Fi...",
-        "seen": "{name} est sur ton Wi-Fi. Préparation en cours...",
-        "paired": "{name} est associé à Home Assistant.",
         "missing": "{name} n’est pas encore sur ton Wi-Fi",
         "hotspot": "Regarde l’écran : il indique un point d’accès et son mot de passe. Connecte-y ton téléphone et choisis le bon Wi-Fi. Ou indique ici le bon Wi-Fi et réinstalle.",
         "no_hotspot": "Le nom ou le mot de passe du Wi-Fi est probablement faux. Indique ici le bon Wi-Fi et réinstalle, l’écran toujours branché au câble.",
-        "change": "Changer le Wi-Fi et réinstaller",
-        "failed": "Tessera ne peut pas ajouter {name} lui-même à Home Assistant. Ajoute-le toi-même ci-dessous."
+        "change": "Changer le Wi-Fi et réinstaller"
       },
       "known": {
         "title": "Cette carte est déjà dans Home Assistant sous le nom {name}",
@@ -3884,13 +3907,111 @@
         "limit_title": "Pas assez de mémoire pour compiler le firmware",
         "limit": "La mémoire a manqué, même avec un compilateur à la fois. Arrête quelques modules un moment ou donne plus de mémoire à la machine, puis réessaie."
       },
-      "pair_yourself": "L'ajouter vous-même dans Home Assistant",
       "grid": "Grille",
       "grid_hint": "La grille proposée est la meilleure pour cet écran. Vous pourrez la changer, et son orientation, plus tard à côté des pages dans l’éditeur, sans nouvelle compilation.",
       "grid_best": "Revenir à la meilleure",
       "waits_turn": "Un autre écran est en cours de compilation. Celui-ci attend son tour et démarre tout seul juste après.",
-      "plugins_title": "Plugins pour cet écran",
-      "plugins_intro": "Ils vont avec ce que possède cette carte. Décochez ce que vous ne voulez pas : ce n'est pas intégré, et vous pouvez l'ajouter plus tard sur la page Plugins."
+      "name_quote": "Un nom ne peut pas contenir \" ni \\. Écris 4 pouces comme 4in, par exemple.",
+      "flow": {
+        "back": "Retour",
+        "step_of": "Étape {step} sur {steps}",
+        "continue": "Continuer",
+        "go_install": "Installer",
+        "go_download": "Créer et télécharger",
+        "more_options": "Plus d'options",
+        "fewer_options": "Moins d'options",
+        "later": "Pas de câble sous la main ? Enregistrez et installez plus tard",
+        "download_instead": "Vous préférez le faire vous-même ? Téléchargez le fichier",
+        "pick_lead": "Choisissez l'écran que vous avez. Nous recommandons ceux-ci : ils savent tout faire et nous les testons chaque jour.",
+        "more_soon": "D'autres arrivent bientôt.",
+        "square": "Carré",
+        "wide": "Grand écran",
+        "versions": "{n} version | {n} versions",
+        "other_screen": "J'ai un autre écran",
+        "which_is_it": "De quel écran s'agit-il ?",
+        "status": {
+          "stable": "Éprouvé",
+          "new": "Nouveau",
+          "experimental": "Expérimental"
+        },
+        "model_title": "Quelle version avez-vous ?",
+        "model_lead": "Le {name} existe en {n} versions. Elles se ressemblent, mais chacune a besoin de son propre logiciel. L'arrière de la carte indique celle que vous avez.",
+        "choice_lead": "Les cartes vendues sous ce nom diffèrent par un composant. La plupart des gens peuvent garder le choix proposé.",
+        "model_usual": "La plus répandue. Vous hésitez ? Choisissez celle-ci.",
+        "name_title": "Comment s'appelle cet écran ?",
+        "name_lead": "En général, la pièce où il sera accroché.",
+        "name_placeholder": "Cuisine",
+        "rooms": "Pièces dans Home Assistant",
+        "hang_title": "Comment sera-t-il installé ?",
+        "hang_lead": "Vous pourrez le changer plus tard, sans réinstaller.",
+        "tiles_a_page": "{n} tuile par page | {n} tuiles par page",
+        "plugins_title": "Cet écran peut faire plus",
+        "plugins_lead": "Avec ces plugins, son matériel peut faire plus. Activez ce que vous voulez utiliser.",
+        "plugins_later": "Vous pourrez les activer ou les désactiver plus tard sur la page Plugins.",
+        "wifi_title": "À quel Wi-Fi va-t-il se connecter ?",
+        "wifi_lead": "L'écran a besoin d'un réseau 2,4 GHz. Vous le saisissez une seule fois : chaque écran suivant l'utilise aussi.",
+        "wifi_once": "Enregistré dans vos réglages ESPHome, et plus jamais affiché.",
+        "wifi_ready": "L'écran se connecte au même Wi-Fi que vos autres appareils ESPHome.",
+        "cable_title": "Où est branché le câble ?",
+        "cable_lead": "L'écran reçoit son logiciel une seule fois, par un câble USB. Ensuite, tout passe par le Wi-Fi.",
+        "cable_here": "Dans cet ordinateur",
+        "cable_here_detail": "L'ordinateur sur lequel vous lisez ceci. Fonctionne dans Chrome et Edge.",
+        "cable_ha": "Dans votre Home Assistant",
+        "cable_ha_detail": "L'appareil sur lequel tourne Home Assistant, comme un Raspberry Pi ou un Home Assistant Green.",
+        "here_title": "Branchez le câble sur cet ordinateur",
+        "here_plug": "Branchez l'écran à cet ordinateur avec un câble USB de données.",
+        "here_click": "Cliquez ensuite sur Installer ci-dessous.",
+        "here_pick": "Votre navigateur demande quel appareil : choisissez l'écran et cliquez sur Connecter.",
+        "file_title": "Vous recevrez un fichier à installer dessus",
+        "file_lead": "Ce navigateur ne peut pas écrire sur un écran lui-même. Tessera crée un fichier, que vous installez sur l'écran avec ESPHome Web dans Chrome ou Edge.",
+        "ha_title": "Branchez le câble sur votre Home Assistant",
+        "ha_lead": "Pas sur cet ordinateur, mais sur l'appareil sur lequel tourne Home Assistant. Nous le voyons dès qu'il est branché.",
+        "ha_which": "Lequel est l'écran ?",
+        "ha_which_lead": "Plusieurs appareils sont branchés sur votre Home Assistant. Choisissez l'écran.",
+        "ha_waiting": "En attente de l'écran",
+        "ha_waiting_detail": "Branchez le câble. Cette page se met à jour toute seule.",
+        "ha_found": "Écran trouvé",
+        "ha_others": "Également branché : {n} autre appareil | Également branchés : {n} autres appareils",
+        "ha_not_screen": "Probablement pas un écran, comme une clé Zigbee",
+        "saved_title": "{name} est enregistré",
+        "ready_title": "{name} est prêt",
+        "ready_lead": "Il est allumé, connecté à votre Wi-Fi et ajouté à Home Assistant. Choisissez maintenant ce qu'il affichera.",
+        "ha_ask_title": "Home Assistant vous pose une question sur {name}",
+        "now": {
+          "build": "{name} est en préparation",
+          "write": "Le logiciel est installé sur {name}",
+          "write_self": "Installez le logiciel sur {name}",
+          "wifi": "{name} démarre",
+          "ha": "Ajout de {name} à Home Assistant"
+        },
+        "lead": {
+          "build": "Cela prend en général de 5 à 20 minutes, et c'est plus long la première fois. Vous pouvez fermer cette fenêtre : tout continue.",
+          "build_browser": "Cela prend en général de 5 à 20 minutes, et c'est plus long la première fois. Gardez cette page ouverte : elle installe le logiciel sur l'écran dès qu'il est prêt.",
+          "write": "Laissez le câble branché jusqu'à la fin.",
+          "write_self": "Téléchargez le fichier et installez-le sur l'écran avec ESPHome Web. Cette page voit l'écran dès qu'il est sur votre Wi-Fi.",
+          "wifi": "Il démarre et se connecte à votre Wi-Fi. Cela prend en général moins d'une minute.",
+          "wifi_calibrate": "Il démarre et se connecte à votre Wi-Fi. Il vous demande d'abord de toucher quelques croix sur l'écran : c'est ainsi qu'il apprend où se trouve votre doigt.",
+          "ha": "Tessera l'ajoute à ESPHome dans Home Assistant et l'autorise à commander votre maison. Vous n'avez rien à faire."
+        },
+        "steps": {
+          "build": "Création du logiciel",
+          "write": "Installation sur l'écran",
+          "write_self": "Vous l'installez sur l'écran",
+          "wifi": "Démarrage et connexion à votre Wi-Fi",
+          "ha": "Ajout à Home Assistant"
+        },
+        "may_close": "vous pouvez fermer cette fenêtre",
+        "keep_open": "laisse cette page ouverte jusqu'à ce qu'il soit sur l'écran",
+        "show_log": "Ce qui se passe exactement",
+        "to_pages": "Créer ses pages",
+        "another": "Ajouter un autre écran",
+        "close_follow": "Fermer, tout continue",
+        "recap": {
+          "wifi": "Sur votre Wi-Fi",
+          "ha": "Dans Home Assistant",
+          "actions": "Autorisé à piloter votre maison"
+        }
+      }
     },
     "alerts": {
       "intro": "Chaque écran a l'action {action}. Elle place une carte par-dessus tout, réveille l'écran et garde le rétroéclairage à luminosité normale jusqu'à ce que quelqu'un touche le bouton ou que le délai expire. Home Assistant n'affiche lui-même ni explication ni listes déroulantes pour les actions ESPHome ; tout ce que vous pouvez remplir est listé ici.",
@@ -4329,7 +4450,6 @@
     },
     "webflash": {
       "target": "Installer depuis ce navigateur (Chrome ou Edge)",
-      "hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. Tessera compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. Ensuite, les mises à jour passent par le Wi-Fi.",
       "firmware_hint": "Branchez l'écran sur cet ordinateur avec un câble USB de données. Tessera compile le firmware, puis cette page l'installe sur l'écran, dans Chrome ou Edge. L'écran garde ses réglages et son calibrage tactile. Cela sauve aussi un écran qui redémarre sans cesse et n'arrive jamais en ligne.",
       "go": "Connecter et installer",
       "building": "La compilation peut prendre 20 minutes ou plus sur une machine Home Assistant comme un Raspberry Pi, surtout la première fois. C'est normal. Gardez cet onglet ouvert et l'écran branché : cette page installe le firmware dès qu'il est prêt.",
@@ -4353,8 +4473,11 @@
         "blocked": "Le navigateur n'autorise pas cette page à utiliser les ports USB. Vérifiez les autorisations du site dans le navigateur, ou choisissez plutôt Télécharger.",
         "busy": "Le port de l'écran est utilisé par un autre programme ou onglet, comme un moniteur série ou ESPHome Web. Fermez-le et réessayez.",
         "connect": "La carte n'a pas répondu. Maintenez le bouton BOOT de la carte pendant que vous choisissez le port, jusqu'au début de l'installation, et réessayez. Débrancher et rebrancher le câble peut aussi aider.",
+        "silent": "Rien n'a répondu sur ce port en {seconds} secondes, donc rien n'a été installé. Si votre navigateur a montré plus d'un port pour l'écran, réessayez et choisissez l'autre. Sinon, maintenez le bouton BOOT de la carte pendant que vous choisissez le port, puis réessayez.",
+        "other_chip": "Ce port appartient à la deuxième puce de la carte (un RP2040), pas à celle qui fait tourner l'écran. Rien n'a été installé. Réessayez et choisissez l'autre port de la carte ; sur un SenseCAP Indicator, c'est celui qui s'appelle USB Serial.",
         "wrong_chip": "La carte branchée a une puce {found}, mais le firmware de cet écran est prévu pour une {expected}. Branchez le bon écran ou choisissez sa carte.",
         "wrong_image": "Le firmware compilé par Tessera est prévu pour une {expected}, mais la carte branchée a une {found}. Rien n'a été écrit.",
+        "wrong_revision": "Le firmware créé par Tessera est pour les révisions de puce {from} à {to}, mais la puce sur le câble est {found}. Rien n'a été écrit. Recommence, pour que Tessera le crée pour cette puce.",
         "disconnected": "L'écran a été débranché. Rebranchez-le et réessayez.",
         "download": "Impossible de récupérer le firmware auprès d'Tessera : {error}",
         "failed": "L'installation n'a pas fonctionné : {error}"
@@ -4558,7 +4681,19 @@
           "bundle": "le YAML n'a pas pu être préparé"
         }
       },
-      "icons": "Compilation avec ses icônes"
+      "icons": "Compilation avec ses icônes",
+      "steps": {
+        "title": "Étapes de la compilation",
+        "wait": "Attend son tour",
+        "build": "Compile",
+        "send": "L'envoie à l'écran",
+        "confirm": "L'écran confirme",
+        "on": "sur {name}",
+        "send_waits": "Attend son tour pour s'installer"
+      },
+      "done": "{screen} est prêt.",
+      "done_confirmed": "{screen} est prêt et dit exécuter ce qui a été compilé.",
+      "show_why": "Voir pourquoi"
     },
     "grid": {
       "title": "Grille",
@@ -4592,7 +4727,11 @@
       "leave": "Retirer {name} de la sélection",
       "copy": "Copier",
       "hint": "{copy} copie les tuiles avec tous leurs réglages. Choisissez une page ou une case, ici ou sur un autre écran, et appuyez sur {paste}.",
-      "remove": "Retirer la tuile | Retirer {n} tuiles"
+      "remove": "Retirer la tuile | Retirer {n} tuiles",
+      "shared": {
+        "hint": "Un changement ici vaut pour les {n} tuiles.",
+        "mixed": "Différent"
+      }
     },
     "menu": {
       "cut": "Couper",
@@ -4746,7 +4885,14 @@
         "off": "Désactivée"
       },
       "alarm": "Alarme",
-      "calls": "Appels"
+      "calls": "Appels",
+      "parts": {
+        "automations": "{n} automatisation | {n} automatisations",
+        "no_automation": "Pas encore d'automatisation",
+        "alarm_panels": "{n} centrale d'alarme | {n} centrales d'alarme",
+        "no_alarm": "Aucune centrale d'alarme dans Home Assistant",
+        "rings_with": "Sonne avec {sound}"
+      }
     },
     "doorbell": {
       "intro": "Quelqu'un sonne et vos écrans montrent la porte. Une automatisation envoie l'événement avec la caméra de la sonnette : un écran P4 se réveille, joue un carillon et ouvre la caméra en direct avec le son ; tout autre écran affiche son image dans une alerte. Toute sonnette fonctionne, quel que soit le déclencheur.",
@@ -5161,6 +5307,82 @@
         "soft_ends": "Bords doux",
         "even_level": "Volume égal",
         "repeats": "Se répète"
+      }
+    },
+    "updates_card": {
+      "title": "{n} mise à jour pour {screen} | {n} mises à jour pour {screen}",
+      "one": "Une compilation de {screen}.",
+      "one_build": "Tout en une compilation de {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} est hors ligne. La mise à jour sera possible à son retour.",
+      "go_all": "Tout mettre à jour"
+    },
+    "build_room": {
+      "title": "Ce Home Assistant manque peut-être de mémoire pour compiler",
+      "text": "Il a {free} Go libres, et une compilation demande environ {need} Go. Elle peut échouer ou ralentir Home Assistant. Un serveur de compilation sur un autre ordinateur l'évite, tout comme mettre à jour l'écran depuis ESPHome Device Builder sur un ordinateur.",
+      "server": "Serveur de compilation"
+    },
+    "history": {
+      "title": "Dernière compilation de cet écran | {n} dernières compilations de cet écran",
+      "by": {
+        "update": "Mise à jour",
+        "plugins": "Plugins",
+        "install": "Installation",
+        "icons": "Icônes",
+        "other": "Compilation"
+      }
+    },
+    "steps": {
+      "later": "Plus tard",
+      "set_up": "Configurer",
+      "update": "Mettre à jour",
+      "not_now": "Pas maintenant",
+      "not_done": "pas fait",
+      "kept": "Très bien. Cela attend dans le menu de {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Écrire le firmware",
+          "again": "Réessayer",
+          "cable": "Branchez d'abord le câble USB de l'écran sur cet ordinateur.",
+          "phase": {
+            "port": "Choisissez la puce dans la liste du navigateur. Elle n'affiche que celle-ci.",
+            "restart": "La puce redémarre en tant que lecteur USB.",
+            "drive": "La puce est maintenant un lecteur USB nommé {drive}. Choisissez-le et laissez cette page y écrire.",
+            "write": "Écriture du firmware.",
+            "wait": "La puce démarre. En attente que l'écran la trouve.",
+            "wait_chip": "La puce exécute {version}. En attente que l'écran la trouve."
+          },
+          "choose_drive": "Choisir le lecteur {drive}",
+          "wrong_drive": "Ce n'est pas le lecteur {drive}. Choisissez le lecteur lui-même, en haut de la liste, pas un dossier de cet ordinateur.",
+          "drive_there": "Le lecteur {drive} est déjà là",
+          "done": "Le firmware {version} est sur la puce, et l'écran l'a trouvée.",
+          "try": "Jouer un son",
+          "errors": {
+            "no_port": "Aucun port n'a été choisi. Avec le câble USB de l'écran branché sur cet ordinateur, la liste du navigateur affiche la puce.",
+            "port": "Le port de la puce ne s'est pas ouvert. Fermez tout autre programme qui l'utilise, puis réessayez.",
+            "file": "Le firmware n'est pas arrivé de Tessera. Réessayez.",
+            "write": "Le fichier n'a pas pu être écrit sur le lecteur. Réessayez.",
+            "silent": "L'écran n'a pas trouvé la puce. Débranchez le câble USB, rebranchez-le, puis réessayez."
+          },
+          "hand": {
+            "insecure": "Cette page a été ouverte en simple http, le navigateur ne lui donne donc aucun port USB. Ouverte en https dans Chrome ou Edge (votre adresse Home Assistant Cloud convient), cela prend deux clics. Cela se fait aussi à la main :",
+            "browser": "Ce navigateur ne peut pas accéder aux ports USB. Dans Chrome ou Edge sur un ordinateur, cela prend deux clics. Cela se fait aussi à la main :",
+            "download": "Télécharger {name}",
+            "drag": "Un lecteur nommé {drive} apparaît. Faites glisser le fichier dessus. Le lecteur disparaît tout seul et la puce démarre.",
+            "did": "C'est fait"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware du buzzer",
+        "title": "Donnez sa voix au buzzer",
+        "lead": "Une deuxième puce de cet écran pilote son buzzer. Avec le firmware de Tessera sur cette puce, le buzzer joue le carillon de la sonnette et les sons de vos alertes. Cela prend une demi-minute.",
+        "note": "Cela remplace le firmware de Seeed sur cette puce, que vous pouvez récupérer auprès de Seeed. Celui de Tessera ne lit pas les capteurs d'un D1S ou d'un D1Pro.",
+        "button": "Débranchez le câble USB de l'écran. Maintenez enfoncé avec un trombone le bouton situé dans le petit trou du boîtier, puis rebranchez le câble, l'autre extrémité sur cet ordinateur.",
+        "done_title": "Le buzzer a sa voix",
+        "done_lead": "Choisissez sous Événements ce qu'il joue pour les alertes et pour la sonnette.",
+        "update_title": "Un firmware plus récent pour le buzzer",
+        "update_lead": "Tessera a un firmware plus récent que celui installé pour la puce qui pilote le buzzer de cet écran. Cela prend une demi-minute."
       }
     }
   }

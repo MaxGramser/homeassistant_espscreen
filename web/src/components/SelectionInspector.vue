@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Several tiles chosen together (⌘ or Shift and a click, or a band dragged over them): which ones, and what can be done
 // to them all at once. Copy takes every setting along, to paste with ⌘V on another page or another screen; a tile in the
-// list opens on its own.
+// list opens on its own. Under it stand the settings they share (inspector/SharedSettings.vue): one pick is for them all.
 import { computed } from "vue";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
@@ -9,6 +9,7 @@ import { glyph } from "../model/topbar";
 import { copyChosen, removeTiles, shortcut as key } from "../editor/clipboard";
 import Icon from "./ui/Icon.vue";
 import InspectorHead from "./ui/InspectorHead.vue";
+import SharedSettings from "./inspector/SharedSettings.vue";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
 import { useInspectorStore } from "../stores/inspector";
@@ -46,6 +47,7 @@ import { canMakeSection } from "../editor/sections";
       <button v-if="canMakeSection()" type="button" class="btn quiet" id="selection-section" @click="insp.makingSection = true"><Icon name="view-grid-outline" />{{ t("editor.sections.make") }}</button>
     </div>
     <p class="help selection-hint">{{ t("editor.selection.hint", { copy: key("C"), paste: key("V") }) }}</p>
+    <SharedSettings :tiles="tiles" />
   </div>
   <div class="dr-foot">
     <button type="button" class="btn danger" id="selection-remove" @click="removeTiles(tiles)"><Icon name="delete-outline" />{{ t("editor.selection.remove", { n: tiles.length }, tiles.length) }}</button>

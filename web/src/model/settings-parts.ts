@@ -1,4 +1,4 @@
-// The parts of the two settings pages (docs/PAGES.md, "Settings"): a page of the app and a screen's Settings tab each
+// The parts of the pages of parts (docs/PAGES.md, "Pages of parts"): the app's Settings, a screen's Settings tab and Events each
 // open on a list of these parts, one row per part with what is set now, and a part opens as a page of its own. The part
 // is in the address, so a link, a reload and Back reach it: #/settings/<part> for the app, `?settings=<part>` on a
 // screen's address for its tab.
@@ -29,19 +29,25 @@ export function screenPartOf(key: string): ScreenSettingsPart | null {
   return null;
 }
 
-/** The colours of the round icons of the settings lists: the --tone-* tokens of styles/tokens.css. */
-export type Tone = "teal" | "cyan" | "blue" | "indigo" | "violet" | "green" | "orange" | "yellow" | "rose";
-/** Each part's icon colour, and the card of the list it stands in (like Home Assistant's Settings, a few separate cards
- *  of rows rather than one long one). */
-export const PART_LOOK: Record<AppSettingsPart | ScreenSettingsPart, { tone: Tone; card: number }> = {
-  updates: { tone: "teal", card: 0 }, builds: { tone: "orange", card: 0 },
-  language: { tone: "violet", card: 1 }, plugins: { tone: "yellow", card: 1 }, "home-assistant": { tone: "blue", card: 1 },
-  display: { tone: "orange", card: 0 }, standby: { tone: "indigo", card: 0 }, navigation: { tone: "green", card: 0 },
-  board: { tone: "rose", card: 1 }, help: { tone: "cyan", card: 2 },
+export type { Tone } from "./parts";
+import type { Tone } from "./parts";
+import type { IconName } from "./ui-icons";
+
+/** The parts of Events (#/events/<kind>): what Home Assistant shows on the screens. The first card is what an
+ *  automation fires (an alert, a doorbell's ring), the second what the screens follow themselves (the alarm, a call). */
+export const EVENT_PARTS = ["alerts", "doorbell", "alarm", "calls"] as const;
+export type EventPart = (typeof EVENT_PARTS)[number];
+
+/** How each part stands in its list (model/parts.ts): its icon, the colour of the round behind it, and the card it is in
+ *  (like Home Assistant's Settings, a few separate cards of rows rather than one long one). */
+export type PartLook = { icon: IconName; tone: Tone; card: number };
+export const PART_LOOK: Record<AppSettingsPart | ScreenSettingsPart | EventPart, PartLook> = {
+  updates: { icon: "update", tone: "teal", card: 0 }, builds: { icon: "hammer-wrench", tone: "orange", card: 0 },
+  language: { icon: "translate", tone: "violet", card: 1 }, plugins: { icon: "puzzle-outline", tone: "yellow", card: 1 },
+  "home-assistant": { icon: "home-assistant", tone: "blue", card: 1 },
+  display: { icon: "white-balance-sunny", tone: "orange", card: 0 }, standby: { icon: "weather-night", tone: "indigo", card: 0 },
+  navigation: { icon: "gesture-swipe", tone: "green", card: 0 }, board: { icon: "chip", tone: "rose", card: 1 },
+  help: { icon: "lifebuoy", tone: "cyan", card: 2 },
+  alerts: { icon: "bell-ring-outline", tone: "yellow", card: 0 }, doorbell: { icon: "doorbell", tone: "orange", card: 0 },
+  alarm: { icon: "shield-home-outline", tone: "rose", card: 1 }, calls: { icon: "phone-ring-outline", tone: "green", card: 1 },
 };
-/** Parts in the cards of the list they stand in, in order; a card with none of them is left out. */
-export function partCards<T extends { id: AppSettingsPart | ScreenSettingsPart }>(parts: T[]): T[][] {
-  const cards: T[][] = [];
-  for (const part of parts) (cards[PART_LOOK[part.id].card] ||= []).push(part);
-  return cards.filter(Boolean);
-}

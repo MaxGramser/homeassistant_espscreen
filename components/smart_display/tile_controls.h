@@ -52,6 +52,8 @@ constexpr const char *SNOWFLAKE = "\U000F0717", *HEAT_COOL = "\U000F1A79", *AUTO
 constexpr const char *BLINDS_OPEN = "\U000F1011", *BLINDS = "\U000F00AC", *MORE = "\U000F01D8";
 // A cover card's swap key and a cover group's key (firmware 0.57.0): the slats (blinds-horizontal), the blind (roller-shade).
 constexpr const char *SLATS = "\U000F1A2B", *SHADE = "\U000F1A6B";
+// A light group's key (lightbulb-group), on the colour card and, for a group that only dims or switches, the light card.
+constexpr const char *LAMPS = "\U000F1253";
 }
 enum Command {
   NONE = 0, COVER_OPEN, COVER_STOP, COVER_CLOSE, VACUUM_START, VACUUM_PAUSE, VACUUM_STOP, VACUUM_DOCK,

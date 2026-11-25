@@ -220,7 +220,7 @@ a:hover { text-decoration: underline; }
 .seg { display: inline-flex; padding: 2px; background: var(--seg); border-radius: 8px; gap: 2px; max-width: 100%; }
 .seg button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); white-space: nowrap; transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
 .seg button .ui-icon { font-size: 16px; }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 24, 40, 0.14), 0 0 0 0.5px rgba(20, 24, 40, 0.06); }
+.seg button[aria-pressed="true"], .seg button[data-state="on"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(20, 24, 40, 0.14), 0 0 0 0.5px rgba(20, 24, 40, 0.06); }
 /* A size drawn as the shape it takes on the grid. */
 .seg-shape { display: inline-block; border: 1.5px solid currentColor; border-radius: 3px; opacity: 0.55; flex: none; }
 .seg-shape.whole { background: color-mix(in srgb, currentColor 30%, transparent); }
@@ -356,6 +356,10 @@ a:hover { text-decoration: underline; }
 .firmware-preview-error { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
 .firmware-preview-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
 .page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
+/* The page is as wide as its glass and no wider: the glass keeps its proportions from its width, and the cards' least
+   width never pushes it past the page (on a phone it stood 36 px wider than the window and the window with it). */
+.page { grid-template-columns: minmax(0, 1fr); }
+.page > .device { min-width: 0; }
 /* The head of a page (app 0.3.19): its handle with its number, its title, Home when it is Home, the cells in use and
    one menu for everything else. */
 .page-head { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 0 0 2px; font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 0; }
@@ -392,7 +396,8 @@ a:hover { text-decoration: underline; }
 /* The mockup is the screen's own glass and its own grid of cells: --screen-aspect, --screen-columns and
    --screen-rows come from what the screen reported (stores/canvas.ts deviceStyle). The .compact class is the compact look
    of a small screen, not a board any more. */
-.device { background: #e7e7e7; border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: #1b1b1b; aspect-ratio: var(--screen-aspect, 1 / 1); }
+/* The glass's colours are the firmware's roles (model/glass-colours.ts). */
+.device { background: var(--glass-page); border-radius: 18px; padding: 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; color: var(--glass-ink); aspect-ratio: var(--screen-aspect, 1 / 1); }
 .bar-wrap { cursor: pointer; border-radius: 8px; padding: 0 2px; }
 .bar-wrap:hover { background: #dedede; }
 /* Inside the bar, not around it: on a compact look the bar meets the glass's top edge, and a ring outside it stood on
@@ -741,7 +746,7 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .sw button:hover { transform: scale(1.08); }
 .sw button i { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.1); display: block; }
 .sw button i.auto { background: linear-gradient(135deg, #fff 50%, #e5e7eb 50%); }
-.sw button i.none { background: linear-gradient(135deg, transparent 45%, #8b95a1 45%, #8b95a1 55%, transparent 55%), #e7e7e7; border-style: dashed; }
+.sw button i.none { background: linear-gradient(135deg, transparent 45%, #8b95a1 45%, #8b95a1 55%, transparent 55%), var(--glass-page); border-style: dashed; }
 .sw button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
 .picker { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .picker input { background: var(--surface); }
@@ -800,8 +805,8 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
    (more than six) stand under the title in lines of their own. The bar stays while the part under it scrolls. */
 .bar-body, .page-body, .tile-body { padding-top: 0; }
 .bar-anchor, .page-anchor { position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 12px 16px 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.bar-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; font-family: "Bar Roboto", var(--ui-font); min-width: 0; }
-.strip-slot { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 6px; border-radius: 8px; color: #1b1b1b; font-size: 12.5px; white-space: nowrap; flex: none; touch-action: pan-y; }
+.bar-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px; border-radius: 12px; background: var(--glass-page); color: var(--glass-ink); font-family: "Bar Roboto", var(--ui-font); min-width: 0; }
+.strip-slot { position: relative; display: inline-flex; align-items: center; gap: 3px; height: 34px; padding: 0 6px; border-radius: 8px; color: var(--glass-ink); font-size: 12.5px; white-space: nowrap; flex: none; touch-action: pan-y; }
 .strip-slot .mdi { font-size: 17px; line-height: 1; }
 .strip-slot:hover:not(:disabled):not([data-state="active"]) { background: rgba(0, 0, 0, 0.06); }
 .strip-slot[data-state="active"] { background: #ffffff; box-shadow: 0 1px 3px rgba(20, 24, 40, 0.18), 0 0 0 2px var(--accent); }
@@ -844,8 +849,8 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .bar-part > .insp-sec > .insp-sec-head, .bar-part > .insp-sec > .insp-sec-body { padding-left: 0; padding-right: 0; }
 /* The page in small at the head of its settings (app 0.4.89, PageInspector.vue): its top bar, which opens the bar's
    inspector, its cells, and its place in the Dock. The part chosen is ringed in the accent. */
-.mini-page { display: grid; gap: 4px; padding: 5px; border-radius: 12px; background: #e7e7e7; color: #1b1b1b; }
-.mini-page > button { border-radius: 8px; color: #1b1b1b; }
+.mini-page { display: grid; gap: 4px; padding: 5px; border-radius: 12px; background: var(--glass-page); color: var(--glass-ink); }
+.mini-page > button { border-radius: 8px; color: var(--glass-ink); }
 .mini-page > button:hover { background: rgba(0, 0, 0, 0.06); }
 .mini-page > button[aria-selected="true"] { box-shadow: 0 0 0 2px var(--accent); }
 .mini-bar { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
@@ -873,7 +878,7 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 /* As tall as the folded library beside it (Library.vue HEAD), so their top lines meet. */
 .dr-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; min-height: 49px; padding: 7px 12px; border-top: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
 .dr-foot .spacer { flex: 1; }
-.live { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #e7e7e7; color: #1b1b1b; justify-items: start; }
+.live { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass-page); color: var(--glass-ink); justify-items: start; }
 .live small { color: #5a5f66; }
 .live svg { display: block; height: 28px; }
 .option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); width: 100%; text-align: left; }
@@ -916,10 +921,15 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .step button:hover:not(:disabled) { color: var(--ink); background: var(--line-strong); }
 .step output { min-width: 56px; text-align: center; font-weight: 500; }
 
-/* The two settings pages (docs/PAGES.md, "Settings"): a list of parts, each part a page of its own in one column. */
+/* The pages of parts: Settings, a screen's Settings tab and Events (docs/PAGES.md, "Pages of parts"): a list of parts, each part a page of its own in one column. */
 /* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
-#settings-view { max-width: none; }
-#settings-view > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+/* A whole page of parts (PartsPage): its head stands over the column; an open part that needs more room (a part of Events
+   with its sections) takes the wide page, head and all. */
+/* `.panel.parts-page`: wins over `.panel`'s own width further down, so the page spans the whole content area and its
+   column stands in the middle of it, not in the middle of a 960 px panel at its left. */
+.panel.parts-page, .panel.parts-page.wide { max-width: none; }
+.parts-page > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+.parts-page.wide > .panel-head, .parts-page.wide > .set-column { max-width: 1120px; }
 .set-column { display: grid; gap: 24px; align-content: start; max-width: 600px; width: 100%; margin-inline: auto; }
 .set-cards { display: grid; gap: 24px; }
 .set-list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; overflow: hidden; }
@@ -1022,7 +1032,7 @@ fieldset:disabled { opacity: 0.6; }
 .orient { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; cursor: pointer; }
 .orient:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .orient input { width: auto; margin: 0; accent-color: var(--accent); flex: none; }
-.orient-glass { flex: none; height: 68px; aspect-ratio: var(--glass-aspect, 1 / 1); background: #e7e7e7; border-radius: 7px; padding: 4px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 3px; }
+.orient-glass { flex: none; height: 68px; aspect-ratio: var(--glass-aspect, 1 / 1); background: var(--glass-page); border-radius: 7px; padding: 4px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 3px; }
 .orient-bar { height: 6px; border-radius: 3px; background: #cfcfcf; }
 .orient-cells { display: grid; grid-template-columns: repeat(var(--glass-columns, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--glass-rows, 3), minmax(0, 1fr)); gap: 3px; min-height: 0; }
 .orient-cells i { background: #fff; border-radius: 3px; }
@@ -1064,6 +1074,8 @@ details.log-wrap pre { margin-top: 8px; }
 .notice .mdi { font-size: 18px; color: var(--muted); flex: none; }
 .notice strong { display: block; font-weight: 600; margin-bottom: 2px; }
 .notice-text { flex: 1; min-width: 0; }
+/* A notice's words wrap, also in a notice with choices (.choice span keeps a picker's choices on one line). */
+.notice .notice-text { white-space: normal; }
 .notice.warn { background: var(--warn-soft); border-color: transparent; color: var(--ink); }
 .notice.warn .mdi { color: var(--warn); }
 /* A notice that asks for a choice (unsaved changes kept, another tab): on a phone its keys go under the words, at the right. */
@@ -1162,7 +1174,8 @@ td code { white-space: nowrap; }
   .side:not(.sheet) .nav-item { width: auto; }
   .side:not(.sheet) .more { display: contents; }
   .main-head { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 14px; gap: 8px; position: static; }
-  .main-head .tabs { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .main-head .tabs { grid-column: 1 / -1; grid-row: 2; justify-self: start; overflow-x: auto; scrollbar-width: none; }
+  .main-head .tabs > button { flex: none; }
   .head-right { grid-column: 2; grid-row: 1; }
   /* The narrow page scrolls as a whole, and the library stays held to the bottom of the window (#124). Sticky rather
      than fixed: its room stays at the end of the page, so the last page scrolls clear of it. */
@@ -1192,7 +1205,7 @@ td code { white-space: nowrap; }
 .log-lines { max-height: 160px; font-size: 11px; }
 
 /* Command palette */
-.palette-backdrop { position: fixed; inset: 0; background: rgba(10, 12, 18, 0.28); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
+.palette-backdrop { position: fixed; inset: 0; background: var(--dim); z-index: 70; display: grid; align-items: start; justify-items: center; padding: 12vh 16px 16px; }
 .palette { width: min(640px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; animation: pop-in 0.14s ease-out; }
 .palette input { border: 0; border-radius: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; font-size: 15px; background: transparent; }
 /* The open palette is the focus itself: its field needs no ring of its own. */
@@ -1256,7 +1269,11 @@ td code { white-space: nowrap; }
 .key-more[open] > .key-box, .key-more[open] > .btn { margin-top: 6px; }
 
 /* ---- Menus, lists and popovers (Reka UI, app 0.3.19) ---- */
-.ui-popover { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--pop-shadow); padding: 5px; z-index: 80; color: var(--ink); font-size: 13px; animation: pop-in 0.12s ease-out; }
+/* A popover has a line around it that shows on any ground (and in the dark its own, lighter greys: tokens.css).
+   No popover is wider than the window: one that takes its width from its words (a light preset's, in a language with
+   long ones) stood past the edge of a phone 360 px wide, its last key cut. */
+.ui-popover { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--pop-shadow); padding: 5px; z-index: 80; color: var(--ink); font-size: 13px; animation: pop-in 0.12s ease-out;
+  max-width: calc(100vw - 16px); }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-3px) scale(0.98); } to { opacity: 1; transform: none; } }
 .ui-menu { min-width: 220px; max-width: min(340px, calc(100vw - 16px)); max-height: min(420px, var(--reka-dropdown-menu-content-available-height, 70vh)); overflow-y: auto; overscroll-behavior: contain; }
 /* A pick from a list that can run long (UiPicker): a search field, the list under it scrolls in the window. */
@@ -1371,8 +1388,23 @@ td code { white-space: nowrap; }
 .setup .board-words small { font-size: 11.5px; color: var(--muted); }
 .board-badge { position: absolute; top: 20px; left: 20px; font-style: normal; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--surface); color: var(--warn); box-shadow: 0 0 0 1px var(--line); }
 .board-badge.new { color: var(--accent); }
+.board-badge.stable { color: var(--good); }
 .board-check { position: absolute; top: 20px; right: 20px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 14px; opacity: 0; transform: scale(0.6); transition: opacity 0.15s, transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 .board.chosen .board-check { opacity: 1; transform: none; }
+/* The recommended boards stand apart (app 0.4.102): a soft panel, larger cards and drawings; every other board follows
+ * under its own heading, smaller, with how far it has been tried, and space rather than a line between. */
+.board-tier { display: grid; gap: 12px; }
+.board-tier-head { display: grid; gap: 3px; }
+.board-tier-head h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 15px; font-weight: 650; color: var(--ink); }
+.board-tier-head p { margin: 0; font-size: 12.5px; color: var(--muted); max-width: 640px; }
+.board-tier.recommended { padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--good-soft) 55%, var(--surface-2)); }
+.board-tier.recommended h2 .ui-icon { color: var(--good); font-size: 18px; }
+.setup .board-tier.recommended .boards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.board-tier.recommended .board-art { height: 132px; }
+.board-tier.recommended .board-art .device-art { max-height: calc(44px + min(var(--inch, 5), 10.5) * 7.4px); max-width: calc(64px + min(var(--inch, 5), 10.5) * 14px); }
+.board-tier.more { margin-top: 14px; }
+.setup .board-tier.more .boards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.board-tier.more .board-art { height: 88px; }
 .pick-none { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--muted); }
 .try-virtual { justify-self: start; font-weight: 500; }
 /* ② The screen large on the left, taking its name; the questions on the right. */
@@ -1477,7 +1509,8 @@ td code { white-space: nowrap; }
 .model-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
 .setup .choice.model { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); cursor: pointer; }
 .setup .choice.model > span { display: grid; gap: 2px; min-width: 0; flex: 1; }
-.setup .choice.model b { font-size: 13px; }
+.setup .choice.model > span { white-space: normal; }
+.setup .choice.model b { font-size: 13px; overflow-wrap: anywhere; }
 .setup .choice.model small { color: var(--muted); font-size: 11.5px; }
 .board-badge.inline { position: static; justify-self: start; margin-top: 4px; box-shadow: none; background: var(--warn-soft); padding: 1px 6px; }
 .board-badge.inline.new { background: var(--accent-soft); }
@@ -1566,7 +1599,7 @@ section.advanced code { font-size: 11.5px; }
 .phone-status .dot.update { background: var(--led-update); }
 .phone-status.dirty { color: var(--warn); }
 .app.phone .body { display: block; overflow: visible; }
-.app.phone .canvas { padding: 10px 16px calc(112px + env(safe-area-inset-bottom)); overflow: visible; }
+.app.phone .canvas { padding: 10px 16px calc(112px + var(--safe-bottom)); overflow: visible; }
 .app.phone #layout-preview { display: flex; flex-direction: column; align-items: center; gap: 0; overflow: visible; padding: 0; margin: 0; touch-action: pan-y; }
 .app.phone .page-head { display: none; }
 .app.phone #layout-preview .page { flex: none; width: var(--mockup-width); max-width: 100%; }
@@ -1581,20 +1614,35 @@ section.advanced code { font-size: 11.5px; }
 .phone-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
 .phone-dots i.on { background: var(--ink); }
 .phone-hint { max-width: 300px; color: var(--muted); font-size: 13px; line-height: 1.45; text-align: center; }
-.phone-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+.phone-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; gap: 10px; padding: 14px 16px calc(14px + var(--safe-bottom));
   background: linear-gradient(to bottom, color-mix(in srgb, var(--ground) 0%, transparent), var(--ground) 34%); }
 .phone-dock .btn { flex: 1; height: 50px; border-radius: 14px; font-size: 16px; font-weight: 600; gap: 8px; }
 .phone-dock .btn .ui-icon { font-size: 21px; margin: 0; }
 .phone-dock .btn.soft { background: var(--seg); color: var(--ink); }
 .phone-dock .btn.square { flex: 0 0 50px; padding: 0; }
 .phone-dock .btn:disabled { opacity: 0.5; }
-.app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
+.app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + var(--safe-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
   padding: 13px 16px; font-size: 14.5px; }
 /* With a sheet open the word goes to the top, clear of the sheet's buttons. */
 .app.phone:has(.drawer, .library.open, .phone-sheet) .toast, body:has(.ui-sheet) .app.phone .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
 
+/* ---- A finger (a pointer that is coarse: a phone, a tablet) ----
+   The smallest keys keep their look and get room around them that takes the tap: a key of 22 px is half of what a thumb
+   hits. Each of these keys is the box its room is placed in (LayoutBotKey.vue tells what happens when a key is not: its
+   ring lay over the whole dock), and the room stays inside the gap to the key's neighbours. */
+@media (pointer: coarse) {
+  .tile .remove::after, .round-tile .remove::after, .ui-switch::after, .switch::before, .help-trigger:not(.help-label)::after { content: ""; position: absolute; }
+  .tile .remove::after, .round-tile .remove::after { inset: -9px; }
+  .ui-switch::after, .switch::before { inset: -10px -6px; }
+  .help-trigger:not(.help-label) { position: relative; }
+  .help-trigger:not(.help-label)::after { inset: -8px; }
+  /* A menu's rows are a finger tall, and the menu takes the room the window has before it scrolls. */
+  .ui-menu-item { min-height: 40px; }
+  .ui-menu { max-height: var(--reka-dropdown-menu-content-available-height, 80vh); }
+}
+
 /* Sheets: from the bottom, over a dimmed page; a tap on the dim closes them. */
-.sheet-dim { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 18, 0.32); }
+.sheet-dim { position: fixed; inset: 0; z-index: 40; background: var(--dim); }
 .dim-enter-active, .dim-leave-active { transition: opacity 0.22s; }
 .dim-enter-from, .dim-leave-to { opacity: 0; }
 @keyframes sheet-up { from { transform: translateY(100%); } }
@@ -1605,7 +1653,7 @@ section.advanced code { font-size: 11.5px; }
 .sheet-title small { font-size: 13px; color: var(--muted); }
 .sheet-close { width: 30px; height: 30px; border-radius: 50%; background: var(--seg); }
 .app.phone .library { position: fixed; left: 0; right: 0; bottom: 0; top: 48px; z-index: 41; border-top: 0; border-radius: 18px 18px 0 0; background: var(--ground);
-  box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
+  box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s; }
 .app.phone .library::before { content: ""; position: absolute; top: 7px; left: 50%; width: 38px; height: 5px; margin-left: -19px; border-radius: 3px; background: var(--line-strong); }
 .app.phone .library:not(.open) { transform: translateY(102%); visibility: hidden; box-shadow: none; transition: transform 0.24s ease-in, visibility 0s 0.24s; }
 .app.phone .lib-head { height: auto; padding: 6px 16px 0; }
@@ -1622,7 +1670,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .lib-domains button[aria-pressed="true"] small { color: inherit; opacity: 0.7; }
 .app.phone .lib-domains .dn { overflow: visible; }
 .app.phone .lib-domains .domain-icon.all { display: none; }
-.app.phone .lib-list { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); }
+.app.phone .lib-list { padding: 0 16px calc(24px + var(--safe-bottom)); }
 .app.phone .lib-group-title { background: var(--ground); font-size: 13px; color: var(--muted); padding: 16px 4px 7px; }
 .app.phone .lib-grid { grid-template-columns: minmax(0, 1fr); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .app.phone .lib-list > .lib-group:only-child .lib-grid, .app.phone .lib-list > .lib-group:first-child:not(:has(.lib-group-title)) .lib-grid { margin-top: 12px; padding-top: 0; }
@@ -1637,13 +1685,13 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .ent:disabled { opacity: 0.55; }
 
 /* A tile's settings: a sheet that leaves the page above it in sight, taller once More settings is open. */
-.app.phone .drawer { position: fixed; inset: auto 0 0 0; width: auto; max-height: 66vh; z-index: 41; border-left: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); }
+.app.phone .drawer { position: fixed; inset: auto 0 0 0; width: auto; max-height: 66vh; z-index: 41; border-left: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); }
 .app.phone .drawer:not(:has(.phone-more)) { max-height: 88vh; }
 .app.phone .drawer-inner { width: 100%; max-width: none; }
 .app.phone .drawer-enter-from, .app.phone .drawer-leave-to { width: auto; opacity: 1; transform: translateY(100%); }
 .app.phone .drawer-enter-active, .app.phone .drawer-leave-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .app.phone .dr-head { padding: 14px 12px 14px 16px; }
-.app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.app.phone .dr-body { display: flex; flex-direction: column; padding-bottom: calc(16px + var(--safe-bottom)); }
 /* On a phone the sheet starts with what a tile is changed for most: the tile itself at the head, a way to another
    entity when its own is gone, then its name, then its icon and colour. */
 .app.phone .dr-body > .bar-anchor { order: -4; }
@@ -1661,7 +1709,7 @@ section.advanced code { font-size: 11.5px; }
 
 /* The pages of a screen. */
 .phone-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 84vh; display: flex; flex-direction: column; background: var(--ground);
-  border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + env(safe-area-inset-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  border-radius: 18px 18px 0 0; box-shadow: 0 -1px 0 var(--line-strong), 0 -10px 40px rgba(10, 12, 18, 0.16); padding-bottom: calc(16px + var(--safe-bottom)); animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .sheet-list { list-style: none; margin: 8px 16px 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: auto; }
 .sheet-list li { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 6px; background: var(--surface); transition: transform 0.15s; }
 .sheet-list li.carried { transition: none; }
@@ -1832,6 +1880,54 @@ section.advanced code { font-size: 11.5px; }
 .updates .dev-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; justify-items: start; }
 .updates .dev-tools .btn { max-width: 100%; white-space: normal; text-align: left; }
 .updates .dev-tools small { color: var(--muted); }
+/* What did not build on this screen: first in its Plugins tab, with the reason and the log to download. */
+.sp-failures { display: grid; gap: 10px; }
+.sp-failure { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--danger-soft); color: var(--ink); }
+.sp-failure > .ui-icon { font-size: 20px; color: var(--danger); flex: none; margin-top: 1px; }
+.sp-failure-text { display: grid; gap: 4px; min-width: 0; flex: 1; font-size: 12.5px; line-height: 1.45; }
+.sp-failure-text b { font-size: 13.5px; font-weight: 600; }
+.sp-failure-reason { display: block; padding: 6px 8px; border-radius: 8px; background: var(--surface); color: var(--ink-2); font-size: 11.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.sp-failure-nolog { color: var(--muted); }
+/* A build that was good but found no screen: it waits for the screen, which is no error. */
+.sp-failure.waiting { background: var(--surface); border: 1px solid var(--line); }
+.sp-failure.waiting > .ui-icon { color: var(--muted); }
+/* The steps of a build (BuildSteps): waits, builds, sends, the screen confirms. */
+.build-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.build-steps li { display: inline-flex; align-items: center; gap: 5px; }
+.build-steps li > i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-block; }
+.build-steps li small { display: inline; margin-left: 4px; color: var(--muted); font-weight: 400; }
+.build-steps li.done { color: var(--ink-2); }
+.build-steps li.done .ui-icon { color: var(--good); }
+.build-steps li.now { color: var(--ink); font-weight: 600; }
+.build-steps li.failed { color: var(--danger); font-weight: 600; }
+.build-steps li.skipped { opacity: 0.55; }
+.build-steps li.waits { color: var(--ink-2); }
+.build-note.done .ui-icon { color: var(--good); }
+/* Every update of a screen in one card. */
+.sp-update-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+.sp-update-list li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.sp-update-list li small { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sp-update-away { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.build-room .btn.link { margin-top: 4px; padding-left: 0; }
+.sp-history summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; list-style: none; font-size: 12px; font-weight: 600; color: var(--muted); }
+.sp-history summary::-webkit-details-marker { display: none; }
+.sp-history[open] summary .ui-icon { transform: rotate(90deg); }
+.sp-history[open] summary { margin-bottom: 8px; }
+.plugin-pill small { font-size: 10.5px; font-weight: 700; margin-left: 1px; }
+.plugin-news .ui-icon { color: var(--danger); }
+.plugin-update-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.update-hour { max-width: 220px; }
+.pd-misfit .pd-log { margin-top: 6px; }
+/* Firmware & USB: every build's log the add-on keeps on disk, newest first, each to download. */
+.kept-logs { display: grid; gap: 8px; margin-top: 16px; }
+.kept-logs h3 { font-size: 13px; font-weight: 600; }
+.kept-note { font-size: 12.5px; color: var(--muted); }
+.kept-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.kept-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.kept-words { display: grid; flex: 1; min-width: 0; font-size: 12.5px; }
+.kept-words small { color: var(--muted); overflow-wrap: anywhere; }
+.kept-list li.failed .kept-state, .kept-list li.interrupted .kept-state { color: var(--danger); font-weight: 600; }
+.sp-failure-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; align-items: center; }
 /* Update all on this screen: one build for every update, above the screen's own plugins. */
 .sp-updates { display: grid; gap: 10px; justify-items: start; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
 .sp-updates p { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
@@ -1921,6 +2017,12 @@ section.advanced code { font-size: 11.5px; }
 .plugin-face-tag .mdi { font-size: 12px; }
 .plugin-face.compact { gap: 2px; padding: 8px 10px; }
 .plugin-face.compact .plugin-face-tag { display: none; }
+/* A plugin's card as the firmware drew it (stores/faces.ts): the picture is the whole card, edge and corners, so the
+   editor's own card under it shows no ground and no line of its own. */
+.plugin-glass { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); display: block; pointer-events: none; }
+.tile:has(> .plugin-glass), .tile:has(> .plugin-glass):hover { background: transparent; border-color: transparent; }
+/* The card of an earlier visit, until the firmware has drawn it again (model/face-cache.ts). */
+.plugin-glass.kept { opacity: 0.6; }
 .plugin-live { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; padding: 10px 12px; min-width: 0; }
 .plugin-live-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .plugin-live-badge { flex: none; min-width: 22px; padding: 1px 7px; border-radius: 8px; background: var(--accent); color: #fff;

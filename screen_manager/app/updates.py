@@ -1,19 +1,25 @@
 """Firmware updates for paired screens: on demand, all at once, or nightly. Each is a build in the app's one build line
 (build_queue, docs/BUILDS.md), so one screen at a time and never refused because something else builds."""
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
 import re
 import time
+from types import SimpleNamespace
 import atomic
 import changelog
+import ha_notice
+from build_failures import PASSING, failure_kind
 from build_queue import Round
 from core import FIRMWARE_VERSION, SHAPES, board_of, channel, firmware_target, parse_firmware
 from i18n import Text, english, screen_t, shown, t
 
 LOG = logging.getLogger('screen_manager')
-NIGHT_HOURS = range(3, 6)
+# The hour the nightly round may start, chosen in the Updates card (wish 113: screens beside a bed restart at full
+# brightness): 3 at night unless chosen; the round may start within three hours from it.
+DEFAULT_HOUR = 3
+WINDOW_HOURS = 3
 # What a screen with 4 MB of flash says about its partition table in its "Screen flash" sensor (components/flash_layout)
 # that this app acts on: it has the wide one, it is ready to take it, or it is ready after one more update (it runs
 # from its second slot, and ESPHome replaces the table of a screen in its first). Any other word, and no word at all,
@@ -39,7 +45,6 @@ def shown_result(result):
 class Updater:
     verify_timeout = 240
     settle_seconds = 60
-    pause_seconds = 120
     poll_seconds = 5
     # The partition table of a board with 4 MB of flash (app 0.4.56). How long a screen gets to say its word after a
     # restart: its features sensor speaks every minute. And for a screen on its bridge, which Home Assistant cannot
@@ -55,6 +60,7 @@ class Updater:
     def __init__(self, manager, path):
         self.manager, self.path = manager, Path(path)
         self.auto, self.hosts, self.results, self.last_round = False, {}, {}, None
+        self.hour = DEFAULT_HOUR
         # Screens this app left on their bridge (app 0.4.56): {inbox: {'profile', 'host', 'since'}}, finished by the
         # next round however it ended, also after a restart of the app.
         self.bridging, self.bridge_tried = {}, 0.0
@@ -65,6 +71,8 @@ class Updater:
         raw = atomic.read_json(self.path, 1)
         if raw is not None:
             self.auto = raw.get('auto') is True
+            hour = raw.get('hour')
+            self.hour = hour if isinstance(hour, int) and not isinstance(hour, bool) and 0 <= hour <= 23 else DEFAULT_HOUR
             self.hosts = {k: v for k, v in raw.get('hosts', {}).items() if isinstance(v, str)}
             self.results = {k: v for k, v in raw.get('results', {}).items() if isinstance(v, dict)}
             self.last_round = raw.get('last_round') if isinstance(raw.get('last_round'), str) else None
@@ -74,7 +82,10 @@ class Updater:
     def save(self):
         # 'bridging' only while a screen is on its bridge, so the file reads as before for an older app.
         atomic.write_json(self.path, {'version': 1, 'auto': self.auto, 'hosts': self.hosts, 'results': self.results,
-                                      'last_round': self.last_round, **({'bridging': self.bridging} if self.bridging else {})})
+                                      'last_round': self.last_round,
+                                      # The hour only once it was chosen, so the file reads as before for an older app.
+                                      **({'hour': self.hour} if self.hour != DEFAULT_HOUR else {}),
+                                      **({'bridging': self.bridging} if self.bridging else {})})
 
     @property
     def line(self):
@@ -194,7 +205,7 @@ class Updater:
         # The changelog goes with the full inventory only (app 0.2.78): this summary is in every live update of the page.
         # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21). `channel`
         # is the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
-        return {'auto': self.auto, 'target': FIRMWARE_VERSION, 'busy': self.current,
+        return {'auto': self.auto, 'hour': self.hour, 'window': WINDOW_HOURS, 'target': FIRMWARE_VERSION, 'busy': self.current,
                 'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round, 'channel': channel(),
                 # How many screens Reinstall all from dev would build again; only on the dev channel.
                 **({'reinstallable': len(self.reinstallable(screens, profiles))} if channel() == 'dev' else {})}
@@ -212,9 +223,20 @@ class Updater:
                 and not self.build_of(s['id'])]
 
     def set_auto(self, enabled):
-        if not isinstance(enabled, bool):
+        self.set_choices(auto=enabled)
+
+    def set_hour(self, hour):
+        """The hour the nightly round may start (0 to 23), in Home Assistant's time."""
+        self.set_choices(hour=hour)
+
+    def set_choices(self, **choices):
+        """The nightly round's choices, checked all before any is kept: `auto` (on or off) and `hour` (0 to 23)."""
+        if 'auto' in choices and not isinstance(choices['auto'], bool):
             raise ValueError(t('addon.errors.updates.automatic'))
-        self.auto = enabled
+        hour = choices.get('hour', self.hour)
+        if not isinstance(hour, int) or isinstance(hour, bool) or not 0 <= hour <= 23:
+            raise ValueError(t('addon.errors.updates.hour'))
+        self.auto, self.hour = choices.get('auto', self.auto), hour
         self.save()
 
     def start(self, inbox, host=None, reinstall=False):
@@ -310,18 +332,77 @@ class Updater:
 
     async def run_build(self, build):
         """An update's turn in the build line: the screen's update, then what it means for its round. A failure ends the
-        round (the build line leaves its waiting updates out) so a bad build never reaches the next screen."""
+        round (the build line leaves its waiting updates out) so a bad build never reaches the next screen. A failure that
+        says nothing about the firmware (a download that did not come, a screen that was away for its upload) puts the
+        screen back at the end of the line once (`retry`), and the round goes on (docs/BUILDS.md, "Building ahead")."""
         inbox = build.screen = self.current_id(build.screen)
         outcome = await self.update_one(inbox, build)
+        why = self.passing(build) if outcome == 'failed' and build.attempt == 1 else None
+        # A screen that was away goes once more only with other screens of its round between: alone it would build again
+        # while it is still away.
+        if why == 'offline' and (build.round is None or len(build.round.builds) < 2):
+            why = None
+        if why:
+            # The same build once more: what it brought for the screen's plugins and whoever waits for its end go along.
+            again = self.line.add('update', build.file, self.run_build, screen=inbox, round=build.round, join=False,
+                                  plugins={**build.plugins, 'fresh': build.fresh})
+            again.attempt = build.attempt + 1
+            again.ends += [end for end in build.ends if end not in again.ends]
+            LOG.info('Update of %s goes once more, at the end of the line (%s)', inbox, why)
+            return 'retry'
         if outcome == 'failed' and build.round and build.round.automatic:
             # For whoever reads Home Assistant: in the screens' language, Home Assistant's own unless another was chosen
             # (app 0.2.90).
             await self.notify(screen_t('addon.notify.update_stopped', name=self.name(inbox),
                                        reason=result_text(self.results[self.current_id(inbox)])))
-        # A pause between two updates of one round; not before anything else that is next (New screen, another's build).
-        if outcome == 'success' and build.round and self.line.line and self.line.line[0].round is build.round:
-            await asyncio.sleep(self.pause_seconds)
         return outcome
+
+    def passing(self, build):
+        """Why a failed update says nothing about its firmware, or None: 'network' (a download it needs did not come) or
+        'offline' (built, but the screen was away for its upload). Such a screen goes once more; any other failure ends
+        its round."""
+        if build.verified is False or not build.stepped:
+            return None   # its screen came back without the firmware, or it never built: that says something
+        # Its steps' lines are its own (BuildQueue.step); the memory of its last job is the slot's while it holds it.
+        memory = (getattr(self.manager.firmware, 'job', None) or {}).get('memory') if self.line.running is build else build.memory
+        kind = failure_kind(build.logs, memory)
+        return kind if kind in PASSING else None
+
+    async def build_and_install(self, inbox, profile, host, build):
+        """The screen's firmware built and installed. In a round the build is made ahead: the slot goes to the next build
+        while this one waits for every screen before it in the round to have passed its check, and its upload takes the
+        slot back. True when it went on, False when it did not, None when the round stopped before its turn (a screen
+        before it failed)."""
+        # A screen alone (its own Update) builds and installs in one go: there is no next screen to build ahead for.
+        if build.round is None or len(build.round.builds) < 2:
+            return await self.job(profile, 'install', host)
+        build.phase = 'install'
+        if not await self.job(profile, 'build'):
+            return False
+        if not await self.turn(build):
+            return None
+        return await self.job(profile, 'upload', host)
+
+    async def turn(self, build):
+        """A build made ahead in a round waits, beside the line, until every screen before it in the round has ended:
+        it touches its screen only once those passed their check. False when one of them failed (the round stopped)."""
+        before = self.ahead_of(build) if build.round is not None else []
+        if any(not other.done.is_set() for other in before):
+            # Built: the slot goes to the next build while this one waits for its turn to install.
+            build.phase = 'ready'
+            self.line.handoff(build)
+            for other in before:
+                await other.done.wait()
+        if any(other.state == 'failed' for other in before):
+            return False
+        build.phase = 'install'
+        return True
+
+    @staticmethod
+    def ahead_of(build):
+        """The builds of the build's round before it: it installs only once they have ended."""
+        builds = list(build.round.builds)
+        return builds[:builds.index(build)] if build in builds else []
 
     def name(self, inbox):
         screen = self.screen(inbox)
@@ -329,7 +410,8 @@ class Updater:
 
     async def update_one(self, inbox, build=None):
         """Update one screen in the build that runs (`build`, whose phase the page shows)."""
-        build = build or type('Build', (), {'phase': None})()
+        # Called without a build (a test, a bridge round to finish): one that is in no round and whose phase nobody reads.
+        build = build or SimpleNamespace(phase=None, round=None, verified=None)
         screen = self.screen(inbox)
         # A screen this app left on its bridge is away for Home Assistant, and still this app's to finish.
         note = self.bridging.get(self.current_id(inbox))
@@ -354,21 +436,32 @@ class Updater:
             # queue; its saved configuration can change while another builds.
             self.manager.preflight_update(inbox)
             if wide:
-                installed = await self.install_wide(inbox, profile, host)
+                installed = await self.install_wide(inbox, profile, host, build)
+                if installed is None:
+                    self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                    return 'skipped'
             else:
                 # A plugin suggested for the screen's board that its owner said yes to (plugin_defaults.py) comes with
                 # this build. The update never fails on it: a build that stops goes once more without it.
                 plugins = getattr(self.manager, 'plugins', None)
                 joined = await plugins.join_accepted(inbox) if plugins and not note else []
                 try:
-                    installed = await self.job(profile, 'install', host)
+                    installed = await self.build_and_install(inbox, profile, host, build)
                 except ValueError:
                     if joined:
                         plugins.settle_joined(inbox, joined, False, 'interrupted')
                     raise
+                if installed is None:
+                    if joined:
+                        plugins.settle_joined(inbox, joined, False, 'interrupted')
+                    self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                    return 'skipped'
                 if joined and not installed:
                     plugins.settle_joined(inbox, joined, False, logs=list(getattr(firmware, 'logs', None) or []))
-                    installed = await self.job(profile, 'install', host)
+                    installed = await self.build_and_install(inbox, profile, host, build)
+                    if installed is None:
+                        self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                        return 'skipped'
                 elif joined:
                     plugins.settle_joined(inbox, joined, True)
         except ValueError as error:
@@ -393,7 +486,10 @@ class Updater:
                 self.record(inbox, 'failed', english('addon.updates.build_failed'))
             return 'failed'
         build.phase = 'verify'
+        # The screen restarts and is checked: that is waiting, not building, so the slot goes to the next build.
+        self.line.handoff(build)
         if not await self.wait_for_target(inbox, target):
+            build.verified = False
             self.record(inbox, 'failed', english('addon.updates.no_report', version=target), target)
             return 'failed'
         if wide:
@@ -409,10 +505,12 @@ class Updater:
         await asyncio.sleep(self.settle_seconds)
         current = self.screen(inbox)
         if not current or not current['online']:
+            build.verified = False
             self.record(inbox, 'failed', english('addon.updates.dropped_off'), target)
             return 'failed'
         if self.current_id(inbox) in self.bridging:
             await self.close_bridge(inbox, profile)
+        build.verified = True
         self.record(inbox, 'success', english('addon.updates.updated', version=target), target)
         return 'success'
 
@@ -455,7 +553,7 @@ class Updater:
             return False
         return await self.wait_for_word(inbox, 'wide') == 'wide'
 
-    async def install_wide(self, inbox, profile, host):
+    async def install_wide(self, inbox, profile, host, build=None):
         """Build and install the firmware of a board whose flash takes the wide table. True when it is on the screen.
 
         A screen that already says "widen" gets the table first, from the firmware it runs. A screen that still has
@@ -464,6 +562,9 @@ class Updater:
         firmware = self.manager.firmware
         if not await self.job(profile, 'build'):
             return False
+        # In a round: built ahead, it touches the screen only once the screens before it passed their check.
+        if build is not None and not await self.turn(build):
+            return None
         note = self.bridging.get(self.current_id(inbox))
         if note:
             return await self.over_bridge(inbox, profile, host, started=True)
@@ -551,14 +652,24 @@ class Updater:
         return False
 
     async def notify(self, message):
+        await ha_notice.show(self.manager.ha, 'esp_screens_update', message)
+
+    def firmware_waiting(self, screen):
+        """The firmware a screen has waiting that this app can install (it has the screen's YAML), or None
+        (update_notice.py)."""
         try:
-            await self.manager.ha.request('call_service', domain='persistent_notification', service='create',
-                                          service_data={'notification_id': 'esp_screens_update', 'title': 'Tessera', 'message': message})
-        except Exception as error:
-            LOG.warning('Notifying Home Assistant failed (%s)', type(error).__name__)
+            state = self.state_for(screen)
+        except Exception:   # a screen half known (no profile list yet) has nothing to say
+            return None
+        return state.get('target') if state.get('available') and state.get('profile') else None
+
+    def round_day(self, now):
+        """The day a round at `now` counts for: the day its window began, so a window past midnight (from 23:00) is one
+        round, not two."""
+        return (now - timedelta(hours=(now.hour - self.hour) % 24)).date().isoformat()
 
     def due(self, now):
-        return self.auto and now.hour in NIGHT_HOURS and self.last_round != now.date().isoformat()
+        return self.auto and (now.hour - self.hour) % 24 < WINDOW_HOURS and self.last_round != self.round_day(now)
 
     async def run(self):
         while True:
@@ -584,7 +695,7 @@ class Updater:
             return self.launch(waiting, automatic=True)
         if not self.due(now):
             return None
-        self.last_round = now.date().isoformat()
+        self.last_round = self.round_day(now)
         self.save()
         pending = self.pending()
         if not pending:

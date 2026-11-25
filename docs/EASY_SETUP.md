@@ -11,12 +11,24 @@ This works with Home Assistant OS on a 64-bit Raspberry Pi or an amd64 machine,
 and one of these exact screen variants. The ESPHome CLI is included in Tessera Screen Manager;
 ESPHome Device Builder is optional:
 
+**Recommended.** Proven on real screens and the project's pick: the most you can do with Tessera, tried every day.
+
 | Choice | Hardware |
 | --- | --- |
-| CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
-| CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
-| Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
+| Guition, 10.1 inch V3 | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
+| reTerminal D1001, 8 inch | Seeed reTerminal D1001, 800×1280, JD9365 MIPI-DSI and GSL3670, ESP32-P4 ([details](RETERMINALD1001.md)) |
+
+**More boards.** A proven board works but does less (a CYD has room for few tiles and no pictures). A new one runs on
+a few screens so far; an experimental one is built and rendered but not yet tried on the hardware. Expect rough edges
+on those, and say how it goes.
+
+| Choice | Hardware |
+| --- | --- |
+| CYD, 2.8 inch (proven) | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
+| Waveshare, 4.3 inch (proven) | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
+| Waveshare P4, 10.1 inch V3 (proven) | ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 ESP32-P4 silicon ("chip revision: v3" in the USB log), 1280×800, JD9365 MIPI-DSI and GT911 ([details](WAVESHARE101.md)) |
+| CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Waveshare, 4.3 inch 4.3C (experimental) | ESP32-S3-Touch-LCD-4.3C (not the 4.3), 800×480, ST7262 and GT911, CH32V003 expander ([details](WAVESHARE43C.md)) |
 | Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Guition, 5 inch (experimental) | JC8048W550C_I (the capacitive variant only), 800×480, ST7262 RGB and GT911 ([details](JC8048W550.md)) |
@@ -36,8 +48,6 @@ ESPHome Device Builder is optional:
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
 | Waveshare P4, 10.1 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-10.1, 1280×800, JD9365 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHARE101.md)) |
-| Waveshare P4, 10.1 inch V3 (new) | ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 ESP32-P4 silicon ("chip revision: v3" in the USB log), 1280×800, JD9365 MIPI-DSI and GT911 ([details](WAVESHARE101.md)) |
-| Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
 | Guition, 4.3 inch (experimental) | JC4880P443, 480×800, ST7701 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](JC4880P443.md)) |
@@ -75,33 +85,47 @@ Use the GitHub version for updates; a local test add-on is a separate app.
 
 ## 2. New screen: connecting and installing
 
-1. Connect the screen with a **USB data cable** to the machine running Home
-   Assistant. With multiple boards: connect them one at a time for the first
-   installation, or check which port belongs to this screen.
-2. Click the **+** beside **Screens** in the sidebar of Tessera. New screen walks you through three steps.
-   **Screen**: under **Which screen do you have?** pick your board. Type its brand, size or what is printed on
-   it to find it, or narrow the list by size. **Set up**: give the screen a name, for example `Kitchen`, and watch
-   it appear on the drawing of your screen. A CYD asks for its **Display controller**. The screen gets the best
-   grid for its glass, lying down. The device name (`kitchen`) follows from the name; **Advanced** shows it, lets you
-   choose a different one, lets you choose another grid (columns and rows, and on glass that is not square
-   **Lying down** or **Standing up**), and lists what the board can and cannot do. The grid and the way it hangs can
-   be changed later in the editor, beside the pages, without a new build.
-3. Wi-Fi: if `wifi_ssid` and `wifi_password` are already in the ESPHome `secrets.yaml`,
-   the screen uses them automatically. If they're missing, or the file doesn't
-   exist yet, the Set up step asks for them once and Tessera only adds the
-   missing lines to `secrets.yaml`; comments and other secrets are left
-   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes its keys
-   from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
-   included file counts, and a key of the file's own wins.
-4. **Install**: choose **USB on Home Assistant** (the port it found has a green light) and click
-   **Install**. Tessera stores the profile (`kitchen.yaml`, with unique
-   API and OTA keys) in the ESPHome folder, builds the firmware, and writes it
-   over USB. The page follows it in steps (getting ready, building the firmware, putting it on the screen,
-   starting up), each with how far it is, while the drawing of your screen fills in. **Show details** opens
-   ESPHome's own log. A first build takes a few minutes on a Raspberry Pi. You can close the
-   page: the installation keeps running and picks back up when you reopen it.
-5. When it is done, the page follows the screen onto your Wi-Fi and into Home Assistant (chapter 3). If the build
-   fails, the step it stopped in turns red, the log opens and you can **Retry**.
+1. Click the **+** beside **Screens** in the sidebar of Tessera. New screen asks one thing at a time, with
+   **Continue** at the bottom and **Back** at the top; the dots at the top show how far you are. It only asks what
+   your screen needs:
+   - **Which screen do you have?** The recommended boards come first, drawn large. **I have another screen** opens
+     every board in one list: type its brand, size or what is printed on it, or narrow the list by size. A board
+     that is new or not tested yet on its hardware says so in the list.
+   - **Which version do you have?** Only for a screen sold in more than one version, or with a part that differs
+     between boards (a CYD's display controller). The back of the board says which one you have; the most common
+     one is chosen to begin with.
+   - **What is this screen called?** For example `Kitchen`; the rooms of your home in Home Assistant are offered as
+     names, and the drawing of your screen shows the name as you type. **More options** shows the device name
+     (`kitchen`, which follows from the name), the grid it starts with (columns and rows) and what the board can and
+     cannot do.
+   - **How will it hang?** Only for glass that is not square: lying down or standing up, each drawn with the tiles
+     of its page. The grid and the way it hangs can be changed later in the editor, beside the pages, without a new
+     build.
+   - **This screen can do more.** Only for a board with hardware a plugin makes work, such as a camera (see
+     [PLUGINS.md](PLUGINS.md)): each plugin with a switch, on to begin with.
+   - **Which Wi-Fi will it join?** Only when `wifi_ssid` and `wifi_password` are not in the ESPHome `secrets.yaml`
+     yet, or the file doesn't exist. Tessera only adds the missing lines to `secrets.yaml`; comments and other
+     secrets are left alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes
+     its keys from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
+     included file counts, and a key of the file's own wins. When the Wi-Fi is there already, the last step offers
+     **Another network**.
+   - **Where is the cable plugged in?** **In this computer**, the one you are reading New screen on, or **In your
+     Home Assistant**, the machine Home Assistant runs on. This computer comes first where this browser can write
+     a screen itself (see below). **No cable at hand? Save it and install later** keeps the profile without a build.
+2. **In your Home Assistant**: plug the screen into the machine running Home Assistant with a **USB data cable**.
+   The page watches its USB ports and says **Screen found** as soon as the screen is there. Devices that are
+   certainly not a screen, such as a Zigbee or Z-Wave stick, are kept out of the way under **Also plugged in**.
+   With two screens plugged in, it asks which one. Click **Install**: Tessera stores the profile (`kitchen.yaml`,
+   with unique API and OTA keys) in the ESPHome folder, builds the firmware and writes it over USB.
+3. The page then follows the screen until it works, in four steps: **Making the software**, **Putting it on the
+   screen**, **Starting and joining your Wi-Fi** and **Adding it to Home Assistant**, while the drawing of your screen
+   fills in. A first build takes a few minutes on a Raspberry Pi. You can close the page: the installation keeps
+   running and picks back up when you reopen it. **What happens exactly** opens ESPHome's own log.
+4. The page says the screen **is ready** only once Home Assistant has it: on your Wi-Fi, added to the ESPHome
+   integration, online and allowed to perform actions (chapter 3). **Make its pages** opens it in the editor. If
+   the build fails, the step it stopped in turns red, the log opens and you can **Retry**. If the screen is not on
+   your Wi-Fi after three minutes, or Home Assistant asks something only you can answer, the page says so and what
+   helps.
 
 Every screen gets its own profile: four screens means going through **New
 screen** four times, with four different names. The shared board package is the
@@ -110,16 +134,15 @@ Keep that profile and reuse it for updates. Going through **New screen**
 again for an existing screen generates new keys and is not the
 update route.
 
-No USB port in the list? A cable plugged into your laptop isn't visible to the
-machine running Home Assistant, and a server or virtual machine may have no USB port
-within reach at all. Then put the firmware on the screen from the computer you're using.
+No screen found? A cable plugged into your laptop isn't visible to the machine running Home Assistant, and a
+server or virtual machine may have no USB port within reach at all. Then choose **In this computer** and put the
+firmware on the screen from the computer you're using.
 
 **From this browser.** This works in Chrome or Edge on a computer, when Home Assistant is
 opened over https (see below):
 
 1. Plug the screen into this computer with a USB data cable.
-2. In the Install step of **New screen**, choose **From this computer** and click
-   **Connect & install**.
+2. In **New screen**, choose **In this computer** where it asks for the cable, and click **Install**.
 3. The browser asks which port to use: choose the screen's. Tessera first checks that the
    board carries the chip the chosen board needs (an ESP32, ESP32-S3 or ESP32-P4), then builds the
    firmware the same way as over USB. Keep the tab open. As soon as the build is ready, the page
@@ -128,17 +151,21 @@ opened over https (see below):
 
 A browser only reaches USB ports on a secure page. Home Assistant opened as
 `http://homeassistant.local:8123` isn't one: open it over https, for example through your
-Home Assistant Cloud address or your own certificate. On a plain http page the option says so and
-stays off, and Download below still works. Not in the port list? Use a cable that carries data
+Home Assistant Cloud address or your own certificate. On a plain http page, **In this computer** says so and
+makes a file to download instead (below). Not in the port list? Use a cable that carries data
 (some only charge), and install the driver for the board's USB chip (CP210x, CH340 or CH9102) if
 your computer needs one. The board doesn't answer? Hold its **BOOT** button while you choose the
-port, until the installation starts.
+port, until the installation starts. The page waits 20 seconds for the chip on the chosen port. Without an
+answer it stops, says so, builds nothing and gives **Install** back, and the next click asks for the port again:
+the browser remembers a port once chosen, and the page lets go of one that did not answer. Some boards show two
+ports on one cable, because a second chip sits beside the ESP32 (the SenseCAP Indicator's RP2040). The page
+knows such a port by its USB ids, refuses it at once and says to choose the other one.
 
 **Download.** For any other browser:
 
-1. In the Install step of **New screen**, choose **Download the file** and click
-   **Build & download**. Tessera builds the firmware the same way; when it's ready,
-   the window offers the file, for example `kitchen.factory.bin`.
+1. In the last step of **New screen**, click **Rather do it yourself? Download the file** (or **Build and download**
+   where this browser cannot write a screen). Tessera builds the firmware the same way; when it's ready, the page
+   offers the file, for example `kitchen.factory.bin`, and waits for the screen to come onto your Wi-Fi.
 2. Plug the screen into your own computer with a USB data cable.
 3. Open [ESPHome Web](https://web.esphome.io/?dashboard_install) in Chrome or Edge on that
    computer (other browsers can't reach USB), click **Connect** and choose the screen's port.
@@ -352,7 +379,21 @@ screen is back on its Home page, from wherever it stands. Since firmware 0.10.0 
 in its own colours (a house before that). It stands on the baseline of the page title, the page title
 moves behind it with the same air between them as between the logo and the edge of the glass, and the
 items on the right of the bar keep every pixel they had. **Show home button** in the **Screen settings** tab, and on
-the screen's own settings page, takes it away.
+the screen's own settings page, takes it away. Holding the logo for half a second (firmware 0.64.0+) sends the
+screen to standby at once, with its screensaver, also with **Auto standby** off, until a tap or Wake.
+A board with a key of its own uses it as the standby key (firmware 0.64.0+): a press sends a lit screen to standby
+at once, with its screensaver, and wakes a screen in standby. It works like **Sleep** and **Wake** in Home Assistant,
+so it holds with **Auto standby** off too.
+After a standby you asked for this way (the logo held, the key, or **Sleep** in Home Assistant), the person who did it
+is still in front of the screen, and walking away is motion. So a wake on movement (a plugin such as the camera's
+Wake on movement, a board that wakes when moved, an automation that presses **Motion** in Home Assistant) waits until it has
+seen no movement for a minute; the next movement after that lights the screen. A tap, the key, **Wake** in Home Assistant, an alert, a
+doorbell or a call always wake it. The standby time running out on its own waits for nothing, since nobody was there. The key is the reTerminal D1001's button on top, the SenseCAP Indicator's
+user button, the power key of the Waveshare 3.5-inch and the Waveshare 4-inch revision 4.0, and on the other boards the
+BOOT key (on the back or the edge of the board). The Guition 4848S040, the Waveshare 4.3-inch, 4.3C, 5-inch, 7-inch and
+7B and the WT32-SC01 Plus have their BOOT key on a pin the display uses, the Waveshare 86 panel hangs in the wall with
+its BOOT key on the Ethernet line, and the M5Stack Tab5's key belongs to its power chip, so these have none. The key
+is also the **Button** entity in Home Assistant.
 The default standby time is ten minutes. For offline devices, the screen blocks
 actions. If the connection to Home Assistant drops, the screen immediately shows
 "HA not connected"; if the app sends nothing for two rounds (about five minutes),
@@ -541,7 +582,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On for a screen set up with New screen, off for one set up before |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
 | Loop pages | On: past the last page comes the first, and before the first the last. Off: the pages stop at their ends | On |
-| Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
+| Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+; holding it half a second starts standby and its screensaver, firmware 0.64.0+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |
 
 The Waveshare 4.3-inch, 5-inch and 7-inch have a backlight that is only on or off and no standby, so they show no

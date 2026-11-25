@@ -46,7 +46,8 @@ ESPHome keeps a record of a crash in RAM that survives the reboot (`esp32/crash_
 Home Assistant subscribes only when the entry's "Subscribe to logs" option is on, so the record waits for the app.
 `Reports.watch` looks at every screen's "Last boot" sensor; when it changes, the app connects for eight seconds as the
 first subscriber, reads the record and the debug component's reset reason, decodes the addresses with the toolchain's
-`addr2line` and the ELF of the screen's build under `/data/build/<name>/build/firmware.elf`, and keeps the crash in
+`addr2line` and the ELF of the screen's build, where ESPHome builds it below `/data/build/<name>` (`<node>/build/` with
+ESP-IDF, `<node>/.pioenvs/<node>/` with PlatformIO, the places an update finds its image), and keeps the crash in
 `/data/crashes.json` (ten per screen, one capture per five minutes). The page shows the last crash and how many the
 week had; the report carries them all.
 

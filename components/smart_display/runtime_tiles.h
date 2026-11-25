@@ -643,8 +643,27 @@ inline void persist_settings() {
 }
 // One page of a picker's names (op "options", app 0.2.83+), for the light's effects page.
 inline std::function<void(const std::string &, unsigned, unsigned, std::vector<std::string> &&)> options_received;
+// What a card was painted from (GitHub #349): everything the palette pass of render_slot reads, kept as one value and
+// compared whole. A card skips that pass only when all of it is as it was. The pass once compared a list of fields and
+// the state's colour was missing from it (a thermostat from Auto to Heat on a kept page came back in its old colour); a
+// new input of the pass goes in here, and web/wasm/test_kept_colour.mjs changes one input at a time on a kept page.
+struct PaintedFrom {
+  int palette = -1;     // available, active, the slider's colour, a picture over the card, a lock's colour and question;
+                        // -1: not painted yet, or asked to paint again (Widgets::paint_again)
+  uint64_t look = 0;    // the card's face, "Background: none", its look and ground in a section
+  uint32_t accent = 0;  // the state's colour, a lamp's own while it is on
+  bool key = false, page = false, letterbox = false, bar = false;  // a bedside key, a page tile, a letterboxed picture, the slider's bar
+  std::string mode;     // the parts the card draws (extra_mode), each painted its own way
+  bool operator==(const PaintedFrom &o) const {
+    return palette == o.palette && look == o.look && accent == o.accent && key == o.key && page == o.page &&
+           letterbox == o.letterbox && bar == o.bar && mode == o.mode;
+  }
+};
 struct Widgets {
-  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; int cached_active = -1; lv_obj_t *slider{}, *progress{}, *unit{};
+  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; lv_obj_t *slider{}, *progress{}, *unit{};
+  // What the card's colours were last painted from (render_slot); paint_again() makes the next render paint them.
+  PaintedFrom painted;
+  void paint_again() { painted = PaintedFrom{}; }
   const lv_font_t *value_font{}, *icon_font{};
   // Wide cards span both columns; custom cards (clock, forecast, graph) draw into `extra`.
   // Full (firmware 0.2.62+) takes the whole page: the double-width card's head on top, a control at the bottom.
@@ -656,14 +675,6 @@ struct Widgets {
   // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
   // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
   uint8_t alarm_look=0; uint32_t alarm_mark=0;
-  // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
-  // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
-  // which an idle timer never sends).
-#ifdef SD_MOD_SECTIONS
-  uint64_t cached_paint=UINT64_MAX;  // with the card's look and ground (render_slot)
-#else
-  uint32_t cached_paint=UINT32_MAX;
-#endif
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -993,9 +1004,9 @@ inline void watch_busy() { if (!busy_timer) busy_timer = lv_timer_create(busy_wa
 struct WatchedCall { uint32_t id = 0, since = 0; };
 // The screen's own alert card (firmware 0.38.0): the first tap Home Assistant leaves without an answer explains itself
 // once per start, through the same card an automation shows (packages/core.yaml binds it). Such an alert of the
-// screen's own sends no esphome.screen_alert event when it closes (own_alert), so no automation takes it for its own.
+// screen's own sends no esphome.screen_alert event when it closes (alert_life.h, own_next), so no automation takes it for its own.
 inline void (*hint_alert)(const std::string &title, const std::string &text) = nullptr;
-inline bool own_alert = false, own_alert_next = false, unanswered_told = false;
+inline bool unanswered_told = false;
 inline std::array<WatchedCall, 4> watched_calls{};
 inline const char *const NO_ANSWER = "no answer";
 // Returns whether Home Assistant will answer this one (a free place among the four).
@@ -1356,6 +1367,9 @@ inline constexpr int CLIMATE_MODE_FIRST=200,CLIMATE_ROW_FIRST=210,CLIMATE_POWER=
 inline void climate_paint_ends(const Tile &t);
 // The power key of a light or fan card (firmware 0.2.80), in the same top bar.
 inline constexpr int LIGHT_POWER=240;
+// A group's key in a card's top bar: its page over the card, of covers (the cover card, firmware 0.57.0) or of lamps (the
+// light card of a group that only dims or switches, GitHub #458). Handled in detail_lvgl.h.
+inline constexpr int GROUP_PAGE=720;
 // The rows of the select card (render_select_detail): option i is SELECT_OPTION_FIRST + i.
 inline constexpr int SELECT_OPTION_FIRST=900;
 // A remote's keypad (firmware 0.22.0+): key i of Extra::keypad is REMOTE_KEY_FIRST + i.
@@ -2452,14 +2466,17 @@ inline void render_slot(size_t slot) {
 #else
   const uint32_t paint=face.key()|(bare?1u<<25:0);  // a board without sections: every card in the screen's look on the page
 #endif
-  if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
-  w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
   uint32_t accent=lock_tile?lock_accent(t):tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
   // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
   if(d=="light" && on && t.has_hs_color)
     accent=tile_controls::lamp_color(t.hue,t.saturation);
+  // Everything the pass below reads, compared whole (PaintedFrom): a card whose background alone changed (firmware 0.17.0)
+  // or whose colour alone changed (GitHub #349) is painted again, one whose inputs are all as they were is not.
+  const PaintedFrom from{palette_state, uint64_t(paint), accent, w.key, t.is_page(), letterboxed(w), slider_bar_shown(t, slider_on), w.extra_mode};
+  if (w.painted == from && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
+  w.painted = from;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
   auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
@@ -3138,6 +3155,9 @@ inline const void *header_home_mark = nullptr;  // the Tessera mark of the home 
 inline const lv_font_t *header_back_font = nullptr;
 inline const lv_font_t *header_status_font = nullptr;  // the Wi-Fi item's bars (firmware 0.38.0)
 inline std::function<void()> back_home;
+// The home key held for half a second (firmware 0.64.0+): the screensaver at once, the way the standby time running
+// out brings it. True when the screen went to standby; core.yaml supplies it.
+inline std::function<bool()> hold_home;
 // The battery the top bar can show (firmware 0.41.0, docs/BATTERY.md): the first of the screen's sensors in Home
 // Assistant's `battery` device class (percent), and the first binary sensor in its `battery_charging` class. Whatever the
 // board measures them with, a fuel gauge, a power chip, a voltage on a pin and a formula or the Tab5's INA226, the
@@ -3206,6 +3226,8 @@ inline void draw_header(bool live) {
 inline std::function<void()> open_this_screen;
 inline void render_header() {
   if (!enabled) return;
+  // Only the home key: Back held is still Back.
+  header_renderer.on_leading_hold([]() { return !header_back() && hold_home && hold_home(); });
   header_renderer.on_status([]() {
     if (!allowed(esphome::millis(), 14, "header navigation")) return;
     if (open_this_screen) open_this_screen();
@@ -3505,7 +3527,7 @@ inline void key_shape(Widgets &w,bool key){
   // still, the next render starts it on the new one.
   alarm_still(key?w.circle:w.tile);
   w.alarm_look=LOOK_NONE;w.alarm_mark=0;
-  w.key=key;w.cached_active=-1;
+  w.key=key;w.paint_again();
 }
 // The keys of the bedside clock on this page where its layout puts them, once the grid has placed the clock's card.
 inline void place_keys(){
@@ -3561,7 +3583,7 @@ inline int place_page(int page, bool kept = false) {
     }
   for(size_t slot=0;slot<widgets.size();++slot){
     auto &w=widgets[slot];
-    if(!kept || w.index!=shown[slot])w.cached_active=-1;
+    if(!kept || w.index!=shown[slot])w.paint_again();
     w.index=shown[slot];
     w.wide=w.index<model.count && model.tiles[w.index].wide;w.full=w.index<model.count && model.tiles[w.index].full;
     const bool key=w.index<model.count && model.tiles[w.index].is_key();
@@ -3863,7 +3885,7 @@ inline void forget_kept() {
 #endif
   for (auto *set : kept_sets) if (set) for (auto &w : *set) {
     end_extra(w);
-    w.index = grid.max_tiles(); w.cached_active = -1; w.art_key.clear();
+    w.index = grid.max_tiles(); w.paint_again(); w.art_key.clear();
 #if LV_USE_IMAGE
     // Their pictures go with what they showed: a picture object still pointing at a copy counts as drawing it, and the
     // store frees nothing a card draws, so the old layout's pictures stayed beside the new ones until the set showed
@@ -4076,7 +4098,7 @@ inline int applied_buttons=-1;
 inline void page_buttons_changed() {
   if(!shown_page || !nav_number || applied_page<0 || applied_buttons==(page_buttons?1:0))return;
   applied_buttons=page_buttons?1:0;
-  each_card([](Widgets &w){w.cached_active=-1;w.panel_dirty=true;});
+  each_card([](Widgets &w){w.paint_again();w.panel_dirty=true;});
   apply_page(applied_page);
 }
 
@@ -4283,7 +4305,7 @@ inline void tick() {
 // A change of look (Dark mode). The paints follow by themselves (theme::set_dark); what the tiles, the top bar and an
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
-  each_card([](Widgets &w) { w.cached_active = -1; w.panel_dirty = true; });
+  each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
@@ -4396,7 +4418,7 @@ inline void swipe_glow(Edge edge) {
 }
 
 namespace touch_input {
-// A finger arrived or left: the standby clock, the "back to page 1" clock and `touch_down`.
+// A finger arrived or left: the standby clock, the "back to page 1" clock and the finger itself (screen_standby::contact).
 inline std::function<void(bool down)> contact;
 // A touchscreen's report in the screen's own coordinates: ESPHome's LvglComponent::rotate_coordinates,
 // which already carries the board's quarter turn and the turn the user chose.
@@ -4610,7 +4632,7 @@ inline void cancel_layout_input(bool invalidate_widgets) {
   history_asked_entity.clear();
   history = History{};
   if (invalidate_widgets) {
-    for (auto &w : widgets) { w.index = grid.max_tiles(); w.cached_active = -1; }
+    for (auto &w : widgets) { w.index = grid.max_tiles(); w.paint_again(); }
     // The next layout's cover cards start at their primary control: an index may be another cover's now.
     cover_swapped.fill(0);
     forget_kept();

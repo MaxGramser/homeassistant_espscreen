@@ -1,0 +1,234 @@
+/* New screen (app 0.4.103): a setup assistant that asks one thing at a time, the way a phone is set up. A calm column in
+   the middle of the page: a large title, a line under it, the choice, and one key at the bottom. The Back key and the
+   dots of the steps stand in a quiet bar above, the way out at its right. Colours come from tokens.css. */
+.ob { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--surface); color: var(--ink); }
+.ob-head { position: sticky; top: 0; z-index: 3; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center;
+  height: 64px; padding: 0 20px; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: saturate(1.4) blur(14px); }
+.ob-back { justify-self: start; display: inline-flex; align-items: center; gap: 2px; height: 36px; padding: 0 12px 0 6px; border: 0; border-radius: 10px;
+  background: none; color: var(--accent); font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
+.ob-back .ui-icon { font-size: 22px; }
+.ob-back:hover { background: var(--accent-soft); }
+.ob-dots { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ob-dots li { width: 26px; height: 4px; border-radius: 2px; background: var(--line); transition: background 0.3s ease; }
+.ob-dots li.on { background: var(--ink); }
+.ob-close { justify-self: end; width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--seg);
+  color: var(--ink-2); font-size: 18px; cursor: pointer; }
+.ob-close:hover { background: var(--line); }
+
+.ob-body { flex: 1 0 auto; width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 32px 0; display: flex; flex-direction: column; align-items: center; }
+.ob-step { width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+.ob h1 { margin: 0; font-size: clamp(28px, 3.4vw, 40px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.12; text-wrap: balance; }
+.ob-lead { margin: 12px 0 0; max-width: 580px; color: var(--ink-2); font-size: 17px; line-height: 1.45; text-wrap: pretty; }
+.ob-hint { margin: 14px 0 0; max-width: 560px; color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+.ob-step > .ob-cards, .ob-step > .ob-rows, .ob-step > .ob-group, .ob-step > .ob-field, .ob-step > .ob-search, .ob-step > .ob-status, .ob-step > .ob-howto { margin-top: 36px; }
+
+/* The step changes as a page of a book turns: a short slide and fade, none for whoever asks for less motion. */
+.ob-step-enter-active, .ob-step-leave-active { transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ob-step-enter-from { opacity: 0; transform: translateX(14px); }
+.ob-step-leave-to { opacity: 0; transform: translateX(-10px); }
+
+/* A choice of a few, as large cards with a drawing: the recommended boards, the two ways it hangs, where the cable is. */
+.ob-cards { border: 0; padding: 0; min-width: 0; width: min(100%, calc(var(--cards, 3) * 320px)); display: grid; gap: 18px;
+  grid-template-columns: repeat(var(--cards, 3), minmax(0, 1fr)); }
+.ob-card { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 12px 12px 20px; border-radius: 24px; background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line); cursor: pointer; text-align: center; transition: box-shadow 0.18s ease, transform 0.18s ease; }
+.ob-card:hover { box-shadow: 0 0 0 1px var(--line-strong), 0 10px 28px rgba(16, 17, 18, 0.07); transform: translateY(-1px); }
+.ob-card.chosen { box-shadow: 0 0 0 2px var(--accent), 0 12px 32px color-mix(in srgb, var(--accent) 16%, transparent); }
+.ob-card input, .ob-row input { position: absolute; opacity: 0; pointer-events: none; }
+.ob-card:has(input:focus-visible), .ob-row:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ob-art { min-width: 0; height: 188px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; padding: 16px; transition: background 0.2s ease; }
+.ob-card.chosen .ob-art { background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-2)); }
+.ob-art .device-art { max-height: calc(40px + min(var(--inch, 7), 10.5) * 11px); max-width: calc(60px + min(var(--inch, 7), 10.5) * 18px);
+  filter: drop-shadow(0 10px 18px rgba(16, 17, 18, 0.16)); }
+.ob-art.tall { height: 280px; }
+.ob-art.tall .ob-frame { --frame-h: 230px; width: min(100%, calc(var(--frame-h) * var(--art-ratio, 1))); }
+.ob-card-words { display: grid; gap: 4px; padding: 0 8px; }
+.ob-card-words b { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.ob-card-words small { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.ob-tick { position: absolute; top: 24px; right: 24px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-ink); font-size: 16px; opacity: 0; transform: scale(0.5);
+  transition: opacity 0.15s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+.chosen > .ob-tick { opacity: 1; transform: none; }
+/* Under the recommended boards: more boards will join them. */
+.ob-soon { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+.ob-soon + .ob-more { margin-top: 14px; }
+.ob-more { margin-top: 28px; display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 14px 0 18px; border: 0; border-radius: 12px;
+  background: none; color: var(--accent); font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; }
+.ob-more:hover { background: var(--accent-soft); }
+.ob-more .ui-icon { font-size: 20px; }
+
+/* A longer choice, as rows in one soft panel: every board, the models of one, the ports of the Home Assistant machine. */
+.ob-rows { border: 0; padding: 6px; min-width: 0; width: min(100%, 640px); display: grid; gap: 2px; border-radius: 18px; background: var(--surface-2); text-align: left; }
+.ob-rows + .ob-rows { margin-top: 20px; }
+.ob-legend { float: left; width: 100%; padding: 10px 12px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.ob-row { position: relative; display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease; }
+.ob-row:hover { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.ob-row.chosen { background: var(--surface); box-shadow: 0 1px 3px rgba(16, 17, 18, 0.08), 0 0 0 1.5px var(--accent); }
+.ob-row-art { flex: none; width: 76px; height: 48px; display: grid; place-items: center; }
+.ob-row-art .device-art { max-height: calc(16px + min(var(--inch, 7), 10.5) * 3px); max-width: calc(24px + min(var(--inch, 7), 10.5) * 4.6px); }
+.ob-row-words { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ob-row-words b { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.ob-row-words small { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.ob-row .ob-tick { position: static; flex: none; width: 24px; height: 24px; font-size: 15px; }
+.ob-rows .ob-hint { padding: 4px 12px 8px; margin: 0; }
+.ob-code { font-family: var(--mono); letter-spacing: -0.01em; }
+.ob-tag { flex: none; font-style: normal; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); }
+.ob-tag.new { background: var(--accent-soft); color: var(--accent); }
+.pick-none { margin: 0; padding: 32px 0; text-align: center; color: var(--muted); }
+
+/* Search and sizes over every board. */
+.ob-search { width: min(100%, 640px); height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 14px;
+  background: var(--seg); color: var(--muted); font-size: 18px; }
+.ob-search input { flex: 1; min-width: 0; border: 0; background: none; height: 100%; padding: 0; font: inherit; font-size: 16px; color: var(--ink); outline: none; box-shadow: none; }
+.ob-chips { margin-top: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.ob-chip { height: 34px; padding: 0 15px; border: 0; border-radius: 17px; background: var(--seg); color: var(--ink-2); font: inherit; font-size: 14px; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease; }
+.ob-chip:hover { background: var(--line); }
+.ob-chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.ob-step.browse .ob-rows { margin-top: 18px; }
+
+/* The screen large, with its name. */
+.ob-hero { display: grid; place-items: center; margin: 4px 0 28px; }
+/* The frame takes its height from --frame-h and its width from the board's proportions, never wider than its room. */
+.ob-frame { --frame-h: clamp(150px, 27vh, 236px); position: relative; width: min(100%, 420px, calc(var(--frame-h) * var(--art-ratio, 1)));
+  aspect-ratio: var(--art-ratio, 1); display: grid; place-items: center; }
+.ob-frame .device-art { width: 100%; height: 100%; filter: drop-shadow(0 22px 34px rgba(16, 17, 18, 0.2)); }
+.ob-hero.small { margin-bottom: 20px; width: min(100%, 300px); }
+.ob-field { width: min(100%, 440px); }
+.ob-field input { width: 100%; height: 56px; box-sizing: border-box; padding: 0 18px; border: 0; border-radius: 14px; background: var(--seg); color: var(--ink);
+  font: inherit; font-size: 20px; font-weight: 500; text-align: center; outline: none; box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow 0.15s ease; }
+.ob-field input:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+.ob-field input::placeholder { color: var(--muted); font-weight: 400; }
+.ob-warn { margin: 12px 0 0; max-width: 460px; color: var(--warn); font-size: 13.5px; line-height: 1.45; }
+.ob-note { display: flex; gap: 10px; align-items: flex-start; margin: 20px 0 0; max-width: 560px; padding: 12px 16px; border-radius: 14px; background: var(--surface-2);
+  color: var(--ink-2); font-size: 14px; line-height: 1.45; text-align: left; }
+.ob-note .ui-icon { flex: none; font-size: 18px; color: var(--muted); margin-top: 1px; }
+.ob-note.warn { background: var(--warn-soft); }
+.ob-note.warn .ui-icon { color: var(--warn); }
+.ob-badge { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; margin-bottom: 22px; background: var(--accent-soft); color: var(--accent); font-size: 36px; }
+
+/* More options, the Wi-Fi fields: a soft panel of ordinary fields. */
+.ob-more-box { margin-top: 28px; width: min(100%, 520px); display: grid; gap: 16px; padding: 20px; border-radius: 18px; background: var(--surface-2); text-align: left; }
+.ob-more-box .field { display: grid; gap: 6px; }
+.ob-more-box .field input, .ob-more-box .field select { height: 40px; font-size: 15px; border-radius: 10px; background: var(--surface); }
+.ob-more-box small, .ob-more-box .hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+.ob-more-head { margin: 0; font-size: 13px; color: var(--muted); }
+.ob-more-head b { color: var(--ink-2); font-weight: 600; }
+.ob-more-box .grid-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 8px; }
+.ob-more-box .grid-steps { display: grid; gap: 8px; max-width: 300px; }
+.ob-more-box .grid-step { display: grid; grid-template-columns: 1fr auto 28px auto; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); }
+.ob-more-box .grid-step b { text-align: center; font-variant-numeric: tabular-nums; color: var(--ink); }
+.ob-more-box .grid-steps .btn.link { justify-self: start; }
+
+/* The plugins for its hardware, and other on-and-off things: a grouped list with switches. */
+.ob-group { width: min(100%, 600px); margin: 0; padding: 4px 0; list-style: none; border-radius: 18px; background: var(--surface-2); text-align: left; }
+.ob-group li { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
+.ob-group li + li { box-shadow: inset 0 1px 0 var(--line); }
+.ob-group-words { flex: 1; min-width: 0; display: grid; gap: 4px; cursor: pointer; }
+.ob-group-words b { font-size: 17px; font-weight: 600; }
+.ob-group-words small { font-size: 14px; line-height: 1.45; color: var(--muted); }
+
+/* The way for where the cable is. */
+.ob-howto { width: min(100%, 520px); margin: 0; padding: 0; list-style: none; counter-reset: howto; display: grid; gap: 14px; text-align: left; }
+.ob-howto li { counter-increment: howto; display: grid; grid-template-columns: 28px 1fr; gap: 14px; align-items: start; font-size: 16px; line-height: 1.45; color: var(--ink-2); }
+.ob-howto li::before { content: counter(howto); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--seg);
+  color: var(--ink); font-size: 14px; font-weight: 600; }
+.ob-status { width: min(100%, 520px); box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 18px; text-align: left; background: var(--surface-2); }
+.ob-status > span:last-child { display: grid; gap: 3px; }
+.ob-status b { font-size: 17px; font-weight: 600; }
+.ob-status small { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.ob-status .spin { flex: none; width: 28px; height: 28px; }
+.ob-status.found { background: var(--good-soft); }
+.ob-status-mark { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--good); color: var(--surface); font-size: 22px;
+  animation: ob-pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
+@keyframes ob-pop { from { transform: scale(0.4); opacity: 0; } }
+.ob-others { margin-top: 12px; width: min(100%, 640px); }
+.ob-others summary { list-style: none; display: inline-flex; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 10px; cursor: pointer; color: var(--muted); font-size: 14px; }
+.ob-others summary::-webkit-details-marker { display: none; }
+.ob-others summary:hover { background: var(--seg); }
+.ob-others[open] summary .ui-icon { transform: rotate(180deg); }
+.ob-others .ob-rows { margin-top: 8px; }
+.ob-wifi { margin-top: 28px; display: grid; justify-items: center; width: 100%; }
+.ob-wifi-line { margin: 0; display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 6px; color: var(--muted); font-size: 14px; }
+.ob-wifi-line .ui-icon { font-size: 16px; }
+.ob-link { border: 0; background: none; padding: 2px 4px; color: var(--accent); font: inherit; font-weight: 500; cursor: pointer; border-radius: 6px; }
+.ob-link:hover { background: var(--accent-soft); }
+.ob .webflash { width: min(100%, 520px); margin-top: 18px; text-align: left; }
+.ob-ask { width: min(100%, 560px); box-sizing: border-box; display: grid; gap: 10px; margin-top: 24px; padding: 18px 20px; border-radius: 18px; background: var(--warn-soft); text-align: left; }
+.ob-ask.plain { background: var(--surface-2); }
+.ob-ask h2 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.ob-ask p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+.ob-ask-keys { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-ask .ob-go { justify-self: start; min-width: 0; padding: 0 22px; }
+.ob-ask .key-box { margin-top: 4px; }
+
+/* The key at the bottom, and the one quiet way out under it. */
+.ob-foot { position: sticky; bottom: 0; margin-top: auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 0 24px;
+  background: linear-gradient(to top, var(--surface) 72%, transparent); }
+.ob-go { min-width: 300px; height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 28px; border: 0; border-radius: 14px;
+  background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 17px; font-weight: 600; cursor: pointer; text-decoration: none;
+  transition: transform 0.12s ease, filter 0.15s ease, opacity 0.15s ease; }
+.ob-go:hover { filter: brightness(1.06); }
+.ob-go:active { transform: scale(0.98); }
+.ob-go:disabled { opacity: 0.35; cursor: default; filter: none; transform: none; }
+.ob-go .ui-icon { font-size: 20px; }
+.ob-go .spin { border-color: color-mix(in srgb, var(--accent-ink) 35%, transparent); border-top-color: var(--accent-ink); }
+.ob-quiet { min-height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-size: 14.5px; cursor: pointer; }
+.ob-quiet:hover:not(:disabled) { color: var(--ink); background: var(--seg); }
+.ob-quiet:disabled { opacity: 0.5; cursor: default; }
+.ob-error { margin: 0 0 6px; max-width: 560px; color: var(--danger); font-size: 14px; text-align: center; }
+
+/* The installation, until the screen works: the screen lighting up, the title, one bar and the four steps. */
+.ob-body.follow { padding-top: 8px; text-align: center; }
+.ob-body.follow .ob-frame { --frame-h: clamp(130px, 22vh, 210px); }
+.ob-step-words { display: grid; justify-items: center; }
+.ob-done-mark { position: absolute; right: -16px; bottom: -12px; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--good); color: var(--surface); font-size: 32px; box-shadow: 0 0 0 6px var(--surface); animation: ob-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
+.ob-bar { width: min(100%, 460px); height: 6px; margin-top: 32px; border-radius: 3px; background: var(--seg); overflow: hidden; }
+.ob-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ob-bar.bad i { background: var(--danger); }
+.ob-journey { width: min(100%, 460px); margin: 24px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; text-align: left; }
+.ob-journey li { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; border-radius: 12px; color: var(--muted); font-size: 16px;
+  transition: background 0.25s ease, color 0.25s ease; }
+.ob-journey li.running { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.ob-journey li.done { color: var(--ink-2); }
+.ob-journey li.failed { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.ob-journey-dot { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--line); font-size: 15px; }
+.ob-journey li.done .ob-journey-dot { background: var(--good); box-shadow: none; color: var(--surface); animation: ob-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
+.ob-journey li.failed .ob-journey-dot { background: var(--danger); box-shadow: none; color: var(--danger-ink); }
+.ob-journey li.running .ob-journey-dot { box-shadow: none; }
+.ob-journey li.running .ob-journey-dot .spin { width: 20px; height: 20px; }
+.ob-journey-name { flex: 1; }
+.ob-journey-pct { font-size: 14px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ob-meta { margin: 16px 0 0; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ob-log { width: min(100%, 640px); margin-top: 22px; text-align: center; }
+.ob-log summary { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; cursor: pointer; list-style: none; color: var(--muted); font-size: 14px; }
+.ob-log summary::-webkit-details-marker { display: none; }
+.ob-log summary:hover { background: var(--seg); color: var(--ink); }
+.ob-log pre { margin: 8px 0 0; max-height: 340px; overflow: auto; padding: 14px 16px; border-radius: 12px; background: var(--code-bg); color: var(--ink-2);
+  font: 11.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; text-align: left; }
+.arrive-form { display: grid; gap: 12px; }
+.arrive-form .field { display: grid; gap: 6px; }
+.arrive-form .btn { justify-self: start; }
+
+@media (max-width: 760px) {
+  .ob-head { padding: 0 10px; }
+  .ob-body { padding: 12px 18px 0; }
+  .ob-cards { grid-template-columns: 1fr; width: min(100%, 420px); }
+  .ob-art { height: 150px; }
+  .ob-art.tall { height: 220px; }
+  .ob-go { min-width: 0; width: 100%; }
+  .ob h1 { font-size: 28px; }
+  .ob-lead { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-step-enter-active, .ob-step-leave-active, .ob-card, .ob-tick, .ob-bar i, .ob-status-mark, .ob-done-mark, .ob-journey li .ob-journey-dot { transition: none; animation: none; }
+}
+/* A label of an ordinary field keeps its own case here, and a drawing in a large card takes the room it is given. */
+.ob .f-label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.ob-art.tall .device-art { max-width: none; max-height: none; }
+.ob-recap { margin: 26px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.ob-recap li { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px 0 10px; border-radius: 17px; background: var(--good-soft);
+  color: var(--ink-2); font-size: 14px; font-weight: 500; }
+.ob-recap .ui-icon { color: var(--good); font-size: 17px; }

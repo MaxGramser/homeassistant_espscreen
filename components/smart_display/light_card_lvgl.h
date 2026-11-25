@@ -134,6 +134,7 @@ inline uint32_t light_card_shape(const Tile &t){
 #ifdef SD_MOD_LIGHT_PRESETS
   f.write(t.presets?(char)('0'+t.presets->count):'-');
 #endif
+  f.write(group_page::available(t)?'g':'-');
   return f.value;
 }
 inline void render_light_detail(Tile &t,bool large,int width,int height,int columns) {
@@ -159,6 +160,9 @@ inline void render_light_detail(Tile &t,bool large,int width,int height,int colu
   // The power key, across from the back key: lit while the light or the fan is on.
   card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,
                               on?theme::ACCENT_TINT:theme::KEY,on?theme::ACCENT_ICON:theme::ICON_OFF,LIGHT_POWER),t,power_key_paint);
+  // A light group that only dims or switches opens this card, not the colour card: its lamps key stands beside the
+  // power key, as on the colour card, and opens the group's page with a card per lamp (GROUP_PAGE, group_page.h, GitHub #458).
+  if(group_page::available(t))climate_round_key(bar_key(1),tile_controls::glyph::LAMPS,mini,theme::KEY,theme::INK,GROUP_PAGE);
 
   detail_card(l.card.x,l.card.y,l.card.w,l.card.h);
   // Where the slider stands is the tile's own answer (slider_value), so the strip on the tile and the card it

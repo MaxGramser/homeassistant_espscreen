@@ -399,7 +399,7 @@ class Broadcast(unittest.IsolatedAsyncioTestCase):
         async def request(kind, wait=15, **data):
             if kind == 'subscribe_events':
                 subscribed.append(data['event_type'])
-            if kind == 'get_states':
+            if kind == 'subscribe_entities':
                 raise Stop
             return {}
         ha.request = request

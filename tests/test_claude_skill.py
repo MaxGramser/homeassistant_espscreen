@@ -53,7 +53,7 @@ class SkillText(unittest.TestCase):
             self.assertIn(f'`{entity}`', standby)
         self.assertIn(AUTO_STANDBY_MIN_FIRMWARE, standby)
         # Wake and Sleep (0.2.53): the buttons, when they arrived, and how to press several at once.
-        for entity in ('button.<screen>_wake', 'button.<screen>_sleep'):
+        for entity in ('button.<screen>_wake', 'button.<screen>_motion', 'button.<screen>_sleep'):
             self.assertIn(f'`{entity}`', standby)
         self.assertIn(f'Firmware {WAKE_SLEEP_MIN_FIRMWARE} or newer', standby)
         # Dark mode (0.2.63): the switch and the firmware that has it.
@@ -115,7 +115,7 @@ class SkillText(unittest.TestCase):
             self.assertEqual(step['action'], 'button.press')
             targets = step['target']['entity_id']
             pressed.append([targets] if isinstance(targets, str) else targets)
-        self.assertTrue(all(entity.startswith('button.') and entity.endswith('_wake') for entity in pressed[0]))
+        self.assertTrue(all(entity.startswith('button.') and entity.endswith('_motion') for entity in pressed[0]))
         self.assertTrue(all(entity.startswith('button.') and entity.endswith('_sleep') for entity in pressed[1]))
         self.assertGreater(len(pressed[1]), 1, 'shows how to reach several screens at once')
         awake = parsed[10]
@@ -147,14 +147,21 @@ class Archive(unittest.TestCase):
             self.assertEqual(bundle.read('esp-screens/SKILL.md').decode('utf8'), claude_skill.text())
 
 
+def home_assistant(folder):
+    """A folder that is a Home Assistant configuration, as /homeassistant is under the Supervisor."""
+    Path(folder).mkdir(parents=True, exist_ok=True)
+    Path(folder, 'configuration.yaml').write_text('default_config:\n')
+    return folder
+
+
 class Install(unittest.TestCase):
     def test_status_install_update(self):
         with tempfile.TemporaryDirectory() as tmp:
-            target = claude_skill.skill_dir(tmp)
+            target = claude_skill.skill_dir(home_assistant(tmp))
             self.assertEqual(target, Path(tmp) / '.claude' / 'skills' / 'esp-screens')
-            self.assertEqual(claude_skill.status(target), {'installed': False, 'current': False, 'path': str(target)})
+            self.assertEqual(claude_skill.status(target), {'installed': False, 'current': False, 'path': str(target), 'home_assistant': True})
             first = claude_skill.install(target)
-            self.assertEqual(first, {'installed': True, 'current': True, 'path': str(target), 'restart': True})
+            self.assertEqual(first, {'installed': True, 'current': True, 'path': str(target), 'home_assistant': True, 'restart': True})
             self.assertEqual((target / 'SKILL.md').read_text(encoding='utf8'), claude_skill.text())
             self.assertEqual(sorted(p.name for p in target.iterdir()), ['SKILL.md'], 'no temp file left behind')
             self.assertFalse(claude_skill.install(target)['restart'], 'the skills folder already existed')
@@ -164,16 +171,27 @@ class Install(unittest.TestCase):
 
     def test_a_new_skill_next_to_existing_skills_needs_no_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
+            home_assistant(tmp)
             (Path(tmp) / '.claude' / 'skills' / 'other').mkdir(parents=True)
             self.assertFalse(claude_skill.install(claude_skill.skill_dir(tmp))['restart'])
             self.assertTrue((Path(tmp) / '.claude' / 'skills' / 'other').is_dir(), 'other skills untouched')
 
     def test_a_folder_that_cannot_be_written_gives_a_message(self):
         with tempfile.TemporaryDirectory() as tmp:
+            home_assistant(tmp)
             (Path(tmp) / '.claude').write_text('a file, not a folder')
             with self.assertRaises(ValueError) as caught:
                 claude_skill.install(claude_skill.skill_dir(tmp))
             self.assertIn("Couldn't write the skill", str(caught.exception))
+
+    def test_an_app_without_home_assistant_writes_nothing(self):
+        # As the video integration (GitHub #357): an app in Docker on its own offers the zip for claude.ai only.
+        with tempfile.TemporaryDirectory() as tmp:
+            target = claude_skill.skill_dir(tmp)
+            self.assertFalse(claude_skill.status(target)['home_assistant'])
+            with self.assertRaises(ValueError):
+                claude_skill.install(target)
+            self.assertFalse((Path(tmp) / '.claude').exists(), 'nothing written')
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
@@ -185,10 +203,10 @@ class Endpoint(unittest.IsolatedAsyncioTestCase):
             changed = asyncio.Event()
         with tempfile.TemporaryDirectory() as tmp:
             manager = Manager(HA(), Path(tmp) / 'data' / 'screens.json')
-            manager.skill_dir = claude_skill.skill_dir(Path(tmp) / 'config')
+            manager.skill_dir = claude_skill.skill_dir(home_assistant(Path(tmp) / 'config'))
             async with TestClient(TestServer(create_app(manager, True))) as client:
                 full = await (await client.get('/api/inventory')).json()
-                self.assertEqual(full['claude_skill'], {'installed': False, 'current': False, 'path': str(manager.skill_dir)})
+                self.assertEqual(full['claude_skill'], {'installed': False, 'current': False, 'path': str(manager.skill_dir), 'home_assistant': True})
                 self.assertNotIn('claude_skill', await (await client.get('/api/inventory?light=1')).json())
                 download = await client.get('/api/claude-skill.zip')
                 self.assertEqual(download.status, 200)
@@ -199,9 +217,9 @@ class Endpoint(unittest.IsolatedAsyncioTestCase):
                 refused = await client.post('/api/claude-skill')
                 self.assertEqual(refused.status, 403, 'CSRF like every other change')
                 response = await client.post('/api/claude-skill', headers={'X-Screen-CSRF': full['csrf']})
-                self.assertEqual(await response.json(), {'installed': True, 'current': True, 'path': str(manager.skill_dir), 'restart': True})
+                self.assertEqual(await response.json(), {'installed': True, 'current': True, 'path': str(manager.skill_dir), 'home_assistant': True, 'restart': True})
                 self.assertTrue((manager.skill_dir / 'SKILL.md').is_file())
-                (Path(tmp) / 'blocked').write_text('a file, not a folder')
+                (home_assistant(Path(tmp) / 'blocked') / '.claude').write_text('a file, not a folder')
                 manager.skill_dir = claude_skill.skill_dir(Path(tmp) / 'blocked')
                 failed = await client.post('/api/claude-skill', headers={'X-Screen-CSRF': full['csrf']})
                 self.assertEqual(failed.status, 400)

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 using namespace weather_week;
 
@@ -138,5 +139,19 @@ int main() {
     assert(std::fabs(through(days, hours, 57.5f) - through(days, hours, 57.0f)) < 1.0f);
   }
   printf("weather_week: all checks passed\n");
+  // GitHub #280: Buienradar's list starts tomorrow in the evening. How many days its first day lies from today...
+  assert(first_day_from_today(3, 2) == 1 && first_day_from_today(2, 2) == 0 && first_day_from_today(1, 2) == -1);
+  assert(first_day_from_today(0, 6) == 1 && first_day_from_today(6, 0) == -1 && first_day_from_today(-1, 2) == 0);
+  {
+    // ...and why the week chart counts its hours from that day: today 15:00 to 23:00 is 30 degrees, tomorrow's high 12.
+    std::vector<Day> days(2);
+    days[0].high = 12; days[0].low = 5; days[1].high = 14; days[1].low = 6;
+    std::vector<Hour> hours;
+    for (int h = 15; h <= 23; ++h) { Hour o; o.at = h; o.temp = 30; hours.push_back(o); }
+    assert(std::fabs(through(days, hours, 15) - 30) < 0.5f);  // before: today's afternoon under tomorrow's column
+    for (auto &o : hours) o.at -= 24 * first_day_from_today(3, 2);
+    assert(std::fabs(through(days, hours, 15) - 12) < 0.5f);  // now: the first column's afternoon is its own high
+  }
+  std::printf("weather week: a forecast that starts tomorrow counts its hours from tomorrow\n");
   return 0;
 }

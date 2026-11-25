@@ -4,6 +4,8 @@
 domain: sun
 memory: {bytes: 32, extras: true}
 firmware: 0.2.14   # the first firmware that draws this type
+# The library shows it with its path over the day from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: sunpath
 displays:
   standard: {}
   watch: {}

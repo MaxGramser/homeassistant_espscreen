@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager' / 'app'))
 
 import core  # noqa: E402
+from build_logs import BuildLogs  # noqa: E402
 from build_queue import BuildQueue  # noqa: E402
 import page_layout  # noqa: E402
 import plugin_fetch  # noqa: E402
@@ -499,6 +500,47 @@ class Everywhere(unittest.TestCase):
             self.assertTrue(core.plugins_enabled(), channel)
 
 
+class Api029(unittest.TestCase):
+    """Plugin API 0.29: the clocks' digits, a sound louder than the screen, and a tile renamed in the editor."""
+
+    def setUp(self):
+        self.host = (FIRMWARE / 'plugin_host.cpp').read_text()
+
+    def test_the_clocks_digits_are_fonts_every_build_has(self):
+        # No font of a plugin's own (docs/PLUGINS.md): the two steps the core's clocks draw with, so a 4 MB board pays nothing.
+        self.assertIn('case Font::DIGITS_LARGE: face = rt::display_font', self.host)
+        self.assertIn('case Font::DIGITS_PAGE: face = rt::bedside_digits();', self.host,
+                      'DIGITS_PAGE is the bedside clock\'s step where a board has one, else the display step, never the 8 px place holder')
+
+    def test_a_raised_volume_goes_through_the_one_set_of_lifts(self):
+        # The call's ring and a plugin's lift share volume_lift::the(), so overlapping lifts never put back each other's level.
+        self.assertIn('volume_lift::the().lift(reinterpret_cast<uintptr_t>(plugin)', self.host)
+        self.assertIn('volume_lift::the().drop(reinterpret_cast<uintptr_t>(plugin))', self.host)
+        update = re.search(r'void before_update\(\) \{(.*?)\n\}', self.host, re.S).group(1)
+        self.assertIn('volume_lift::the().drop_all();', update, 'an update takes every lift down first')
+        call = (FIRMWARE / 'module_call.cpp').read_text()
+        self.assertIn('volume_lift::the().lift(RING_LIFT, ring_top)', call)
+        self.assertIn('volume_lift::the().drop(RING_LIFT)', call)
+        self.assertNotIn('set_volume', call, 'the ring sets the speaker only through the lifts')
+
+    def test_a_card_is_made_again_when_anything_it_was_made_from_changes(self):
+        # One value, made_from(), holds everything of the tile that create() reads; render() compares only that. So a
+        # new field of TileContext cannot be forgotten in a list of compared fields, as the name was until 0.29.
+        render = re.search(r'void render\(rt::Widgets &w, const rt::Tile &t, int width, int height\) \{(.*?)\n\}', self.host, re.S).group(1)
+        made = re.search(r'static size_t made_from\([^)]*\) \{(.*?)\n\}', self.host, re.S).group(1)
+        self.assertIn('const size_t made = made_from(w, t, width, height);', render)
+        self.assertIn('if (card && card->made != made)', render, 'render() compares one value, nothing beside it')
+        context = re.search(r'tessera::TileContext context\{(.*?)\};', render, re.S).group(1)
+        read = set(re.findall(r'\b(?:t|extra)\.(\w+)', context)) | set(re.findall(r'\bw\.(index)\b', context))
+        read |= {'plugin_options'} if 'doc.as<JsonObjectConst>()' in context else set()   # the options, parsed into doc
+        read |= {'width', 'height'} & set(re.findall(r'\b(width|height)\b', context))
+        self.assertGreaterEqual(read, {'column_span', 'row_span', 'name', 'plugin_entity', 'index', 'plugin_options', 'full', 'width', 'height'})
+        for field in sorted(read):
+            self.assertRegex(made, r'\b' + field + r'\b', f'TileContext reads {field} of the tile: made_from() must hold it, '
+                             'or a change of it never reaches the plugin')
+        self.assertIn('hash(t.entity)', made, 'another tile type makes another card')
+
+
 class Boards(unittest.TestCase):
     """A plugin for one board's hardware (P4 panel audio) is offered to that board's screens only, and to a screen
     whose core is too old for its API to none."""
@@ -602,6 +644,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -648,6 +691,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2226,6 +2270,7 @@ class Queue(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2286,6 +2331,7 @@ class Queue(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2363,6 +2409,7 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2419,13 +2466,162 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         await service.manager.build_queue.idle()
         record = service.store.get('hall', 'clock_words')
         self.assertEqual((record['state'], record['reason']), ('failed', 'compile failed'))
+        # The build's log is kept on disk, and the failure names it for the editor to offer (build_logs.py).
+        self.assertTrue(record['log'])
+        self.assertEqual(service.payload()['installed']['hall'][0]['log'], record['log'])
+        self.assertTrue(service.manager.build_logs.path(record['log']).is_file())
         self.assertNotIn('clock_words', (config / 'hall.plugins.yaml').read_text())
         # Trying again puts it back in the file and builds.
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
         await service.manager.build_queue.idle()
         self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
         self.assertNotIn('reason', service.store.get('hall', 'clock_words'))
+        self.assertNotIn('log', service.store.get('hall', 'clock_words'))
         self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+
+    async def test_a_build_the_app_restarted_during_starts_once_more_by_itself(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='building'))   # the app stopped while it built
+        service.settle()
+        build = service.manager.build_queue.running or service.manager.build_queue.line[0]
+        self.assertEqual((build.by, build.plugins['add']), ('plugins', ['clock_words']))
+        self.assertTrue(service.store.get('hall', 'clock_words')['resumed'])
+        await service.manager.build_queue.idle()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual(record['state'], 'active')
+        self.assertNotIn('resumed', record)
+
+    async def test_a_build_the_app_stops_during_waits_for_the_next_start(self):
+        service, config, started = self.make()
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        while not service.manager.build_queue.running:
+            await asyncio.sleep(0)
+        await service.manager.build_queue.close()   # the app stops (an update of the app)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'building')
+
+    def test_a_failure_says_its_kind(self):
+        from build_failures import failure_kind
+        self.assertEqual(failure_kind(['x'], blamed=True), 'plugin')
+        self.assertEqual(failure_kind(['x'], memory={'reason': 'out'}), 'memory')
+        self.assertEqual(failure_kind(['Uploading', 'ERROR Error resolving IP address of hall.local']), 'offline')
+        self.assertEqual(failure_kind(['fatal: unable to access \'https://github.com/x/y/\': Could not resolve host']), 'network')
+        self.assertEqual(failure_kind(['main.cpp:3: error: oops']), 'build')
+        # ESPHome 2026.9's own words for an upload that found no screen (taken from a real build, 2026-11-23).
+        real = ['INFO Connecting to 10.255.255.1 port 3232...',
+                'WARNING Connecting to 10.255.255.1 port 3232 failed: [Errno 113] No route to host',
+                'ERROR Upload failed after 3 attempts: connecting to 10.255.255.1 failed: [Errno 113] No route to host',
+                "WARNING Failed to upload to ['10.255.255.1']", 'ESPHome upload failed; see the log.']
+        self.assertEqual(failure_kind(real), 'offline')
+        self.assertEqual(failure_kind(['ERROR Upload failed after 3 attempts: connecting to 192.168.1.50 failed: timed out']), 'offline')
+        # An upload the screen refused is no absence: a wrong password says something.
+        self.assertEqual(failure_kind(['Uploading', 'ERROR Authentication invalid. Is the password correct?']), 'build')
+
+    async def test_a_build_that_stopped_on_the_network_goes_once_more(self):
+        import plugins as plugin_service
+        service, config, started = self.make(['failed', 'success'])
+        kinds = iter(['network'])
+        real = plugin_service.failure_kind
+        plugin_service.failure_kind = lambda *a, **k: next(kinds, 'build')
+        self.addCleanup(setattr, plugin_service, 'failure_kind', real)
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(len(started), 2)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
+        self.assertTrue(service.manager.build_queue.ended[-1].retried)
+
+    async def test_a_failure_tells_home_assistant_and_a_build_takes_it_away(self):
+        service, config, started = self.make(['failed', 'success'])
+        said = []
+
+        async def request(kind, **data):
+            said.append((data['service'], data['service_data']))
+        service.manager.ha.request = request
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1][0], 'create')
+        self.assertIn('Hall', said[-1][1]['message'])
+        self.assertEqual(said[-1][1]['notification_id'], 'tessera_plugins_hall')
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1], ('dismiss', {'notification_id': 'tessera_plugins_hall'}))
+
+    async def test_a_build_that_found_no_screen_says_it_waits_in_home_assistant(self):
+        service, config, started = self.make(['failed'])
+        said = []
+
+        async def request(kind, **data):
+            said.append((data['service'], data['service_data']))
+        service.manager.ha.request = request
+        service._settle_build('hall', ['clock_words'], False, 'did not answer', kind='offline')
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1][0], 'create')
+        self.assertIn('as soon as the screen is back', said[-1][1]['message'])
+
+    async def test_back_to_the_version_before(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        now = service.store.get('hall', 'clock_words')
+        older = dict(now, version='0.0.9')
+        service.store.put('hall', dict(now, state='active', before=older))
+        result = service.go_back('hall', 'clock_words')
+        self.assertTrue(result['built'])
+        self.assertEqual(service.store.get('hall', 'clock_words')['version'], '0.0.9')
+        await service.manager.build_queue.idle()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['version'], record['state']), ('0.0.9', 'active'))
+        # What it ran just before is what it goes back to next.
+        self.assertEqual(record['before']['version'], now['version'])
+        service.store.put('hall', {k: v for k, v in record.items() if k != 'before'})
+        with self.assertRaises(ValueError):
+            service.go_back('hall', 'clock_words')
+
+    async def test_a_screen_that_was_away_gets_its_build_once_it_is_back(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='failed', reason='did not answer', kind='offline'))
+        online = {'value': False}
+        screen = service.manager.screen
+        service.manager.screen = lambda inbox: dict(screen(inbox), online=online['value'])
+        service.settle()
+        await asyncio.sleep(0)
+        self.assertEqual(started, [])
+        online['value'] = True
+        service.settle()
+        for _ in range(20):
+            await asyncio.sleep(0)
+        await service.manager.build_queue.idle()
+        self.assertEqual(len(started), 1)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
+        service.settle()   # once only
+        await asyncio.sleep(0)
+        self.assertEqual(len(started), 1)
+
+    async def test_a_build_cut_off_twice_fails_with_its_log(self):
+        service, config, started = self.make()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='building', resumed=1))
+        service.settle()
+        self.assertEqual(started, [])
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['state'], record['reason']), ('failed', 'interrupted'))
+        self.assertNotIn('resumed', record)
+
+    async def test_a_cut_off_build_waits_for_its_screen_and_fails_only_long_after_the_start(self):
+        service, config, started = self.make(host=None)
+        record = {'id': 'clock_words', 'source': 'folder', 'version': '0.1.0', 'state': 'building'}
+        service.store.put('hall', record)
+        service.settle()
+        self.assertEqual((service.store.get('hall', 'clock_words')['state'], started), ('building', []))
+        service.started_at -= service.RESUME_WAIT + 1
+        service.settle()
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'failed')
 
     async def test_an_update_that_fails_goes_back_to_what_worked(self):
         service, config, _ = self.make(['success', 'failed'])
@@ -2438,6 +2634,7 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         record = service.store.get('hall', 'clock_words')
         self.assertEqual(record['state'], 'active')
         self.assertEqual(record['failed_update']['reason'], 'compile failed')
+        self.assertEqual(record['failed_update']['log'], service.manager.build_logs.latest('hall.yaml'))
         self.assertNotIn('previous', record)
         self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
 

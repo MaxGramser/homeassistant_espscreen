@@ -34,11 +34,9 @@ Backlight output is limited to 80% of the PWM range, as in the
 [community configuration linked by Waveshare](https://github.com/alaltitov/Waveshare-ESP32-P4-86-Panel-ETH-2RO/blob/2026.1.4/src/main.yaml).
 The screen's brightness setting still covers 0-100% of that configured range.
 
-This board needs ESPHome 2026.9.0 or newer. It sets `engineering_sample: true` for
-pre-v3 P4 silicon, including the revision 1.3 panel used during development. Firmware built
-that way does not start on revision 3 silicon, and the other way round. Check the chip
-revision in the serial installation output; a panel that reports v3.0 or higher needs
-`engineering_sample: false` under `esp32:` in the screen's Override YAML.
+This board needs ESPHome 2026.9.0 or newer. Firmware for pre-v3 P4 silicon, such as the revision 1.3 panel used
+during development, does not start on revision 3 silicon, and the other way round. Tessera reads the chip when it
+installs a screen and builds for the revision it finds ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)); without one read it builds for the earlier silicon.
 
 ## Installation
 

@@ -4,6 +4,8 @@
 domain: person
 memory: {bytes: 128, extras: false}
 firmware: 0.2.14   # the first firmware that draws this type
+# The library shows it with where they are from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: map
 displays:
   standard: {}
   watch: {}

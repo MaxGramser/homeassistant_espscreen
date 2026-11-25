@@ -44,6 +44,22 @@ Then choose what the board includes:
   `features/resistive-touch.yaml` (XPT2046: calibrated on the glass, and the board states the raw range it measured,
   `TOUCH_CAL_*`);
 - `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark;
+- `features/standby-key.yaml` on a board that can go dark: its own key if it has one the chip reads, else its BOOT key
+  (GPIO0 on the ESP32 and ESP32-S3, GPIO35 on the ESP32-P4). Check the schematic or the vendor's code, and leave it out
+  when other hardware drives that pin (`esphome config` says so when the display uses it, not when a chip ESPHome does
+  not drive does). How the board reaches its key is the board's part of the contract, and these are the only names
+  for it: `STANDBY_KEY_PIN`, the pin (always); `STANDBY_KEY_INVERTED` and `STANDBY_KEY_PULLUP`, `"false"` for a key
+  that reads high while pressed; and for a key on an IO expander, `STANDBY_KEY` with the expander and `mode: INPUT`
+  (`{pca9554: io_expander, mode: INPUT}`), which ESPHome merges into the feature's pin. The feature's header has both
+  forms. A BOOT key is on a strapping pin, so a build logs ESPHome's `WARNING GPIO0 is a strapping PIN` for it, next to
+  the ones the display pins of many boards already give. That is harmless: the pin only decides how the chip starts,
+  and the key is read after that. Nothing in the app reads a WARNING as trouble: a build is judged by ESPHome's exit
+  code, the reason of a failed one is its last line with `error` in it (`build_failures.py`), Save & check runs
+  `esphome --quiet config`, which logs no warnings, and a report carries the build log as it is. The line is only seen
+  in the full log, and for a moment as the newest line under a screen's update in the sidebar. The note stays because
+  an expander's pin refuses `ignore_strapping_warning`, and one definition serves both;
+- `features/wake-when-moved.yaml` on a board with a motion sensor (accelerometer and gyroscope): name it `board_motion`,
+  read it every 100 ms, list `wake_when_moved` in its boards.yaml `settings` and push its row in `BOOT_BOARD_SETTINGS`;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for
   a second frame;
 - its audio as parts: name the parts, give the pins, done. `hardware/parts/es7210.yaml` for an ES7210's microphones,
@@ -146,7 +162,8 @@ back to. A word the add-on does not know is skipped, so new firmware may report 
 
 The board file carries its own `BOARD_ID` (the screen reports it; `tools/new_board.py` sets it). The Rotation select
 comes from the core, with the angles the glass allows. Its entry in `boards.yaml`, the catalog, says what the board is
-called, what is printed on it, how far it has been tried (`stable`, `new` or `experimental`), and, for a part that
+called, what is printed on it, how far it has been tried (`stable`, `new` or `experimental`), whether the project recommends it (`recommended`, only
+for a stable board: New screen shows it first, in a section of its own), and, for a part that
 differs between boards sold under one name, the `choices` someone makes when a screen of it is built. That is all ESP
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
 inches from its pixels and density, the touch controller from its `touchscreen:` platform (or `TOUCH_CONTROLLER` if its driver name differs), a touch calibration on the first

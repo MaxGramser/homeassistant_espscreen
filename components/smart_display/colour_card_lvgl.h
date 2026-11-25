@@ -104,7 +104,7 @@ inline void colour_draw(const std::string &title, const light_controls::Values &
 #endif
   // Every page's top bar (detail_bar): the back key, the name, and at the right the sparkles key and the lamps key,
   // where the light has effects or modes on its device (a WLED's palette, preset, speed) or is a group with lamps.
-  colour_bar = detail_bar::make(card, title, {detail_bar::BACK, colour_back}, {"\U000F0674", colour_effects}, {"\U000F1253", colour_lamps});
+  colour_bar = detail_bar::make(card, title, {detail_bar::BACK, colour_back}, {"\U000F0674", colour_effects}, {tile_controls::glyph::LAMPS, colour_lamps});
   auto shown = [](lv_obj_t *k, bool on) { if (on) lv_obj_remove_flag(k, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(k, LV_OBJ_FLAG_HIDDEN); };
   shown(colour_bar.right[0], effects_page::offered(colour_entity));
   shown(colour_bar.right[1], group_page::offered(colour_entity));

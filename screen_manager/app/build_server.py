@@ -46,6 +46,7 @@ import time
 import aiohttp
 
 import atomic
+import build_files
 
 LOG = logging.getLogger('screen_manager')
 
@@ -904,8 +905,8 @@ def stage_artifacts(archive, target):
             if found:
                 return found[0]
         return None
-    factory = first('build/firmware.factory.bin', '.pioenvs/*/firmware.factory.bin')
-    ota = first('build/firmware.ota.bin', '.pioenvs/*/firmware.ota.bin', *([f'build/{node}.bin'] if node else []),
+    factory = first(*build_files.in_node('firmware.factory.bin'))
+    ota = first(*build_files.in_node('firmware.ota.bin'), *([f'build/{node}.bin'] if node else []),
                 '.pioenvs/*/firmware.bin')
     # With ESPHome's own ESP-IDF the image an update sends is build/<node>.bin: beside it under the name the app looks
     # for (Firmware.OTA_IMAGES), so its size and its room for plugins read as for a build made here.

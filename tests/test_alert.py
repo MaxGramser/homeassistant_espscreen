@@ -1,11 +1,12 @@
-"""The alert a Home Assistant action puts over the whole screen (packages/core.yaml, features/backlight.yaml).
+"""The alert a Home Assistant action puts over the whole screen (packages/core.yaml).
 
 What the card makes of its fields is screen_alert::make and where its parts stand screen_alert::layout (alert_overlay.h),
 proven by tests/test_alert_overlay.cpp and tests/test_alert_layout.py. What a screen shows of an alert, each text on its
 own part, one button or two as asked and a title one line high however long, is the host render's alert round
-(tools/render/run.py, alert_words_faults). Standby waiting while an alert shows, and the standby time starting again when
-it ends, are tests/test_wake_sleep.py's. Here: the contract with Home Assistant and the app, and the rules over the
-packages that only reading them states."""
+(tools/render/run.py, alert_words_faults). When an alert is up, what ends it, its blinks, what Home Assistant hears and
+how it meets the standby is alert_life.h, proven by running it (tests/test_alert_life.cpp), and each ending as Home
+Assistant hears it on the real firmware is the host render's alert life round (tools/render/run.py guition --only
+alertlife). Here: the contract with Home Assistant and the app, and what only the YAML can get wrong."""
 import json
 import re
 import sys
@@ -124,49 +125,69 @@ class TheCard(unittest.TestCase):
 
 
 class TheEnd(unittest.TestCase):
-    def test_only_its_dismissal_closes_the_card(self):
-        # A card closing, standby, Wake or a setting never takes the alert away: it ends through alert_dismiss, which
-        # reports how. The UI self test shows and hides the overlay on its own, and reports nothing.
-        for pattern in ('id(alert_active) = false', 'hide(id(alert_overlay)'):
+    LIFE = (ROOT / 'components/smart_display/alert_life.h').read_text()
+    TEXT = package_yaml.CORE.read_text()
+
+    def test_every_script_of_an_alert_is_one_call(self):
+        # The names the actions, the card's keys and an Override YAML use: each is alert_life.h's own function and
+        # nothing beside it, so there is no second place where a rule of an alert could live.
+        calls = {
+            'alert_dismiss': 'alert_life::the().dismiss(reason.c_str());',
+            'alert_flash': 'alert_life::the().flash(millis());',
+            'alert_timeout': 'alert_life::the().timeout(seconds, millis());',
+            'alert_report': 'alert_life::the().report(action.c_str());',
+        }
+        for name, call in calls.items():
+            self.assertEqual(package_yaml.script(name)['then'], [{'lambda': call}], f'{name} is one call')
+        show = package_yaml.script('alert_show')['then']
+        self.assertEqual(len(show), 1, 'alert_show is one call')
+        self.assertTrue(show[0]['lambda'].startswith('alert_life::the().show(screen_alert::make(title, subtitle, icon, color, '))
+        # Its time and its blinks wait on one script that the latest ask replaces.
+        wait = package_yaml.script('alert_wait')
+        self.assertEqual(wait.get('mode'), 'restart')
+        self.assertEqual(wait['then'][1], {'lambda': 'alert_life::the().due(millis());'})
+        self.assertIn('alert.glass.later = [](uint32_t ms) { id(alert_wait).execute(ms); };', self.TEXT)
+        for name, item in ((n, i) for _, n, i in package_yaml.every_script() if n.startswith('alert_')):
+            self.assertIn(name, {*calls, 'alert_show', 'alert_wait', 'alert_event'}, f'{name}: no package has an alert script of its own')
+
+    def test_only_its_life_closes_the_card(self):
+        # A card closing, standby, Wake or a setting never takes the alert away: it ends through alert_life's dismiss,
+        # which reports how. The card comes and goes in one place, the binding of glass.reveal; the UI self test shows
+        # and hides the overlay on its own, and reports nothing.
+        for pattern in ('screen_motion::hide(id(alert_overlay)', 'screen_motion::show(id(alert_overlay)'):
             total = sum(path.read_text().count(pattern) for path in package_yaml.files())
-            inside = sum(text.count(pattern) for text in values(package_yaml.script('alert_dismiss')))
-            self.assertEqual((total, inside), (1, 1), f'only alert_dismiss ends an alert ({pattern}); anything else that '
-                                                      'must end one executes alert_dismiss with a reason')
+            self.assertEqual(total, 1, f'only alert_life reveals the card ({pattern})')
+        reveal = re.search(r'alert\.glass\.reveal = \[\]\(bool shown\) \{(.*?)\};', self.TEXT, re.S)
+        self.assertTrue(reveal and 'screen_motion::show(id(alert_overlay)' in reveal[1] and 'screen_motion::hide(id(alert_overlay)' in reveal[1])
         hides = {name for _, name, item in package_yaml.every_script()
                  for step in package_yaml.steps(item) if step.get('lvgl.widget.hide') == 'alert_overlay'}
         self.assertEqual(hides, {'ui_self_test'}, 'only the UI self test hides the overlay itself')
         self.assertFalse([path.name for path in package_yaml.files() if 'alert' not in path.name
                           and re.search(r'lvgl\.widget\.hide:\s*alert_overlay', path.read_text())
                           and path.name != 'self-test.yaml'], 'nothing else hides the alert overlay')
-
-    def test_what_the_alert_starts_its_dismissal_stops(self):
-        # An alert dismissed during its blinks or before its timeout stops them: nothing of it goes on after it.
-        started = [name for name, _ in package_yaml.executed(package_yaml.script('alert_show'))]
-        # A script that waits in any package that defines it (a board whose backlight cannot blink has a flash of its own).
-        lasting = [name for name in started if any('delay' in step for _, key, item in package_yaml.every_script() if key == name
-                                                   for step in package_yaml.steps(item))]
-        self.assertEqual(sorted(lasting), ['alert_flash', 'alert_timeout'])
-        stopped = [step['script.stop'] for step in package_yaml.steps(package_yaml.script('alert_dismiss')) if 'script.stop' in step]
-        for name in lasting:
-            self.assertIn(name, stopped, f'alert_show starts {name}, which runs on: alert_dismiss stops it')
+        # No package keeps an alert's state of its own any more.
+        for path in package_yaml.files():
+            for gone in ('alert_active', 'alert_title_text', 'alert_card_color', 'alert_timeout_seconds', 'alert_flash_requested'):
+                self.assertNotIn(gone, path.read_text(), f'{path.name}: {gone} lived in the YAML before alert_life.h')
 
     def test_every_ending_reports_to_home_assistant(self):
-        report = package_yaml.script('alert_report')
-        events = [step['homeassistant.event'] for step in package_yaml.steps(report) if 'homeassistant.event' in step]
+        event = package_yaml.script('alert_event')
+        events = [step['homeassistant.event'] for step in package_yaml.steps(event) if 'homeassistant.event' in step]
         self.assertEqual([e['event'] for e in events], [ALERT_EVENT], 'an alert\'s end is the one event the app listens to')
         self.assertEqual(set(events[0]['data']), {'action', 'title', 'screen'},
                          'Manager.alert_ended and automations read action, title and screen from it')
-        self.assertIn(('alert_report', {'action': 'return reason;'}), package_yaml.executed(package_yaml.script('alert_dismiss')),
-                      'alert_dismiss reports every ending with its reason')
+        self.assertIn('alert.glass.report = [](const char *action, const std::string &title) { id(alert_event).execute(std::string(action), title); };',
+                      self.TEXT, 'what alert_life reports goes out as that event')
+        self.assertEqual(sum(path.read_text().count('event: esphome.screen_alert') for path in package_yaml.files()), 1,
+                         'one place sends the event')
         # The endings the screen can report are the ones the app documents and reads (core.ALERT_ENDINGS): the reasons
-        # alert_dismiss is executed with anywhere, and a new alert over one ("replaced").
+        # the YAML ends an alert with (the card's keys, the action dismiss_alert, a standby by hand), and the two the
+        # life ends it with itself: its time running out, and a new alert over it.
         reasons = {target['reason'] for _, target in every_dismissal()}
-        texts = ''.join(path.read_text() for path in package_yaml.files())
-        reasons |= set(re.findall(r'id\(alert_report\)\.execute\("(\w+)"\)', texts))
+        reasons |= set(re.findall(r'alert_life::the\(\)\.dismiss\("(\w+)"\)', self.TEXT))
+        reasons |= set(re.findall(r'(?:dismiss|report)\("(\w+)"\)', self.LIFE))
         self.assertEqual(reasons, {ending for ending, _ in ALERT_ENDINGS},
                          'the screen ends an alert as exactly the endings the app knows (core.ALERT_ENDINGS): change both')
-        self.assertIn('id(alert_report).execute("replaced")', ''.join(values(package_yaml.script('alert_show'))),
-                      'a new alert over one reports the old one as replaced')
 
     def test_the_self_test_shows_the_card_and_tells_nobody(self):
         # ui_self_test renders every overlay without controlling a device: it shows and hides the alert's overlay itself
@@ -179,24 +200,16 @@ class TheEnd(unittest.TestCase):
         self.assertFalse([key for step in steps for key in step if key.startswith('homeassistant.')],
                          'the UI self test sends nothing to Home Assistant')
 
-    def test_it_wakes_the_screen_then_shows_then_blinks(self):
-        # glass: an alert that arrives while the screen is in standby lights it at its brightness, the card shows, and
-        # with flash: true the backlight blinks four times after it; the screen stays lit at its brightness when the
-        # alert is dismissed. No PC can see a backlight.
-        then = package_yaml.script('alert_show')['then']
-        at = lambda test: next(i for i, step in enumerate(then) if test(step))  # noqa: E731
-        woken = at(lambda step: step.get('script.execute') == 'wake_display')
-        shown = at(lambda step: 'screen_motion::show(id(alert_overlay)' in str(step.get('lambda', '')))
-        blinks = at(lambda step: 'alert_flash' in str(step.get('if', '')))
-        self.assertLess(woken, shown, 'the screen wakes before the card shows')
-        self.assertLess(shown, blinks, 'the card shows before the backlight blinks')
-        flash = package_yaml.scripts(ROOT / 'packages/features/backlight.yaml')['alert_flash']
-        repeat = next(step['repeat'] for step in package_yaml.steps(flash) if 'repeat' in step)
-        self.assertEqual(repeat['count'], 4, 'four blinks')
-        self.assertEqual(sum('delay' in step for step in repeat['then']), 2, 'each blink is dark, then lit')
-        dismiss = package_yaml.script('alert_dismiss')
-        self.assertIn('screen_settings::current.brightness', ''.join(values(dismiss)),
-                      'a dismissed alert leaves the screen at its own brightness, also halfway through a blink')
+    def test_a_board_says_how_often_its_backlight_blinks(self):
+        # glass: an alert with flash: true blinks the backlight four times as it arrives and leaves it lit. The blinks,
+        # their times and the light coming back at an ending are alert_life.h's (tests/test_alert_life.cpp); how often
+        # is the board's, and a backlight that must never go dark says none. No PC can see a backlight.
+        self.assertEqual(str(CORE['substitutions']['ALERT_BLINKS']), '4')
+        always_on = package_yaml.load(ROOT / 'packages/features/backlight-always-on.yaml')
+        self.assertEqual(str(always_on['substitutions']['ALERT_BLINKS']), '0')
+        self.assertIn('alert.blinks = ${ALERT_BLINKS};', self.TEXT)
+        self.assertIn('alert.glass.light = [](int level, int ms) { id(set_backlight).execute(level, ms); };', self.TEXT,
+                      'the blinks go through the board\'s one owner of the backlight')
 
 
 class TheLimits(unittest.TestCase):
@@ -222,8 +235,8 @@ class TheLimits(unittest.TestCase):
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         for board in profiles.BOARDS:
             values_ = profiles.board_values(board)
-            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline'), int(values_['FONT_HEADLINE_SIZE']))
-            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big'), int(values_['FONT_SUBLABEL_BIG_SIZE']))
+            title = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'headline', values_), int(values_['FONT_HEADLINE_SIZE']))
+            sub = font_metrics.line_height(ROOT / font_metrics.font_file(core, 'sublabel_big', values_), int(values_['FONT_SUBLABEL_BIG_SIZE']))
             for way, side in shapes[board]['orientations'].items():
                 card = alert_layout.layout(side['width'], side['height'], title, sub, False,
                                            round(float(values_['DISPLAY_DPI'])), values_['LOOK'])

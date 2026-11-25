@@ -2,6 +2,126 @@
 
 - **Choose the icon and text layout for a tile.** Plain single-cell entity and Go to page tiles can keep the automatic layout, put the icon beside the text, or put it above the name and second line. The screen must support the new option.
 
+- **The SenseCAP Indicator's buzzer plays sounds.** The Indicator has a second chip that drives its buzzer. New screen now ends with a step for it: two clicks put Tessera's firmware on that chip over the same USB cable, and from then on the buzzer plays the doorbell's chime, the sounds of your alerts and a plugin's sounds, at a Volume of its own under Extras. A buzzer only carries a narrow band of high notes, so the built-in sounds come to it in a version made for that band. A SenseCAP you already have gets the step as a card above the screen after its next update. Seeed's own firmware on that chip is replaced and can be put back.
+
+- **The SenseCAP Indicator shows pictures.** Camera tiles, the snapshot with an alert and a player's artwork now work on it, as on the other boards with the memory for them.
+
+- **A board can have a step of its own after installing.** Some boards need one more thing done once, such as a second chip that takes a firmware of its own. New screen offers it as a page after the screen works, a card above the screen offers it until it is done, and the screen's menu keeps it for later.
+
+- **Installing from the browser stops and says why when the chosen port does not answer.** With the wrong port chosen, Install kept turning and said nothing, and every new try used that same port again without asking. The page now waits 20 seconds for the chip, then stops with what to do, gives Install back and asks for the port again at the next click. On a board that shows two ports on one cable, such as the SenseCAP Indicator ("USB Serial" and "INDICATOR RP2040"), it knows the port of the second chip and says at once to choose the other one.
+
+## 0.4.104 (firmware 0.64.0)
+
+- **Save & send and Add tile work on a phone again.** With an AI connected for Layoutbot, a tap anywhere in the bar at the bottom of the phone editor opened Layoutbot's chat instead: an invisible part of its key lay over the whole bar. Each key in the bar is its own again. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471), [#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
+
+- **A message no longer keeps Layoutbot's chat open on a phone.** A message such as "Settings added" with Undo lay over the key that closes the chat for as long as it showed. The chat now starts under the place of such a message, and a tap on a message sends it away. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471))
+
+- **Set several tiles at once.** Choose tiles together (⌘ or Shift and a click, or drag a band over them) and the panel on the right now shows the settings they share: what a tap does, the controls on the tile, the small slider, the second line, the icon and the colour. One pick sets it on all of them and is one step of undo; where the tiles differ it says Mixed. Three blinds of the same kind share everything a blind can be set to, and tiles of different kinds what every tile has.
+
+- **What is open stands apart from the page.** The page behind a sheet, a dialog or a wizard is dimmed more, and in the dark look a menu or a list is a step lighter than what it opens over, with a line around it. The page behind barely changed before, most of all in the dark look.
+
+- **Easier under a finger.** On a phone or a tablet a menu's rows are taller and the menu uses the room it has, and the small keys (the cross on a tile, a switch, a help key) take a tap around them too. A light preset's panel no longer runs past the edge of a narrow phone.
+
+## 0.4.103 (firmware 0.64.0)
+
+- **A plugin's times are right whatever time zone the app's machine is in.** A time that a web service or an entity gives without a time zone (a departure at 17:25, the start of a collection) was read in the zone of the machine the app runs on, not in your Home Assistant's. Where those differ (the app in a container that stands in UTC, a home in another zone than its host), a plugin's tile showed such times off by the difference, and so did the plugins' examples in the library. They are read in Home Assistant's time zone now, as the plugins' documentation says; a plugin that names a zone of its own for a time keeps it.
+
+## 0.4.102 (firmware 0.64.0)
+
+- **An alert that arrives in standby no longer darkens the page behind it too much.** On the boards that dim the page on the glass itself (the larger ones, such as the Guition 10.1), the page behind an alert's card came out darker when the alert woke the screen from standby than when the screen was already lit, most visibly in the light look. Both now look the same. New firmware.
+
+- **The right colours on the Guition 5-inch JC8048W550C_I.** Red and blue were swapped (a yellow lamp showed blue). The board now uses ESPHome's own model for this panel, which owners of the board confirmed shows the right colours; an Override YAML that fixed it by hand can go. New firmware. ([#243](https://github.com/MaxGramser/homeassistant_espscreen/issues/243))
+
+- **The M5Stack Tab5 dims over the whole range and goes dark at 0 %.** Its backlight barely changed below about 65 % and stayed lit at 0 %. It now runs at the frequency owners of the board measured to dim fully, and 0 % switches it off. New firmware. ([#442](https://github.com/MaxGramser/homeassistant_espscreen/issues/442))
+
+- **A plugin's README shows its pictures.** The pictures in a plugin's README (its examples, a screenshot) showed as empty frames with their words in the plugin's details, as the editor shows no picture from another address. The app now fetches them from the plugin's own folder at its commit and serves them, as it does the plugin's picture on the Plugins page (GitHub #450).
+
+- **A plugin's clock face gets the icons of the clock's row.** A face of the clock from a plugin received every entity of the row with `icon` 0, so a weather entity's rain cloud or sun never showed on it while the Digital face showed it: the row's icons came as hex text (`F0597`) and the screensaver's contract for plugins kept only numbers. It now hands them as the codepoint the plugin API describes (GitHub #448).
+
+- **Notices with two choices read well on a phone.** "Another editor saved changes" and "the screen's grid changed" put their words on full lines and their keys under them, instead of one word a line.
+
+- **A clearer word when a change of grid cannot be saved.** It now says what to do: save the screen once on the grid it has, then change the grid. ([#355](https://github.com/MaxGramser/homeassistant_espscreen/issues/355))
+
+- **The Claude skill when the app runs on its own.** As with the video integration, an app without Home Assistant beside it no longer offers to install the skill into a folder Home Assistant never reads; the download for claude.ai stays.
+
+- **Saving for a screen that is off.** Saving the tiles of a screen that was off or away said "Install screen firmware 0.58.0 or newer first" for a screen that had a newer firmware long ago. The app now keeps what the screen said it can do while it is away, and the save waits for the screen as it should. ([#452](https://github.com/MaxGramser/homeassistant_espscreen/issues/452))
+
+- **Video in Home Assistant when the app runs on its own.** An app in Docker without Home Assistant beside it no longer writes the video integration into a folder Home Assistant never reads. It offers the integration as a download instead, to unpack in Home Assistant's configuration folder. ([#357](https://github.com/MaxGramser/homeassistant_espscreen/issues/357))
+
+- **A plugin's tile looks in the editor as it does on the screen.** The page editor used to show a striped placeholder for a plugin's tile, because only the plugin knows what it draws. The editor's firmware preview now runs the plugin's own code: the tile is drawn by the plugin itself, with your options and its live data, at the size you give it and for your board, in light and dark. Change an option and the tile follows at once, before anything is saved or built. It works in the page editor, in Preview and on the overview, and in the library, where a plugin's tile stands at each size it can be with the plugin's own example, for the plugins that have a preview module; the others keep the placeholder. Nothing of this is built or drawn on the computer the app runs on: the browser draws, and the cards of your last visit show at once while it starts. The preview the editor loads grew from 15.5 MB to 17.4 MB; a browser keeps it after the first load, so that is paid once per update of the app.
+
+- **The temperature line of the week stands under the right day.** With a forecast that starts tomorrow, as Buienradar's does in the evening, the line of today's hours was drawn under tomorrow's column. The week now counts from its own first day. New firmware. ([#280](https://github.com/MaxGramser/homeassistant_espscreen/issues/280))
+
+- **Pictures of other pages no longer push each other out.** A screen with little room for pictures and a large picture on each of two other pages fetched both again and again while it was awake. A picture for a page out of sight now only takes room that is free and never makes another picture go; one that does not fit comes when you open its page. New firmware. ([#415](https://github.com/MaxGramser/homeassistant_espscreen/issues/415))
+
+- **A light group that only dims opens its lamps too.** The card of a light group without colours now has the lamps key beside its power key, as the colour card has, so every lamp of such a group can be reached from the screen. New firmware. ([#458](https://github.com/MaxGramser/homeassistant_espscreen/issues/458))
+
+- **A thermostat on another page shows its new mode's colour.** A thermostat that went from Auto to Heat, or a lamp that changed colour, while its page was out of sight came back in its old colour. It now comes back in the colour it has. New firmware. ([#349](https://github.com/MaxGramser/homeassistant_espscreen/issues/349))
+
+- **New screen finishes what it starts.** When the board on the cable is already one of your screens, "Install it again" now installs it right there: the same cable, that screen's own firmware built for the chip on the cable, without wiping its settings or its calibration, and the same steps until it is back in Home Assistant. It used to send you to Firmware & USB with another screen picked. While it installs from this browser, it no longer says you can close the window: the page itself puts the software on the screen, so it asks you to keep it open until that is done.
+
+- **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
+
+- **The editor draws a sensor's graph and a thermostat's modes as the screen does.** A graph card keeps its name and value beside the graph, which now runs as the screen draws it, smooth and filled, without the stray dots of the highest and lowest moment. The mode keys of a thermostat no longer turn dark when your computer is in dark mode.
+
+- **A device's settings and diagnostics are tucked away.** Entities Home Assistant files under Configuration or Diagnostic (a lamp's power-on behaviour, a signal strength) and the ones hidden there now stand folded under "extras" below each room in the library, so the lights, switches and sensors you use come first. They can still be found and added.
+
+- **The screensaver stays up with "Back to page 1 on standby".** With that setting on, a screensaver that shows a camera or what plays opened and closed again right away, leaving the dimmed tiles of page 1. The screen now goes to page 1 first and then opens its screensaver. New firmware. ([#457](https://github.com/MaxGramser/homeassistant_espscreen/issues/457))
+
+- **The app keeps up with a very large Home Assistant.** The app now follows Home Assistant's states the way Home Assistant's own pages do: one compact list when it connects, and after that only what changed, down to the one attribute. A home with thousands of entities, or with a few very large ones (sports scores, network integrations), no longer keeps the app on "Reconnecting to Home Assistant", and Home Assistant no longer sends such an entity whole on every change. A link that stops answering is made again by itself. ([#315](https://github.com/MaxGramser/homeassistant_espscreen/issues/315), [#392](https://github.com/MaxGramser/homeassistant_espscreen/issues/392), [#399](https://github.com/MaxGramser/homeassistant_espscreen/issues/399))
+
+- **Pictures in a Lyrion or Squeezebox library.** The folders and albums of a Lyrion Music Server show their pictures again. ([#456](https://github.com/MaxGramser/homeassistant_espscreen/issues/456))
+
+- **A crash in a troubleshooting report is read again.** The report finds the screen's own build to turn a crash into file names and lines, on every board. ([#463](https://github.com/MaxGramser/homeassistant_espscreen/issues/463))
+
+- **Plugins get the large clock digits.** A plugin can now draw its time in the same large digits Tessera's own flip clock and bedside clock use, up to as large as the page, without bringing a font of its own, so it costs no extra space on the screen. New firmware, plugin API 0.29.
+
+- **An alarm of a plugin can ring louder than the screen.** A plugin may raise the speaker for its sound, as an alarm clock does, and the screen's own volume comes back afterwards, also when a call rings at the same time or the screen restarts in the middle. New firmware, plugin API 0.29.
+
+- **A plugin tile shows its new name.** Renaming a plugin's tile in the editor now reaches the tile on the screen; before, it kept its old name until the tile was changed in another way. New firmware.
+
+- **The key on the board is the standby key.** A press on the board's own key sends the screen to standby at once, with its screensaver, and a second press wakes it, as Sleep and Wake in Home Assistant do, also with Auto standby off. Until now only the reTerminal D1001's button did this; now every board that can go dark does it with its own key or its BOOT key, except the boards whose BOOT key the display uses (Guition 4848S040, Waveshare 4.3, 4.3C, 5, 7 and 7B, WT32-SC01 Plus), the Waveshare 86 panel in the wall and the M5Stack Tab5. On the Waveshare 3.5 and the Waveshare 4 (revision 4.0) it is the power key. The key also shows up in Home Assistant as Button. New firmware.
+
+- **Boards with the newer ESP32-P4 chip start.** Guition, Waveshare and others now sell their ESP32-P4 screens with a newer revision of the chip (v3) under the same name, often without any marking, and the firmware for the older chip left those screens black (#336, #397, #462). Tessera now reads the chip itself while it installs a screen, from the USB cable, and builds the firmware for the chip it finds. A screen that runs reports its chip too, so every later update is built for it, also one installed some other way. Screens that run on the hand-made fix, `engineering_sample: false` in their Override YAML, are recognised and keep working, and they can now be updated from Tessera again. This includes the rare boards with the very first v3 chip (v3.0), which no firmware would start on before. The browser installer also refuses to write a firmware built for another chip revision than the one on the cable. New firmware for the ESP32-P4 boards, with a Screen chip sensor.
+
+- **The reTerminal D1001 wakes when you pick it up.** With Wake when moved on, the reTerminal now feels being lifted, tilted or turned, instead of only a good shake: it reads its motion sensor more often, listens to the gyroscope too and compares each reading with how the board lay still. New firmware.
+
+- **Clearer tile names on the CYD.** On the small screens (the CYD and the Hosyond 4-inch) the names on the tiles are now drawn in medium instead of bold, so their letters no longer run into each other on the glass. They keep their width, so no name gets cut shorter. New firmware.
+
+- **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, also with Auto standby off. A tap still goes to the Home page. New firmware.
+- **Sleep shows the screensaver too.** Sleep in Home Assistant used to leave the dimmed tiles on the glass. Every standby now shows the screensaver you chose, whether the standby time ran out, Sleep was pressed, or it came from the board's key or the home button. New firmware.
+- **A screen you put to standby yourself stays there while you walk away.** After the home button held, the board's key or Sleep in Home Assistant, a wake on movement (the camera plugin's Wake on movement, a reTerminal that is moved, an automation that presses the new **Motion** button) waits until it has seen no movement for a minute, so walking away no longer lights the screen again. The next movement after that wakes it as before. A tap, the key, **Wake** in Home Assistant, an alert, a doorbell or a call always wake it. An automation that wakes a screen on motion should press **Motion** instead of **Wake** to get this. New firmware.
+
+- **New screen asks one thing at a time, and stays with you until the screen really works.** Each step is one question with a large title and one Continue key: which screen, which version (only when there are more), its name (the rooms of your home are offered), which way it hangs, its plugins and the Wi-Fi (only when needed). Before any USB port, it asks where the cable is: in this computer or in your Home Assistant, each drawn, with the Home Assistant machine's ports watched until the screen shows up and a Zigbee or Z-Wave stick kept out of the way. After the install it follows four steps, the software, putting it on the screen, the Wi-Fi and adding it to Home Assistant, and only says the screen is ready once Home Assistant has it online and allowed to control your home.
+
+- **The plugin store opens on all plugins.** It used to open on Tiles, which looked like everything there was. An All tab now comes first, and the tabs by kind still narrow the list.
+
+- **Updating every screen goes a lot faster.** In Update all and the nightly round, the next screen is built while the one before restarts and is checked, so the build server never sits idle. A screen still installs only once the screens before it passed their check, so a bad firmware never reaches a second screen. The fixed 2 minute pause between two screens is gone, and a screen that failed for a reason that has nothing to do with its firmware (a download that did not come, a screen that was away for a moment) goes once more at the end of the round instead of stopping it.
+
+- **Events is laid out like Settings.** Events opens on a list of its parts, Alerts, Doorbell, Alarm and Calls, each with a line of what is set (your automations, your alarm panels, the ring of a call), and each opens on a page of its own. Settings, a screen's settings and Events now share one design.
+
+- **An open editor loads the new version by itself after an update of the app.** Before, a page that stayed open kept running the old editor against the new app. It now reloads as soon as nothing is in progress, and waits for unsaved changes, New screen and Firmware & USB.
+
+- **Recommended boards stand apart in New screen, and more boards are proven.** The board list now opens with the boards the project recommends (the Guition 4 inch, the Guition 10.1 inch V3, the reTerminal D1001 and the Waveshare 10.1 inch V3), larger and in their own section, with more to come soon, and New screen starts on the first of them. Every other board follows under them, marked Proven, New (works on real screens, not yet tested thoroughly) or Experimental (too little test data from real screens yet), with a plain line on what that means. From what people report about the screens they run, three more boards are now Proven: the Waveshare 7 (ESP32-S3-Touch-LCD-7), the Guition 3.5 (JC3248W535) and the Guition 7 V2 (JC1060P470 V2). Five boards that many people run but that were still marked Experimental are now New: the Sunton 8048S070, the Hosyond 4-inch, the Waveshare 7B, the Waveshare P4 86 panel and the Guition 7 (JC1060P470). Searching and the sizes still look through every board. Long model names in the model choice now wrap instead of running past their card.
+- **A screen that restarts during its update no longer shows as offline.** While an update installs, the screen restarts and is off the network for a while. The sidebar, the overview and the screen's own head now say it restarts with the new firmware instead of calling it offline.
+
+- **A build tells you what it is doing, and when it is really done.** Every build shows its steps: waiting, building, sending to the screen, and the screen confirming. A plugin build now waits until the screen has restarted and says it runs the new version, and a build that went well stays visible for a few minutes so you see it happened.
+- **A failure says what kind it is and what to do.** A fault in the plugin's code offers a filled-in issue at its maker. Memory that ran short points to a build server. A screen that was away gets its build by itself once it is back. A download that did not come is tried once more by itself. A failed build is also said in Home Assistant.
+- **Back to the version before, with one tap.** When a plugin update does not run well, its details offer the version the screen ran before.
+- **Every update of a screen in one place, and in one build.** A screen's Plugins tab shows its firmware update and its plugin updates together, with one key for all of it. The sidebar shows a screen's plugin updates and marks a plugin that did not build, the Updates card lists them, and Home Assistant gets a notification when new updates are ready.
+- **Choose when the nightly update runs.** The automatic update can start at an hour you pick, for screens beside a bed.
+- **Warnings before a build instead of a failure after it.** The app warns when this Home Assistant is short of memory for a build, counts the extra room the first plugin needs on a CYD, and refuses a screen name with a `"` or `\` before anything is built.
+
+- **Three boards are now stable.** The reTerminal D1001, the Guition JC8012P4A1 V3 (10.1 inch) and the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 V3 have run as everyday screens long enough to move from new or experimental to stable.
+
+- **A plugin build the app restarted during goes on by itself.** When the app was updated or Home Assistant restarted while a screen was building a plugin, the plugin used to stay behind as failed. The app now starts that build once more by itself as soon as it is back, and only says it failed when that second try is cut off too.
+
+- **A plugin that did not build says so where you look, with its log.** When a plugin or its update did not build, the screen's Plugins tab now says so at the top: which plugin, which version, why, and that the screen still runs what it ran. The build's log is one tap away to download, and so is trying again. Every build's log is now kept on disk too, also when the app restarted during the build, and Firmware & USB lists them all to download. When the build stopped on the plugin itself, one more tap opens an issue at its maker's GitHub, already filled in with the plugin, the version, the board and where the build stopped.
+
+## 0.4.101 (firmware 0.63.0)
+
+- **The full editor fits a phone.** With the full editor on a phone, the page stood wider than the phone, and in the Home Assistant app on an iPhone the whole editor was then drawn smaller, with large empty spaces and cards out of shape. The page now takes the phone's width, the tabs of a screen scroll sideways when they do not fit, and the zoom keys stay away where the page already fills the width.
+
 ## 0.4.100 (firmware 0.63.0)
 
 - **No dark line around an alert.** On the ESP32-P4 screens an alert, and any card that dims the page behind it, could have a thin dark line along two of its sides, standing square around its rounded corners. It is gone.

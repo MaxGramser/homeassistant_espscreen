@@ -52,7 +52,11 @@ export function useFirmwareJob(follower: FirmwareFollower = {}) {
 export function followBuilds() {
   const builds = useBuildsStore();
   const scope = effectScope(true);
-  scope.run(() => useFirmwareJob({ active: () => builds.anyBuilding }));
+  scope.run(() => {
+    useFirmwareJob({ active: () => builds.anyBuilding });
+    // A build that ended has its log kept on disk: the list of kept logs follows (stores/builds.ts refreshKeptLogs).
+    watch(() => builds.endedKey, () => void builds.refreshKeptLogs());
+  });
   return () => scope.stop();
 }
 

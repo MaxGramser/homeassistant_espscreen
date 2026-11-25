@@ -1,0 +1,50 @@
+# ESP Screens - the board's own key as the standby key (firmware 0.64.0): a press puts a lit screen in standby, with
+# its screensaver, and wakes one that is in standby, the way Home Assistant's Sleep and Wake buttons do (the core's
+# script standby_key). Sleep holds with Auto standby off too, until a tap, Wake or this key again.
+#
+# Every board that can go dark and has a key the chip can read takes it: a key of its own where it has one (the
+# reTerminal D1001's on top, the SenseCAP Indicator's user button, the power key of the Waveshare 4 rev 4.0), else the
+# BOOT key, which every ESP32 board has on its boot strapping pin (GPIO0 on the ESP32 and the ESP32-S3, GPIO35 on the
+# ESP32-P4). After the start that pin is an ordinary input. The pins come from each board's schematic or its vendor's
+# code (2026-11-24). None where the display or other hardware drives that pin (the Guition 4848S040, the Waveshare
+# RGB boards and the WT32-SC01 Plus, GPIO0 in their picture; the Waveshare 4 rev 4.0's CAN line), on the Waveshare 86
+# panel (a wall panel, and GPIO35 is its Ethernet line), and on the M5Stack Tab5 (its only key is its power chip's).
+#
+# How a board reaches its key is its part of the contract (docs/ADDING_A_BOARD.md). A key on a pin of the chip, low
+# while pressed and with a pull-up, as a BOOT key is, needs only the pin:
+#
+#   substitutions:
+#     STANDBY_KEY_PIN: GPIO0
+#
+# A key wired the other way adds STANDBY_KEY_INVERTED "false" and STANDBY_KEY_PULLUP "false" (the D1001's, high while
+# pressed). A key on a pin of an IO expander names the expander's pin and adds the expander to STANDBY_KEY, the whole
+# pin as ESPHome reads it: ESPHome merges a board's mapping into this file's, and a `mode` of its own replaces the
+# chip's input with pull-up, which an expander's pin has not (the Waveshare 3.5's PWR key, EXIO6, high while pressed):
+#
+#   substitutions:
+#     STANDBY_KEY_PIN: "6"
+#     STANDBY_KEY_INVERTED: "false"
+#     STANDBY_KEY: {pca9554: io_expander, mode: INPUT}
+#
+# A BOOT key's pin is a strapping pin, so ESPHome warns about it; that is right and stays (an expander's pin takes no
+# ignore_strapping_warning, and one definition serves both). A BOOT key also sits on the USB chip's auto-download
+# line, so opening a board's USB port can read as a press. The key is the entity Button in Home Assistant too, for an
+# automation of its own.
+substitutions:
+  STANDBY_KEY_INVERTED: "true"
+  STANDBY_KEY_PULLUP: "true"
+  STANDBY_KEY:
+    number: ${STANDBY_KEY_PIN}
+    inverted: ${STANDBY_KEY_INVERTED}
+    mode: {input: true, pullup: "${STANDBY_KEY_PULLUP}"}
+
+binary_sensor:
+  - platform: gpio
+    id: board_button
+    name: "Button"
+    pin: ${STANDBY_KEY}
+    # The contacts bounce for a few milliseconds: without this one press could put the screen in standby and wake it.
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - script.execute: standby_key

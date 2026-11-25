@@ -7,15 +7,35 @@
 packages:
   build: !include esp-idf.yaml
 
+# The chip revision this firmware is built for (docs/CHIP_REVISIONS.md): ESP-IDF's full revision, major x 100 + minor,
+# so "302" is v3.2. ESP Screen Manager reads it from the chip itself (on the USB cable while it installs, and from the
+# screen's own "Screen chip" sensor after that) and writes it into the screen's own YAML, where it wins over this. "0"
+# is the board's default when nobody has read the chip: pre-v3, what the first boards of every P4 model carried. A
+# board whose units all carry rev3 states "301" in its board file: rev3 from v3.1, ESP-IDF's own default minimum, so an
+# image built without a reading runs on what those boards ship with. A chip read as v3.0 builds from v3.0 on (below). Everything below that differs between revisions
+# follows from this one number, here and nowhere else.
+substitutions:
+  CHIP_REVISION: "0"
+  # The DSI driver for the panel. ESPHome's own mipi_dsi before 2026.9.1 names a PHY clock that only pre-v3 silicon
+  # has, so on rev3 it aborts while the display starts (GitHub #52, #462); the repository's copy, mipi_dsi_v3, leaves the
+  # clock to ESP-IDF, which picks the right one on either revision (esphome/esphome#18984). Pre-v3 boards keep the
+  # driver they have always run. Once the app and every board's min_version are at 2026.9.1 or newer, this goes back to
+  # mipi_dsi for all and components/mipi_dsi_v3 goes away.
+  DSI_PLATFORM: '${ "mipi_dsi" if (CHIP_REVISION | int) < 300 else "mipi_dsi_v3" }'
+  # ESPHome's name of Espressif's function EV board for each revision, for a hardware file that names that board (the
+  # Tab5's): ESPHome refuses a pre-v3 board name on a rev3 build, and the other way round.
+  P4_EV_BOARD: '${ "esp32-p4-evboard" if (CHIP_REVISION | int) < 300 else "esp32-p4_r3-evboard" }'
+
 esp32:
   variant: esp32p4
-  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz.
+  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz. Every P4 runs at 360.
   cpu_frequency: 360MHz
-  # The chips in these panels are pre-v3 ("chip revision: v1.3" in the boot log). ESP-IDF links a different
-  # memory layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two are NOT binary
-  # compatible: a firmware built with this flag does not boot on rev3 silicon, and the other way round.
-  # Checked on a real JC8012P4A1 (pull request #14); a panel that reports v3.0 or higher needs this set to false.
-  engineering_sample: true
+  # ESP-IDF links a different memory layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two
+  # are NOT binary compatible: a pre-v3 firmware does not boot on rev3 silicon (the screen stays black, an update over
+  # Wi-Fi is refused), and the other way round. Pre-v3 checked on a real JC8012P4A1 (pull request #14), rev3 on its V3
+  # (GitHub #52). The image's header carries the range of revisions it runs on, and the browser installer compares it
+  # with the chip on the cable before it writes anything.
+  engineering_sample: '${ "true" if (CHIP_REVISION | int) < 300 else "false" }'
   # The main loop asks the C6 things over esp_hosted's RPC and waits for the answer: the Wi-Fi signal, the access
   # point, the power save mode at standby and at wake, and at boot the whole setup of the Wi-Fi. Each such wait gives
   # up after 5 seconds (DEFAULT_RPC_RSP_TIMEOUT in esp_hosted), and ESPHome's task watchdog gives up on the main loop
@@ -49,6 +69,13 @@ esp32:
       # instead of 32.1, for 889 KB more firmware (5.54 MB of the 8 MB update slot every P4 board has with its 16 or
       # 32 MB of flash). Keep the app at 6.5 MB a slot at most: above that, first see what can go before size wins again.
       CONFIG_COMPILER_OPTIMIZATION_PERF: "y"
+      # The lowest revision the image runs on, written into its header, where ESP-IDF's bootloader and the browser
+      # installer check it. On rev3 ESP-IDF builds for v3.1 and up unless told otherwise, and Espressif's errata list a
+      # v3.0 with its own marking (X F XX, docs.espressif.com/projects/esp-chip-errata/en/latest/esp32p4/
+      # 01-chip-identification/): a chip read as v3.0 gets an image from v3.0 on, every other rev3 one ESP-IDF's
+      # default. Pre-v3 builds pick neither (their minimum is ESP-IDF's choice below v1.99).
+      CONFIG_ESP32P4_REV_MIN_300: '${ "y" if (CHIP_REVISION | int) == 300 else "n" }'
+      CONFIG_ESP32P4_REV_MIN_301: '${ "y" if (CHIP_REVISION | int) > 300 else "n" }'
 
 psram:
   mode: hex

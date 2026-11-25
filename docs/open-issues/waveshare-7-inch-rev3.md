@@ -39,6 +39,13 @@ From an owner of a rev3 7-inch, in a GitHub issue:
 
 A rev3 board file is added only once one has been seen to run.
 
+## 2026-11-24: candidate 1 is what a rev3 board now gets
+
+Tessera reads the chip when it installs a screen and builds for the revision it finds (docs/CHIP_REVISIONS.md). On rev3
+silicon every P4 board, this one included, builds with `engineering_sample: false` and `mipi_dsi_v3`: the 10.1's way,
+without a board file of its own. So the experiment is now simply: install a rev3 7-inch from Tessera over USB, and
+report the "chip revision" line of the USB log and whether the picture, touch and backlight work. Not seen on glass yet.
+
 ## Pointers
 
 docs/WAVESHAREP47.md ("Which silicon"), docs/WAVESHARE101.md, packages/boards/wavesharep47.yaml,

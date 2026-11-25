@@ -6,7 +6,8 @@
 # CrowPanel Advanced P4 boards (V1.1) and from the configuration a community member ran on a V1.2 board (GitHub #116):
 # the two agree pin for pin. That member tried pages, tiles, dimming and waking on the glass; the rest is in
 # docs/CROWPANEL101.md. The loudspeaker and the PDM microphone are the screen's audio (features/audio.yaml), on two I2S
-# buses; the LoRa socket, the SD card and the UARTs are not configured here. Only boards with a pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log) boot this firmware.
+# buses; the LoRa socket, the SD card and the UARTs are not configured here. Run on a pre-v3 ESP32-P4 ("chip revision:
+# v1.3" in the boot log); ESP Screen Manager reads the chip and builds for the revision it finds (CHIP_REVISION, docs/CHIP_REVISIONS.md).
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
@@ -31,12 +32,15 @@ packages:
   # sound (features/audio-amplifier.yaml): its hardware below.
   audio: !include ../features/audio.yaml
   audio_amplifier: !include ../features/audio-amplifier.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "crowpanel101"
   DEVICE_NAME: "crowpanel101-new"
   DEVICE_FRIENDLY_NAME: "My CrowPanel 10"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 10.1 inches. The look scales its sizes
   # by the exact density, the firmware by the nearest whole number.
@@ -118,7 +122,8 @@ output:
 # EK79007 at 1024x600 with its timings and init sequence, the model Elecrow's own example uses. Its reset is GPIO41 on
 # this board.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     reset_pin: GPIO41

@@ -43,13 +43,18 @@ substitutions:
     live_view::bind_speaker(id(ts_media_speaker));
     // The screen's voice to the app, for the doorbell's Talk and a call (talk_uplink.h).
     talk_uplink::bind_microphone(id(ts_microphone), ${AUDIO_VOICE_GAIN});
-    // The ring's loudness is the speaker's own, never the media player's: Home Assistant does not see it and nothing keeps it.
-    // Its top is the same top the media player has, the DAC's full scale without digital gain.
+    // A sound louder than the screen's volume (volume_lift.h: a call's ring, a plugin's alarm) lifts the speaker's own
+    // volume, never the media player's: Home Assistant does not see it and nothing keeps it, so a restart comes back at
+    // the media player's kept volume. low and high are the media player's 0 and 100 % on the DAC (volume_min and
+    // volume_max below), for a plugin that asks in the screen's own volume.
+    volume_lift::the().bind([]() { return id(ts_speaker_out)->get_volume(); },
+                            [](float volume) { id(ts_speaker_out)->set_volume(volume); });
+    volume_lift::low() = ${ ((AUDIO_VOLUME_DB_LOW | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f;
+    volume_lift::high() = ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f;
+    // The ring's top is the same top the media player has, the DAC's full scale without digital gain.
     // What a finger does in a call goes to ESP Screens (module call, esphome.screen_call).
     runtime_tiles::call_reports([](const std::string &action, const std::string &to, bool video, const std::string &key) { id(call_report).execute(action, to, video, key); });
-    runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_speaker_out)->get_volume(); },
-                              [](float volume) { id(ts_speaker_out)->set_volume(volume); },
-                              []() { return id(ts_call_ringtone).state; },
+    runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_call_ringtone).state; },
                               []() { return id(ts_call_voice_switching).state; },
                               ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f);
     if (!${AUDIO_HALF_DUPLEX}) {

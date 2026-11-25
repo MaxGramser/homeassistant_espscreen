@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A screen's Settings tab, in parts (docs/PAGES.md, "Settings"): it opens on a list of them, one row each with what is
+// A screen's Settings tab, in parts (docs/PAGES.md, "Pages of parts"): it opens on a list of them, one row each with what is
 // set now, and a part opens as a page of its own (`?settings=<part>` on the screen's address, model/settings-parts.ts).
 // The rows are the screen's own settings (SettingRows), every change applied at once like on the screen; no Save needed.
 import { computed } from "vue";
@@ -8,20 +8,21 @@ import FeedbackPanel from "./FeedbackPanel.vue";
 import GridSettings from "./GridSettings.vue";
 import ScreensaverCard from "./ScreensaverCard.vue";
 import SettingRows from "./SettingRows.vue";
-import SettingsHead from "./SettingsHead.vue";
-import SettingsLink from "./SettingsLink.vue";
+import PartHead from "./parts/PartHead.vue";
+import PartList from "./parts/PartList.vue";
 import Icon from "./ui/Icon.vue";
 import PluginSettings from "./PluginSettings.vue";
 import { text } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { SETTING_GROUPS, settingLabel, type SettingRow } from "../model/settings";
-import { PART_LOOK, partCards, SCREEN_PART_ROWS, type ScreenSettingsPart } from "../model/settings-parts";
-import type { IconName } from "../model/ui-icons";
+import { PART_LOOK, SCREEN_PART_ROWS, type ScreenSettingsPart } from "../model/settings-parts";
+import type { PartRow } from "../model/parts";
 import { useSettingsStore } from "../stores/settings";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useDocumentStore } from "../stores/document";
 import { pageReachWarning } from "../editor/pages";
+import { useSessionStore } from "../stores/session";
 import { useUiStore } from "../stores/ui";
 import { useScreenIconsStore } from "../stores/screenIcons";
 
@@ -30,6 +31,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const doc = useDocumentStore();
 const ui = useUiStore();
+const session = useSessionStore();
 const screenIcons = useScreenIconsStore();
 
 const view = computed(() => settings.settingsView());
@@ -46,10 +48,7 @@ const pluginsWithSettings = computed(() => {
     .filter((plugin) => plugin.settings?.length || (plugin.inputs || []).length || (plugin.parts || []).length);
 });
 // A plugin's details on the screen's Plugins tab, opened from here, where its settings used to be.
-function openPlugin(id: string) {
-  plugins.focus = id;
-  ui.tab = "plugins";
-}
+const openPlugin = (id: string) => void session.openTab(screen.value!.id, "plugins", id);
 const values = computed(() => settings.settingValues());
 const offline = computed(() => view.value?.owner === "screen" && !screen.value?.online);
 // Page buttons and swiping off: the pages that only Go to page tiles could reach, and don't.
@@ -107,15 +106,17 @@ const helpLine = computed(() => [
   ...(real.value ? [t("editor.report.card_title")] : []),
 ].join(" · "));
 
-type Part = { id: ScreenSettingsPart; icon: IconName; summary: string };
+type Part = { id: ScreenSettingsPart; summary: string };
 const parts = computed<Part[]>(() => [
-  ...(gridShown.value || blocks("display").length ? [{ id: "display" as const, icon: "white-balance-sunny" as const, summary: displayLine.value }] : []),
-  ...(blocks("standby").length ? [{ id: "standby" as const, icon: "weather-night" as const, summary: standbyLine.value }] : []),
-  ...(blocks("navigation").length ? [{ id: "navigation" as const, icon: "gesture-swipe" as const, summary: navigationLine.value }] : []),
-  ...(real.value && boardLine.value ? [{ id: "board" as const, icon: "chip" as const, summary: boardLine.value }] : []),
-  ...(helpLine.value ? [{ id: "help" as const, icon: "lifebuoy" as const, summary: helpLine.value }] : []),
+  ...(gridShown.value || blocks("display").length ? [{ id: "display" as const, summary: displayLine.value }] : []),
+  ...(blocks("standby").length ? [{ id: "standby" as const, summary: standbyLine.value }] : []),
+  ...(blocks("navigation").length ? [{ id: "navigation" as const, summary: navigationLine.value }] : []),
+  ...(real.value && boardLine.value ? [{ id: "board" as const, summary: boardLine.value }] : []),
+  ...(helpLine.value ? [{ id: "help" as const, summary: helpLine.value }] : []),
 ]);
 const title = (part: ScreenSettingsPart) => t(`editor.screen_settings.parts.${part}.title`);
+// The rows of the list (model/parts.ts): each part with its title, its icon's colour and card.
+const rows = computed<PartRow<ScreenSettingsPart>[]>(() => parts.value.map((p) => ({ ...p, ...PART_LOOK[p.id], title: title(p.id) })));
 // The part the address names, while this screen has it.
 const part = computed(() => parts.value.find((p) => p.id === ui.screenSettingsPart) || null);
 // A block's own title, where the part shows more than that one block.
@@ -129,21 +130,19 @@ const flipDark = () => settings.setSetting("dark_mode", !values.value.dark_mode,
 
     <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
     <div v-if="!part" class="set-column">
-      <div id="settings-groups" class="set-cards">
-        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
-        <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="title(p.id)" :summary="p.summary" @open="ui.openScreenSettings(p.id)">
-          <!-- The one thing people change most here needs no page: dark mode, on the row of the display. -->
+      <PartList id="settings-groups" id-prefix="settings-part" :rows="rows" @open="ui.openScreenSettings">
+        <!-- The one thing people change most here needs no page: dark mode, on the row of the display. -->
+        <template #control="{ row: p }">
           <button v-if="p.id === 'display' && has('dark_mode')" type="button" class="switch" role="switch" id="quick-dark-mode"
             :class="{ unknown: values.dark_mode === null || values.dark_mode === undefined }"
             :aria-checked="Boolean(values.dark_mode) ? 'true' : 'false'" :aria-label="settingLabel(row('dark_mode'))"
             :disabled="offline || view?.unavailable.includes('dark_mode')" @click="flipDark"></button>
-        </SettingsLink>
-        </div>
-      </div>
+        </template>
+      </PartList>
     </div>
 
     <div v-else class="set-column" :class="{ dim: offline && part.id !== 'help' }">
-      <SettingsHead :back="t('editor.screen_view.tabs.settings')" :title="title(part.id)" @back="ui.openScreenSettings(null)" />
+      <PartHead :back="t('editor.screen_view.tabs.settings')" :title="title(part.id)" @back="ui.openScreenSettings(null)" />
 
       <template v-if="part.id === 'display'">
         <!-- The grid of the pages (GridSettings): a change of the draft, sent with the next save, so it is here also while

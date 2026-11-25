@@ -37,6 +37,21 @@ OFFER_BYTES = 2 * 1024 ** 3
 # "Not now" hides the offer until the build folders took this much more.
 OFFER_AGAIN_BYTES = 2 * 1024 ** 3
 LEVELS = ('folders', 'all')
+# Where ESPHome leaves what it built inside a node's own folder: build/ with its own ESP-IDF, .pioenvs/<node>/ with
+# PlatformIO. A screen's build folder (build/<profile>, ESPHOME_BUILD_PATH) holds that node folder one level down. The
+# update's images (Firmware.FACTORY_IMAGES, OTA_IMAGES), a build server's result (build_server) and the ELF a crash is
+# read with (reports.Decoder) are all found through these, so a new ESPHome layout is changed here once (GitHub #463).
+IN_NODE = ('build', '.pioenvs/*')
+
+
+def in_node(name):
+    """Glob patterns of a file ESPHome leaves beside its image, relative to the node's own folder."""
+    return tuple(f'{folder}/{name}' for folder in IN_NODE)
+
+
+def in_build(name):
+    """The same, relative to a screen's build folder (build/<profile>), one node folder deeper."""
+    return tuple(f'*/{pattern}' for pattern in in_node(name))
 
 
 def disk_bytes(path):

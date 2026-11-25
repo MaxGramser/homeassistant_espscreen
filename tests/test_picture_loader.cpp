@@ -1,5 +1,6 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_picture_loader.cpp -o /tmp/test_picture_loader && /tmp/test_picture_loader
 #include "../components/smart_display/picture_loader.h"
+#include "../components/smart_display/picture_loader.cpp"  // the loader's bodies (its own compilation unit)
 #include <cassert>
 #include <cstdio>
 #include <map>

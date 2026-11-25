@@ -31,11 +31,12 @@ const builds = useBuildsStore();
 const plugins = usePluginsStore();
 
 plugins.loadPlugins();
-// Three tabs by what a plugin adds (read from its manifest), so a countdown is never found among a board's audio parts,
-// and what is on a screen now; under them the topics its makers gave, as chips; a search looks through every tab.
-const TABS = [...PLUGIN_TYPES, "in_use"] as const;
+// All of them first, so the store opens on everything it has; then a tab for each kind of plugin by what it adds (read
+// from its manifest), so a countdown is never found among a board's audio parts, and what is on a screen now; under them
+// the topics its makers gave, as chips; a search looks through every tab.
+const TABS = ["all", ...PLUGIN_TYPES, "in_use"] as const;
 type Tab = (typeof TABS)[number];
-const tab = ref<Tab>("tiles");
+const tab = ref<Tab>("all");
 const chosenTopics = ref<string[]>([]);
 // Most liked first by default; or the best rated, the most used, the newest, or by name. Tessera's recommendation
 // (featured.yaml) breaks a tie. A plugin with too few ratings for an average goes after those with one.
@@ -55,7 +56,7 @@ const fittingOnly = ref(true);
 const query = ref("");
 const everything = computed(() => [...plugins.index, ...plugins.allTests()]);
 const inUse = (plugin: Plugin) => plugins.realScreens().some((screen) => plugins.installedOn(screen, plugin.id));
-const inTab = (plugin: Plugin, key: Tab) => (key === "in_use" ? inUse(plugin) : (plugin.type || "functions") === key);
+const inTab = (plugin: Plugin, key: Tab) => (key === "all" ? true : key === "in_use" ? inUse(plugin) : (plugin.type || "functions") === key);
 const matches = (plugin: Plugin) => {
   const words = queryWords(query.value);
   const topics = (plugin.topics || []).map((name) => t(`editor.plugins.topics.${name}`)).join(" ");

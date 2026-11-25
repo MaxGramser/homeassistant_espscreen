@@ -274,11 +274,29 @@ class Crashes(unittest.TestCase):
             decoder = reports.Decoder(tmp)
             decoded, why = asyncio.run(decoder.decode('office-1', 'esp32p4', self.CRASH))
             self.assertEqual((decoded, why), ([], 'no_elf'))
-            elf = Path(tmp) / 'build' / 'office-1' / 'build' / 'firmware.elf'
+            elf = Path(tmp) / 'build' / 'office-1' / 'office-1' / 'build' / 'firmware.elf'
             elf.parent.mkdir(parents=True)
             elf.write_bytes(b'not an elf')
             decoded, why = asyncio.run(decoder.decode('office-1', 'esp32p4', self.CRASH, expected_sha='000000000'))
             self.assertEqual((decoded, why), ([], 'elf_mismatch'))
+
+    def test_the_elf_is_found_where_esphome_builds_it(self):
+        """GitHub #463: ESPHOME_BUILD_PATH is build/<stem>, and ESPHome builds in the node's folder below it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            decoder = reports.Decoder(tmp)
+            idf = Path(tmp) / 'build' / 'office-1' / 'office-1' / 'build'
+            idf.mkdir(parents=True)
+            (idf / 'firmware.elf').write_bytes(b'elf')
+            tool = Path(tmp) / 'riscv32-esp-elf-addr2line'
+            tool.write_text('')
+            (idf / 'CMakeCache.txt').write_text(f'CMAKE_ADDR2LINE:FILEPATH={tool}\n')
+            self.assertEqual(decoder.elf('office-1'), idf / 'firmware.elf')
+            self.assertEqual(decoder.addr2line('office-1', 'esp32p4'), str(tool))
+            pio = Path(tmp) / 'build' / 'kitchen' / 'kitchen' / '.pioenvs' / 'kitchen'
+            pio.mkdir(parents=True)
+            (pio / 'firmware.elf').write_bytes(b'elf')
+            self.assertEqual(decoder.elf('kitchen'), pio / 'firmware.elf')
+            self.assertIsNone(decoder.elf('hall'))
 
 
 class Cleaning(unittest.TestCase):

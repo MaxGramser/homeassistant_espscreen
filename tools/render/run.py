@@ -998,6 +998,10 @@ class Run:
         digits, value, number, word = (int(v) for v in re.search(r'digits=(\d+) value=(\d+) covers=(\d),(\d)', fonts).groups())
         if not (digits > value and number == 1 and word == 0):
             self.failures.append(f'Font::DIGITS is not the large digits: {fonts}')
+        # The clocks' digits (plugin API 0.29): half a page larger than DIGITS, the page's at least that, and a time in them.
+        large, page, clock = (int(v) for v in re.search(r'large=(\d+) page=(\d+) clock=(\d)', fonts).groups())
+        if not (large > digits and page >= large and clock == 1):
+            self.failures.append(f'Font::DIGITS_LARGE and DIGITS_PAGE are not the clocks\' digits: {fonts}')
         # The tones for a block (plugin API 0.9): four colours of their own, GOOD on the badge, and a label one line high.
         tones = await self.until(lambda l: probe(l, 'tile=0 tones'), 10, 'the tones of tile 0', start)
         good, busy, alert, normal, fill = re.search(r'good=(\w+) busy=(\w+) alert=(\w+) normal=(\w+) fill=(\w+)', tones).groups()
@@ -1006,6 +1010,17 @@ class Run:
         height = await self.until(lambda l: probe(l, 'tile=0 label height'), 10, 'the height of a label', start)
         if re.search(r'height=(\d+) line=(\d+)', height).group(1) != re.search(r'height=(\d+) line=(\d+)', height).group(2):
             self.failures.append(f'a label is not one line high: {height}')
+        # A tile renamed in the editor (plugin API 0.29, plugin_host made_from): the editor's save of a name reaches the
+        # plugin, whose card is made again and gets the new name in create(); then the old name back for the rest.
+        probe_tile = next(t for page in record['layout']['pages'] for t in page['tiles']
+                          if (t.get('appearance') or {}).get('label') == 'Probe')
+        for label in ('Renamed', 'Probe'):
+            start_name = len(self.lines)
+            probe_tile['appearance']['label'] = label
+            compiled = send_layout.compile_tiles(record['layout'], grid)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(1), bars)
+            await self.until(lambda l: probe(l, 'tile=0 create') and f'name=[{label}]' in l, 10,
+                             f'tile 0 made again with its new name {label}', start_name)
         # Boot came before the harness listened: the probe repeats what it heard then with every tile it makes.
         status = await self.until(lambda l: probe(l, 'status ready='), 10, 'the probe status', start)
         assert 'ready=1 settings=5 interval=1' in status, f'the moments of boot: {status}'
@@ -1879,7 +1894,7 @@ class Run:
 
         self.client.switch_command(auto.key, True)
         await asyncio.sleep(0.6)
-        state = await press(sleep, 'Sleep from Home Assistant')
+        state = await press(sleep, "Standby from Home Assistant's Sleep")
         if not state['dimmed']:
             failed('Sleep did not dim the screen')
         # Auto standby turned off, which applies the settings again: a Sleep holds.
@@ -1908,7 +1923,7 @@ class Run:
         if state['idle'] > 1500 or state['use'] < 3000:
             failed(f'Auto standby turned on: {state} (the standby clock restarts, the page clock goes on)')
         # A tap on the dimmed glass ends a Sleep the way Wake does.
-        await press(sleep, 'Sleep from Home Assistant')
+        await press(sleep, "Standby from Home Assistant's Sleep")
         await self.tap(width // 2, height // 2)
         await asyncio.sleep(0.6)
         state = await self.standby_state()
@@ -1923,6 +1938,23 @@ class Run:
         start = len(self.lines)
         self.client.button_command(sleep.key)
         await self.until(lambda l: 'dismissed: remote' in l, 10, 'Sleep did not close the alert as closed from Home Assistant', start)
+        await press(wake, 'Wake from Home Assistant')
+        # GitHub #457: with Back to page 1 on standby, a Sleep from Home Assistant (inside the API's call) goes to page 1 on
+        # the loop's next pass and shows itself after it: the screen is in standby, on page 1, and stays there. The order
+        # itself, the screensaver last, is tests/test_screen_standby.cpp's.
+        on_standby = entities['Back to page 1 on standby']
+        self.client.switch_command(on_standby.key, True)
+        await asyncio.sleep(0.6)
+        await self.call('show_page', page=2)
+        await asyncio.sleep(1)
+        if (await self.standby_state())['page'] != 1:
+            failed('show_page 2 before the Sleep that goes home')
+        await press(sleep, "Standby from Home Assistant's Sleep")
+        await asyncio.sleep(1)
+        state = await self.standby_state()
+        if not state['dimmed'] or state['page'] != 0:
+            failed(f'Sleep with Back to page 1 on standby: {state} (in standby, on page 1)')
+        self.client.switch_command(on_standby.key, False)
         await press(wake, 'Wake from Home Assistant')
         # Back to page 1 counts from the last touch: page 2 opened from Home Assistant, Wake pressed every few seconds,
         # and the page still goes home once its time is over.
@@ -1960,6 +1992,89 @@ class Run:
         if states.get(dimmed.key) != 10:
             failed(f'the standby brightness the screen pulled down to 10 reached Home Assistant as {states.get(dimmed.key)}')
         return 'standby round'
+
+    async def alert_life_round(self):
+        """An alert's life on the real firmware (alert_life.h; tests/test_alert_life.cpp runs every rule of it): each ending
+        as Home Assistant hears it, through the actions, the card's own two keys under a finger and the event the screen
+        sends. Its time running out, a new alert over one, dismiss_alert, OK, the second button, an alert that lights a
+        screen in standby, and one that flashes."""
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        entities = {getattr(e, 'name', ''): e for e in (await self.client.list_entities_services())[0]}
+        failed = lambda what: self.failures.append(f'alert life: {what}')  # noqa: E731
+
+        def heard():
+            return [(call.data.get('action'), call.data.get('title')) for call in calls
+                    if getattr(call, 'is_event', False) and call.service == 'esphome.screen_alert']
+
+        async def show(title, action='show_alert', **more):
+            args = dict(title=title, subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+            if action == 'show_alert_choice':
+                args.update({field: '' for field in CHOICE_FIELDS})
+            args.update(more)
+            start = len(self.lines)
+            await self.call(action, **args)
+            await self.until(lambda l: '[alert' in l and f'show "{title}"' in l, 10, f'the alert {title} never showed', start)
+
+        async def ends(reason, title, start, seconds=10):
+            await self.until(lambda l: f'dismissed: {reason}' in l, seconds, f'{title} never ended as {reason}', start)
+            end = time.monotonic() + 5
+            while (reason, title) not in heard() and time.monotonic() < end:
+                await asyncio.sleep(0.1)
+            if (reason, title) not in heard():
+                failed(f'Home Assistant did not hear {title} end as {reason}: {heard()}')
+            if (await self.state())['alert']:
+                failed(f'{title} ended as {reason} and its card is still up')
+
+        async def press(part, title, reason):
+            box = (await self.state())['boxes'][part]
+            start = len(self.lines)
+            await self.tap((box[0] + box[2]) // 2, (box[1] + box[3]) // 2)
+            await ends(reason, title, start)
+
+        # Its time runs out.
+        start = len(self.lines)
+        await show('Oven', timeout=2)
+        await ends('timeout', 'Oven', start)
+        # A new alert over one: the first is replaced, the second ends from Home Assistant's side.
+        await show('First')
+        await show('Second')
+        end = time.monotonic() + 5
+        while ('replaced', 'First') not in heard() and time.monotonic() < end:
+            await asyncio.sleep(0.1)
+        if ('replaced', 'First') not in heard():
+            failed(f'Home Assistant did not hear First replaced: {heard()}')
+        start = len(self.lines)
+        await self.call('dismiss_alert')
+        await ends('remote', 'Second', start)
+        # The card's own keys, under a finger.
+        await show('Washing done')
+        await press('button', 'Washing done', 'ok')
+        await show('Gate', action='show_alert_choice', button_text='Open', button2_text='No')
+        await press('button2', 'Gate', 'button2')
+        # An alert lights a screen in standby, a standby by hand too.
+        start = len(self.lines)
+        self.client.button_command(entities['Sleep'].key)
+        await self.until(lambda l: "Standby from Home Assistant's Sleep" in l, 10, 'Sleep before the alert', start)
+        await asyncio.sleep(0.6)
+        if not (await self.standby_state())['dimmed']:
+            failed('Sleep did not dim the screen before the alert')
+        await show('Door')
+        await asyncio.sleep(0.6)
+        if (await self.standby_state())['dimmed'] or not (await self.state())['alert']:
+            failed('an alert did not light a screen in standby')
+        start = len(self.lines)
+        await self.call('dismiss_alert')
+        await ends('remote', 'Door', start)
+        # One that flashes stays up through its blinks and ends as any other.
+        await show('Flash', flash=True)
+        await asyncio.sleep(2)
+        if not (await self.state())['alert']:
+            failed('an alert that flashes went by itself')
+        await press('button', 'Flash', 'ok')
+        if len(heard()) != 7:
+            failed(f'seven endings, one event each: {heard()}')
+        return 'alert life round'
 
     async def tap(self, x, y):
         await self.call('render_finger', x=x, y=y, down=True)
@@ -4669,6 +4784,8 @@ class Run:
             return 1, await self.plugin_round(grid)
         if self.only == 'standby':
             return 1, await self.standby_round()
+        if self.only == 'alertlife':
+            return 1, await self.alert_life_round()
         checks = await self.self_test()
         await self.moments(pages)
         await self.dock(pages)
@@ -4764,7 +4881,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')

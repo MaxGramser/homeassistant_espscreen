@@ -471,7 +471,7 @@ ACTIONS = '''    - action: render_live_reset
             for (auto &w : runtime_tiles::widgets)
               if (w.tile && !lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN)) ++shown;
             ESP_LOGI("render", "probe page=%d applied=%d shown=%d tiles=%u alert=%d pages=%d", (int) id(tile_page),
-                     runtime_tiles::applied_page, shown, (unsigned) runtime_tiles::model.count, (int) id(alert_active),
+                     runtime_tiles::applied_page, shown, (unsigned) runtime_tiles::model.count, (int) alert_life::the().up(),
                      (int) runtime_tiles::page_count());
     - action: render_page
       variables:
@@ -657,7 +657,7 @@ PROBES = '''    - action: render_finger
                      runtime_tiles::header_name.c_str(), room ? lv_label_get_text(room) : "", (int) name.x1, (int) name.y1,
                      (int) name.x2, (int) name.y2);
             const auto &p = runtime_tiles::alert_parts;
-            const bool on = id(alert_active) && p.card && !lv_obj_has_flag(lv_obj_get_parent(p.card), LV_OBJ_FLAG_HIDDEN);
+            const bool on = alert_life::the().up() && p.card && !lv_obj_has_flag(lv_obj_get_parent(p.card), LV_OBJ_FLAG_HIDDEN);
             // The words of the card as its labels hold them (LVGL ends a DOT label's text in dots where it is cut), before
             // the boxes: the harness reads both once the boxes' line is in.
             const auto words = [](lv_obj_t *label) { return label ? lv_label_get_text(label) : ""; };
@@ -799,7 +799,7 @@ SAVER_PROBE = '''    - action: render_standby
         enter: int
       then:
         - lambda: |-
-            if (enter) id(dim_display).execute(); else id(wake_display).execute();
+            if (enter) screen_standby::the().standby_by_time(millis()); else screen_standby::the().wake(millis());
             ESP_LOGI("render", "standby %d", enter);
     - action: render_saver
       then:
@@ -814,7 +814,7 @@ SAVER_PROBE = '''    - action: render_standby
             }
             lv_area_t words{};
             if (runtime_tiles::saver_first) lv_obj_get_coords(runtime_tiles::saver_first, &words);
-            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) id(display_dimmed), keys.c_str(), (int) words.x2);
+            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) screen_standby::the().in_standby(), keys.c_str(), (int) words.x2);
 '''
 # A board with the calibration wizard shows it on the first start; the renders skip it, as a calibrated screen does.
 # The host's microphone (talk_uplink.h under USE_HOST): whether the board hears, how far a talk is (talk_uplink::State:

@@ -1,22 +1,28 @@
 <script setup lang="ts">
 // The shared firmware and LVGL in WebAssembly, fed the same packets a screen gets. `still` shows a layout without
 // touch at a few frames a second (the home page); otherwise it takes taps and swipes, and `controls` decides whether
-// a tap on a tile reaches Home Assistant.
+// a tap on a tile reaches Home Assistant. The plugins a screen runs draw their own tiles in it: their code is loaded
+// into the firmware (stores/plugin-code.ts). `manual` draws nothing by itself: its owner lets the firmware take a step
+// and asks for a page's cards as the firmware drew them (capture), which is how the editor shows a card it cannot
+// draw itself (GlassFaces.vue).
 import { useDocumentVisibility, useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
 import age from "virtual:esp-screens-preview-age";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
-import { loadFirmware } from "../wasm/load";
+import { loadFirmware, startPlugins } from "../wasm/load";
 import { t } from "../i18n";
 import { api, getJson, send } from "../api";
 import type { PageLayout, Screen } from "../types";
 import type { Texts } from "../model/plugins";
 import { useInventoryStore } from "../stores/inventory";
 import { useDocumentStore } from "../stores/document";
+import { usePluginCodeStore } from "../stores/plugin-code";
+import type { GlassCard } from "../stores/faces";
 import { allTiles } from "../model/page-tiles";
 
 const inv = useInventoryStore();
 const doc = useDocumentStore();
+const code = usePluginCodeStore();
 
 const props = withDefaults(defineProps<{
   width: number; height: number; dpi?: number; columns: number; rows: number;
@@ -26,8 +32,20 @@ const props = withDefaults(defineProps<{
   // The screen's Dark mode (its settings), drawn as the firmware draws it.
   dark?: boolean;
   screen?: Screen;
-}>(), { still: false, controls: true, pictures: true, dark: false });
-const emit = defineEmits<{ ready: []; failed: [message: string] }>();
+  // The screen whose plugins draw their own tiles here (default: `screen`); the home page names it without binding the
+  // screen's settings.
+  pluginsOf?: Screen;
+  // Its owner draws: no frames of its own, only what capture() is asked for.
+  manual?: boolean;
+  // The slots of the layout whose tile is shown with its type's own example (a plugin's example of its tile) instead
+  // of what it reads now: a tile that is on no page yet has nothing of its own to show.
+  examples?: number[];
+}>(), { still: false, controls: true, pictures: true, dark: false, manual: false });
+// `synced`: the firmware has the layout and its values as they are now. `changed`: the tiles (their indexes in the
+// layout) whose values came in new this time, or null when the whole layout did.
+// `failed` says with `final` whether that was the end: a refresh the add-on refused or did not answer is asked again
+// by itself ten seconds on (final false), a firmware that did not load or that threw in a frame goes no further.
+const emit = defineEmits<{ ready: []; failed: [message: string, final: boolean]; synced: [changed: number[] | null] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
 const error = ref("");
 const actionError = ref("");
@@ -43,6 +61,9 @@ type Extra = { entity: string | null; label: Texts; available: boolean; [key: st
 let extras: Extra[] = [];
 let fetchingImage = false;
 let lastDraw = 0;
+// The draft changed and the firmware does not have it yet, or is being handed it now: what it shows is the layout
+// before, so capture() gives nothing until it is in.
+let behind = false, receiving = 0;
 const downloads = new AbortController();
 // A still screen redraws its clock and the states coming in, not a finger: four frames a second is enough.
 const STILL_FRAME = 250;
@@ -148,9 +169,9 @@ function time() {
   module?._preview_time(Math.floor(performance.now()), Math.floor(now.getTime() / 1000), -now.getTimezoneOffset() * 60);
 }
 
-function fail(message: string) {
+function fail(message: string, final = false) {
   error.value = message;
-  emit("failed", message);
+  emit("failed", message, final);
 }
 
 async function receive() {
@@ -158,10 +179,12 @@ async function receive() {
   if (!module || disposed || !document) return;
   const revision = ++generation;
   refreshLater.stop();
+  behind = false; receiving += 1;
   try {
     const result = await send<{ revision: string; configuration: Record<string, unknown>[]; values: Record<string, unknown>[] }>("firmware-preview", "POST", {
       shape: { width: props.width, height: props.height, columns: props.columns, rows: props.rows },
       layout: document,
+      ...(props.examples?.length ? { examples: props.examples } : {}),
     });
     if (disposed || revision !== generation) return;
     time();
@@ -171,7 +194,8 @@ async function receive() {
       })]);
       if (status !== 'Synced' && status !== 'Loading tiles') throw new Error(t('editor.preview.packet_error', { message: status }));
     };
-    if (result.revision !== lastLayout || !session) {
+    const whole = result.revision !== lastLayout || !session, changed: number[] = [];
+    if (whole) {
       const request = [...crypto.getRandomValues(new Uint8Array(8))].map(byte => byte.toString(16).padStart(2, '0')).join('');
       const answer = module.ccall('preview_receive', 'string', ['string'], [JSON.stringify({ v: 2, op: 'hello', request, features: ['pictures'] })]);
       if (!/^Session:[0-9a-f]{16}$/.test(answer)) throw new Error(t('editor.preview.packet_error', { message: answer }));
@@ -184,15 +208,41 @@ async function receive() {
       if (lastMessages.get(key) === text) continue;
       deliver(packet);
       lastMessages.set(key, text);
+      if (typeof packet.i === 'number') changed.push(packet.i);
     }
     deliver({ op: 'ping' });
     error.value = "";
     synced = true;
+    emit("synced", whole ? null : changed);
   } catch (e) {
     if (!disposed && revision === generation) fail(e instanceof Error ? e.message : String(e));
   } finally {
+    receiving -= 1;
     if (!disposed && revision === generation) refreshLater.start();
   }
+}
+
+// One step of the firmware: its clock, its frame, and what it asked for meanwhile on its way.
+function step() {
+  if (!module) return;
+  time();
+  module._preview_render();
+  void sendActions();
+  void sendSettings();
+  void fetchImages();
+}
+// The firmware's frame onto the canvas.
+function show() {
+  if (!module || !canvas.value) return;
+  const start = module._preview_frame();
+  const pixels = module.HEAPU8.subarray(start, start + props.width * props.height * 4);
+  canvas.value.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pixels), props.width, props.height), 0, 0);
+}
+function paint() {
+  if (!module || !canvas.value) return;
+  step();
+  show();
+  if (synced && !ready) { ready = true; emit("ready"); }
 }
 
 function draw() {
@@ -201,21 +251,37 @@ function draw() {
     const now = performance.now();
     if (!props.still || (visible.value && now - lastDraw >= STILL_FRAME)) {
       lastDraw = now;
-      time();
-      module._preview_render();
-      void sendActions();
-      void sendSettings();
-      void fetchImages();
-      const start = module._preview_frame();
-      const pixels = module.HEAPU8.subarray(start, start + props.width * props.height * 4);
-      canvas.value.getContext("2d")?.putImageData(new ImageData(new Uint8ClampedArray(pixels), props.width, props.height), 0, 0);
-      if (synced && !ready) { ready = true; emit("ready"); }
+      paint();
     }
   } catch (e) {
     frames.pause();
-    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }));
+    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }), true);
   }
 }
+
+// A step of the firmware with `page` on its glass, and that page's cards as it draws them now (preview_cards: each
+// card's slot in the layout, its box, its corners, whether a plugin's own code drew it, and a count that moved when its
+// pixels changed). The frame itself is copied onto the canvas only when the owner asks for it (`canvas()`), which it
+// does for a card whose count moved: a step in which nothing changed costs no copy. Null until the layout is in, or
+// when the firmware has no such page.
+function capture(page: number): { cards: GlassCard[]; canvas: () => HTMLCanvasElement } | null {
+  const element = canvas.value;
+  if (!module || disposed || !element || !synced || behind || receiving || !module._preview_show || error.value) return null;
+  try {
+    const turned = module._preview_page() !== page;
+    if (turned && !module._preview_show(page)) return null;
+    // A page that just came is made in the first pass and drawn as its cards asked in the second.
+    step();
+    if (turned) step();
+    let shown = false;
+    return { cards: JSON.parse(module.ccall("preview_cards", "string", [], [])),
+      canvas: () => { if (!shown) { shown = true; show(); } return element; } };
+  } catch (e) {
+    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }), true);
+    return null;
+  }
+}
+defineExpose({ capture });
 
 async function sendActions() {
   if (sendingActions || !module || disposed) return;
@@ -299,7 +365,11 @@ function refreshLiveState() {
 function entityQuery() {
   const entities = new Set<string>();
   for (const page of layout()?.pages ?? []) {
-    for (const tile of allTiles(page)) if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+    for (const tile of allTiles(page)) {
+      if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+      // A plugin's tile of an entity follows that entity too.
+      else if (tile.content.kind === 'plugin' && tile.content.entityId) entities.add(tile.content.entityId);
+    }
     for (const section of page.sections ?? []) if (section.summary) entities.add(section.summary);
     for (const item of page.topbar.trailing) if (item.entity) entities.add(item.entity);
   }
@@ -310,8 +380,9 @@ function listen() {
   events?.close(); events = null;
   const query = entityQuery();
   // A still screen (the overview's thumbnails) takes the ten-second refresh instead of a stream of its own: a browser
-  // keeps six connections to one host over plain http, and an overview of six screens would hold them all.
-  if (!module || disposed || !query || props.still || typeof EventSource === 'undefined') return;
+  // keeps six connections to one host over plain http, and an overview of six screens would hold them all. The one
+  // preview behind the editor (`manual`) is a single connection, and follows its entities as they change.
+  if (!module || disposed || !query || (props.still && !props.manual) || typeof EventSource === 'undefined') return;
   const stream = new EventSource(`api/firmware-preview/events?${query}`);
   events = stream;
   stream.onmessage = () => { if (events === stream) refreshLiveState(); };
@@ -339,12 +410,18 @@ function cancel() {
 
 onMounted(async () => {
   try {
-    const loaded = await loadFirmware();
+    // The plugins' code is waited for (stores/plugin-code.ts). A preview that left meanwhile makes no firmware: the
+    // overview's previews do when the page opens on a screen, and each firmware is the whole binary made anew.
+    const plugins = await code.codeFor(props.pluginsOf ?? props.screen);
+    if (disposed) return;
+    const loaded = await loadFirmware(plugins);
     if (disposed) return;
     module = loaded;
     if (!module._preview_init(props.width, props.height, props.dpi ?? 170, props.columns, props.rows)) {
       throw new Error(t("editor.preview.invalid_shape"));
     }
+    // The plugins' own setup(), before the first frame (wasm/load.ts).
+    startPlugins(module, language());
     // A board that draws no pictures (the CYD) has no square for an album cover, as on its glass (firmware 0.46.0).
     module._preview_pictures?.(props.pictures === false ? 0 : 1);
     speak(); shade();
@@ -352,11 +429,12 @@ onMounted(async () => {
     await receive();
     listen();
     // The first frame at once, then one each time the browser draws (a failing frame stops them).
+    if (props.manual) return;
     frames.resume();
     draw();
-  } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e)); }
+  } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e), true); }
 });
-watch(layout, () => layoutPause.start(), { deep: true });
+watch(layout, () => { behind = true; layoutPause.start(); }, { deep: true });
 watch(language, speak);
 watch(() => props.dark, shade);
 watch(entityQuery, listen);

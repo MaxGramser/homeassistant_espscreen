@@ -444,7 +444,7 @@ inline void render_clock(Widgets &w,const Tile &t,bool large,int width,int heigh
     auto made=[&w]{return std::count_if(w.parts.begin(),w.parts.end(),[](lv_obj_t *p){return p!=nullptr;});};
     const auto before=w.extra_mode==(t.display=="dial"?"calm":"flip")?made():-1;
     if(t.display=="dial")render_calm_dial(w,t,large,width,height);else render_flip(w,t,large,width,height);
-    if(made()!=before)w.cached_active=-1;
+    if(made()!=before)w.paint_again();
     return;
   }
   bool analog=t.display=="analog";
@@ -510,8 +510,8 @@ inline void render_clock(Widgets &w,const Tile &t,bool large,int width,int heigh
   for(int i=0;i<12;++i){
     float a=i*3.14159265f/6;bool cardinal=i%3==0;
     // A part kept from a dial of the other size is the other kind (a numeral is a label, a stroke a line).
-    // Its successor is made below without a colour; the palette pass paints it (cached_active, as the dial does).
-    if(cardinal && w.parts[i] && lv_obj_check_type(w.parts[i],&lv_label_class)!=numerals){lv_obj_delete(w.parts[i]);w.parts[i]=nullptr;w.cached_active=-1;}
+    // Its successor is made below without a colour; the palette pass paints it (paint_again, as the dial does).
+    if(cardinal && w.parts[i] && lv_obj_check_type(w.parts[i],&lv_label_class)!=numerals){lv_obj_delete(w.parts[i]);w.parts[i]=nullptr;w.paint_again();}
     if(cardinal && numerals){
       part_label(w,i,w.value_font,cx+std::lround(numeral_ring*sinf(a))-numeral_box/2,cy-std::lround(numeral_ring*cosf(a))-numeral_box/2,
                  numeral_box,LV_TEXT_ALIGN_CENTER,i==0?"12":std::to_string(i));

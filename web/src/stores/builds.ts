@@ -25,6 +25,11 @@ import { useUiStore } from "./ui";
 // How often the firmware job is asked for while someone follows it (composables/useFirmwareJob.ts), unless one wants more.
 export const FIRMWARE_POLL_MS = 3000;
 export type FirmwareJob = { job: any; logs: string[] };
+/** Where a build log the add-on keeps on disk is downloaded (build_logs.py): relative, so it works behind ingress. */
+export const buildLogHref = (key: string) => `api/firmware/logs/${encodeURIComponent(key)}`;
+/** A build log kept on disk, as api/firmware/logs lists it (newest first). */
+export type KeptLog = { key: string; by?: string; file?: string | null; screen?: string | null; plugins?: string[];
+  started?: number; finished?: number; state: string; reason?: string | null; size: number };
 
 export const useBuildsStore = defineStore("builds", () => {
   const inv = useInventoryStore();
@@ -91,13 +96,21 @@ export const useBuildsStore = defineStore("builds", () => {
     }
     const said = status.buildEndText(ends);
     if (!said) return;
-    if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
+    // A failed plugin build goes to its screen's Plugins tab, where it says why with its log; any other to Firmware & USB.
+    const plugin = ends.find((end) => end.outcome === "failed" && end.by === "plugins");
+    if (said.failed && plugin) ui.toast(said.text, { label: t("editor.build.show_why"), run: () => showPlugins(plugin.screen) });
+    else if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
     else if (offerClean()) {
       // The build files grew large (build_files.py `offer`): the build that ended offers the clean-up, once a page.
       offered.value = true;
       ui.toast(said.text, { label: t("editor.settings.build_files.offer", { size: sizeText(inv.inventory.build_files!.sizes!.folders) }), run: () => cleanBuildFiles("folders") });
     }
     else ui.toast(said.text);
+  }
+
+  async function showPlugins(screen: Screen) {
+    const { useSessionStore } = await import("./session");   // the session store reads this one: asked when needed
+    await useSessionStore().openTab(screen.id, "plugins");
   }
 
   // ---- Build files (build_files.py, docs/BUILDS.md "Build files"): the room the builds take, and the clean-up ----
@@ -160,6 +173,15 @@ export const useBuildsStore = defineStore("builds", () => {
       ui.toast(e.message);
     }
   }
+  // The hour the nightly round may start (wish 113).
+  async function setUpdateHour(hour: number) {
+    try {
+      await send("updates", "PUT", { hour });
+      if (inv.inventory.updates) inv.inventory.updates.hour = hour;
+    } catch (e: any) {
+      ui.toast(e.message);
+    }
+  }
   /** The app is the dev version (added from the repository's `#dev` URL): its screens build from the dev branch. */
   const devChannel = computed(() => inv.inventory.updates?.channel === "dev");
   async function setAutoUpdate(auto: boolean) {
@@ -187,7 +209,8 @@ export const useBuildsStore = defineStore("builds", () => {
   const lineEnded = (build: LineBuild | null | undefined) => Boolean(build && build.state !== "queued" && build.state !== "running");
   /** One ESPHome action the page asks for (New screen's retry, Firmware & USB, the YAML check). It waits its turn in the
    * line; the answer is the build, followed by its id, and the line comes with the next live answer. */
-  async function askBuild(request: { file: string; action: string; target?: string }): Promise<LineBuild> {
+  // `chip_revision`: what the browser read from the chip on the cable, which the build is made for (docs/CHIP_REVISIONS.md).
+  async function askBuild(request: { file: string; action: string; target?: string; chip_revision?: number | null }): Promise<LineBuild> {
     const build = await send<LineBuild>("firmware/jobs", "POST", request);
     await inv.refresh(false).catch(() => null);
     return build;
@@ -214,6 +237,20 @@ export const useBuildsStore = defineStore("builds", () => {
     }
     return endedLogs.value[build.id] || [];
   }
+
+  // ---- Build logs kept on disk (api/firmware/logs): every build's, also past a restart of the app ----
+  // Asked once a view shows them (Firmware & USB, a screen's builds), and from then on again whenever a build ends
+  // (refreshKeptLogs, from followBuilds): one list for every view.
+  const keptLogs = ref<KeptLog[]>([]);
+  let keptFollowed = false;
+  async function loadKeptLogs() {
+    keptFollowed = true;
+    try { keptLogs.value = (await getJson<{ logs: KeptLog[] }>("firmware/logs")).logs || []; } catch { /* Keep what we have. */ }
+  }
+  /** A build ended: the kept logs again, when a view asked for them. */
+  const refreshKeptLogs = () => (keptFollowed ? loadKeptLogs() : Promise.resolve());
+  /** The ids of the builds that ended, as one key: what refreshKeptLogs follows. */
+  const endedKey = computed(() => line.value.filter((build) => lineEnded(build)).map((build) => build.id).join(","));
 
   // ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
   // New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
@@ -244,6 +281,6 @@ export const useBuildsStore = defineStore("builds", () => {
   return {
     updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew, lineBuild, lineForgot, lineOf, lineEnded, buildLogOf }),
     anyBuilding, buildingScreens, prune, forget, watched, line, devChannel,
-    startUpdate, runUpdateAll, setAutoUpdate, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
+    startUpdate, runUpdateAll, setAutoUpdate, setUpdateHour, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, refreshKeptLogs, endedKey, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

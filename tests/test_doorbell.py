@@ -284,17 +284,26 @@ int main() {{
                          'to such a screen')
 
     def test_whatever_holds_the_glass_for_an_alert_holds_it_for_a_ring(self):
-        # Standby and Back to Home wait while an alert shows; a ring on the glass holds them too (a ring after two quiet
-        # minutes closed at once without it).
-        guards = 0
+        # Standby and Back to page 1 wait while an alert shows; a ring on the glass holds them too (a ring after two quiet
+        # minutes closed at once without it). Both ask the standby what owns the glass (screen_standby.h, glass.owned;
+        # tests/test_screen_standby.cpp runs the standby time, Back to page 1 and the home key held under an alert and
+        # under a ring), and the core answers a ring beside an alert.
+        core = (ROOT / 'packages/core.yaml').read_text()
+        owned = re.search(r'glass\.owned = \[\]\(\) -> uint8_t \{(.*?)\};', core, re.S)
+        self.assertTrue(owned, 'packages/core.yaml says what owns the glass')
+        self.assertIn('(alert_life::the().up() ? screen_standby::ALERT : 0)', owned[1])
+        self.assertIn('(runtime_tiles::doorbell_holds() ? screen_standby::RING : 0)', owned[1])
+        standby = (ROOT / 'components/smart_display/screen_standby.h').read_text()
+        self.assertEqual(len(re.findall(r'glass\.owned\(\)(?! & )', standby)), 3,
+                         'the standby time, Back to page 1 and the home key held wait for any owner of the glass')
+        self.assertNotIn('& ALERT', standby, 'no rule of the standby waits for an alert alone')
+        # A guard a package still writes itself that waits while an alert shows waits while a ring shows too.
         for path in package_yaml.files():
             text = path.read_text()
             for found in re.finditer(r'\|\| id\(alert_active\)\) return false;', text):
-                guards += 1
                 self.assertIn('runtime_tiles::doorbell_holds()', text[found.end():text.find('then:', found.end())],
                               f'{path.relative_to(ROOT)}: a guard that waits while an alert shows waits while a ring shows '
                               'too: add `if (runtime_tiles::doorbell_holds()) return false;` after it')
-        self.assertGreaterEqual(guards, 2, 'standby and Back to Home each wait while an alert shows')
 
     def test_no_switch_of_its_own(self):
         # Which screens get a ring is the event's `screen`, not a switch on each screen.

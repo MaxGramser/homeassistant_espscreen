@@ -51,6 +51,12 @@ MOST_BYTES = int(MAX_SECONDS * RATE * 2) + 4096
 # The screen's feature for sounds as files (the hello's `sounds`): a doorbell's chime and an alert's tone. A call's ring
 # needs none: the module call reads `rt` since it came.
 FEATURE = 'sounds'
+# The screen's feature for a speaker that is a buzzer (the hello's `buzzer`): it gets the built-in sounds as BUZZER makes
+# them, and every sound louder. A buzzer's loudest is about what a speaker gives at -20 dB (a SenseCAP Indicator's full
+# scale against a ring on a Guition 10.1, each heard by a microphone), and it does not distort there: so a kind's volume
+# is raised by BUZZER_LIFT for it, up to full scale.
+BUZZER_FEATURE = 'buzzer'
+BUZZER_LIFT = 20
 # Where every sound's loudest sample sits: half of full scale (-6 dB). At 97 % the speakers distorted with the volume a
 # ring stands at (the owner heard it on the Guition 10.1 and the D1001, 2026-11-22); the editor levels to the same
 # (web/src/model/ringtone.ts, PEAK).
@@ -69,10 +75,10 @@ def _blank(seconds):
     return [0.0] * int(round(seconds * RATE))
 
 
-def _classic():
+def _classic(low=1400.0, high=1900.0):
     # module_call.cpp, make_ring: two bursts of a two-tone ring, 1.1 s, the next ring 3 s after the last.
     out = _blank(3.0)
-    low, high, burst, gap, length = 1400.0, 1900.0, 0.42, 0.56, 1.1
+    burst, gap, length = 0.42, 0.56, 1.1
     for i in range(int(length * RATE)):
         t = i / RATE
         u = t if t < gap else t - gap
@@ -95,13 +101,13 @@ def _notes(out, notes, decay, partials, attack=0.004):
     return out
 
 
-def _marimba():
+def _marimba(notes=(1319.0, 1568.0, 1976.0), partials=((1, 1.0), (4, 0.18))):
     # Three rising notes, twice, like a struck bar: the fundamental and its fourth partial, dying away.
-    notes = [(0.00, 1319.0), (0.15, 1568.0), (0.30, 1976.0), (0.70, 1319.0), (0.85, 1568.0), (1.00, 1976.0)]
-    return _notes(_blank(2.4), notes, 9.0, ((1, 1.0), (4, 0.18)))
+    times = (0.00, 0.15, 0.30, 0.70, 0.85, 1.00)
+    return _notes(_blank(2.4), [(at, notes[n % 3]) for n, at in enumerate(times)], 9.0, partials)
 
 
-def _digital():
+def _digital(freq=2000.0, over=0.3):
     # Two runs of four short beeps.
     out = _blank(2.2)
     for run in (0.0, 0.7):
@@ -110,36 +116,53 @@ def _digital():
             for i in range(int(0.07 * RATE)):
                 t = i / RATE
                 edge = min(min(t, 0.07 - t) / 0.004, 1.0)
-                out[first + i] = edge * (math.sin(2 * math.pi * 2000.0 * t) + 0.3 * math.sin(2 * math.pi * 6000.0 * t))
+                out[first + i] = edge * (math.sin(2 * math.pi * freq * t) + over * math.sin(2 * math.pi * 3 * freq * t))
     return out
 
 
-def _bell():
+def _bell(freq=1750.0, partials=((1, 1.0), (1.23, 0.6), (2.0, 0.25))):
     # An old telephone's bell: two trills of two clappers at 20 strokes a second.
     out = _blank(3.0)
     for start in (0.0, 0.6):
         for stroke in range(8):
-            _notes(out, [(start + stroke * 0.05, 1750.0)], 14.0, ((1, 1.0), (1.23, 0.6), (2.0, 0.25)))
+            _notes(out, [(start + stroke * 0.05, freq)], 14.0, partials)
     return out
 
 
-def _chime():
+def _chime(notes=(659.25, 523.25), partials=((1, 1.0), (2, 0.32), (3, 0.1))):
     # module_doorbell.cpp, make_chime: E5 then C5 0.55 s later, a bell's partials dying away over 1.9 s.
     out = _blank(1.9)
-    for n, freq in enumerate((659.25, 523.25)):
+    for n, freq in enumerate(notes):
         for i in range(int(n * 0.55 * RATE), len(out)):
             u = i / RATE - n * 0.55
             envelope = min(1.0, u / 0.006) * math.exp(-u / 0.42)
-            out[i] += sum(level * envelope * math.sin(2 * math.pi * freq * k * u) for k, level in ((1, 1.0), (2, 0.32), (3, 0.1)))
+            out[i] += sum(level * envelope * math.sin(2 * math.pi * freq * k * u) for k, level in partials)
     return [max(-1.0, min(1.0, s * 0.33)) for s in out]
 
 
-def _notice():
+def _notice(notes=(1568.0, 2093.0), partials=((1, 1.0), (2, 0.12))):
     # Two short rising notes: something to look at, not an alarm.
-    return _notes(_blank(1.0), [(0.0, 1568.0), (0.16, 2093.0)], 7.0, ((1, 1.0), (2, 0.12)))
+    return _notes(_blank(1.0), [(0.0, notes[0]), (0.16, notes[1])], 7.0, partials)
 
 
 BUILT_IN = {'classic': _classic, 'marimba': _marimba, 'digital': _digital, 'bell': _bell, 'chime': _chime, 'notice': _notice}
+
+# The same six for a screen whose speaker is a buzzer (the hello's `buzzer`, docs/SECOND_CHIP.md, "The sound"). A buzzer
+# rings at one pitch and carries little else: a SenseCAP Indicator's is level within 4 dB from 2.5 to 3.05 kHz, 10 dB
+# down at 2.4 and at 3.2 kHz and 20 dB down at 2 kHz (a full-scale tone every 50 Hz, heard by a microphone, 2026-11-25),
+# so every sound above is all but silent on it. Each keeps its rhythm and its shape and takes its notes from that band:
+# 2540, 2770 and 3020 Hz, a minor third from the lowest to the highest, the widest step that fits. The ring's two tones
+# are 2520 and 3020 Hz, which beat as fast as 1400 and 1900 do. Partials outside the band are left out: they would only
+# take level the notes can use.
+BUZZER_LOW, BUZZER_MID, BUZZER_HIGH = 2540.0, 2770.0, 3020.0
+BUZZER = {
+    'classic': lambda: _classic(2520.0, BUZZER_HIGH),
+    'marimba': lambda: _marimba((BUZZER_LOW, BUZZER_MID, BUZZER_HIGH), ((1, 1.0),)),
+    'digital': lambda: _digital(BUZZER_MID, 0.0),
+    'bell': lambda: _bell(BUZZER_LOW, ((1, 1.0), (BUZZER_HIGH / BUZZER_LOW, 0.6))),
+    'chime': lambda: _chime((BUZZER_HIGH, BUZZER_LOW), ((1, 1.0),)),
+    'notice': lambda: _notice((BUZZER_LOW, BUZZER_HIGH), ((1, 1.0),)),
+}
 
 
 def to_wav(samples, levelled=True):
@@ -214,6 +237,7 @@ class Sounds:
             if volume is not None:
                 self.kinds[kind]['volume'] = volume
         self.made = {}  # (file, volume): the name of that file at that volume (at_volume)
+        self.buzzer = {}  # a built-in sound: the name of its file for a buzzer, made when a screen first needs it
 
     @staticmethod
     def _ringtones(path):
@@ -247,13 +271,27 @@ class Sounds:
         sound = mine['screens'].get(str(screen))
         return sound if self.fits(kind, sound) else mine['default']
 
-    def link(self, kind, base, screen):
-        """The link of the sound `screen` plays for `kind`, or NONE for silence: a message's field for it."""
+    def link(self, kind, base, screen, buzzer=False):
+        """The link of the sound `screen` plays for `kind`, or NONE for silence: a message's field for it. For a screen
+        whose speaker is a `buzzer`, a built-in sound is the one made for a buzzer, and every sound is louder."""
         sound = self.sound_of(kind, screen)
         if sound == NONE:
             return NONE
         name = self.file_of(sound) or self.built['classic']
-        return self.files.link(base, self.at_volume(name, self.volume_of(kind)))
+        volume = self.volume_of(kind)
+        if buzzer:
+            name, volume = self.for_buzzer(sound, name), min(0, volume + BUZZER_LIFT)
+        return self.files.link(base, self.at_volume(name, volume))
+
+    def for_buzzer(self, sound, name):
+        """The file a buzzer plays for `sound`: a built-in sound in the buzzer's band (BUZZER), a sound of one's own as it
+        is. Each is made once, when a screen with a buzzer first plays it."""
+        if sound not in BUZZER:
+            return name
+        with self.lock:
+            if sound not in self.buzzer:
+                self.buzzer[sound] = self.files.add(to_wav(BUZZER[sound]()), 'wav', keep=False)
+            return self.buzzer[sound]
 
     def volume_of(self, kind):
         """How loud `kind` plays: what someone set, else where the kind starts."""

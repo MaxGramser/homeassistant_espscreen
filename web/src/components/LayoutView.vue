@@ -34,6 +34,7 @@ import { useDraftsStore } from "../stores/drafts";
 import GrowTip from "./GrowTip.vue";
 import LookTip from "./LookTip.vue";
 import LayoutBot from "./LayoutBot.vue";
+import GlassFaces from "./GlassFaces.vue";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
@@ -85,9 +86,10 @@ const { band } = useBandSelect(canvasView);
 const canvasSize = useElementSize(canvasView);
 watchEffect(() => {
   const width = canvasSize.width.value, height = canvasSize.height.value;
-  // A phone fills its width with the page (stores/canvas.ts); a narrow page that is not a phone keeps the sizes above.
-  canvas.room = width <= 0 || height <= 0 || (narrow.value && !ui.phone) ? null
-    : ui.phone ? { width, height } : { width: width - 10, height: height - 110 };
+  // A phone fills its width with the page (stores/canvas.ts).
+  // A narrow page that is not a phone keeps the sizes above, but never wider than the page (the full editor on a phone).
+  canvas.room = width <= 0 || height <= 0 ? null
+    : ui.phone ? { width, height } : narrow.value ? { width, height, cap: true } : { width: width - 10, height: height - 110 };
 });
 onBeforeUnmount(() => { canvas.room = null; });
 const zoomPercent = computed(() => `${Math.round(canvas.zoom * 100)}%`);
@@ -145,6 +147,8 @@ function onCanvasClick(e: MouseEvent) {
       <button v-if="scr.currentScreen?.page_document?.format === 'legacy-v1' && scr.currentScreen.source_grid" type="button" class="btn quiet mini" @click="doc.startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
     </div>
     <template v-else>
+    <!-- The firmware behind the pages: it draws the cards of the plugins' tiles, which the pages show (GlassFaces.vue). -->
+    <GlassFaces />
     <div v-if="!ui.phone" class="editor-toolbar">
       <div class="seg views" role="group" :aria-label="t('editor.pages.mode')">
         <button type="button" :aria-pressed="doc.editorMode === 'simple'" @click="doc.setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
@@ -206,12 +210,13 @@ function onCanvasClick(e: MouseEvent) {
       <button type="button" id="kept-discard" class="btn quiet mini" @click="drafts.discard()">{{ t('editor.draft.discard') }}</button>
       <button type="button" id="kept-restore" class="btn primary mini" @click="drafts.restore()">{{ t('editor.draft.restore') }}</button>
     </div>
-    <div v-if="doc.conflict" class="notice warn" role="alert">
+    <!-- A notice with two keys wraps them under its words on a narrow glass (.notice.choice), as the kept draft's does. -->
+    <div v-if="doc.conflict" id="layout-conflict" class="notice warn choice" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>
       <button type="button" class="btn quiet mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('reload')">{{ t('editor.pages.reload_saved') }}</button>
       <button type="button" class="btn primary mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('keep')">{{ t('editor.pages.keep_mine') }}</button>
     </div>
-    <div v-if="doc.gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
+    <div v-if="doc.gridChanged" class="notice warn choice" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
     <!-- A new screen: the first layout offered at once (docs/AUTO_LAYOUT.md). -->
@@ -251,8 +256,9 @@ function onCanvasClick(e: MouseEvent) {
         </div>
       </div>
     </div>
-    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. -->
-    <div v-if="!ui.phone && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
+    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. Not on a narrow page,
+         where the glass already takes the page's width. -->
+    <div v-if="!narrow && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
       <button type="button" class="icon-btn" id="zoom-out" :aria-label="t('editor.pages.zoom_out')" :disabled="canvas.zoom <= 0.5" @click="canvas.zoomBy(-1)"><Icon name="magnify-minus-outline" /></button>
       <button type="button" class="zoom-value" id="zoom-reset" :title="t('editor.pages.zoom_reset')" @click="canvas.zoom = 1">{{ zoomPercent }}</button>
       <button type="button" class="icon-btn" id="zoom-in" :aria-label="t('editor.pages.zoom_in')" :disabled="canvas.zoom >= 2" @click="canvas.zoomBy(1)"><Icon name="magnify-plus-outline" /></button>

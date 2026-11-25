@@ -7,6 +7,7 @@ import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, 
 import { serverStep } from "../model/screen-status";
 import type { ServerSide } from "../types";
 import BrowserFlash from "./BrowserFlash.vue";
+import KeptLogList from "./KeptLogList.vue";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
 import { useBuildsStore } from "../stores/builds";
@@ -76,6 +77,10 @@ const statusText = computed(() => {
   const job = data.value.job;
   return job ? `${job.file} · ${job.action} · ${job.state}${job.state === "running" ? where(job) : ""}` : t("editor.firmware.choose");
 });
+// Every build's log the add-on keeps on disk (build_logs.py), also past a restart: the builds store's one list, asked
+// when the page opens and followed from then on.
+const keptLogs = computed(() => builds.keptLogs);
+onMounted(() => void builds.loadKeptLogs());
 // What the add-on says about the memory the build has (build_memory.py, app 0.4.65), under the status line.
 const memoryText = computed(() => memoryOf(followed.build.value ?? data.value?.job)?.text || "");
 // The log of the build this page asked for once it is known, else whatever builds now.
@@ -100,7 +105,7 @@ async function runBrowser() {
   const name = file.value;
   if (!(await flash.connect(chipOf(name)))) return;
   try {
-    const build = await builds.askBuild({ file: name, action: "download", target: "" });
+    const build = await builds.askBuild({ file: name, action: "download", target: "", chip_revision: flash.state.revision });
     asked.value = { id: build.id, file: name, browser: true };
   } catch (e: any) {
     flash.cancel();
@@ -176,5 +181,11 @@ onBeforeUnmount(() => flash.cancel());
       </div>
     </div>
     <pre id="firmware-log" class="log">{{ logLines.join("\n") }}</pre>
+    <section class="kept-logs" id="firmware-kept-logs">
+      <h3>{{ t("editor.firmware.kept_title") }}</h3>
+      <p class="kept-note">{{ t("editor.firmware.kept_note") }}</p>
+      <p v-if="!keptLogs.length" class="kept-note">{{ t("editor.firmware.kept_none") }}</p>
+      <KeptLogList v-else :logs="keptLogs" label="file" />
+    </section>
   </div>
 </template>

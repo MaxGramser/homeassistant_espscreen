@@ -24,6 +24,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager' / 'app'))
 import alert_layout  # noqa: E402
+import board_steps  # noqa: E402
 import font_metrics  # noqa: E402
 import profiles  # noqa: E402
 
@@ -62,19 +63,26 @@ def section_metrics(values):
     """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
     its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
     core = (profiles.ROOT / 'packages/core.yaml').read_text()
-    font, size = profiles.ROOT / font_metrics.font_file(core, 'label'), int(values['FONT_LABEL_SIZE'])
+    font, size = profiles.ROOT / font_metrics.font_file(core, 'label', values), int(values['FONT_LABEL_SIZE'])
     inset = int(values['GRID_GAP_Y']) + int(values['TILE_PAD'])
     ink = font_metrics.ink_top(font, size)
     return {'band': inset - ink + font_metrics.line_height(font, size), 'title_top': inset - ink, 'ink_top': ink,
             'line': font_metrics.line_height(font, size)}
 
 
+def label_weight(values):
+    """The weight of a tile's name on this board (Roboto-700 bold, Roboto-500 medium on the compact look), read from the
+    file its font is built from, so the editor's mockup draws the name as the glass does."""
+    core = profiles.CORE.read_text()
+    return int(re.fullmatch(r'fonts/Roboto-(\d+)\.ttf', font_metrics.font_file(core, 'label', values))[1])
+
+
 def alert_lines(values):
     """The line heights of the alert card's two fonts on this board, which its layout needs (title and subtitle)."""
     core = profiles.CORE.read_text()
-    return {'title_line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'headline'),
+    return {'title_line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'headline', values),
                                                    int(values['FONT_HEADLINE_SIZE'])),
-            'line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'sublabel_big'),
+            'line': font_metrics.line_height(profiles.ROOT / font_metrics.font_file(core, 'sublabel_big', values),
                                              int(values['FONT_SUBLABEL_BIG_SIZE']))}
 
 
@@ -95,6 +103,10 @@ def catalog_of(board, values, lying):
             raise SystemExit(f'boards.yaml: {board} needs a {key}')
     if entry['status'] not in STATUSES:
         raise SystemExit(f'boards.yaml: {board} status is one of {", ".join(STATUSES)}')
+    # Recommended (app 0.4.102): the project's pick, which New screen shows first and apart; only a stable board is one.
+    recommended = entry.get('recommended', False)
+    if not isinstance(recommended, bool) or (recommended and entry['status'] != 'stable'):
+        raise SystemExit(f'boards.yaml: {board} recommended is true or false, and true only for a stable board')
     choices = {}
     for key, options in (entry.get('choices') or {}).items():
         options = [str(option) for option in options or []]
@@ -116,13 +128,19 @@ def catalog_of(board, values, lying):
     for key in settings:
         if not re.fullmatch(r'[a-z0-9_]+', key) or key not in named:
             raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
+    # A board's own steps (docs/BOARD_STEPS.md): checked by the code that serves them, so a step of a kind nobody wrote,
+    # or for a chip the app has no firmware for, stops the build of this file.
+    try:
+        steps = board_steps.checked(entry.get('steps'))
+    except ValueError as error:
+        raise SystemExit(f'boards.yaml: {board}: {error}') from None
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
-            'status': entry['status'],
+            'status': entry['status'], 'recommended': recommended,
             'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
-            'choices': choices, 'settings': settings}
+            'choices': choices, 'settings': settings, **({'steps': steps} if steps else {})}
 
 
 def chip_of(board):
@@ -208,6 +226,8 @@ def shapes():
                  # panel's top as from its side, so the band is that inset less the font's room above its capitals,
                  # plus the font's line. The mockup's rows and titles take these, so a card is as high as on the glass.
                  'section': section_metrics(values),
+                 # The weight of a tile's name (TILE_NAME_FONT_FILE of the look): the mockup draws its names in it.
+                 'label_weight': label_weight(values),
                  # The sizes of the faces a card's controls draw their numbers in (app 0.4.32): the editor's mockup picks
                  # among them as runtime_tiles::stepper_keys does, the largest that fits, instead of sizes of its own;
                  # and the icons of a card's keys, which a thermostat's mode bar measures its words beside.

@@ -18,6 +18,7 @@
 #include "screen_motion.h"
 #include "pressure.h"
 #include "live_view.h"
+#include "volume_lift.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -425,7 +426,7 @@ void refresh() {
 // The screen wakes as Home Assistant's Wake button does (0.16): packages/core.yaml points plugin_host::wake at the
 // script every wake that is not a finger takes (wake_from), which logs who asked.
 void wake(const Plugin *plugin) {
-  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + (plugin ? plugin->plugin_id() : "?"));
+  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + (plugin ? plugin->plugin_id() : "?"), true);
 }
 
 // A plugin that uses the screen's own camera on the screen itself says so (0.17), watched or for sensing alone (0.20):
@@ -442,6 +443,13 @@ void capturing(const Plugin *plugin, Capture what, bool on) {
 }
 
 uint8_t squeeze(Work work) { return pressure::level_of(static_cast<pressure::Work>(static_cast<uint8_t>(work))); }
+
+namespace audio {
+bool raise_volume(const Plugin *plugin, float volume) {
+  return plugin && volume_lift::the().lift(reinterpret_cast<uintptr_t>(plugin), volume_lift::on_dac(volume));
+}
+void restore_volume(const Plugin *plugin) { volume_lift::the().drop(reinterpret_cast<uintptr_t>(plugin)); }
+}  // namespace audio
 
 void offer_own_frames() { live_view::own_offer(); }
 bool own_tile_wants() { return live_view::own_wanted(); }
@@ -470,6 +478,8 @@ const lv_font_t *font(Font f) {
     case Font::ICON: face = rt::tile_icon_font(); break;        // materialdesign_icons
     case Font::ICON_SMALL: face = rt::mini_icon_font; break;    // materialdesign_icons_mini
     case Font::DIGITS: face = rt::setpoint_font ? rt::setpoint_font : rt::watch_value_font; break;  // setpoint_digits
+    case Font::DIGITS_LARGE: face = rt::display_font ? rt::display_font : rt::setpoint_font; break;  // display_digits
+    case Font::DIGITS_PAGE: face = rt::bedside_digits(); break;  // bedside_digits, or display_digits where it is a place holder
   }
   // Before boot handed them over (never on a screen: plugins are made after on_boot), the nearest that is there.
   if (!face) face = rt::small_font ? rt::small_font : rt::control_font ? rt::control_font : rt::detail_font;
@@ -572,10 +582,8 @@ struct Place {
 };
 struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (roomy.h)
   std::unique_ptr<tessera::Tile> tile;
-  std::string entity;          // what the card was made for: the tile type,
-  size_t index = SIZE_MAX;     // the tile of the layout,
-  int width = 0, height = 0;   // its room,
-  size_t options = 0;          // and its options (a hash)
+  size_t made = 0;             // what it was made from (made_from): a tile that differs in any of it makes a new card
+  size_t index = SIZE_MAX;     // the tile of the layout, for marking it to be drawn again
   size_t state = 0;            // the data it was last given (a hash), 0 for none yet
   bool dark = false;           // the look it last coloured itself for
   theme::Face face;            // the colour the tile gave its card (0.26): a swatch, an instrument's face, or none
@@ -584,6 +592,20 @@ struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (
 
 // A text's hash, never 0 (0 is "nothing yet"), for a string of any allocator (roomy.h).
 template <class S> static size_t hash(const S &text) { return std::hash<std::string_view>{}(std::string_view(text.data(), text.size())) | 1; }
+
+// What a card is made from, as one number: everything of its tile that create() reads (the tile type, and every field
+// of TileContext but its parent). A tile that differs in any of it gets a new card, so a rename, another option or
+// another size reaches the plugin. A new field of TileContext is read here too, or tests/test_plugins.py fails: a list
+// of compared fields beside the context forgot the name until 0.29.
+static size_t made_from(const rt::Widgets &w, const rt::Tile &t, int width, int height) {
+  const auto &extra = t.extra();
+  size_t made = hash(t.entity);
+  for (size_t part : {static_cast<size_t>(width), static_cast<size_t>(height), static_cast<size_t>(t.column_span()),
+                      static_cast<size_t>(t.row_span()), hash(t.name), hash(extra.plugin_entity), w.index,
+                      hash(extra.plugin_options), static_cast<size_t>(t.full)})
+    made = made * 1000003u ^ part;
+  return made | 1;
+}
 
 // The card whose tile is in a call of the host (create, on_state, on_tick, on_theme, on_tap): a place the tile makes
 // in that call is this card's. Nothing else of a tile's runs (a plugin's own moments are the plugin's, not a tile's).
@@ -634,10 +656,9 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
   } in_render;
   rt::begin_extra(w, "plugin", width, height);
   const auto &extra = t.extra();
-  const size_t options = (hash(extra.plugin_options) * 31u ^ hash(extra.plugin_entity)) | 1;
+  const size_t made = made_from(w, t, width, height);
   Card *card = w.plugin;
-  if (card && (card->entity != t.entity || card->index != w.index || card->width != width || card->height != height ||
-               card->options != options)) {
+  if (card && card->made != made) {
     release(w);
     lv_obj_clean(w.extra);
     card = nullptr;
@@ -648,11 +669,8 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
     if (!tile) return;
     card = w.plugin = new Card();
     card->tile = std::move(tile);
-    card->entity = t.entity;
+    card->made = made;
     card->index = w.index;
-    card->width = width;
-    card->height = height;
-    card->options = options;
     card->dark = theme::dark;
     JsonDocument doc(&json_memory);
     if (extra.plugin_options.empty() || deserializeJson(doc, extra.plugin_options.data(), extra.plugin_options.size()))
@@ -1246,8 +1264,8 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
                 const std::string &popup_key) {
   if (!plugin || !make) return false;
   // A dark screen lights up first, as tessera::wake does (a lit one counts its standby time from now): a popup is
-  // something to see.
-  tessera::wake(plugin);
+  // something to see, so it is no sensing and lights a standby by hand too (screen_standby.h).
+  if (plugin_host::wake) plugin_host::wake(std::string("plugin ") + plugin->plugin_id(), false);
   // The popup shown now goes first: another plugin's hears on_dismiss, this plugin's own was replaced by its plugin. And
   // whatever that on_dismiss showed in its place, as this one is the popup asked for last.
   if (popup_open) popup_end(popup_open->plugin != plugin, "another popup");
@@ -2003,6 +2021,7 @@ void standby(bool dark) {
 }
 void before_update() {
   for (auto *p : tessera::plugins()) p->before_update();
+  volume_lift::the().drop_all();  // a raised volume never outlives the firmware it was raised in
   popup_end(true, "an update");
 }
 

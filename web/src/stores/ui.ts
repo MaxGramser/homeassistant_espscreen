@@ -11,14 +11,13 @@ import { flagSerializer, usePreference } from "../composables/usePreference";
 import { showText } from "../composables/useConfirm";
 import { atMost, useAtMost } from "../composables/useWidths";
 import { iconsRoute, overrideRoute, reportRoute, router } from "../router";
-import { APP_SETTINGS_PARTS, SCREEN_SETTINGS_PARTS, type AppSettingsPart, type ScreenSettingsPart } from "../model/settings-parts";
+import { APP_SETTINGS_PARTS, EVENT_PARTS, SCREEN_SETTINGS_PARTS, type AppSettingsPart, type EventPart as EventKind, type ScreenSettingsPart } from "../model/settings-parts";
 
 // ---- Routes: the pages of the app as the code names them, "" for the main view (the open screen, else the overview) ----
 // The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
 export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;
-/** The parts of Events (#/events/<kind>): what an automation fires at the screens. */
-export const eventKinds = ["alerts", "doorbell", "alarm", "calls"] as const;
-export type EventKind = (typeof eventKinds)[number];
+/** The parts of Events (#/events/<kind>): model/settings-parts.ts EVENT_PARTS. */
+export { EVENT_PARTS as eventKinds, type EventPart as EventKind } from "../model/settings-parts";
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };
 // What was copied, each with its own sentences so every language can say it its own way.
@@ -164,12 +163,12 @@ export const useUiStore = defineStore("ui", () => {
   // The screen whose Override YAML is open (#/override/<profile>): the profile is in the address, so a reload keeps it.
   const overrideProfile = computed(() => current.value.name === "override" ? (String(current.value.params.profile || "") || null) : null);
   function openOverride(profile: string | null) { return router.push(overrideRoute(profile)); }
-  // The part of Events that is open (#/events/<kind>): the alerts unless the address names another.
-  const eventsKind = computed<EventKind>(() => {
+  // The part of Events that is open (#/events/<kind>), or null for the list of its parts (#/events).
+  const eventsKind = computed<EventKind | null>(() => {
     const kind = current.value.name === "events" ? current.value.params.kind : undefined;
-    return (eventKinds as readonly unknown[]).includes(kind) ? (kind as EventKind) : "alerts";
+    return (EVENT_PARTS as readonly unknown[]).includes(kind) ? (kind as EventKind) : null;
   });
-  function openEvents(kind: EventKind) { return router.push({ name: "events", params: { kind } }); }
+  function openEvents(kind: EventKind | null) { return router.push(kind ? { name: "events", params: { kind } } : { name: "events" }); }
   // The part of Settings that is open (#/settings/<part>), or null for the list of its parts.
   const settingsPart = computed<AppSettingsPart | null>(() => {
     const part = current.value.name === "settings" ? current.value.params.part : undefined;
@@ -202,6 +201,9 @@ export const useUiStore = defineStore("ui", () => {
   const search = ref("");
   const room = ref("");
   const hidePlaced = ref(false);
+  // How the library shows what can go on a page (app 0.4.10x): as the tiles themselves, at their sizes, or as the list of
+  // entities it always was. Remembered in this browser.
+  const libraryView = usePreference<"tiles" | "list">("esp-screens.library-view", "tiles", { serializer: { read: (raw) => (raw === "list" ? "list" : "tiles"), write: (view) => view } });
 
   // ---- The tip beside a tile that grew (app 0.4.89, components/GrowTip.vue) ----
   // Which tile, the size it had and has, and the control set its growing put on it (null: it kept its own). Asking is
@@ -240,7 +242,7 @@ export const useUiStore = defineStore("ui", () => {
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     route, go, setMainView, chatOpen, openChat, settingsPart, openSettings, screenSettingsPart, openScreenSettings, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
-    libraryOpen, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
+    libraryOpen, libraryView, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
     now, fontsVersion, start,
   };
 });

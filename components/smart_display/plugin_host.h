@@ -115,6 +115,7 @@ void hello(JsonObject root);
 
 // What the core does for a plugin that only the YAML can do. tessera::wake (plugin API 0.16): the screen wakes as Home
 // Assistant's Wake button does, through the one way every wake that is not a finger takes (packages/core.yaml, the script
-// wake_from); `source` names the plugin in the log.
-inline void (*wake)(const std::string &source) = nullptr;
+// wake_from); `source` names the plugin in the log. `sensed`: the plugin's own wake, someone sensed, which waits for
+// the quiet after a standby by hand (screen_standby.h, firmware 0.64.0+); a call, a doorbell or a popup is not.
+inline void (*wake)(const std::string &source, bool sensed) = nullptr;
 }  // namespace plugin_host

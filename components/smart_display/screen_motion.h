@@ -74,6 +74,11 @@ inline void show(lv_obj_t *over, lv_obj_t *card) {
     lv_obj_remove_flag(over, LV_OBJ_FLAG_HIDDEN);
     return;
   }
+  // What LVGL still has to draw is drawn first, with the overlay still hidden. A wake from standby leaves it the whole
+  // screen (the sheet that took the waking tap goes); drawn after the overlay is revealed, that redraw carried the
+  // overlay's own scrim over the whole glass, and the dim laid on the glass then darkened the page a second time (an
+  // alert that arrived in standby, a Guition 10.1 in the light look, 2026-11-24). With nothing left to draw this is free.
+  lv_refr_now(lv_obj_get_display(over));
   lv_obj_update_layout(over);  // what it holds has its place, so LVGL has nothing of it to draw over the whole glass later
   quietly(over, [&] { lv_obj_remove_flag(over, LV_OBJ_FLAG_HIDDEN); });
   lv_obj_invalidate(card);

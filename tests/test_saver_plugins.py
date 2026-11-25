@@ -138,6 +138,17 @@ class Pick(unittest.TestCase):
         self.assertEqual(drawn['pf']['x'], {'temperature': '21°', 'items': []})
         self.assertNotIn('cf', drawn)
 
+    def test_the_clock_contract_gives_the_row_icons_as_codepoints(self):
+        # The row's items come as the top bar sends them: the icon as the hex text of tile_icons.GLYPHS.
+        row = [{'k': 'text', 'i': 'F0597', 't': ''}, {'k': 'text', 'i': 'F058E', 't': '54%'},
+               {'k': 'ago', 'i': 'F0599', 't': '', 'e': 1791386619}, {'k': 'text', 't': 'no icon'}]
+        self.assertEqual(screen_saver.clock_contract('21°', row), {'temperature': '21°', 'items': [
+            {'icon': 0xF0597, 'text': ''}, {'icon': 0xF058E, 'text': '54%'},
+            {'icon': 0xF0599, 'text': '', 'since': 1791386619}, {'icon': 0, 'text': 'no icon'}]})
+        # A codepoint that is a number already stays one; what is no icon is 0.
+        for given, wanted in ((0xF0597, 0xF0597), ('', 0), (None, 0), ('xyz', 0), (True, 0), (-5, 0)):
+            self.assertEqual(screen_saver.codepoint(given), wanted)
+
     def test_a_plugin_step_shows_while_it_has_something(self):
         choice = {'show': True, 'order': [RAIN, 'media', 'photos', 'camera', 'clock'],
                   'plugins': {RAIN: {'options': {'alpha': 2}, 'entity': 'weather.home'}}}

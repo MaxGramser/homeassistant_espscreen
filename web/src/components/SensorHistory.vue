@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computedAsync } from '@vueuse/core';
-import { computed, shallowRef } from 'vue';
+import { computedAsync, useElementSize } from '@vueuse/core';
+import { computed, shallowRef, useTemplateRef } from 'vue';
 import { t } from '../i18n';
-import { historyGeometry, type HistoryPreview } from '../model/history-preview';
+import { cardGraph, GRAPH_FILL, type HistoryPreview } from '../model/history-preview';
 import { useEntitiesStore } from '../stores/entities';
 import { useUiStore } from '../stores/ui';
 
@@ -18,20 +18,27 @@ const history = computedAsync<HistoryPreview | null>(async () => {
   try { return await entities.loadHistory(entity, hours); }
   catch { return null; /* No recorder or unavailable history stays explicitly empty. */ }
 }, null, { evaluating: loading });
-const geometry = computed(() => !loading.value && history.value ? historyGeometry(history.value) : null);
+// Drawn in the room the card gives it, in its own pixels, so the line keeps its width however the room is shaped.
+const box = useTemplateRef<HTMLElement>('box');
+const { width, height } = useElementSize(box);
+const size = computed(() => ({ w: Math.max(2, Math.round(width.value) || 200), h: Math.max(2, Math.round(height.value) || 50) }));
+const graph = computed(() => !loading.value && history.value ? cardGraph(history.value.values, size.value.w, size.value.h, 2) : null);
 const caption = computed(() => history.value ? `${new Date(history.value.start * 1000).toLocaleString()} – ${new Date(history.value.end * 1000).toLocaleString()}` : '');
 </script>
 <template>
-  <svg v-if="geometry" class="sensor-history" viewBox="0 0 200 50" role="img" :aria-label="t('editor.pages.history_label', { hours })">
-    <title>{{ caption }}</title>
-    <path v-for="(path, index) in geometry.paths" :key="index" :d="path" />
-    <circle v-for="(point, index) in geometry.points" :key="`point-${index}`" :cx="point.x" :cy="point.y" r="1.8" />
-  </svg>
-  <small v-else class="history-empty">{{ t(loading ? 'editor.pages.history_loading' : 'editor.pages.history_empty') }}</small>
+  <span ref="box" class="sensor-history">
+    <svg v-if="graph" :viewBox="`0 0 ${size.w} ${size.h}`" role="img" :aria-label="t('editor.pages.history_label', { hours })">
+      <title>{{ caption }}</title>
+      <path class="area" :d="graph.area" :fill-opacity="GRAPH_FILL" />
+      <path class="line" :d="graph.line" />
+    </svg>
+    <small v-else class="history-empty">{{ t(loading ? 'editor.pages.history_loading' : 'editor.pages.history_empty') }}</small>
+  </span>
 </template>
 <style scoped>
-.sensor-history { width: 100%; min-height: 20px; max-height: 65px; color: var(--tile-accent); }
-path { stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; fill: none; }
-circle { fill: currentColor; }
+.sensor-history { display: flex; align-items: center; min-width: 0; min-height: 20px; color: var(--tile-accent); }
+svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.area { fill: currentColor; stroke: none; }
+.line { stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; fill: none; }
 .history-empty { font-size: 9px; color: #46525e; }
 </style>

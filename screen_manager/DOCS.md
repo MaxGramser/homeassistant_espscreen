@@ -58,3 +58,6 @@ In Home Assistant every screen also has a **Wake** and a **Sleep** button (firmw
 newer). Press them from an automation with `button.press`: Wake lights the screen up and restarts the
 standby time, Sleep puts the screen in standby right away, also with Auto standby off. Wake is not a
 touch, so an open card or a later page still goes back to page 1 on time (firmware 0.2.56 or newer).
+An automation that runs on motion presses **Motion** instead (firmware 0.64.0 or newer): it wakes the
+same way, but right after someone sent the screen to standby by hand it waits until a minute passed
+without a press, so walking away does not light the screen again.

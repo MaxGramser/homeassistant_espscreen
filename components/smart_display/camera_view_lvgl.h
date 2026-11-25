@@ -52,7 +52,7 @@ inline ViewPicture camera;
 // refilled by an interrupt on this core every 0.34 ms: every picture that loaded shifted a frame on the glass.
 inline void picture_memory(const char *stage, const char *what, int pixels) {
 #ifdef USE_ESP32
-  ESP_LOGI("picture", "%s %s: %d px wants %d B; inside free=%u, psram free=%u", stage, what, pixels, pixels * 2,
+  ESP_LOGI("picture", "%s %s: %d px wants %d B; inside free=%u, psram free=%u", stage, what, pixels, (int) picture_store::bytes_of(pixels, 1),
            (unsigned) heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 #else
   (void) stage; (void) what; (void) pixels;
@@ -163,17 +163,15 @@ inline void call_reports(std::function<void(const std::string &, const std::stri
   (void) report;
 #endif
 }
-template<class Speaker> inline void call_audio(Speaker *speaker, std::function<float()> volume_get, std::function<void(float)> volume_set,
-                                               std::function<bool()> ring_on, std::function<bool()> switch_on, float ring_top) {
+template<class Speaker> inline void call_audio(Speaker *speaker, std::function<bool()> ring_on, std::function<bool()> switch_on,
+                                               float ring_top) {
 #ifdef SD_MOD_CALL
   call::switch_on = std::move(switch_on);
   call::ring_top = ring_top;
   call::bind_speaker(speaker);
-  call::volume_get = std::move(volume_get);
-  call::volume_set = std::move(volume_set);
   call::ring_on = std::move(ring_on);
 #else
-  (void) speaker; (void) volume_get; (void) volume_set; (void) ring_on; (void) switch_on; (void) ring_top;
+  (void) speaker; (void) ring_on; (void) switch_on; (void) ring_top;
 #endif
 }
 // A board with an echo canceller hands it to a call (parts/es7210/aec.yaml): to work or to rest, and what its switch says.

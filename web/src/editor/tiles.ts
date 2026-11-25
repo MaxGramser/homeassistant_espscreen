@@ -103,8 +103,9 @@ export function startTile(id: string): Tile {
   return { ...tile, options: { ...tile.options, size: fitting.includes("square") ? "square" : fitting[0] ?? "full" } };
 }
 // A click in the picker: the marked empty cell or key place, else the selected page's first free cell. Never silently
-// spill a library click onto another page.
-export async function addTile(id: string) {
+// spill a library click onto another page. `ready`: the tile as the library's Tiles view showed it (a size and its
+// controls); a new one otherwise.
+export async function addTile(id: string, ready?: Tile) {
   const doc = useDocumentStore(), insp = useInspectorStore(), scr = useScreenStore();
   if (!doc.layout || (!scr.repeatable(id) && doc.layout.tiles.some((t) => t.entity === id)) || doc.layout.tiles.length >= doc.tileLimit) return;
   // Past the screen's memory the tile waits for the answer; otherwise it goes on at once.
@@ -129,7 +130,7 @@ export async function addTile(id: string) {
   if (id.startsWith("sensor.") && !useEntitiesStore().liveStates[id]) await useEntitiesStore().reloadState(id);
   if (!doc.layout) return;
   const before = tileIds();
-  const tile = startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
+  const tile = ready ?? startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
   const page = Math.max(0, doc.document!.pages.findIndex((page) => page.id === doc.selectedPageId));
   const at = marked?.kind === "cell" ? marked.slot : -1;
   const target = at >= 0 ? at : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);

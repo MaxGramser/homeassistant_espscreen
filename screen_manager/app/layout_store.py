@@ -17,7 +17,7 @@ import threading
 import atomic
 from i18n import t
 from core import validate_settings
-from page_layout import FORMAT, LayoutError, fingerprint, flattened, grid_of_record, new_id, screen_grid_of_record, validate_document
+from page_layout import FORMAT, GridAdaptationRequired, LayoutError, fingerprint, flattened, grid_of_record, new_id, screen_grid_of_record, validate_document
 from layout_migrations import migrate_legacy
 
 VERSION = 3
@@ -328,7 +328,7 @@ class LayoutStore:
                 raise LayoutError(t('addon.errors.pages.source_grid'))
             changed_grid = previous and grid != grid_of_record(previous)
             if changed_grid and not adapt_grid:
-                raise LayoutError(t('addon.errors.pages.adaptation'))
+                raise GridAdaptationRequired(t('addon.errors.pages.adaptation'))
             document = validate_document(layout, grid)
             record = deepcopy(previous) if previous else {"format": FORMAT, "sourceGrid": {"columns": grid.columns, "rows": grid.rows}}
             record["layout"] = document

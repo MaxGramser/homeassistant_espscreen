@@ -47,15 +47,13 @@ substitutions:
     screen_input::edge_swipe.configure(${EDGE_SWIPE_BAND_PX}, ${EDGE_SWIPE_TRAVEL_PX});
     screen_input::edge_swipe.without_sides();
     screen_input::edge_snap_band = ${SLIDER_EDGE_SNAP_PX};
-    id(last_touch_ms) = millis();
-    id(last_use_ms) = millis();
-    id(display_dimmed) = false;
+    screen_standby::the().touch(millis());
   # the calibration wizard's page and crosses are a paint of their own (theme::paints)
   CALIBRATION_PAINT_FILL: "theme::fill(id(paint_calibration), Paint::calibration);"
   # what LVGL's gesture over the tiles does: a page swipe, as such glass has no edge band
   BOOT_PAGE_GESTURE: |-
     lv_obj_add_event_cb(id(home_page)->obj, [](lv_event_t *event) {
-      if(!runtime_tiles::enabled || !runtime_tiles::navigation_ready() || !runtime_tiles::swipe_pages || id(display_dimmed) || id(calibration_active) ||
+      if(!runtime_tiles::enabled || !runtime_tiles::navigation_ready() || !runtime_tiles::swipe_pages || screen_standby::the().in_standby() || id(calibration_active) ||
          runtime_tiles::colour_shown() || (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root,LV_OBJ_FLAG_HIDDEN)))return;
       auto *input=lv_indev_active();if(!input)return;
       auto direction=lv_indev_get_gesture_dir(input);
@@ -116,9 +114,7 @@ touchscreen:
       y_max: ${TOUCH_CAL_Y_MAX}
     on_touch:
       - lambda: |-
-          id(last_touch_ms) = millis();
-          id(last_use_ms) = millis();
-          id(touch_down) = true;
+          screen_standby::the().contact(true, millis());
           screen_input::touch_guard.begin(millis(), touch.x, touch.y, touch.id);
           // The point the screen itself works with, through ESPHome's own turn (the same call the tiles are hit
           // with): the wizard fits against that, so it never has to work out what the turn does.
@@ -129,8 +125,7 @@ touchscreen:
           ESP_LOGI("touch", "press native=%u,%u screen=%d,%d raw=%d,%d pressure=%d calibration=%d", touch.x, touch.y, screen_x, screen_y, id(ts_touch).filtered_raw_x(), id(ts_touch).filtered_raw_y(), touch.z_raw, id(calibration_active));
     on_update:
       - lambda: |-
-          id(last_touch_ms) = millis();
-          id(last_use_ms) = millis();
+          screen_standby::the().touch(millis());
           // Only the contact that started the touch counts; the guard ignores other ids.
           for (const auto &point : touches) {
             screen_input::touch_guard.update(point.x, point.y, point.id);
@@ -143,8 +138,6 @@ touchscreen:
           }
     on_release:
       - lambda: |-
-          id(last_touch_ms) = millis();
-          id(last_use_ms) = millis();
-          id(touch_down) = false;
+          screen_standby::the().contact(false, millis());
           screen_calibration::release();
           runtime_tiles::touch_input::edge_release();

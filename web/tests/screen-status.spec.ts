@@ -24,6 +24,25 @@ describe("a screen's status", () => {
     expect(screenLight(screen({ virtual: true, online: false }), quiet)).toBe("ok");
   });
 
+  it("is no screen that is away while its update restarts it: it says the restart", () => {
+    const building: StatusFacts = { ...quiet, build: { by: "update", state: "running", stage: "upload", phase: "install" } };
+    const away = screen({ online: false });
+    expect(screenLight(away, building)).toBe("update");
+    expect(screenSubline(away, building)).toEqual({ kind: "update", text: t("editor.update.restarting") });
+    expect(rowStatus(away, "running")).toBe("running");
+    expect(buildProgress(away, building)!.text).toBe(t("editor.update.restarting"));
+    expect(buildProgress(screen(), building)!.text).toBe(t("editor.update.writing"));
+    // Built ahead in a round, waiting for its turn to install.
+    const ready: StatusFacts = { ...quiet, build: { by: "update", state: "running", stage: null, phase: "ready" } };
+    expect(buildProgress(screen(), ready)).toEqual({ percent: 55, text: t("editor.update.phases.ready") });
+    // A plugin build waiting for the screen to confirm says so too.
+    const confirming: StatusFacts = { ...quiet, build: { by: "plugins", state: "running", stage: null, phase: "verify" } };
+    expect(buildProgress(screen(), confirming)!.text).toBe(t("editor.update.phases.verify"));
+    expect(buildProgress(away, confirming)!.text).toBe(t("editor.update.restarting"));
+    // Waiting its turn while away is away: nothing installs on it yet.
+    expect(rowStatus(away, "queued")).toBe("down");
+  });
+
   it("offers an update, names a new language alone by its name, and says why one cannot be built here", () => {
     const update = { profile: "hall.yaml", available: true, target: "0.51.0" };
     expect(updateState(screen({ update }), quiet)).toEqual({ kind: "available", text: t("editor.sidebar.update.available", { version: "0.51.0" }) });

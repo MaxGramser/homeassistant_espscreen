@@ -25,7 +25,7 @@ the rule from its hardware, with no line in its board file.
 
 | Call | What it does with motion | Without |
 |---|---|---|
-| `screen_motion::show(over, card)`, `screen_motion::hide(over, card)` | The card is drawn first and whole, then the page dims around it on the glass itself; the way back in the same order | LVGL shows or hides `over` |
+| `screen_motion::show(over, card)`, `screen_motion::hide(over, card)` | LVGL finishes what it still had to draw, the card is drawn first and whole, then the page dims around it on the glass itself; the way back in the same order | LVGL shows or hides `over` |
 | `screen_motion::dim(over, opa, keep, on)` | The dim alone, all of the glass but `keep`, for an overlay that moves its own part; the caller tells LVGL inside `screen_motion::quietly` | Returns false; the caller sets the style |
 | `screen_motion::settle(obj, set, from, to, speed, full, shortest, longest)` | What a finger let go travels on at the finger's speed and comes to rest | The same: it is plain LVGL |
 

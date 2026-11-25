@@ -16,7 +16,9 @@ from datetime import date, datetime, timedelta, timezone
 import math
 from urllib.parse import urlsplit
 import automations
+import ha_entities
 import calendar_feed
+import chip_revision
 import todo_feed
 import alarm_screens
 import doorbell
@@ -33,6 +35,7 @@ import live_stream
 import talk_bridge
 import calls
 import sounds
+import board_steps
 import screen_files
 import screen_source
 import claude_skill
@@ -47,6 +50,9 @@ import feedback
 import reports
 import build_server
 import build_files
+import build_logs
+import build_memory
+import update_notice
 from build_queue import BuildQueue
 from firmware import Firmware
 import ha_pairing
@@ -103,11 +109,30 @@ def row_icon(eid, state, attrs, entry):
 
 LOG = logging.getLogger('screen_manager')
 
+def editor_bundle(static=Path(__file__).parent / 'static'):
+    """The editor's script this app serves, as its index.html names it (`index-<hash>.js`, a new name for every build
+    of the editor), or None without a built editor."""
+    try:
+        found = re.search(r'assets/(index-[A-Za-z0-9_-]+\.js)', (static / 'index.html').read_text())
+    except OSError:
+        return None
+    return found.group(1) if found else None
+
+
+EDITOR_BUNDLE = editor_bundle()
+
 REGISTRY_EVENTS = ('entity_registry_updated', 'device_registry_updated', 'area_registry_updated', 'floor_registry_updated')
 # Keepalive cadence. Firmware 0.2.33+ gets a small ping carrying the layout revision; every
 # layout message declares this number, so the firmware sizes its feed watchdog from it
 # (firmware 0.2.22+). Firmware before 0.2.33 still gets the whole layout every round.
 KEEPALIVE_SECONDS = 120
+# Home Assistant's first list of every state (ha_entities.py): a large home on a small machine needs well over the 15 s
+# of a command (GitHub #428). Whether Home Assistant still listens is asked with its own `ping` every PING_SECONDS; a
+# pong that does not come within PONG_SECONDS closes the link and run() makes it again (#399). A slow action (a
+# call_service is answered when the action is done) says nothing about that and never closes the link.
+ENTITIES_SECONDS = 180
+PING_SECONDS = 30
+PONG_SECONDS = 20
 # Safety net for screens that answer every ping: everything again once an hour.
 FULL_REPEAT_SECONDS = 3600
 # Sensor history is refreshed in a background task, never inside the sync loop.
@@ -274,6 +299,9 @@ class HomeAssistant:
         # Assistant's own list; refreshed when a device registers its actions again.
         self.responses = set()
         self.services_changed = asyncio.Event()
+        # The states follow Home Assistant's `subscribe_entities` (ha_entities.py, GitHub #315): the id of that
+        # subscription on this connection and the first list's arrival.
+        self.entities_sub, self.entities_ready = None, None
         # Every action Home Assistant describes (get_services), which the editor's choices per entity follow (app
         # 0.2.67); `services_rev` counts the refreshes. `targets` keeps Home Assistant's answer per entity, and
         # `target_lookup` stays None until it is known whether Home Assistant answers get_services_for_target (2025.12+).
@@ -322,12 +350,30 @@ class HomeAssistant:
         finally:
             self.pending.pop(key, None)
 
+    async def listen_for_answers(self):
+        """While connected: Home Assistant's `ping` every PING_SECONDS. A link that stays open but where Home Assistant
+        no longer answers (GitHub #399: a busy network for hours) is closed when the pong does not come, and run()
+        connects again. Ends when the pong is missed or the task is cancelled with the link."""
+        while True:
+            await asyncio.sleep(PING_SECONDS)
+            try:
+                await self.request('ping', wait=PONG_SECONDS)
+            except TimeoutError:
+                LOG.warning('Home Assistant answered no ping in %d s: connecting again', PONG_SECONDS)
+                if self.ws is not None and not self.ws.closed:
+                    await self.ws.close()
+                return
+
     async def read(self):
         async for msg in self.ws:
             if msg.type != WSMsgType.TEXT:
                 continue
             data = msg.json()
-            if data.get('type') == 'result':
+            if data.get('type') == 'pong':
+                future = self.pending.get(data.get('id'))
+                if future and not future.done():
+                    future.set_result(None)
+            elif data.get('type') == 'result':
                 future = self.pending.get(data.get('id'))
                 if future and not future.done():
                     if data.get('success'):
@@ -339,7 +385,9 @@ class HomeAssistant:
                 event = data.get('event', {})
                 body = event.get('data', {})
                 callback = self.template_subs.get(data.get('id'))
-                if callback is not None:
+                if self.entities_sub is not None and data.get('id') == self.entities_sub:
+                    self.take_entities(event)
+                elif callback is not None:
                     callback(event)
                 elif event.get('event_type') == 'esphome.screen_setting':
                     self.setting_events.append(body)
@@ -396,6 +444,44 @@ class HomeAssistant:
                 elif event.get('event_type') == CALL_EVENT:
                     self.call_events.put_nowait(body)
         raise ConnectionError('Home Assistant connection lost.')
+
+    async def follow_entities(self, reader=None):
+        """Every state of Home Assistant, kept up to date by `subscribe_entities` as its frontend does (ha_entities.py):
+        returns once the first list is in `self.states`. A Home Assistant without that command gets the old way, every
+        state in one message and each change whole."""
+        self.entities_ready = asyncio.get_running_loop().create_future()
+        # Registered before the request: the first list may come right behind the answer.
+        self.entities_sub = self.next_id + 1
+        try:
+            await self.request('subscribe_entities')
+        except Refused:
+            self.entities_sub = None
+            await self.request('subscribe_events', event_type='state_changed')
+            self.states = {s['entity_id']: s for s in await self.request('get_states', wait=ENTITIES_SECONDS)}
+            return
+        # A large home on a small machine takes a while to put its first list together (GitHub #428: 6,360 entities);
+        # a link that is lost meanwhile ends the wait at once.
+        waiting = [self.entities_ready] + ([reader] if reader is not None else [])
+        done, _ = await asyncio.wait(waiting, timeout=ENTITIES_SECONDS, return_when=asyncio.FIRST_COMPLETED)
+        if reader is not None and reader in done:
+            await reader
+        if not self.entities_ready.done():
+            raise TimeoutError('no list of states from Home Assistant')
+
+    def take_entities(self, update):
+        """One message of the entities subscription. The first of a connection is the whole list and replaces what the
+        app kept (run() then tells everyone at once); a later one says each entity it touched, as a state_changed did."""
+        if not self.entities_ready.done():
+            states = {}
+            ha_entities.apply(states, update)
+            self.states = states
+            self.entities_ready.set_result(True)
+            return
+        for eid in ha_entities.apply(self.states, update):
+            self.state_events.notify(eid)
+            if self.relevant is None or eid in self.relevant:
+                self.dirty.add(eid)
+                self.changed.set()
 
     async def subscribe_template(self, template, callback):
         """A render_template subscription (a template tile, template_service.py): `callback(event)` takes each result
@@ -666,18 +752,18 @@ class HomeAssistant:
     async def run(self):
         url = self.ws_url()
         while True:
-            reader, connected = None, None
+            reader, connected, prober = None, None, None
             try:
-                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=16*1024*1024) as ws:
+                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=0) as ws:
                     self.ws = ws
                     self.connection += 1
                     self.template_subs = {}
+                    self.entities_sub = None
                     await ws.receive_json(timeout=15)
                     await ws.send_json({'type': 'auth', 'access_token': self.token})
                     if (await ws.receive_json(timeout=15)).get('type') != 'auth_ok':
                         raise ConnectionError('Home Assistant authentication failed.')
                     reader = asyncio.create_task(self.read())
-                    await self.request('subscribe_events', event_type='state_changed')
                     await self.request('subscribe_events', event_type='esphome.screen_setting')
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
@@ -692,7 +778,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='repairs_issue_registry_updated')
                     for event_type in (*REGISTRY_EVENTS, *BROADCAST_EVENTS, ALERT_EVENT, *TILE_EVENTS, *SERVICE_EVENTS, *doorbell.EVENTS, doorbell.EVENT):
                         await self.request('subscribe_events', event_type=event_type)
-                    self.states = {s['entity_id']: s for s in await self.request('get_states')}
+                    await self.follow_entities(reader)
                     await self.registries()
                     # The config first: its language decides the language of the words for states (app 0.2.90).
                     await self.request('subscribe_events', event_type='core_config_updated')
@@ -703,6 +789,7 @@ class HomeAssistant:
                     self.state_events.notify()
                     connected = time.monotonic()
                     LOG.info('Home Assistant connected')
+                    prober = asyncio.create_task(self.listen_for_answers())
                     # Refresh the registry when HA reports a change (debounced), with a slow
                     # fallback; a full fetch is about 1 MB of JSON and used to run every 30 s.
                     fetched = time.monotonic()
@@ -742,6 +829,8 @@ class HomeAssistant:
                     LOG.info('Home Assistant connection closed%s', self.describe_close(connected))
                 self.online = False
                 self.ws = None
+                if prober:
+                    prober.cancel()
                 if reader:
                     reader.cancel()
                     with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -1096,18 +1185,24 @@ class Manager:
         self.firmware = Firmware(os.environ.get("ESPHOME_CONFIG", "/homeassistant/esphome"), self.path.parent)
         # The app's one build line (docs/BUILDS.md): updates, plugin builds, New screen and Firmware & USB wait in it.
         self.build_queue = self.firmware.builds = BuildQueue(self)
+        # Every build's log kept on disk, also past a restart of the app (build_logs.py, docs/BUILDS.md "Kept logs").
+        self.build_logs = build_logs.BuildLogs(self.path.parent)
         # The build server builds go to first when it is on (build_server.py, docs/BUILDS.md "On a build server").
         self.build_server = self.firmware.server = build_server.BuildServer(self.path.parent, self.notify)
         # What the builds leave in /data, and the clean-up the owner starts or turns on (build_files.py, docs/BUILDS.md).
         self.build_files = build_files.BuildFiles(self.build_queue, self.path.parent, self.notify)
         # Plugins (docs/PLUGINS.md): which exist, which each screen runs, their files and their tiles' data.
         self.plugins = plugins.Plugins(self, self.path.parent, self.firmware.root)
+        # Updates said in Home Assistant: the firmware's and the plugins' (update_notice.py).
+        self.update_notice = update_notice.UpdateNotice(self)
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
         # What the screens do when an alarm goes off (Events, Alarm; docs/ALARM_PANEL.md): set once per alarm.
         self.alarm_screens = alarm_screens.AlarmScreens(self.path.parent)
         # The files screens download from the camera port (docs/SCREEN_FILES.md), and the sounds among them (docs/SOUNDS.md).
         self.files = screen_files.ScreenFiles(self.path.parent)
         self.sounds = sounds.Sounds(self.path.parent, self.files)
+        # What people said of their screens' own steps (docs/BOARD_STEPS.md): later, or done where a screen cannot tell.
+        self.board_steps = board_steps.BoardSteps(self.path.parent)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -1134,6 +1229,8 @@ class Manager:
         self.region = Region(self.path.parent / 'language.json', ha_language=lambda: getattr(self.ha, 'ha_language', None))
         self.ha.language_of = self.region.language
         self.firmware.language = self.region.language
+        # The chip revision a build of a profile is made for, when no cable says it (docs/CHIP_REVISIONS.md).
+        self.firmware.chip_of = self.chip_of_profile
         self.ha.on_config = self.language_changed
         self.ha.on_time_zone = self.time_zone_changed
         self._clock_resync = None
@@ -1534,6 +1631,15 @@ class Manager:
             region['upright'] = self.wanted_way(inbox) == 'portrait'
         return region
 
+    def build_room(self):
+        """The memory a build here would have against what its heaviest file needs (build_memory.py), and whether the
+        build server takes the builds: `tight` when a build here may fail or slow Home Assistant down."""
+        free = build_memory.available_mb(getattr(self.firmware, 'MEMINFO', '/proc/meminfo'),
+                                         getattr(self.firmware, 'CGROUP', '/sys/fs/cgroup'))
+        server = bool(getattr(self, 'build_server', None) and self.build_server.wanted())
+        return {'free_mb': free, 'need_mb': build_memory.HEAVY_MB, 'server': server,
+                'tight': bool(free is not None and free < build_memory.HEAVY_MB and not server)}
+
     def preflight_update(self, inbox):
         return page_service.preflight_update(self, inbox=inbox)
 
@@ -1592,6 +1698,17 @@ class Manager:
             self._screens_key, self._screens = key, discover_screens(items, ha.states, ha.devices, ha.areas)
             self.follow_renamed_inboxes(items)
         return [dict(screen) for screen in self._screens]
+
+    def chip_of_profile(self, file):
+        """What this app knows of the chip of the screen a profile builds, without a cable (chip_revision.known): the
+        screen's own "Screen chip" sensor, else its Override YAML. None when neither says."""
+        profiles = self.firmware.profile_names()
+        screen = next((s for s in self.screens() if self.updates.resolve(s, profiles)[0] == file), None)
+        try:
+            override = self.firmware.override(file).get('content')
+        except (OSError, ValueError):
+            override = None
+        return chip_revision.known(screen, override)
 
     def screen(self, inbox):
         screens = self.screens()
@@ -1821,7 +1938,10 @@ class Manager:
         first = next((d for d in devices if d.get('id') == (screen or {}).get('device_id')), devices[0])
         name = (screen or {}).get('name') or first.get('name_by_user') or first.get('name') or wanted
         entries = sorted({e for d in devices for e in d.get('config_entries') or [] if isinstance(e, str)})
-        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
+        # The profile this app builds that screen from, so New screen installs it again itself, on the port it holds
+        # (app after 0.4.101); None for a screen built elsewhere, which Firmware & USB cannot build either.
+        file = self.updates.resolve(screen, self.firmware.profile_names())[0] if screen else None
+        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'), 'file': file,
                 'screen': (screen or {}).get('id'), 'device_id': first.get('id'), 'device_ids': sorted(ids),
                 'entries': entries}
 
@@ -1896,6 +2016,7 @@ class Manager:
         self.plugins.forget_screen(inbox)
         self.icons.forget_screen(inbox)
         self.sounds.forget_screen(inbox)
+        self.board_steps.forget_screen(inbox)
         self.labels.forget(screen.get('device_id'))
         self.hangs.forget(screen.get('device_id'))
         self.savers.forget(screen.get('device_id'))
@@ -2935,14 +3056,17 @@ class Manager:
         if needed and not ((self.firmware_version(inbox, screen) or (0,0,0)) >= needed):
             return '.'.join(str(part) for part in needed)
         # A template tile: a screen whose hello names text_card (module text_card, a full-tier build) draws it.
+        # Judged by what the screen said in its last hello, also while it is away (GitHub #452: an offline screen's features
+        # were an empty set, so every template, to-do and call tile asked for a firmware the screen had long had).
         sender = self.page_senders.get(inbox)
-        if sender is not None and getattr(sender, 'features', None) is not None and text_tile.unsupported(layout.get('tiles', []), sender.features):
+        features = sender.known_features() if sender is not None and hasattr(sender, 'known_features') else getattr(sender, 'features', None)
+        if features is not None and text_tile.unsupported(layout.get('tiles', []), features):
             return text_tile.FIRMWARE
         # A to-do tile: a screen whose hello names todo_card (module todo, a full-tier build) draws it.
-        if sender is not None and getattr(sender, 'features', None) is not None and todo_feed.unsupported(layout.get('tiles', []), sender.features):
+        if features is not None and todo_feed.unsupported(layout.get('tiles', []), features):
             return todo_feed.FIRMWARE
         # The Call tile: a screen whose hello names call (module call, a P4 with a microphone and a speaker) draws it.
-        if sender is not None and calls.unsupported(layout.get('tiles', []), getattr(sender, 'features', None)):
+        if calls.unsupported(layout.get('tiles', []), features):
             return calls.FIRMWARE
         return None
 
@@ -3139,6 +3263,9 @@ class Manager:
                       'stage': view.get('stage') if view['state'] == 'running' else None}
             if build.by == 'update':
                 record['phase'] = build.phase if view['state'] == 'running' else None
+            elif build.phase and view['state'] == 'running':
+                # A plugin build waiting for the screen to say it runs what was built (Plugins._verify).
+                record['phase'] = build.phase
             if build.plugins['add'] or build.by == 'plugins':
                 record['plugins'] = list(build.plugins['add'])
             if view['state'] == 'queued':
@@ -4655,6 +4782,39 @@ class Manager:
                          'ip': screen.get('ip') or ''}
         return out
 
+    def steps_of_screen(self, screen):
+        """The own steps of a screen's board (docs/BOARD_STEPS.md, boards.yaml `steps`), each with its state for this
+        screen: what its hello says it sees done, and what a person said. Empty for a board without steps."""
+        steps = (SHAPES.get(board_of(screen), {}).get('catalog') or {}).get('steps')
+        if not steps:
+            return []
+        sender = self.page_senders.get(self.aliases.get(screen.get('id'), screen.get('id')))
+        return board_steps.view(steps, getattr(sender, 'steps', None), self.board_steps.of(screen.get('id')))
+
+    async def ask_steps(self, inbox):
+        """A screen's own steps, asked of the screen this moment: the page of a step waits for it, as for a chip that
+        just got its firmware and now answers the screen. A screen that does not answer keeps what it said last."""
+        inbox = self.aliases.get(inbox, inbox)
+        screen = self.screen(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        with contextlib.suppress(Exception):
+            await self.ping(inbox, screen)
+        return self.steps_of_screen(screen)
+
+    def answer_step(self, inbox, step, said):
+        """A person's word for a step of this screen: 'later', 'done' where the screen cannot see it, '' to take it back."""
+        inbox = self.aliases.get(inbox, inbox)
+        screen = self.screen(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        steps = (SHAPES.get(board_of(screen), {}).get('catalog') or {}).get('steps')
+        try:
+            self.board_steps.answer(steps, inbox, step, said)
+        except ValueError:
+            raise ValueError(t('addon.errors.steps.request')) from None
+        return self.steps_of_screen(screen)
+
     def plays_sounds(self, screen):
         """Whether a screen takes the sounds of docs/SOUNDS.md as files: a speaker and the hello's `sounds`."""
         sender = self.page_senders.get(screen['id'])
@@ -4666,7 +4826,8 @@ class Manager:
         if not self.plays_sounds(screen):
             return None
         base = await self.link_base(screen)
-        return self.sounds.link(kind, base, screen['id']) if base else None
+        buzzer = sounds.BUZZER_FEATURE in (getattr(self.page_senders.get(screen['id']), 'features', None) or ())
+        return self.sounds.link(kind, base, screen['id'], buzzer) if base else None
 
     def sound_screens(self):
         """Per kind the screens that can play its sound (the editor's lists): a call's from the module call, the others
@@ -4984,6 +5145,14 @@ def create_app(manager, development=False):
         # A plugin's picture is asked for under its commit (plugins.image_url), so it too can be kept: a day.
         elif request.path.startswith('/api/plugins/') and request.path.endswith('/image') and response.status == 200:
             response.headers['Cache-Control'] = 'private, max-age=86400'
+        # A plugin's module for the preview is asked for under its version and the preview's number
+        # (plugins.modules_on), so a browser keeps it as well and the app hands it out once.
+        elif request.path.startswith('/api/plugins/') and request.path.endswith('/module') and response.status == 200:
+            response.headers['Cache-Control'] = 'private, max-age=86400'
+        # So is a picture of its README asked for under the commit (`v`); a folder's has none and is asked for again.
+        elif request.path.startswith('/api/plugins/') and '/readme/' in request.path and request.query.get('v') \
+                and response.status == 200:
+            response.headers['Cache-Control'] = 'private, max-age=86400'
     app.on_response_prepare.append(cache_assets)
 
     # The page is the Vite build of web/ (npm run build writes it here): index.html names its script and styles
@@ -4993,6 +5162,9 @@ def create_app(manager, development=False):
     async def index(request):
         # SCREEN_DEV reads the file every time, so a fresh `npm run build` shows up without a restart.
         return web.Response(text=(static / 'index.html').read_text() if development else page, content_type='text/html')
+    # The editor's script the page gets (index above): read again with the page under SCREEN_DEV, so the live answer and
+    # the page never name two (a page that runs another reloads itself, web/src/stores/editor-version.ts).
+    served_bundle = (lambda: editor_bundle(static)) if development else (lambda: EDITOR_BUNDLE)
     def light_payload(screens=None):
         """Screens and update status: everything that changes while the page is open."""
         if screens is None:
@@ -5134,6 +5306,8 @@ def create_app(manager, development=False):
             screen['plugin_ask'] = manager.plugins.ask_card(screen) if editor_features['plugins'] else None
             # A plugin for hardware its board has (plugin_defaults.py): suggested once, above the screen.
             screen['plugin_suggest'] = manager.plugins.suggest_card(screen) if editor_features['plugins'] else None
+            # Its board's own steps (docs/BOARD_STEPS.md): what is left to do with it beyond its firmware, and what is done.
+            screen['steps'] = manager.steps_of_screen(screen)
         return {'csrf': csrf, 'connected': manager.ha.online, 'screens': screens,
                 'editor_features': editor_features,
                 'pending': manager.pending_profiles(screens, profiles),
@@ -5146,6 +5320,12 @@ def create_app(manager, development=False):
                 'build_server': manager.build_server.view(),
                 # What the builds left in /data, the automatic clean-up and whether the page offers one (build_files.py).
                 'build_files': manager.build_files.view(),
+                # Whether a build here has the memory it needs, said before a build starts (docs/BUILDS.md, "Before a
+                # build"): tight without a build server, the editor warns where builds are started.
+                'build_room': manager.build_room(),
+                # The editor's bundle this app serves (static/index.html): a page that runs another one reloads itself
+                # once nothing is in progress (web/src/stores/editor-version.ts).
+                'editor': served_bundle(),
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
                 # The live streams of every screen together against the most the app serves (live_stream.py): the
@@ -5505,12 +5685,25 @@ def create_app(manager, development=False):
     async def update_screen(request):
         data = await request.json() if request.can_read_body else {}
         return web.json_response(manager.updates.start(request.match_info['inbox'], data.get('host'), data.get('reinstall') is True))
+    async def update_everything(request):
+        """A screen's firmware update and its plugin updates in one build (Plugins.update_everything)."""
+        data = await request.json() if request.can_read_body else {}
+        result = await manager.plugins.update_everything(request.match_info['inbox'], data if isinstance(data, dict) else {})
+        manager.notify()
+        return web.json_response(result)
+    async def plugin_back(request):
+        """A plugin back to the version a screen ran before its last update (Plugins.go_back)."""
+        result = manager.plugins.go_back(request.match_info['inbox'], request.match_info['plugin'])
+        return web.json_response(result)
     async def update_all(request):
         # `reinstall`: Reinstall all from dev, every screen again with the newest dev (dev channel only).
         data = await request.json() if request.can_read_body else {}
         return web.json_response({'started': manager.updates.start_all(isinstance(data, dict) and data.get('reinstall') is True)})
     async def update_settings(request):
-        manager.updates.set_auto((await request.json()).get('auto'))
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError(t('addon.errors.updates.automatic'))
+        manager.updates.set_choices(**{key: data[key] for key in ('auto', 'hour') if key in data})
         return web.json_response(manager.updates.summary())
     async def inspector(request):
         screen=manager.screen(request.match_info['inbox'])
@@ -5713,6 +5906,17 @@ def create_app(manager, development=False):
         if any(tile.get('entity') == text_tile.TEXT_TILE for tile in tiles):
             await manager.sync_templates()
         values = [await manager.tile_message(index, tile, lamps=True) for index, tile in enumerate(tiles)]
+        # `examples`: the slots whose tile is shown with its plugin's own example, where it has one, instead of what it
+        # reads now. A tile that is on no page yet (the library's tiles of a plugin at each size) would only say that
+        # it waits to be set up (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards").
+        examples = data.get('examples')
+        if isinstance(examples, list) and core.plugins_enabled():
+            wanted = {slot for slot in examples if type(slot) is int}
+            grid = grid_of_record(record)
+            for index, tile in enumerate(tiles):
+                if tile.get('slot') in wanted and core.plugin_tile(tile.get('entity')):
+                    span = 'x'.join(str(n) for n in grid.dimensions(core.tile_size(tile)))
+                    values[index] = await manager.plugins.example_message(index, tile, span) or values[index]
         bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
                 for page in record['layout']['pages']]
         region = manager.page_region()
@@ -5828,6 +6032,25 @@ def create_app(manager, development=False):
             raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
         manager.ha.changed.set()
         return web.json_response(manager.alarm_screens.view(manager.ha.states))
+    async def steps_ask(request):
+        """A screen's own steps (docs/BOARD_STEPS.md), asked of the screen now."""
+        return web.json_response({'steps': await manager.ask_steps(request.match_info['inbox'])})
+    async def step_answer(request):
+        """A person's word for one step: {"answer": "later" | "done" | ""}."""
+        body = await request.json()
+        said = body.get('answer') if isinstance(body, dict) else None
+        if not isinstance(said, str):
+            raise ValueError(t('addon.errors.steps.request'))
+        steps = manager.answer_step(request.match_info['inbox'], request.match_info['step'], said)
+        manager.notify()
+        return web.json_response({'steps': steps})
+    async def chip_firmware(request):
+        """Tessera's firmware for a board's second chip, for the browser to write to it (the kind chip_firmware)."""
+        found = board_steps.chip_file(request.match_info['chip'])
+        if found is None:
+            raise web.HTTPNotFound()
+        return web.Response(body=found[0], content_type='application/octet-stream',
+                            headers={'Content-Disposition': f'attachment; filename="{found[1]}"', 'Cache-Control': 'no-cache'})
     def sound_error(error):
         return ValueError(t(f'addon.errors.sounds.{error}', seconds=f'{sounds.MAX_SECONDS:g}', most=sounds.MAX_OWN))
     async def sounds_view(request):
@@ -5938,6 +6161,11 @@ def create_app(manager, development=False):
         only on request. Home Assistant loads it at its next start (restart_for_video)."""
         return web.json_response({**screen_video.install(manager.videos.directory), **{
             k: v for k, v in manager.video_status().items() if k in ('loaded', 'screens', 'entries')}})
+    async def download_video(request):
+        """Settings, Video in Home Assistant, Download: the integration as a zip for a Home Assistant this app cannot write
+        to (an app in Docker on its own, GitHub #357); writes nothing."""
+        return web.Response(body=screen_video.archive(), content_type='application/zip',
+                            headers={'Content-Disposition': f'attachment; filename="{screen_video.DOMAIN}.zip"'})
     async def restart_for_video(request):
         """Settings, Video in Home Assistant, Restart Home Assistant: as its own Restart does (homeassistant.restart,
         which checks the configuration first and refuses to restart a broken one)."""
@@ -5982,6 +6210,14 @@ def create_app(manager, development=False):
         except ValueError:
             raise ValueError(t('addon.errors.firmware.build_gone')) from None
         return web.json_response(manager.build_queue.log(number))
+    async def firmware_logs(request):
+        """Every build log kept on disk, newest first (build_logs.py): what each build was and how it ended."""
+        return web.json_response({'logs': manager.build_logs.listed()})
+    async def firmware_log_file(request):
+        """One kept build log as a file to save (build_logs.py)."""
+        path = manager.build_logs.path(request.match_info['key'])
+        return web.Response(body=path.read_bytes(), content_type='text/plain', charset='utf-8',
+                            headers={'Content-Disposition': f'attachment; filename="{path.name}"', 'Cache-Control': 'no-store'})
     async def firmware_override(request):
         return web.json_response(manager.firmware.override(request.match_info['file']))
     async def firmware_override_save(request):
@@ -6222,12 +6458,16 @@ def create_app(manager, development=False):
     app.on_cleanup.append(shutdown)
     app.router.add_get('/api/screens/{inbox}/inspect', inspector)
     app.router.add_post('/api/screens/{inbox}/update', update_screen)
+    app.router.add_post('/api/screens/{inbox}/update-everything', update_everything)
+    app.router.add_post('/api/screens/{inbox}/plugins/{plugin}/back', plugin_back)
     app.router.add_post('/api/updates/run', update_all)
     app.router.add_put('/api/updates', update_settings)
     app.router.add_put('/api/language', change_language)
     app.router.add_get('/api/firmware', firmware_status)
     app.router.add_post('/api/firmware/jobs', firmware_start)
     app.router.add_get('/api/firmware/builds/{build}/log', firmware_build_log)
+    app.router.add_get('/api/firmware/logs', firmware_logs)
+    app.router.add_get('/api/firmware/logs/{key}', firmware_log_file)
     app.router.add_get('/api/firmware/profiles/{file}/override', firmware_override)
     app.router.add_put('/api/firmware/profiles/{file}/override', firmware_override_save)
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
@@ -6341,13 +6581,16 @@ def create_app(manager, development=False):
 
         async def plugins_counting_start(app):
             manager.plugins.counting_task = asyncio.create_task(manager.plugins.counting())
+            # A plugin build the app restarted during starts once more by itself (Plugins.settle, docs/BUILDS.md).
+            manager.plugins.resume_task = asyncio.create_task(manager.plugins.resume_after_start())
 
         async def plugins_counting_stop(app):
-            task = getattr(manager.plugins, 'counting_task', None)
-            if task and not task.done():
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+            for name in ('counting_task', 'resume_task'):
+                task = getattr(manager.plugins, name, None)
+                if task and not task.done():
+                    task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await task
         app.on_startup.append(plugins_counting_start)
         app.on_cleanup.append(plugins_counting_stop)
 
@@ -6366,6 +6609,27 @@ def create_app(manager, development=False):
                 raise web.HTTPNotFound()
             return web.Response(body=body, content_type='image/png')
         app.router.add_get('/api/plugins/{plugin}/image', plugins_image)
+
+        async def plugins_modules(request):
+            # The plugins of a screen whose own code the preview of this number can load (plugin_module.py).
+            return web.json_response(await manager.plugins.modules_on(request.query.get('screen'), request.query.get('abi')))
+        app.router.add_get('/api/plugins/modules', plugins_modules)
+
+        async def plugins_module(request):
+            body = await manager.plugins.module(request.match_info['plugin'], request.query.get('abi'), request.query.get('screen'))
+            if body is None:
+                raise web.HTTPNotFound()
+            return web.Response(body=body, content_type='application/wasm')
+        app.router.add_get('/api/plugins/{plugin}/module', plugins_module)
+
+        async def plugins_readme_image(request):
+            # A picture of a plugin's README (a relative path in it), served by the app for the same reason as store.png.
+            found = await manager.plugins.readme_image(request.match_info['plugin'], request.match_info['path'])
+            if found is None:
+                raise web.HTTPNotFound()
+            body, media = found
+            return web.Response(body=body, content_type=media)
+        app.router.add_get('/api/plugins/{plugin}/readme/{path:.+}', plugins_readme_image)
 
         async def plugins_link(request):
             data = await request.json()
@@ -6591,6 +6855,9 @@ def create_app(manager, development=False):
     app.router.add_post('/api/doorbell/test', test_doorbell)
     app.router.add_get('/api/alarms', alarms_view)
     app.router.add_put('/api/alarms', alarms_change)
+    app.router.add_post('/api/screens/{inbox}/steps', steps_ask)
+    app.router.add_post('/api/screens/{inbox}/steps/{step}', step_answer)
+    app.router.add_get('/api/chips/{chip}/firmware', chip_firmware)
     app.router.add_get('/api/sounds', sounds_view)
     app.router.add_post('/api/sounds', sound_add)
     app.router.add_put('/api/sounds/choice', sound_choose)
@@ -6612,6 +6879,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/claude-skill.zip', download_claude_skill)
     app.router.add_post('/api/video', install_video)
     app.router.add_post('/api/video/restart', restart_for_video)
+    app.router.add_get('/api/video.zip', download_video)
     app.router.add_get('/api/events', events)
     app.router.add_put('/api/screens/{inbox}', save)
     app.router.add_post('/api/screens/{inbox}/import', import_document)
@@ -6678,7 +6946,7 @@ async def main():
         # A port another program holds turns camera images off, and nothing else.
         await picture_links.open_port(cameras)
         try:
-            await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
+            await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(), manager.update_notice.run(),
                                  manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
                                  manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(), manager.debug_sensor_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))

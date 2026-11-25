@@ -468,13 +468,28 @@ def media_contract(entity, state, said, extras, colours):
     return out
 
 
+def codepoint(icon):
+    """An icon of a row item as a number: the top bar's wire items carry it as the hex text of tile_icons.GLYPHS
+    ('F0597'), a plugin's contract as the codepoint (984471). 0 for none or anything else."""
+    if isinstance(icon, bool):
+        return 0
+    if isinstance(icon, int):
+        return icon if icon > 0 else 0
+    if isinstance(icon, str):
+        try:
+            return int(icon, 16) if icon else 0
+        except ValueError:
+            return 0
+    return 0
+
+
 def clock_contract(degrees, row):
     """The clock step: the outside temperature as the clock shows it ('21°', '' for none) and the entities of its row,
     each with its icon (a codepoint of Tessera's set, 0 for none) and its words, or `since` (seconds since 1970) for one
     that says how long ago something was."""
     items = []
     for item in row or ():
-        entry = {'icon': item.get('i', 0) if isinstance(item.get('i'), int) else 0, 'text': item.get('t', '')}
+        entry = {'icon': codepoint(item.get('i')), 'text': item.get('t', '')}
         if item.get('k') == 'ago' and isinstance(item.get('e'), int):
             entry['since'] = item['e']
         items.append(entry)

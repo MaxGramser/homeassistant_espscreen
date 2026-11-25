@@ -10,9 +10,9 @@ import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, firmwareImage, memoryText } from "../model/firmware-job";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardList } from "../model/boards";
-import { bestGrid as bestOf, boardOrientations, familyOf, goLabel, gridRange, installWays, nameClash, pluginChoice, profileRequest, wayHint, wayTarget,
-  type InstallForm, type InstallStage, type SizeFilter } from "../model/installer";
-import { elapsedText, followDetail, followTitle, installProgress, type Follow } from "../model/install-progress";
+import { areaNames, bestGrid as bestOf, boardOrientations, familyOf, firstCable, gridRange, installStages, nameClash, pluginChoice, profileRequest,
+  screenPorts, type Cable, type InstallForm, type InstallStage, type SizeFilter } from "../model/installer";
+import { elapsedText, followDetail, installProgress, journey as journeyOf, type Follow } from "../model/install-progress";
 import { nodeName } from "../model/slug";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
@@ -22,11 +22,12 @@ import { useBusy } from "./useBusy";
 import { useClock } from "./useClock";
 import { useFirmwareJob, useLineBuild } from "./useFirmwareJob";
 import { useBuildsStore } from "../stores/builds";
+import { useInventoryStore } from "../stores/inventory";
 import { useSessionStore } from "../stores/session";
 import { useUiStore } from "../stores/ui";
 
 export function useInstaller() {
-  const ui = useUiStore(), session = useSessionStore(), builds = useBuildsStore();
+  const ui = useUiStore(), session = useSessionStore(), builds = useBuildsStore(), inv = useInventoryStore();
 
   // Download: ESP Screens builds, the owner flashes the file from their own computer with ESPHome Web (ESPHOME_WEB).
   const form = reactive<InstallForm>({ board: "", orientation: "landscape", grid: { columns: 2, rows: 3 }, choices: {}, friendly_name: "", name: "",
@@ -43,6 +44,9 @@ export function useInstaller() {
     // whether to install that one again or to replace it; `replace` once replacing was chosen, until the add-on took
     // the old screen out after the write.
     known: null as KnownBoard | null, replace: null as KnownBoard | null,
+    // Whether the write wipes the flash first: a new screen yes, as ESPHome does for a new device; a screen installed
+    // again keeps its settings and its calibration, as Firmware & USB does.
+    erase: true,
   });
   // This computer (browser): the add-on builds as for Download, and this page writes the image over Web Serial, in Chrome
   // or Edge on a page served over https. The fallback for a screen that can't reach the Home Assistant machine; Download
@@ -54,14 +58,19 @@ export function useInstaller() {
   const status = ref("");
   const { busy: submitting, run: whileSubmitting } = useBusy();
   const logOpen = ref(false);
-  // The steps the form goes through. Plugins is there only for a board the add-on suggests a plugin for
-  // (plugin_defaults.py): hardware of the board that a plugin makes work, ticked, each with its reason.
+  // The steps the form goes through, one question each (model/installer.ts installStages). Plugins is there only for a
+  // board the add-on suggests a plugin for (plugin_defaults.py): hardware of the board that a plugin makes work, on, each
+  // with its reason.
   const step = ref(1);
   const suggested = ref<PluginSuggestion[]>([]);
   const picks = reactive<Record<string, boolean>>({});
-  const stages = computed<InstallStage[]>(() => ["board", "setup", ...(suggested.value.length ? ["plugins" as const] : []), "install"]);
-  const stage = computed<InstallStage>(() => stages.value[step.value - 1] || "install");
   const query = ref("");
+  // Every board, searchable, behind "I have another screen" on the first step.
+  const browse = ref(false);
+  // Where the USB cable is (model/installer.ts firstCable): the question before the way itself.
+  const cable = ref<Cable>(firstCable(support));
+  // The device name and the grid, for whoever wants them, behind More options on the name step.
+  const more = ref(false);
   const size = ref<SizeFilter>("");
   // Ready Wi-Fi can still be the wrong one: "Another network" asks for both lines again, written before the build.
   const wifiOther = ref(false);
@@ -91,8 +100,9 @@ export function useInstaller() {
   // The choices besides the orientation (a CYD's display controller): each starts at the board file's own value. A value
   // says what it is (the display controller's model), and its first value is what most boards have.
   const choices = computed(() => Object.entries(chosen.value?.choices || {}).map(([key, options]) => ({ key, options })));
-  // The first board until someone picks one, once the add-on has said which there are.
-  watch(boardRows, (rows) => { if (!boards.value[form.board] && rows.length) form.board = rows[0].key; }, { immediate: true });
+  // The first recommended board until someone picks one (app 0.4.102), once the add-on has said which there are.
+  const firstBoard = (rows: readonly (BoardChoice & { key: string })[]) => (rows.find((row) => row.status === "stable" && row.recommended) || rows[0])?.key || "";
+  watch(boardRows, (rows) => { if (!boards.value[form.board] && rows.length) form.board = firstBoard(rows); }, { immediate: true });
   // Which way the chosen board may hang, with the canvas and the cells of a page for each. A board this add-on has not
   // heard of asks nothing either, and builds lying down, which is what every board did before this choice existed.
   const orientations = computed(() => boardOrientations(boards.value[form.board]));
@@ -123,8 +133,9 @@ export function useInstaller() {
   const lineBusy = computed(() => builds.line.some((build) => build.state === "queued" || build.state === "running"));
   const goDisabled = computed(() => submitting.value || wifi.value?.state === "invalid" || form.target === "usb" ||
     (form.target === "browser" && support !== "ok") ||
-    clash.value.node || clash.value.name || (!!form.target && !data.value?.available));
-  const ways = computed(() => installWays(ports.value));
+    clash.value.node || clash.value.name || clash.value.quote || (!!form.target && !data.value?.available));
+  // The ports on the Home Assistant machine: what may be the screen, and the radios and meters that certainly are not.
+  const haPorts = computed(() => screenPorts(ports.value));
   // The drawing of the chosen screen, which way it hangs and with the name typed so far.
   const art = computed(() => {
     if (mode.value === "virtual") return { width: previewForm.width, height: previewForm.height, columns: previewForm.columns, rows: previewForm.rows };
@@ -133,16 +144,30 @@ export function useInstaller() {
 
   // ---- The job, followed every few seconds while the page is in sight: every answer, this page's own or another's ----
   const firmware = useFirmwareJob({ onAnswer: take, onError: (e) => { note.value = e.message; } });
+  // The steps this screen asks, and the one it is at.
+  const asksModel = computed(() => familyOf(boardRows.value, chosen.value).length > 1 || choices.value.length > 0);
+  const stages = computed<InstallStage[]>(() => installStages({ model: asksModel.value, hang: orientations.value.length > 0,
+    plugins: suggested.value.length > 0, wifi: askWifi.value }));
+  const stage = computed<InstallStage>(() => stages.value[step.value - 1] || "connect");
   async function refresh() {
     try { await firmware.refresh(); } catch (e: any) { note.value = e.message; }
   }
   function take(next: any) {
     data.value = next;
     if (installer.view !== "setup") return;
-    form.target = wayTarget(form.target, installer.picked, ports.value);
-    note.value = !next.available && form.target ? t("editor.installer.no_cli")
-      : form.target && lineBusy.value ? t("editor.installer.waits_turn") : wifiNote.value;
+    form.target = wayOf(cable.value);
+    note.value = !next.available ? t("editor.installer.no_cli") : lineBusy.value ? t("editor.installer.waits_turn") : "";
   }
+  /** The way for where the cable is: this browser writes it (or a file, where this browser cannot), or the add-on over
+   * the Home Assistant machine's port: the one that may be the screen, the one picked of several, or "usb" until there
+   * is one to take. */
+  function wayOf(where: Cable) {
+    if (where === "here") return support === "ok" ? "browser" : "download";
+    const { screens } = haPorts.value;
+    if (ports.value.includes(form.target) && installer.picked) return form.target;
+    return screens.length === 1 ? screens[0] : "usb";
+  }
+  watch(cable, (where) => { installer.picked = false; form.target = wayOf(where); });
   // This installation's build (useLineBuild): the line's while it knows it, the add-on's answer until then.
   const line = useLineBuild(() => installer.build);
   const job = computed<LineBuild | null>(() => line.build.value ?? (installer.asked && installer.asked.id === installer.build ? installer.asked : null));
@@ -162,10 +187,10 @@ export function useInstaller() {
   const running = computed(() => waiting.value || job.value?.state === "running" || flashing.value);
   const ok = computed(() => installer.view === "done" || (job.value?.state === "success" && (!installer.browser || flash.state.phase === "done")));
   const download = computed(() => installer.action === "download" && !installer.browser);
-  // The build is done: write it, erased first as ESPHome does for a new device. A retry after a finished build connects
+  // The build is done: write it, erased first as ESPHome does for a new device (not a screen installed again, `erase`). A retry after a finished build connects
   // again, and that writes the image it already has.
   watch(() => [job.value?.state, flash.state.phase] as const, ([state, phase]) => {
-    if (installer.browser && installer.file && afterBrowserBuild(state, phase) === "write") flash.install(installer.file, true);
+    if (installer.browser && installer.file && afterBrowserBuild(state, phase) === "write") flash.install(installer.file, installer.erase);
   });
   // A build that fails lets go of the port. Only when the build ends: a retry connects while the failed job is on screen.
   watch(() => job.value?.state, (state) => {
@@ -189,7 +214,6 @@ export function useInstaller() {
     browser: installer.browser, writing: job.value?.stage === "upload" || flashing.value, calibrate: installer.calibrate,
     built: job.value?.state === "success", stopped: memory.value?.reason === "out" || memory.value?.reason === "limit",
     name: installer.friendly, file: installer.file || "" }));
-  const progressTitle = computed(() => followTitle(follow.value));
   // Why it failed: the log's line, or the add-on's reason when it was refused at its turn (a USB cable pulled while it waited).
   const progressDetail = computed(() => followDetail(follow.value, errorLine(logs.value) || job.value?.reason || undefined));
   const image = computed(() => firmwareImage(installer.file || ""));
@@ -199,8 +223,14 @@ export function useInstaller() {
   const elapsed = computed(() => elapsedText(Number(job.value?.started) * 1000, job.value?.finished ? Number(job.value.finished) * 1000 : null, now.value));
   const artState = computed(() => running.value ? "working" : ok.value ? "done" : installer.view === "progress" ? "failed" : "idle");
   // Whether it reached the Wi-Fi, once it is on and the page waits for it.
-  const waitsForWifi = computed(() => ok.value && !download.value && installer.view === "progress");
-  const { arrival, restart } = useArrival(() => waitsForWifi.value, () => installer.file, now);
+  const waitsForWifi = computed(() => ok.value && installer.view === "progress");
+  const { arrival, restart } = useArrival(() => waitsForWifi.value, () => installer.file, now, () => download.value);
+  // The whole way until the screen works (model/install-progress.ts journey): done only once Home Assistant has it.
+  const journey = computed(() => journeyOf(progress.value, arrival.value, download.value));
+  // The screen Home Assistant has for this installation, once it does.
+  const made = computed(() => inv.inventory.screens.find((screen) => screen.node === (installer.file || "").replace(/\.yaml$/, "")) || null);
+  // The rooms of the home as names, from Home Assistant's areas (model/installer.ts areaNames).
+  const rooms = computed(() => areaNames(inv.inventory.entities || [], inv.inventory.screens.map((screen) => screen.name)));
 
   // ---- What a click does ----
   async function submit(event: Event) {
@@ -217,6 +247,10 @@ export function useInstaller() {
     if (!installer.nodeEdited) form.name = nodeName(form.friendly_name);
     await whileSubmitting(install);
   }
+  /** Keep the screen's settings without a build: it is installed later from Firmware & USB. */
+  async function later() { form.target = ""; installer.picked = true; await whileSubmitting(install); }
+  /** Build a file to put on the screen by hand, from wherever the cable is. */
+  async function downloadInstead() { form.target = "download"; installer.picked = true; await whileSubmitting(install); }
   async function install() {
     status.value = "";
     installer.known = null;
@@ -242,6 +276,26 @@ export function useInstaller() {
     installer.known = null;
     await whileSubmitting(() => build(true));
   }
+  /** Install the screen Home Assistant has for this board again, here: the port stays open, the add-on builds that screen's
+   * own profile for the chip on the cable, and the page writes it without wiping, so the screen keeps its settings, its
+   * calibration and its place in Home Assistant. The steps that follow are the ones of a new screen. A screen this app
+   * has no profile for (built elsewhere) is left to Firmware & USB, as before. */
+  async function againKnown() {
+    const known = installer.known;
+    if (!known) return;
+    if (!known.file) { keepKnown(); return; }
+    installer.known = null;
+    await whileSubmitting(async () => {
+      try {
+        Object.assign(installer, { file: known.file, apiKey: null, friendly: known.name, calibrate: !!chosen.value?.calibrate,
+          target: "browser", browser: true, chip: chosen.value?.chip || null, erase: false });
+        showProgress(await builds.askBuild({ file: known.file!, action: "download", chip_revision: flash.state.revision }));
+      } catch (err: any) {
+        status.value = err.message;
+        flash.cancel();
+      }
+    });
+  }
   /** Keep the screen Home Assistant has: let the port go and send the person to that screen's Firmware & USB. */
   function keepKnown() {
     const known = installer.known;
@@ -255,6 +309,9 @@ export function useInstaller() {
       const payload = profileRequest(form, { choices: choices.value, gridChosen: gridChosen.value, wifiMissing: askWifi.value ? wifiMissing.value : null, browser });
       // What stayed ticked on the Plugins step goes into the first firmware; what was unticked is not suggested again.
       if (suggested.value.length) payload.plugins = pluginChoice(suggested.value, picks);
+      // The chip's silicon revision, read from the board on the cable: the first firmware is built for it, so a board
+      // with the newer ESP32-P4 silicon starts as well as one with the older (docs/CHIP_REVISIONS.md).
+      if (browser && flash.state.revision !== null) payload.chip_revision = flash.state.revision;
       if (wifiOther.value) await saveWifi();
       const result = await send("firmware/profiles", "POST", payload);
       Object.assign(installer, { file: result.file, apiKey: result.api_key, friendly: form.friendly_name.trim(), calibrate: !!chosen.value?.calibrate,
@@ -273,7 +330,7 @@ export function useInstaller() {
         // Again from this click: pick the port, then write the image that is already built, or build it first.
         if (!(await flash.connect(installer.chip))) return;
         if (job.value?.state === "success") return;
-        showProgress(await builds.askBuild({ file: installer.file!, action: "download" }));
+        showProgress(await builds.askBuild({ file: installer.file!, action: "download", chip_revision: flash.state.revision }));
         return;
       }
       if (!download.value) {
@@ -291,11 +348,12 @@ export function useInstaller() {
   function reset() {
     mode.value = "physical";
     flash.cancel();
-    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null,
+    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null, erase: true,
       build: null, asked: null });
-    Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
+    Object.assign(form, { board: firstBoard(boardRows.value), orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
     bestGrid();
-    step.value = 1; query.value = ""; size.value = ""; wifiOther.value = false; restart();
+    step.value = 1; query.value = ""; size.value = ""; wifiOther.value = false; browse.value = false; more.value = false; restart();
+    cable.value = firstCable(support); form.target = wayOf(cable.value);
     for (const id of Object.keys(picks)) delete picks[id];
     for (const plugin of suggested.value) picks[plugin.id] = true;
     status.value = ""; note.value = ""; logOpen.value = false;
@@ -305,8 +363,16 @@ export function useInstaller() {
     if (installer.view === "progress" && !line.onItsWay.value) installer.view = "done";
     ui.go("");
   }
-  function back() { if (step.value > 1) step.value -= 1; }
-  function tryVirtual() { mode.value = "virtual"; step.value = 2; }
+  /** Whether the step may go on: a board, then a name nobody else has, a port that is the screen. */
+  const canGoOn = computed(() => {
+    if (stage.value === "board") return !!form.board;
+    if (stage.value === "name") return !!form.friendly_name.trim() && !clash.value.name && !clash.value.node && !clash.value.quote;
+    if (stage.value === "wifi") return !wifiMissing.value.includes("wifi_ssid") || !!form.wifi_ssid.trim();
+    return true;
+  });
+  function next() { if (canGoOn.value && stage.value !== "connect") { step.value += 1; browse.value = false; } }
+  function back() { if (stage.value === "board" && browse.value) browse.value = false; else if (step.value > 1) step.value -= 1; }
+  function tryVirtual() { mode.value = "virtual"; }
   function realScreen() { mode.value = "physical"; step.value = 1; }
   function pickWay(value: string) { form.target = value; installer.picked = true; refresh(); }
   async function saveWifi() {
@@ -331,14 +397,14 @@ export function useInstaller() {
 
   return proxyRefs({
     form, mode, installer, flash, support, logs, note, status, logOpen, step, stages, stage, suggested, picks, query, size, wifiOther, submitting, fixing,
+    browse, cable, more, haPorts, canGoOn, journey, made, rooms, job,
     boardRows, previews, previewForm, chosen, abilities, choices, orientations, range, gridChosen, siblings, clash, wifi, askWifi, wifiMissing,
-    wifiNote, goDisabled, goLabel: computed(() => goLabel(form.target)), wayHint: computed(() => wayHint(form.target, support, ports.value)),
-    ways, art, running, ok, download, memory, progressTitle, progressDetail, image, progress, elapsed, artState, arrival,
-    bestGrid, submit, retry, reset, close, back, tryVirtual, realScreen, pickWay, fixWifi, replaceKnown, keepKnown,
+    wifiNote, goDisabled, art, running, ok, download, memory, progressDetail, image, progress, elapsed, artState, arrival,
+    bestGrid, submit, retry, reset, close, next, back, tryVirtual, realScreen, pickWay, fixWifi, replaceKnown, againKnown, keepKnown, later, downloadInstead,
   });
 }
 /** What the add-on knows of the board on the cable: the screen Home Assistant has with its MAC (boards/known). */
-export type KnownBoard = { known: true; mac: string; name: string; node: string | null; screen: string | null; device_id: string; entries: string[] };
+export type KnownBoard = { known: true; mac: string; name: string; node: string | null; file?: string | null; screen: string | null; device_id: string; entries: string[] };
 export type Installer = ReturnType<typeof useInstaller>;
 // The steps work on the one installer of the view that holds them: InstallerView.vue provides it, a step injects it. It
 // is no prop of a step, since a step changes the form as a person fills it in, and a prop is read, never written.

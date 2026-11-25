@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -286,6 +287,172 @@ class ThePlugins(unittest.TestCase):
                 self.assertEqual(plugins.merge('trial', keep=False), (None, ['README.md']))
                 self.assertEqual(plugins.merge('again', keep=True), (None, ['README.md']))
                 self.assertEqual(plugins.git('status', '--porcelain'), '')
+
+
+class TheIndexRun(unittest.TestCase):
+    """The index workflow on main at a release (release_plugins.build_index): a run of the hour can push the release's
+    waiting run out, which GitHub calls cancelled; it is started once more, and any other end is the answer."""
+
+    def ends(self, *conclusions):
+        left = list(conclusions)
+        with mock.patch.object(release_plugins, 'index_run', side_effect=lambda say=print: left.pop(0)) as run:
+            return release_plugins.build_index(lambda *_: None), run.call_count
+
+    def test_a_pushed_out_run_is_started_once_more(self):
+        self.assertEqual(self.ends('cancelled', 'success'), ('success', 2))
+        self.assertEqual(self.ends('cancelled', 'cancelled'), ('cancelled', 2))
+
+    def test_any_other_end_is_the_answer(self):
+        self.assertEqual(self.ends('success'), ('success', 1))
+        self.assertEqual(self.ends('failure'), ('failure', 1))
+
+
+class TheModules(unittest.TestCase):
+    """The editor's modules at a release (release_plugins.modules_step, docs/EMULATOR_ARCHITECTURE.md "Plugins"): the
+    released editor draws a plugin's tile with a module built for its preview's number, so a release is done only when
+    every plugin main offers has its module, or the reason it has none, for that number."""
+    NUMBER = '0123456789abcdef'
+    INDEX = plugin_index('0.12', ('radar', '0.4.0', '0.12'), ('voice', '0.4.0', '0.12'), ('clock', '1.1.0', '0.10'),
+                         ('gone', '1.0.0', '0.12', 'blocked'))
+
+    def setUp(self):
+        # What the branch `modules` has for the number: the radar's module, the clock's of an older version, and why
+        # the voice plugin has none. A test's own, as some add to it.
+        self.built = {'radar': {'0.4.0': {'sha256': 'a', 'bytes': 1}}, 'clock': {'1.0.0': {'sha256': 'b', 'bytes': 1}}}
+        self.reason = {'voice': {'0.4.0': 'voice needs or brings hardware (speaker): it shows on a screen only'}}
+        # No test here reaches GitHub or waits a real second: a test that would start the plugins' workflow fails
+        # instead (the tests that answer for GitHub put their own answers in place of this).
+        for name, stand_in in (('gh', mock.Mock(side_effect=AssertionError('a test reached GitHub'))), ('time', mock.Mock())):
+            patcher = mock.patch.object(release_plugins, name, stand_in)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_a_plugin_has_a_module_or_a_reason_at_the_version_main_offers(self):
+        listing = {'modules': self.built, 'skipped': self.reason}
+        # The clock's module is of an older version; a plugin main does not offer (blocked) needs none.
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, listing), ['clock 1.1.0'])
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, {}), ['radar 0.4.0', 'voice 0.4.0', 'clock 1.1.0'])
+        listing['modules']['clock'] = {'1.0.0': {}, '1.1.0': {'sha256': 'c', 'bytes': 1}}
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, listing), [])
+        self.assertEqual(release_plugins.modules_text(self.INDEX, listing), '2 of 3 plugins have a module, 1 a reason why not')
+
+    def test_the_number_is_the_one_this_tree_s_editor_asks_for(self):
+        import json
+        shipped = json.loads((ROOT / release_plugins.PREVIEW).read_text())['plugin_abi']
+        self.assertEqual(release_plugins.preview_number(ROOT), shipped)
+        self.assertRegex(shipped, r'^[0-9a-f]{16}$')
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(release_plugins.preview_number(folder), '')            # a core before plugin modules
+            target = Path(folder) / release_plugins.PREVIEW
+            target.parent.mkdir(parents=True)
+            for text, number in (('{"firmware": "0.60.0"}', ''), ('not json', ''), ('{"plugin_abi": "../../etc"}', ''),
+                                 (f'{{"plugin_abi": "{self.NUMBER}"}}', self.NUMBER)):
+                target.write_text(text)
+                self.assertEqual(release_plugins.preview_number(folder), number, text)
+
+    @unittest.skipUnless(shutil.which('git'), 'needs git')
+    def test_the_listing_is_read_from_the_branch_the_workflow_publishes(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            run = lambda *args: subprocess.run(['git', *args], cwd=root / 'work', check=True, capture_output=True, text=True)
+            subprocess.run(['git', 'init', '--quiet', '--bare', '-b', 'main', str(root / 'origin.git')], check=True)
+            subprocess.run(['git', 'clone', '--quiet', str(root / 'origin.git'), str(root / 'work')], check=True, capture_output=True)
+            for key, value in (('user.name', 'Release test'), ('user.email', 'release-test@example.invalid')):
+                run('config', key, value)
+            (root / 'work' / 'index.json').write_text(json.dumps(self.INDEX))
+            run('add', '-A'); run('commit', '-qm', 'start'); run('push', '-q', 'origin', 'HEAD:main')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                self.assertEqual(plugins.modules(self.NUMBER), {})                   # no branch `modules` yet
+            run('checkout', '-q', '--orphan', 'modules'); run('rm', '-rqf', '.')
+            listing = root / 'work' / 'modules' / self.NUMBER / 'index.json'
+            listing.parent.mkdir(parents=True)
+            listing.write_text(json.dumps({'abi': self.NUMBER, 'modules': self.built, 'skipped': self.reason}))
+            run('add', '-A'); run('commit', '-qm', 'Modules'); run('push', '-q', 'origin', 'modules')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                self.assertEqual(plugins.modules(self.NUMBER)['modules'], self.built)
+                self.assertEqual(plugins.modules('f' * 16), {})                      # nothing built for another preview
+                self.assertEqual(release_plugins.modules_missing(plugins.index('origin/main'), plugins.modules(self.NUMBER)),
+                                 ['clock 1.1.0'])
+
+    def turns(self, *looks, ends=()):
+        """await_modules with what each look finds missing and how each turn of the workflow ends."""
+        found, ended = list(looks), list(ends)
+        with mock.patch.object(release_plugins, 'modules_run', side_effect=lambda say: ended.pop(0)) as turn:
+            return release_plugins.await_modules(lambda: found.pop(0), lambda *_: None), turn.call_count
+
+    def test_nothing_missing_starts_no_run(self):
+        self.assertEqual(self.turns([]), (([], None), 0))
+
+    def test_what_is_missing_is_built_and_looked_at_again(self):
+        self.assertEqual(self.turns(['clock 1.1.0'], [], ends=['success']), (([], 'success'), 1))
+        # A run that was under way before main's index was built did not see it: the next one does.
+        self.assertEqual(self.turns(['clock 1.1.0'], ['clock 1.1.0'], [], ends=['success', 'success']), (([], 'success'), 2))
+        # One pushed out by a run of the hour, and one that could not build another plugin: what is there decides.
+        self.assertEqual(self.turns(['clock 1.1.0'], ['clock 1.1.0'], [], ends=['cancelled', 'failure']), (([], 'failure'), 2))
+
+    def test_it_stops_after_its_turns_and_says_what_is_left(self):
+        looks = [['clock 1.1.0']] * (release_plugins.MODULE_TURNS + 1)
+        self.assertEqual(self.turns(*looks, ends=['failure'] * release_plugins.MODULE_TURNS),
+                         ((['clock 1.1.0'], 'failure'), release_plugins.MODULE_TURNS))
+
+    def workflow(self, *lists):
+        """modules_run against GitHub as `gh run list` answers it, one list per look: (its answer, the gh calls)."""
+        import json
+        import time
+        answers, calls = list(lists), []
+        def gh(*args):
+            calls.append(args[:2])
+            return json.dumps(answers.pop(0) if len(answers) > 1 else answers[0]) if args[:2] == ('run', 'list') else ''
+        clock = mock.Mock(time=time.time, monotonic=time.monotonic, strptime=time.strptime)   # real time, no sleep
+        with mock.patch.object(release_plugins, 'gh', side_effect=gh), mock.patch.object(release_plugins, 'time', clock):
+            return release_plugins.modules_run(lambda *_: None), calls
+
+    def row(self, number, status, conclusion=None, event='workflow_run', at='2020-01-01T00:00:00Z'):
+        return {'databaseId': number, 'status': status, 'conclusion': conclusion, 'event': event, 'createdAt': at}
+
+    def test_a_run_that_is_under_way_is_waited_for_and_none_is_started(self):
+        """The index run on main starts the modules run by itself: the newest waiting one runs last, so it is the one."""
+        before = [self.row(9, 'queued'), self.row(8, 'in_progress'), self.row(7, 'completed', 'success')]
+        after = [self.row(9, 'completed', 'success'), self.row(8, 'completed', 'failure'), self.row(7, 'completed', 'success')]
+        ended, calls = self.workflow(before, [self.row(9, 'in_progress'), *before[1:]], after)
+        self.assertEqual(ended, 'success')
+        self.assertNotIn(('workflow', 'run'), calls)
+
+    def test_with_no_run_under_way_one_is_started_on_main_and_that_one_is_waited_for(self):
+        import time
+        now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() + 60))
+        old = self.row(7, 'completed', 'failure', 'workflow_dispatch')              # an earlier run, not this one
+        ended, calls = self.workflow([old], [old], [self.row(8, 'in_progress', None, 'workflow_dispatch', now), old],
+                                     [self.row(8, 'completed', 'success', 'workflow_dispatch', now), old])
+        self.assertEqual(ended, 'success')
+        self.assertEqual(calls.count(('workflow', 'run')), 1)
+
+    def test_a_release_is_not_done_while_a_plugin_has_no_module(self):
+        """The step of the release itself, against a plugins repository that gets the module at the second look."""
+        class Plugins:
+            listings = [{'modules': self.built, 'skipped': self.reason}]
+            fetch = mock.Mock()
+            def index(_, ref):
+                return self.INDEX
+            def modules(inner, number):
+                self.assertEqual(number, self.NUMBER)
+                return inner.listings[0]
+        said = []
+        def built(_say):
+            Plugins.listings[0]['modules']['clock'] = {'1.1.0': {'sha256': 'c', 'bytes': 1}}
+            return 'success'
+        with mock.patch.object(release_plugins, 'modules_run', side_effect=built) as run:
+            release_plugins.modules_step(Plugins(), self.NUMBER, said.append)
+        self.assertEqual(run.call_count, 1)
+        self.assertIn('2 of 3 plugins have a module, 1 a reason why not', said[-1])
+        # And one that never gets it: the release says which plugin, for which preview, and where to look.
+        Plugins.listings[0]['modules'].pop('clock')
+        with mock.patch.object(release_plugins, 'modules_run', return_value='failure'):
+            with self.assertRaises(release_plugins.Problem) as refused:
+                release_plugins.modules_step(Plugins(), self.NUMBER, said.append)
+        for part in ('clock 1.1.0', self.NUMBER, 'ended failure', release_plugins.MODULES_WORKFLOW):
+            self.assertIn(part, str(refused.exception))
 
 
 if __name__ == '__main__':

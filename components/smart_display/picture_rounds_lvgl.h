@@ -162,6 +162,7 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
       ok = cached = false;
     }
   }
+  const bool ahead = loader.loading_rank(slot) == picture_loader::Rank::AHEAD;
   const std::string key = loader.loaded(slot, ok, now);
   if (!key.empty()) {
     lv_image_dsc_t *src = hooks.source ? hooks.source() : nullptr;
@@ -169,6 +170,14 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
     bool kept = false;
     if (src) picture_memory("after", key.substr(0, key.find('|')).c_str(), src->header.w * src->header.h);
     const auto arrival = picture_store::arrival(pictures_kept(), cached, pictures.entry(key) != nullptr, src && src->data);
+    // Fetched ahead, and the spare room it fitted is gone meanwhile (a picture for the glass came first): it is not
+    // kept, so it never makes another picture go; it loads when its page comes back (GitHub #415).
+    if (ahead && arrival == picture_store::Arrival::adopt && src && !pictures.fits_ahead(src->data_size)) {
+      ESP_LOGI("picture", "%s came for a page out of sight, but the spare room is gone: it waits for its page", key.c_str());
+      if (hooks.release) hooks.release();
+      pictures_round();
+      return;
+    }
     if (arrival == picture_store::Arrival::touch) {
       pictures.touch(key, now);
       kept = true;
@@ -251,6 +260,7 @@ inline void tile_picture_want(Widgets &w, bool glass) {
   want.slot = picture_loader::Slot::LIVE;
   want.rank = glass ? picture_loader::Rank::PAGE : picture_loader::Rank::AHEAD;
   want.every = glass ? a.every : 0;
+  want.bytes = picture_store::bytes_of(a.frame.w, a.frame.h);
   want.drawn = a.drawn;
   want.ask = [a] { tile_picture_request(a); };
   const size_t index = a.index;
@@ -265,8 +275,7 @@ inline void tile_picture_want(Widgets &w, bool glass) {
 inline void card_picture_wants() {
   // On the glass while the tiles are seen; ahead only while the store has room to spare and the screen is not busy.
   const bool seen = camera_view::pictures_on_glass(tiles_seen(), card_open(), camera_root != nullptr);
-  const bool ahead = camera_view::pictures_ahead(awake(), pictures_kept(), prepare_busy(), pictures.size(), pictures.budget,
-                                                 pressure::level_of(pressure::BACKGROUND));
+  const bool ahead = camera_view::pictures_ahead(awake(), pictures_kept(), prepare_busy(), pressure::level_of(pressure::BACKGROUND));
   const bool tiles = tile_pictures_supported() && model.ready();
   each_card([&](Widgets &w) {
 #if LV_USE_IMAGE
@@ -292,9 +301,11 @@ inline void card_picture_wants() {
     if (w.extra_mode == "media" && !w.cover_entity.empty() && w.extra && !lv_obj_has_flag(w.extra, LV_OBJ_FLAG_HIDDEN)) {
       if (t.entity != w.cover_entity || t.extra().media_picture != w.cover_mark) return;
       const size_t index = w.index;
-      loader.want(owners::tile(index), cover_picture({w.cover_entity, w.cover_mark, w.cover_size, w.cover_ground},
-                                                     glass ? picture_loader::Rank::PAGE : picture_loader::Rank::AHEAD,
-                                                     [index](picture_loader::Outcome o) { if (shows(o)) tile_cover_arrived(index); }));
+      auto cover = cover_picture({w.cover_entity, w.cover_mark, w.cover_size, w.cover_ground},
+                                 glass ? picture_loader::Rank::PAGE : picture_loader::Rank::AHEAD,
+                                 [index](picture_loader::Outcome o) { if (shows(o)) tile_cover_arrived(index); });
+      cover.bytes = picture_store::bytes_of(w.cover_size, w.cover_size);
+      loader.want(owners::tile(index), std::move(cover));
     } else if (tiles && pictured) {
       // A live tile's still waits while it asks for its stream or streams (live_tiles_round).
       if (live_tile_active(w.index)) return;
@@ -341,6 +352,8 @@ inline void loader_bind() {
     if (hooks.release) hooks.release();
   };
   loader.forget = [](const std::string &key) { picture_retire(key); };
+  // A picture for a page out of sight uses spare room and nothing else (GitHub #415, picture_store fits_ahead).
+  loader.room_ahead = [](size_t bytes, size_t coming) { return pictures_kept() && pictures.fits_ahead(bytes, coming); };
 }
 // One round: every picture says what it wants, and the loader does the rest. From camera_tick, and right after an answer
 // of the app, a download's end, a page turn, a camera that opens.

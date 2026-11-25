@@ -220,8 +220,13 @@ LINT_KEEP = {
     'ring buffer', 'took a long time',
     # The rate limiter's reason for a tap on the top bar's doorbell item (runtime_tiles.h, allowed()).
     'header doorbell',
-    # Who woke the screen, in the log (packages/core.yaml, wake_from's source).
-    'Home Assistant',
+    # Who woke the screen or sent it to standby, in the log (packages/core.yaml, wake_from's and standby_by_hand's source),
+    # and the log lines the standby writes with them (screen_standby.h, through the glass's say()).
+    'Home Assistant', "Home Assistant's Sleep", "the board's key", 'the home key held', "Home Assistant's Motion", 'the board moved',
+    'Wake from %s held: standby by hand, waiting for %u s without movement', 'Wake from %s, screen %s', 'in standby',
+    'Standby from %s ignored: touch calibration is running', 'Standby from %s',
+    # An alert's log line on a board without a backlight to blink (alert_life.h, through the glass's say()).
+    'no backlight blinks on this board',
     # The picture loader's log of a picture's steps (picture_loader.h, note()).
     'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     'history range', 'card button ', 'header navigation', 'header item', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',
@@ -276,7 +281,8 @@ def lint():
                 code = re.split(r'\s#', code)[0]
             for match in literal.finditer(code):
                 text = match.group(1)
-                if text in LINT_KEEP or re.search(r'[();]|::|->|\$\{', text):
+                # Code in a string, or a font's file name (a look's TILE_NAME_FONT_FILE): never a word on the glass.
+                if text in LINT_KEEP or re.search(r'[();]|::|->|\$\{|\.ttf$', text):
                     continue
                 if re.match(r'^[A-Z][a-z]', text) or re.search(r'[A-Za-z]{2,} [a-z]{2,}', text):
                     found.append(f'{path.relative_to(ROOT)}:{number}: "{text}"')

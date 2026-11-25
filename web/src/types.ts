@@ -233,9 +233,23 @@ export type BoardOrientation = { width: number; height: number; columns: number;
 // it is built (the first value of each is the board file's own).
 export type BoardCatalog = {
   order: number; name: string; model: string; status: "stable" | "new" | "experimental"; inch: number; touch: string;
+  // The project's pick among the stable boards (boards.yaml `recommended`): New screen shows it first and apart.
+  recommended?: boolean;
   calibrate: boolean; choices: Record<string, string[]>;
   // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
   settings?: string[];
+  // Its own steps beyond its firmware (boards.yaml `steps`, docs/BOARD_STEPS.md), as the catalog lists them.
+  steps?: { id: string; kind: string }[];
+};
+// A step of a screen's board (docs/BOARD_STEPS.md, the add-on's board_steps.view): what it is, how far it is for this
+// screen (open, put off, done, or done with something older than the app has), what the screen found of it, and what
+// its kind gives the editor to do it with.
+export type BoardStepState = "open" | "later" | "done" | "update";
+export type BoardStep = { id: string; kind: string; state: BoardStepState; found: string };
+// The kind chip_firmware: Tessera's firmware for a second chip of the board, written through the chip's own USB port.
+export type ChipFirmwareStep = BoardStep & {
+  kind: "chip_firmware"; chip: string; version: string; size: number; file: string; download: string;
+  usb: { vendor: number; product: number }[]; drive: string;
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
@@ -334,6 +348,8 @@ export type Screen = {
   plugin_ask?: PluginAsk | null;
   // A plugin for hardware its board has, suggested once (plugin_defaults.py): the card, or none.
   plugin_suggest?: PluginSuggest | null;
+  // Its board's own steps (docs/BOARD_STEPS.md): what is left to do with it beyond its firmware, and what is done.
+  steps?: BoardStep[];
   alert_action?: string; dismiss_action?: string;
   // What a doorbell's ring does here (app 0.4.91, docs/DOORBELL.md): its camera live, its alert with the picture, or the alert alone.
   doorbell?: "view" | "picture" | "plain";
@@ -415,7 +431,9 @@ export type Languages = {
 // `boards`: the boards a firmware for some boards alone is for (app 0.3.21); empty or absent for the shared firmware.
 export type ChangelogSection = { app: string; firmware: string; boards?: string[]; lines: string[] };
 // `unavailable_since`: when an unavailable entity last changed in Home Assistant, in seconds; only on an unavailable one.
-export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string; unavailable_since?: number; words?: string };
+export type Entity = { id: string; name: string; area?: string; device?: string; icon?: string; state?: string; tile?: boolean; screen_name?: string; unavailable_since?: number; words?: string;
+  /** Home Assistant's entity_category, a setting or a reading for diagnosis, and whether it is hidden there: the library's extras (core.discover). */
+  category?: "config" | "diagnostic"; hidden?: boolean };
 export type IconInfo = { name: string; cp: string; label: string };
 // What is being built for one screen right now, whoever asked (Manager.builds in the add-on): the firmware update, a
 // plugin build, or New screen and Firmware & USB. The editor's one source for "something is building". Every build waits
@@ -448,16 +466,24 @@ export type BuildServerPreview = { host: string; port: number; pin: string; name
 // in order and the last ones that ended, newest first. `check` is a YAML check. While it waits, `place` is its turn and
 // `after` the profile that builds now; while it runs, ESPHome's `stage` and the build's `memory`; once it ended, why
 // (`reason`) and the memory it had. Its log is asked by its id (stores/builds.ts loadBuildLog).
-export type LineState = "queued" | "running" | "success" | "failed" | "skipped" | "interrupted";
+export type LineState = "queued" | "running" | "success" | "failed" | "skipped" | "interrupted" | "retry";
 export type LineBuild = {
   id: number; by: Build["by"] | "check"; file: string | null; screen?: string | null; action: string; target?: string;
   state: LineState; asked: number; started: number | null; finished: number | null; phase?: string | null; plugins?: string[];
   place?: number; after?: string | null; stage?: string | null; memory?: import("./model/install-progress").BuildMemory | null;
   reason?: string | null;
+  // The key of its log kept on disk (build_logs.py), from its first ESPHome step: buildLogHref downloads it.
+  log?: string | null;
+  // An ended plugin build: whether the screen said after its restart that it runs what was built (null: it could not
+  // tell), and whether a download that did not come was tried once more.
+  verified?: boolean | null; retried?: boolean;
 } & ServerSide;
 export type VideoIntegration = {
   path: string; installed: boolean; current: boolean; version: string; loaded: string | null;
   screens: string[]; entries: number; restart?: boolean;
+  // Whether the app can write into a Home Assistant configuration (GitHub #357): false for an app in Docker on its own,
+  // which offers the integration as a zip to unpack there instead. Absent from an older app: it could.
+  home_assistant?: boolean;
 };
 
 export type Inventory = {
@@ -474,7 +500,9 @@ export type Inventory = {
   pending?: { friendly: string; file: string; node?: string; installed?: boolean; downloaded?: boolean; api_key?: string; seen?: boolean; pairing?: "adding" | "failed" | null }[];
   // `channel`: the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
   // `reinstallable`: on the dev channel, how many screens Reinstall all from dev builds again (Updater.reinstallable).
-  updates?: { target: string; busy?: boolean | string | null; pending?: number; auto?: boolean; channel?: "main" | "dev" | null; reinstallable?: number };
+  updates?: { target: string; busy?: boolean | string | null; pending?: number; auto?: boolean;
+    // The hour the nightly round may start and the hours it has from then (updates.py DEFAULT_HOUR, WINDOW_HOURS).
+    hour?: number; window?: number; channel?: "main" | "dev" | null; reinstallable?: number };
   builds?: Record<string, Build>;
   // The add-on's build line (build_queue.py, docs/BUILDS.md): what runs, what waits and the last that ended (newest
   // first), from the same look at the line as `builds`, in every live answer.
@@ -483,13 +511,18 @@ export type Inventory = {
   build_server?: BuildServerView;
   // What the builds left in /data, the automatic clean-up and whether to offer one (build_files.py, docs/BUILDS.md).
   build_files?: import("./model/build-files").BuildFilesView;
+  // Whether a build here has the memory it needs (the add-on's build_room): `tight` without a build server.
+  build_room?: { free_mb: number | null; need_mb: number; server: boolean; tight: boolean };
+  // The editor script the app serves (index-<hash>.js): a page that runs another reloads (stores/editor-version.ts).
+  editor?: string | null;
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
   // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).
   live_streams?: { used: number; most: number };
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
-  claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
+  // home_assistant false: an app that cannot reach Home Assistant's configuration offers the zip for claude.ai alone.
+  claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean; home_assistant?: boolean };
   // Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of Home Assistant that can make data; none, no bot.
   layoutbot?: { id: string; name: string }[];
   // Video in Home Assistant (Settings, screen_video.py): the tessera_video integration in Home Assistant's folder, the

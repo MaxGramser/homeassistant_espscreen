@@ -1,62 +1,76 @@
 <script setup lang="ts">
-// New screen (app 0.4.32): the steps of one form, the way a setup assistant asks: which screen (BoardStep), what it is
-// called and how it hangs (NameStep), and how it gets its firmware (WayStep). Then one page follows the installation in
-// the steps a person knows (Progress). The steps only show and hide; the form, what it sends and when, is the one it
-// always was (composables/useInstaller.ts).
-import { provide, ref, watch } from "vue";
+// New screen (app 0.4.103): a setup assistant that asks one thing at a time, the way a phone is set up. Which screen
+// (BoardStep), which version of it (ModelStep, only when there are more), its name (NameStep), which way it hangs
+// (HangStep, only glass that is not square), the plugins for its hardware (PluginsStep, only when suggested), the Wi-Fi
+// (WifiStep, only when ESPHome has none), where its USB cable is (CableStep) and that way (ConnectStep). Then one page
+// follows the screen until it works in Home Assistant (Progress). The form, what it sends and when, is
+// composables/useInstaller.ts; which steps there are is model/installer.ts installStages.
+import "../styles/new-screen.css";
+import { computed, provide, ref, watch } from "vue";
 import { t } from "../i18n";
 import { INSTALLER, useInstaller } from "../composables/useInstaller";
 import BoardStep from "./install/BoardStep.vue";
+import CableStep from "./install/CableStep.vue";
+import ConnectStep from "./install/ConnectStep.vue";
+import HangStep from "./install/HangStep.vue";
+import ModelStep from "./install/ModelStep.vue";
 import NameStep from "./install/NameStep.vue";
 import PluginsStep from "./install/PluginsStep.vue";
 import Progress from "./install/Progress.vue";
-import WayStep from "./install/WayStep.vue";
+import WifiStep from "./install/WifiStep.vue";
 import Icon from "./ui/Icon.vue";
 
 const install = useInstaller();
 provide(INSTALLER, install);
-const nameStep = ref<InstanceType<typeof NameStep> | null>(null);
-// Step two asks nothing it can't check on the spot: Next goes on only when its fields are filled in as they must be.
-function next() {
-  if (install.stage === "board") { if (install.form.board || install.mode === "virtual") install.step = 2; return; }
-  if (install.stage === "setup" && (!nameStep.value?.check() || install.clash.node || install.clash.name)) return;
-  if (install.stage !== "install") install.step += 1;
-}
-// Each step, and the installation after them, starts at its top.
+const setup = computed(() => install.installer.view === "setup");
+const physical = computed(() => install.mode === "physical");
+const showBack = computed(() => setup.value && (!physical.value || install.step > 1 || install.browse));
+function back() { if (physical.value) install.back(); else install.realScreen(); }
+// The key at the bottom: Continue, or on the last step what it does with this way.
+const goLabel = computed(() => t(install.form.target === "download" ? "editor.installer.flow.go_download" : "editor.installer.flow.go_install"));
+// Each step, and the page that follows the installation, starts at its top.
 const root = ref<HTMLElement | null>(null);
-watch(() => [install.step, install.installer.view], () => root.value?.scrollTo?.({ top: 0 }));
+watch(() => [install.step, install.browse, install.installer.view], () => root.value?.scrollTo?.({ top: 0 }));
 </script>
 
 <template>
-  <div ref="root" class="setup" id="installer" :class="install.installer.view === 'setup' ? `step-${install.step}` : 'following'">
-    <!-- The bar across the top: where in the setup you are, and the way out. -->
-    <header class="setup-head">
-      <span class="setup-brand">{{ t("editor.nav.new_screen") }}</span>
-      <ol v-if="install.installer.view === 'setup' && install.mode === 'physical'" class="setup-steps" :aria-label="t('editor.nav.new_screen')">
-        <li v-for="(key, index) in install.stages" :key="key" :class="{ now: install.step === index + 1, past: install.step > index + 1 }">
-          <button type="button" :disabled="install.step <= index + 1" @click="install.step = index + 1"><i>{{ install.step > index + 1 ? "✓" : index + 1 }}</i>{{ t(`editor.installer.steps.${key}`) }}</button>
-        </li>
+  <div ref="root" class="ob" id="installer" :class="setup ? `at-${install.stage}` : 'following'">
+    <header class="ob-head">
+      <button v-if="showBack" type="button" class="ob-back" id="setup-back" @click="back"><Icon name="chevron-left" />{{ t("editor.installer.flow.back") }}</button>
+      <span v-else></span>
+      <ol v-if="setup && physical" class="ob-dots" :aria-label="t('editor.installer.flow.step_of', { step: install.step, steps: install.stages.length })">
+        <li v-for="(key, index) in install.stages" :key="key" :class="{ on: index < install.step }" :data-stage="key"></li>
       </ol>
-      <span v-else class="setup-steps-spacer"></span>
-      <button type="button" class="icon-btn" id="close-install" :aria-label="t('editor.common.close')" :title="t('editor.common.close')" :disabled="install.flash.busy()" @click="install.close"><Icon name="close" /></button>
+      <span v-else></span>
+      <button type="button" class="ob-close" id="close-install" :aria-label="t('editor.common.close')" :title="t('editor.common.close')" :disabled="install.flash.busy()" @click="install.close"><Icon name="close" /></button>
     </header>
 
-    <form v-if="install.installer.view === 'setup'" id="install-form" class="setup-body" novalidate @submit.prevent="install.submit">
-      <BoardStep v-show="install.step === 1 && install.mode === 'physical'" @next="next" />
-      <NameStep v-show="install.step === 2" ref="nameStep" />
-      <PluginsStep v-show="install.stage === 'plugins' && install.mode === 'physical'" />
-      <WayStep v-show="install.stage === 'install' && install.mode === 'physical'" />
-      <footer class="setup-foot">
-        <button v-if="install.step > 1 && !(install.mode === 'virtual' && install.step === 2)" type="button" class="btn quiet" id="setup-back" @click="install.back">{{ t("editor.common.back") }}</button>
-        <button v-else-if="install.mode === 'virtual'" type="button" class="btn quiet" @click="install.realScreen">{{ t("editor.common.back") }}</button>
-        <span class="status-line error" id="install-status" role="status">{{ install.status }}</span>
-        <button v-if="install.mode === 'virtual'" type="submit" class="btn primary big" id="virtual-create">{{ t("editor.preview.create") }}</button>
-        <button v-else-if="install.stage !== 'install'" type="button" class="btn primary big" id="setup-next" :disabled="(install.stage === 'board' && !install.form.board) || (install.stage === 'setup' && (install.clash.name || install.clash.node))" @click="next">{{ t("editor.installer.next") }}<Icon name="arrow-right" /></button>
-        <button v-else type="submit" class="btn primary big" id="install-go" :disabled="install.goDisabled">{{ install.goLabel }}</button>
+    <form v-if="setup" id="install-form" class="ob-body" novalidate @submit.prevent="install.submit">
+      <Transition name="ob-step" mode="out-in">
+        <NameStep v-if="!physical" key="virtual" />
+        <BoardStep v-else-if="install.stage === 'board'" key="board" />
+        <ModelStep v-else-if="install.stage === 'model'" key="model" />
+        <NameStep v-else-if="install.stage === 'name'" key="name" />
+        <HangStep v-else-if="install.stage === 'hang'" key="hang" />
+        <PluginsStep v-else-if="install.stage === 'plugins'" key="plugins" />
+        <WifiStep v-else-if="install.stage === 'wifi'" key="wifi" />
+        <CableStep v-else-if="install.stage === 'cable'" key="cable" />
+        <ConnectStep v-else key="connect" />
+      </Transition>
+      <footer class="ob-foot">
+        <p v-if="install.status" class="ob-error" id="install-status" role="status">{{ install.status }}</p>
+        <button v-if="!physical" type="submit" class="ob-go" id="virtual-create">{{ t("editor.preview.create") }}</button>
+        <button v-else-if="install.stage !== 'connect'" type="button" class="ob-go" id="setup-next" :disabled="!install.canGoOn" @click="install.next">{{ t("editor.installer.flow.continue") }}</button>
+        <button v-else type="submit" class="ob-go" id="install-go" :disabled="install.goDisabled">
+          <span v-if="install.submitting" class="spin small"></span>{{ goLabel }}</button>
+        <!-- One quiet way out per step, under the key. -->
+        <button v-if="physical && install.stage === 'board' && !install.browse" type="button" class="ob-quiet" id="try-virtual" @click="install.tryVirtual">{{ t("editor.installer.try_virtual") }}</button>
+        <button v-else-if="physical && install.stage === 'name'" type="button" class="ob-quiet" id="more-options" :aria-expanded="install.more" @click="install.more = !install.more">{{ t(install.more ? "editor.installer.flow.fewer_options" : "editor.installer.flow.more_options") }}</button>
+        <button v-else-if="physical && install.stage === 'cable'" type="button" class="ob-quiet" id="install-later" :disabled="install.submitting" @click="install.later">{{ t("editor.installer.flow.later") }}</button>
+        <button v-else-if="physical && install.stage === 'connect' && install.form.target !== 'download'" type="button" class="ob-quiet" id="install-download" :disabled="install.submitting || !!install.clash.name || !!install.clash.node" @click="install.downloadInstead">{{ t("editor.installer.flow.download_instead") }}</button>
       </footer>
     </form>
 
-    <!-- The installation: the screen filling in, the steps it goes through, and ESPHome's own log behind Details. -->
     <Progress v-else />
   </div>
 </template>

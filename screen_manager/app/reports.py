@@ -41,6 +41,7 @@ from pathlib import Path
 from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
 import atomic
+import build_files
 import feedback
 import redaction
 from i18n import t
@@ -190,27 +191,29 @@ def crash_summary(lines, clock=time.time):
 
 
 class Decoder:
-    """addr2line over the ELF of a screen's own build (firmware.py keeps it under /data/build/<stem>/build or
-    .pioenvs/<node>), with the toolchain ESP-IDF wrote into its CMakeCache; a build server's build left no ELF."""
+    """addr2line over the ELF of a screen's own build (under /data/build/<stem>, where build_files.in_build says), with
+    the toolchain ESP-IDF wrote into its CMakeCache beside it; a build server's build left no ELF."""
 
     def __init__(self, data):
         self.data = Path(data)
 
     def elf(self, stem):
-        for pattern in (f'build/{stem}/build/firmware.elf', f'build/{stem}/.pioenvs/*/firmware.elf', f'build/{stem}/build/*.elf'):
-            found = sorted(glob.glob(str(self.data / pattern)))
+        # Where the update finds its images too (build_files.in_build, GitHub #463).
+        for pattern in build_files.in_build('firmware.elf'):
+            found = [Path(p) for p in glob.glob(str(self.data / 'build' / stem / pattern)) if Path(p).is_file()]
             if found:
-                return Path(found[0])
+                return max(found, key=lambda path: path.stat().st_mtime_ns)
         return None
 
     def addr2line(self, stem, chip=''):
-        cache = self.data / 'build' / stem / 'build' / 'CMakeCache.txt'
-        with contextlib.suppress(OSError, UnicodeDecodeError):
-            for line in cache.read_text().splitlines():
-                if line.startswith('CMAKE_ADDR2LINE:') and '=' in line:
-                    path = line.split('=', 1)[1].strip()
-                    if path and Path(path).exists():
-                        return path
+        elf = self.elf(stem)
+        for cache in [elf.parent / 'CMakeCache.txt'] if elf else []:
+            with contextlib.suppress(OSError, UnicodeDecodeError):
+                for line in cache.read_text().splitlines():
+                    if line.startswith('CMAKE_ADDR2LINE:') and '=' in line:
+                        path = line.split('=', 1)[1].strip()
+                        if path and Path(path).exists():
+                            return path
         family = 'riscv32' if chip in ('esp32p4', 'esp32c6', 'esp32c3', 'esp32h2') else 'xtensa'
         idf = os.environ.get('ESPHOME_ESP_IDF_PREFIX', str(self.data / 'idf'))
         for root in (idf, str(Path.home() / '.platformio' / 'packages')):
@@ -270,7 +273,7 @@ class LogBuffer(logging.Handler):
 
 # The firmware's own sensors a report holds, by their name in lower case (Reports._device_sensors).
 SENSORS = ('heap free', 'heap fragmentation', 'heap largest block', 'heap minimum free', 'psram free', 'psram largest block',
-           'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen flash', 'screen layout',
+           'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen chip', 'screen flash', 'screen layout',
            'wi-fi co-processor', 'loop stack free')
 
 

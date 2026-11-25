@@ -158,6 +158,7 @@
       "extras": "Extra",
       "microphone": "Microfono",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Riattiva se mosso",
       "backlight_pwm": "PWM retroilluminazione",
       "dimmest_level": "Livello minimo",
@@ -712,6 +713,7 @@
       "not_paired": "Questo non è uno schermo ESP associato. Ricarica la panoramica.",
       "choose_icon": "Scegli un'icona dall'elenco.",
       "skill_not_written": "Impossibile scrivere la skill in {folder} ({reason}).",
+      "skill_no_home_assistant": "La skill non può essere installata da qui: {folder} non è la cartella di configurazione di Home Assistant. Scaricala invece per claude.ai.",
       "settings": {
         "unknown": "Impostazioni dello schermo sconosciute; ricarica la pagina di gestione.",
         "invalid_value": "Valore non valido per {setting}.",
@@ -866,7 +868,10 @@
         "unknown_action": "Azione firmware sconosciuta.",
         "host": "Inserisci l'indirizzo IP o il nome host dello schermo giusto.",
         "grid": "Scegli una griglia che questo schermo accetta.",
-        "build_gone": "Questa compilazione non è più nota. Le più recenti sono in Firmware e USB."
+        "build_gone": "Questa compilazione non è più nota. Le più recenti sono in Firmware e USB.",
+        "log_gone": "Questo log di compilazione non è più conservato.",
+        "friendly_name_quote": "Il nome di uno schermo non può contenere \" né \\. Scrivi 4 pollici come 4in, per esempio.",
+        "chip_revision": "La revisione del chip deve essere un numero intero, come 302 per v3.2."
       },
       "updates": {
         "automatic": "Scegli attivo o disattivo per gli aggiornamenti automatici.",
@@ -880,7 +885,8 @@
         "all_updated": "Tutti gli schermi raggiungibili sono già aggiornati.",
         "reinstall_dev": "Reinstallare lo stesso firmware è possibile solo sul canale dev.",
         "all_on_the_way": "Ogni schermo con un aggiornamento lo ha già in arrivo.",
-        "nothing_to_reinstall": "Ora nessuno schermo può essere reinstallato: ognuno è offline, già in arrivo o senza profilo in questa app."
+        "nothing_to_reinstall": "Ora nessuno schermo può essere reinstallato: ognuno è offline, già in arrivo o senza profilo in questa app.",
+        "hour": "Scegli un'ora da 0 a 23."
       },
       "remove": {
         "not_allowed": "Questa app non può rimuovere un'integrazione da Home Assistant. Rimuovi lo schermo in Home Assistant, in Impostazioni → Dispositivi e servizi.",
@@ -923,7 +929,7 @@
         "workspace_position": "Posizione non valida sulla mappa",
         "workspace_conflict": "La mappa è stata modificata in un altro editor",
         "layout_conflict": "La disposizione è stata modificata in un altro editor; ricarica e confronta la bozza",
-        "adaptation": "La griglia dello schermo è cambiata; occorre adattare esplicitamente la disposizione",
+        "adaptation": "Questo cambio di griglia non è stato salvato. Salva lo schermo una volta con la griglia che ha ora, poi cambia la griglia. Se nel frattempo qualcuno ha salvato questo schermo in un'altra finestra, ricaricalo prima.",
         "normalization": "Le opzioni delle tessere devono essere normalizzate prima di salvare la pagina",
         "on_tile": "Pagina {page}, tessera «{tile}»: {problem}",
         "ambiguous_tile": "L’evento della tessera ha un’origine ambigua; specifica la pagina",
@@ -989,7 +995,8 @@
         "rate_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai valutarlo.",
         "rate_failed": "Le stelle non sono state inviate. Riprova tra un attimo.",
         "count_failed": "Non è stato possibile disattivare il conteggio: Tessera non era raggiungibile. Riprova tra un attimo.",
-        "forget_running": "Uno schermo usa ancora questo plugin. Toglilo prima dallo schermo."
+        "forget_running": "Uno schermo usa ancora questo plugin. Toglilo prima dallo schermo.",
+        "no_before": "Non c'è una versione precedente di questo plugin a cui tornare."
       },
       "extras": {
         "request": "Questa modifica di un extra non è possibile su questo schermo."
@@ -1017,7 +1024,8 @@
       },
       "video": {
         "not_written": "Impossibile scrivere Tessera video in {folder}: {reason}.",
-        "not_installed": "Installa prima Tessera video."
+        "not_installed": "Installa prima Tessera video.",
+        "no_home_assistant": "Tessera video non può essere installato da qui: {folder} non è la cartella di configurazione di Home Assistant. Scarica l'integrazione ed estraila lì."
       },
       "report": {
         "depth": "Scegli il rapporto di base o quello completo.",
@@ -1055,6 +1063,9 @@
         "none": "Questo schermo non riproduce nessun suono per questo. Scegline prima uno.",
         "older": "Questo schermo ha bisogno di un aggiornamento del firmware per questo.",
         "busy": "Questo schermo è in chiamata in questo momento."
+      },
+      "steps": {
+        "request": "Questo passaggio non esiste su questo schermo."
       }
     },
     "status": {
@@ -1086,10 +1097,15 @@
       "build_memory_limit": "Memoria insufficiente per compilare il firmware, anche con un compilatore alla volta. Ferma qualche componente aggiuntivo per un po' o dai più memoria alla macchina; vedi Firmware e USB.",
       "no_report": "Lo schermo non si è ripresentato con il firmware {version}; controlla lo schermo.",
       "dropped_off": "Lo schermo si è disconnesso dopo l'aggiornamento; controlla lo schermo.",
-      "updated": "Aggiornato al firmware {version}."
+      "updated": "Aggiornato al firmware {version}.",
+      "round_stopped": "Non aggiornato: uno schermo precedente nel giro non ha superato il controllo, quindi il giro si è fermato."
     },
     "notify": {
-      "update_stopped": "L'aggiornamento automatico si è fermato allo schermo {name}: {reason} Gli altri schermi non sono stati toccati."
+      "update_stopped": "L'aggiornamento automatico si è fermato allo schermo {name}: {reason} Gli altri schermi non sono stati toccati.",
+      "plugin_failed": "{names} non si è compilato su {screen}: {reason} Lo schermo resta con ciò che aveva. Apri Tessera e poi la scheda Plugin dello schermo per il motivo e il log.",
+      "updates": "Ci sono aggiornamenti pronti per i tuoi schermi. Apri Tessera per installarli.",
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} è compilato per {screen}, ma {screen} non era raggiungibile. Si installa da solo appena lo schermo torna."
     },
     "labels": {
       "built_into_screen": "Integrato nello schermo",
@@ -1286,6 +1302,10 @@
         "echo_cancellation": {
           "label": "Cancellazione eco",
           "hint": "Riduce il suono dell'altoparlante dello schermo nel segnale del microfono. Se disattivata, la cancellazione viene bypassata; microfono e full duplex restano attivi. Richiede il percorso audio AEC."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Quanto forte suona il cicalino: il campanello della porta, i suoni degli avvisi e i suoni di un plugin. Lo schermo lo conserva dopo un riavvio."
         }
       }
     },
@@ -1812,7 +1832,11 @@
         "kept": "{name} è stato rimosso. Il suo profilo {file} è ancora nella cartella ESPHome."
       },
       "home": "Panoramica dei tuoi schermi",
-      "dev_chip": "Questa è la versione dev dell'app: ogni schermo che compila viene dal ramo dev."
+      "dev_chip": "Questa è la versione dev dell'app: ogni schermo che compila viene dal ramo dev.",
+      "plugins": {
+        "failed": "Un plugin non si è compilato",
+        "updates": "{n} aggiornamento di plugin | {n} aggiornamenti di plugin"
+      }
     },
     "palette": {
       "groups": {
@@ -2045,7 +2069,22 @@
       "hint": "Trascina su una pagina, o tocca + per aggiungere al primo spazio libero. ⌘K cerca ovunque.",
       "resize": "Trascina per ridimensionare la libreria",
       "filter_label": "Filtra per tipo",
-      "no_room": "Senza stanza"
+      "no_room": "Senza stanza",
+      "tiles": {
+        "view": "Come la libreria mostra le entità",
+        "tiles": "Riquadri",
+        "list": "Elenco",
+        "tiles_title": "Mostra ogni entità come i riquadri che può essere, nelle loro dimensioni",
+        "list_title": "Mostra le entità come elenco",
+        "placed": "Su questo schermo",
+        "add_size": "Aggiungi {name} come riquadro {columns} × {rows}"
+      },
+      "extras": {
+        "title": "{n} extra | {n} extra",
+        "config": "Impostazioni",
+        "diagnostic": "Diagnostica",
+        "hidden": "Nascosta in Home Assistant"
+      }
     },
     "plugins": {
       "title": "Plugin",
@@ -2075,7 +2114,8 @@
         "failed": "Compilazione non riuscita",
         "not_running": "Non è in esecuzione sullo schermo",
         "queued": "Attende il suo turno",
-        "runs_other": "Sullo schermo gira la versione {version}"
+        "runs_other": "Sullo schermo gira la versione {version}",
+        "update_failed": "Aggiornamento {version} non riuscito"
       },
       "source": {
         "link": "Da un link",
@@ -2206,8 +2246,6 @@
         "here": "Su questo schermo",
         "add": "Aggiungi",
         "misfits": "Non adatto a questo schermo ({n}) | Non adatti a questo schermo ({n})",
-        "updates": "Un aggiornamento per {n} plugin | Aggiornamenti per {n} plugin",
-        "updates_note": "Una sola compilazione per {screen}: {names}.",
         "updates_rights": "{names} chiede permessi diversi da prima. | {names} chiedono permessi diversi da prima.",
         "update_all": "Aggiorna tutto su questo schermo"
       },
@@ -2236,7 +2274,7 @@
       },
       "folder_error": "La cartella {folder} non è ancora un plugin: {why}",
       "rebuild": "Compila di nuovo",
-      "failed": "Il firmware per {screen} non si è compilato con questo plugin. Il registro è in Firmware e USB.",
+      "failed": "Il firmware di {screen} non si è compilato con questo plugin.",
       "retry": "Riprova",
       "privacy": "Privacy",
       "consent": {
@@ -2306,6 +2344,7 @@
         "too_short": "Almeno {n} caratteri."
       },
       "tabs": {
+        "all": "Tutti",
         "tiles": "Riquadri",
         "screensavers": "Salvaschermi",
         "functions": "Funzioni",
@@ -2344,6 +2383,7 @@
         "used": "Più usati"
       },
       "none_in_tab": {
+        "all": "Ancora nessun plugin.",
         "tiles": "Ancora nessun plugin con riquadri.",
         "screensavers": "Ancora nessun plugin salvaschermo.",
         "functions": "Ancora nessun plugin per tutto lo schermo.",
@@ -2407,7 +2447,7 @@
         "none": "L'autore non ha scritto note per questo aggiornamento.",
         "history": "Tutte le versioni"
       },
-      "failed_update": "La versione {version} non si è compilata per {screen}, che è tornato a {current}, quella che esegue. Il registro è in Firmware e USB.",
+      "failed_update": "La versione {version} non si è compilata per {screen}, quindi è tornato a {current}, quella che esegue.",
       "interrupted": "L'app si è riavviata durante la compilazione.",
       "stars": {
         "label": "Stelle per {name}",
@@ -2474,6 +2514,31 @@
         "building": "{name} è in compilazione per {screen}.",
         "with_update": "{name} arriva con il prossimo aggiornamento di {screen}.",
         "declined": "Va bene. {name} resta nella pagina Plugin se lo vorrai più tardi."
+      },
+      "download_log": "Scarica il log",
+      "failures": {
+        "update": "{name} {version} non si è compilato su {screen}",
+        "added": "{name} non si è compilato su {screen}",
+        "update_note": "Lo schermo esegue ancora la versione {current}. Il log dice perché.",
+        "added_note": "Non è sullo schermo. Il log dice perché.",
+        "no_log": "Di questa compilazione non è stato conservato alcun log.",
+        "details": "Dettagli",
+        "report": "Segnala a {maker}",
+        "report_hint": "Segnalare apre una issue sul GitHub dell'autore, già compilata. Allega il log scaricato.",
+        "why": {
+          "plugin": "Si è fermato nel codice del plugin stesso, che il suo autore può correggere.",
+          "memory": "Questo Home Assistant ha esaurito la memoria durante la compilazione. Un server di compilazione su un altro computer lo compila senza quel limite.",
+          "offline": "È stato compilato, ma {screen} non l'ha preso, nemmeno dopo essere tornato. Controlla che sia acceso e sul Wi-Fi.",
+          "offline_wait": "È stato compilato, ma {screen} non era raggiungibile. Si installa da solo appena lo schermo torna.",
+          "network": "Un download necessario non è arrivato, nemmeno al secondo tentativo. Riprova tra un momento.",
+          "build": "Il log dice perché.",
+          "interrupted": "L'app si è riavviata durante la compilazione, e di nuovo nel tentativo successivo."
+        },
+        "build_server": "Configura un server di compilazione"
+      },
+      "back": {
+        "button": "Torna a {version}",
+        "not_running": "{screen} è tornato senza {name} dopo l'aggiornamento. Tornare alla versione precedente di solito aiuta."
       }
     },
     "plugin_tile": {
@@ -3466,9 +3531,14 @@
       "phases": {
         "install": "Compilazione e installazione…",
         "verify": "In attesa che lo schermo torni online…",
-        "settle": "Verifica della stabilità…"
+        "settle": "Verifica della stabilità…",
+        "ready": "Compilato in anticipo: si installa appena gli schermi precedenti superano il controllo"
       },
-      "new_language": "Nuova lingua: {name}"
+      "new_language": "Nuova lingua: {name}",
+      "restarting": "Si riavvia con il nuovo firmware, torna tra un paio di minuti",
+      "restarting_short": "Aggiornamento",
+      "editor_new": "È pronta una nuova versione dell'editor. Si carica da sola appena hai finito qui.",
+      "editor_reload": "Ricarica ora"
     },
     "settings": {
       "updates": {
@@ -3484,11 +3554,13 @@
         "all": "Aggiorna 1 schermo | Aggiorna tutti i {n} schermi",
         "whats_new": "Novità del firmware {version}",
         "auto_label": "Aggiorna automaticamente ogni notte",
-        "auto_hint": "Tra le 03:00 e le 06:00, uno schermo alla volta. Si ferma in caso di errore e lo segnala in Home Assistant.",
         "reinstall_all": "Reinstalla 1 schermo da dev | Reinstalla tutti i {n} schermi da dev",
         "reinstall_all_hint": "Compila la dev più recente per ogni schermo, uno dopo l'altro, e la installa via Wi-Fi. Su dev il numero di versione resta uguale, quindi una nuova dev non viene mai offerta come aggiornamento.",
         "reinstall_all_confirm": "Reinstallare 1 schermo dalla dev più recente? Si riavvia appena ha il firmware. | Reinstallare {n} schermi dalla dev più recente? Vengono compilati uno dopo l'altro e ognuno si riavvia appena ha il suo firmware.",
-        "reinstall_all_go": "Reinstalla"
+        "reinstall_all_go": "Reinstalla",
+        "auto_hint_hour": "Tra le {from} e le {to}, uno schermo alla volta. Si ferma a un errore e lo segnala in Home Assistant.",
+        "hour_label": "Inizia alle",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -3505,7 +3577,9 @@
         "installed": "Tessera video installata. Riavvia Home Assistant una volta per caricarla.",
         "screens": "Schermi con video: {names}",
         "no_screens": "Nessuno schermo ha ancora il video: aggiungi Fotocamera dello schermo, con la parte Video, a uno schermo P4 con fotocamera.",
-        "writes": "Scrive la cartella {path}; installare di nuovo la sostituisce. Tessera aggiunge da sé ogni schermo con video."
+        "writes": "Scrive la cartella {path}; installare di nuovo la sostituisce. Tessera aggiunge da sé ogni schermo con video.",
+        "no_home_assistant": "Questa app funziona separata da Home Assistant, quindi non può mettere a posto l'integrazione da sola. Scaricala, estrai lo zip nella cartella di configurazione di Home Assistant (dove si trova configuration.yaml) e riavvia Home Assistant.",
+        "download": "Scarica l'integrazione"
       },
       "claude": {
         "installed": "Skill installata. Claude Code la rileva subito.",
@@ -3688,18 +3762,26 @@
       "host": "Indirizzo IP o nome host",
       "download_file": "Scarica {name}",
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te.",
-      "waiting": "in attesa, prima 1 compilazione | in attesa, prima {n} compilazioni"
+      "waiting": "in attesa, prima 1 compilazione | in attesa, prima {n} compilazioni",
+      "kept_title": "Log di compilazione",
+      "kept_note": "Il log di ogni compilazione resta qui, anche dopo un riavvio dell'app. Si conservano i 40 più recenti.",
+      "kept_none": "Nessuna compilazione ancora.",
+      "kept_download": "Scarica",
+      "kept_state": {
+        "success": "Riuscita",
+        "failed": "Non riuscita",
+        "interrupted": "Interrotta, l'app si è riavviata",
+        "running": "In corso",
+        "other": "Terminata",
+        "retry": "Di nuovo, in fondo alla coda"
+      }
     },
     "installer": {
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
-      "status": {
-        "new": "Nuovo",
-        "experimental": "Sperimentale"
-      },
       "status_hint": {
-        "new": "Nuovo: finora provato su pochi schermi. Facci sapere come va.",
-        "experimental": "Sperimentale: non ancora provato su questo hardware. Facci sapere come va."
+        "new": "Nuovo: funziona su schermi reali, ma non è ancora stato provato a fondo. Facci sapere come va.",
+        "experimental": "Sperimentale: ancora troppo pochi dati da schermi reali per sapere quanto funziona bene. Facci sapere come va."
       },
       "abilities": {
         "camera": "Immagini delle telecamere",
@@ -3731,40 +3813,20 @@
       "orientation_landscape": "In orizzontale",
       "orientation_portrait": "In verticale",
       "name": "Nome",
-      "name_placeholder": "Schermo del soggiorno",
       "device_name": "Nome dispositivo",
-      "name_hint": "Ogni schermo ha il suo profilo con le sue chiavi. Quattro schermi? Ripeti questi passaggi quattro volte con un nome diverso.",
       "name_taken": "Un altro schermo si chiama già così. Home Assistant numererebbe i nomi delle entità di questo e le automazioni punterebbero allo schermo sbagliato.",
       "device_name_hint": "Lettere minuscole, cifre e trattini. Un nome diverso per ogni schermo.",
       "node_taken": "Un altro schermo ha già questo nome dispositivo. Home Assistant non distingue due dispositivi con lo stesso nome.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Nome Wi-Fi (2,4 GHz)",
         "password": "Password Wi-Fi",
-        "new": "Da compilare una sola volta: Tessera lo salva nel secrets.yaml di ESPHome e gli schermi successivi lo usano automaticamente.",
-        "missing": "Nel tuo secrets.yaml di ESPHome mancano ancora i dati Wi-Fi. Tessera compila solo le righe mancanti.",
         "ready": "Il Wi-Fi viene dal tuo secrets.yaml di ESPHome.",
         "invalid": "Il secrets.yaml nella cartella di ESPHome non è YAML valido. Correggi prima il file; non verrà sovrascritto.",
         "other": "Un’altra rete",
         "other_note": "Ogni schermo viene compilato con questa Wi-Fi; quelli che hai già la prendono al prossimo aggiornamento."
       },
-      "install_via": "Installa tramite",
-      "target": {
-        "usb": "Collega lo schermo con un cavo USB dati alla macchina di Home Assistant; compare qui da solo. È collegato al computer che stai usando? Scegli Da questo computer.",
-        "download": "Scarica il firmware e mettilo sullo schermo dal tuo computer, in Chrome o Edge. Dopo, gli aggiornamenti arrivano via Wi-Fi.",
-        "later": "Il profilo va nella cartella di ESPHome. Puoi installarlo più tardi da Firmware e USB, o da ESPHome Device Builder.",
-        "several": "Più schermi collegati: scegli la porta di questo schermo.",
-        "once": "Una sola volta via USB; dopo, tutto senza fili."
-      },
-      "install": "Installa",
-      "save_profile": "Salva profilo",
       "no_cli": "In questa installazione manca la CLI di ESPHome; puoi solo salvare il profilo.",
       "progress": {
-        "saved": "{file} è nella cartella di ESPHome",
-        "writing": "Scrittura del firmware su {name}…",
-        "building": "Compilazione del firmware…",
-        "ready": "Il firmware per {name} è pronto",
-        "installed": "Il firmware è su {name}",
         "build_failed": "Compilazione non riuscita",
         "install_failed": "Installazione non riuscita",
         "waiting": "In attesa del suo turno…"
@@ -3798,21 +3860,12 @@
         "key": "{bold} qui sotto se Home Assistant chiede una chiave di crittografia.",
         "key_bold": "Incolla la chiave API",
         "actions": "{bold} integrazione ESPHome → Configura → «Allow the device to perform Home Assistant actions». Senza questo, lo schermo vede tutto ma non controlla nulla.",
-        "actions_bold": "Consenti le azioni di HA:",
-        "tiles": "{bold} In Tessera lo schermo compare nell'elenco a sinistra entro una trentina di secondi; fino ad allora è indicato lì come «non ancora in Home Assistant».",
-        "tiles_bold": "Scegli i tuoi riquadri."
+        "actions_bold": "Consenti le azioni di HA:"
       },
       "retry": "Riprova",
-      "another": "Installa un altro schermo",
       "start_over": "Ricomincia",
       "done": "Fatto",
       "key_more": "Mostra la chiave API",
-      "steps": {
-        "board": "Schermo",
-        "setup": "Configura",
-        "install": "Installa",
-        "plugins": "Plugin"
-      },
       "pick_title": "Quale schermo hai?",
       "pick_intro": "Scegli la tua scheda. Cerca per marca, dimensione o ciò che c’è stampato sopra.",
       "search": "Cerca per marca, dimensione o modello",
@@ -3824,45 +3877,15 @@
       },
       "none_found": "Nessuno schermo corrisponde a “{query}”.",
       "try_virtual": "Ancora nessuno schermo? Prova uno schermo di anteprima",
-      "setup_title": "Rendilo tuo",
-      "install_title": "Come vuoi installarlo?",
-      "next": "Avanti",
-      "advanced": "Avanzate",
-      "ways": {
-        "ha_title": "USB su Home Assistant",
-        "ha_found": "Trovato: {port}",
-        "ha_waiting": "Collega lo schermo al computer su cui gira Home Assistant",
-        "browser_title": "Da questo computer",
-        "browser_detail": "Chrome o Edge, con lo schermo sulla USB di questo computer",
-        "download_title": "Scarica il file",
-        "download_detail": "Installalo tu con ESPHome Web",
-        "later_title": "Più tardi",
-        "later_detail": "Salva solo le impostazioni"
-      },
-      "steps_done": {
-        "prepare": "Preparazione",
-        "build": "Compilazione del firmware",
-        "write": "Scrittura sullo schermo",
-        "restart": "Avvio",
-        "done": "Fatto",
-        "download": "Pronto da scaricare"
-      },
       "elapsed": "{time} trascorsi",
       "show_log": "Mostra dettagli",
       "hide_log": "Nascondi dettagli",
-      "next_title": "E adesso",
       "model": "Che modello è?",
-      "model_hint": "È stampato sul retro della scheda. Si somigliano, ma ognuno richiede il proprio firmware.",
-      "models": "{n} modello | {n} modelli",
       "arrive": {
-        "waiting": "In attesa che {name} compaia sulla tua Wi-Fi...",
-        "seen": "{name} è sulla tua Wi-Fi. Lo sto preparando...",
-        "paired": "{name} è associato a Home Assistant.",
         "missing": "{name} non è ancora sulla tua Wi-Fi",
         "hotspot": "Guarda lo schermo: mostra un hotspot e la sua password. Collegati con il telefono e scegli lì la Wi-Fi giusta. Oppure imposta qui la Wi-Fi giusta e reinstalla.",
         "no_hotspot": "Probabilmente il nome o la password della Wi-Fi sono sbagliati. Imposta qui la Wi-Fi giusta e reinstalla, con lo schermo ancora collegato al cavo.",
-        "change": "Cambia Wi-Fi e reinstalla",
-        "failed": "Tessera non riesce ad aggiungere {name} da solo a Home Assistant. Aggiungilo tu qui sotto."
+        "change": "Cambia Wi-Fi e reinstalla"
       },
       "known": {
         "title": "Questa scheda è già in Home Assistant come {name}",
@@ -3884,13 +3907,111 @@
         "limit_title": "Memoria insufficiente per compilare il firmware",
         "limit": "La memoria è finita, anche con un compilatore alla volta. Ferma qualche componente aggiuntivo per un po' o dai più memoria alla macchina, poi riprova."
       },
-      "pair_yourself": "Aggiungilo tu in Home Assistant",
       "grid": "Griglia",
       "grid_hint": "La griglia proposta è la migliore per questo schermo. Puoi cambiarla, e l’orientamento, più tardi accanto alle pagine nell’editor, senza ricompilare.",
       "grid_best": "Torna alla migliore",
       "waits_turn": "Ora si sta compilando un altro schermo. Questo aspetta il suo turno e parte da solo subito dopo.",
-      "plugins_title": "Plugin per questo schermo",
-      "plugins_intro": "Vanno con ciò che ha questa scheda. Togli la spunta a quello che non vuoi: non viene incluso, e puoi aggiungerlo più tardi nella pagina Plugin."
+      "name_quote": "Un nome non può contenere \" né \\. Scrivi 4 pollici come 4in, per esempio.",
+      "flow": {
+        "back": "Indietro",
+        "step_of": "Passaggio {step} di {steps}",
+        "continue": "Continua",
+        "go_install": "Installa",
+        "go_download": "Crea e scarica",
+        "more_options": "Più opzioni",
+        "fewer_options": "Meno opzioni",
+        "later": "Non hai un cavo a portata di mano? Salvalo e installa più tardi",
+        "download_instead": "Preferisci fare da te? Scarica il file",
+        "pick_lead": "Scegli lo schermo che hai. Ti consigliamo questi: sanno fare tutto e li proviamo ogni giorno.",
+        "more_soon": "Altri in arrivo a breve.",
+        "square": "Quadrato",
+        "wide": "Widescreen",
+        "versions": "{n} versione | {n} versioni",
+        "other_screen": "Ho un altro schermo",
+        "which_is_it": "Quale schermo è?",
+        "status": {
+          "stable": "Collaudato",
+          "new": "Nuovo",
+          "experimental": "Sperimentale"
+        },
+        "model_title": "Quale versione hai?",
+        "model_lead": "Il {name} esiste in {n} versioni. Si assomigliano, ma ognuna ha bisogno del suo software. Sul retro della scheda c'è scritto quale hai.",
+        "choice_lead": "Le schede vendute con questo nome differiscono per un componente. La maggior parte delle persone può lasciare la scelta proposta.",
+        "model_usual": "La più venduta. Non sai quale? Scegli questa.",
+        "name_title": "Come si chiama questo schermo?",
+        "name_lead": "Di solito la stanza in cui verrà appeso.",
+        "name_placeholder": "Cucina",
+        "rooms": "Stanze in Home Assistant",
+        "hang_title": "Come sarà appeso?",
+        "hang_lead": "Puoi cambiarlo più tardi, senza reinstallare.",
+        "tiles_a_page": "{n} riquadro per pagina | {n} riquadri per pagina",
+        "plugins_title": "Questo schermo può fare di più",
+        "plugins_lead": "Con questi plugin il suo hardware può fare di più. Attiva ciò che vuoi usare.",
+        "plugins_later": "Puoi attivarli o disattivarli più tardi nella pagina Plugin.",
+        "wifi_title": "A quale Wi-Fi si collegherà?",
+        "wifi_lead": "Lo schermo ha bisogno di una rete a 2,4 GHz. La inserisci una sola volta: anche ogni schermo successivo la usa.",
+        "wifi_once": "Salvata nelle impostazioni di ESPHome e non più mostrata.",
+        "wifi_ready": "Lo schermo si collega allo stesso Wi-Fi degli altri tuoi dispositivi ESPHome.",
+        "cable_title": "Dove è collegato il cavo?",
+        "cable_lead": "Lo schermo riceve il suo software una sola volta, tramite un cavo USB. Poi tutto passa dal Wi-Fi.",
+        "cable_here": "In questo computer",
+        "cable_here_detail": "Il computer su cui stai leggendo. Funziona in Chrome e Edge.",
+        "cable_ha": "Nel tuo Home Assistant",
+        "cable_ha_detail": "Il dispositivo su cui gira Home Assistant, come un Raspberry Pi o un Home Assistant Green.",
+        "here_title": "Collega il cavo a questo computer",
+        "here_plug": "Collega lo schermo a questo computer con un cavo USB per i dati.",
+        "here_click": "Clicca qui sotto su Installa.",
+        "here_pick": "Il browser chiede quale dispositivo: scegli lo schermo e clicca su Connetti.",
+        "file_title": "Riceverai un file da mettergli sopra",
+        "file_lead": "Questo browser non può scrivere da solo su uno schermo. Tessera crea un file, che metti sullo schermo con ESPHome Web in Chrome o Edge.",
+        "ha_title": "Collega il cavo al tuo Home Assistant",
+        "ha_lead": "Non a questo computer, ma al dispositivo su cui gira Home Assistant. Lo vediamo appena è collegato.",
+        "ha_which": "Qual è lo schermo?",
+        "ha_which_lead": "Al tuo Home Assistant è collegato più di un dispositivo. Scegli lo schermo.",
+        "ha_waiting": "In attesa dello schermo",
+        "ha_waiting_detail": "Collega il cavo. Questo si aggiorna da solo.",
+        "ha_found": "Schermo trovato",
+        "ha_others": "Collegato anche: {n} altro dispositivo | Collegati anche: {n} altri dispositivi",
+        "ha_not_screen": "Probabilmente non è uno schermo, ad esempio una chiavetta Zigbee",
+        "saved_title": "{name} è salvato",
+        "ready_title": "{name} è pronto",
+        "ready_lead": "È acceso, sul tuo Wi-Fi e fa parte di Home Assistant. Ora scegli cosa mostrare.",
+        "ha_ask_title": "Home Assistant ti chiede qualcosa su {name}",
+        "now": {
+          "build": "{name} si sta preparando",
+          "write": "Il software va su {name}",
+          "write_self": "Metti il software su {name}",
+          "wifi": "{name} si sta avviando",
+          "ha": "{name} viene aggiunto a Home Assistant"
+        },
+        "lead": {
+          "build": "Di solito ci vogliono da 5 a 20 minuti, la prima volta di più. Puoi chiudere questa finestra: continua da solo.",
+          "build_browser": "Di solito ci vogliono da 5 a 20 minuti, la prima volta di più. Lascia aperta questa pagina: mette il software sullo schermo appena è pronto.",
+          "write": "Lascia il cavo collegato finché non ha finito.",
+          "write_self": "Scarica il file e mettilo sullo schermo con ESPHome Web. Questa pagina vede lo schermo appena è sul tuo Wi-Fi.",
+          "wifi": "Si avvia e si collega al tuo Wi-Fi. Di solito ci vuole meno di un minuto.",
+          "wifi_calibrate": "Si avvia e si collega al tuo Wi-Fi. Prima ti chiede di toccare alcune croci sullo schermo: così impara dove si trova il tuo dito.",
+          "ha": "Tessera lo aggiunge a ESPHome in Home Assistant e gli permette di controllare la tua casa. Non devi fare nulla."
+        },
+        "steps": {
+          "build": "Creazione del software",
+          "write": "Installazione sullo schermo",
+          "write_self": "Lo metti tu sullo schermo",
+          "wifi": "Avvio e connessione al tuo Wi-Fi",
+          "ha": "Aggiunta a Home Assistant"
+        },
+        "may_close": "puoi chiudere questa finestra",
+        "keep_open": "lascia aperta questa pagina finché non è sullo schermo",
+        "show_log": "Cosa succede esattamente",
+        "to_pages": "Crea le sue pagine",
+        "another": "Aggiungi un altro schermo",
+        "close_follow": "Chiudi, continua da solo",
+        "recap": {
+          "wifi": "Sul tuo Wi-Fi",
+          "ha": "In Home Assistant",
+          "actions": "Può controllare la tua casa"
+        }
+      }
     },
     "alerts": {
       "intro": "Ogni schermo ha l'azione {action}. Mette una scheda sopra tutto, riattiva lo schermo e mantiene la retroilluminazione a luminosità normale finché qualcuno non tocca il pulsante o non scade il timeout. Home Assistant da solo non mostra spiegazioni né menu a tendina per le azioni ESPHome; qui trovi tutto quello che puoi compilare.",
@@ -4329,7 +4450,6 @@
     },
     "webflash": {
       "target": "Installa da questo browser (Chrome o Edge)",
-      "hint": "Collega lo schermo a questo computer con un cavo USB dati. Tessera compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. In seguito gli aggiornamenti passano via Wi-Fi.",
       "firmware_hint": "Collega lo schermo a questo computer con un cavo USB dati. Tessera compila il firmware, poi questa pagina lo installa sullo schermo, in Chrome o Edge. Lo schermo mantiene le impostazioni e la calibrazione del tocco. Così recuperi anche uno schermo che si riavvia di continuo e non va mai online.",
       "go": "Connetti e installa",
       "building": "La compilazione può richiedere 20 minuti o più su un computer di Home Assistant come un Raspberry Pi, soprattutto la prima volta. È normale. Lascia aperta questa scheda e lo schermo collegato: questa pagina installa il firmware appena è pronto.",
@@ -4353,8 +4473,11 @@
         "blocked": "Il browser non consente a questa pagina di usare le porte USB. Controlla le autorizzazioni del sito nel browser, oppure scegli Scarica.",
         "busy": "La porta dello schermo è usata da un altro programma o scheda, come un monitor seriale o ESPHome Web. Chiudilo e riprova.",
         "connect": "La scheda non ha risposto. Tieni premuto il pulsante BOOT sulla scheda mentre scegli la porta, finché l'installazione non inizia, e riprova. Anche scollegare e ricollegare il cavo può aiutare.",
+        "silent": "Su quella porta non ha risposto nulla entro {seconds} secondi, quindi non è stato installato nulla. Se il browser ha mostrato più di una porta per lo schermo, riprova e scegli l'altra. Altrimenti tieni premuto il pulsante BOOT sulla scheda mentre scegli la porta e riprova.",
+        "other_chip": "Quella porta appartiene al secondo chip della scheda (un RP2040), non al chip su cui gira lo schermo. Non è stato installato nulla. Riprova e scegli l'altra porta della scheda; su un SenseCAP Indicator è quella chiamata USB Serial.",
         "wrong_chip": "La scheda collegata ha un chip {found}, ma il firmware di questo schermo è per un {expected}. Collega lo schermo giusto o scegli la sua scheda.",
         "wrong_image": "Il firmware compilato da Tessera è per un {expected}, ma la scheda collegata ha un {found}. Non è stato scritto nulla.",
+        "wrong_revision": "Il firmware creato da Tessera è per le revisioni del chip da {from} a {to}, ma il chip sul cavo è {found}. Non è stato scritto nulla. Ricomincia, così Tessera lo crea per questo chip.",
         "disconnected": "Lo schermo è stato scollegato. Ricollegalo e riprova.",
         "download": "Impossibile recuperare il firmware da Tessera: {error}",
         "failed": "L'installazione non è riuscita: {error}"
@@ -4558,7 +4681,19 @@
           "bundle": "non è stato possibile preparare lo YAML"
         }
       },
-      "icons": "Compila con le sue icone"
+      "icons": "Compila con le sue icone",
+      "steps": {
+        "title": "Passi della compilazione",
+        "wait": "Attende il suo turno",
+        "build": "Compila",
+        "send": "La invia allo schermo",
+        "confirm": "Lo schermo conferma",
+        "on": "su {name}",
+        "send_waits": "Attende il turno per l'installazione"
+      },
+      "done": "{screen} è pronto.",
+      "done_confirmed": "{screen} è pronto e dice di eseguire ciò che è stato compilato.",
+      "show_why": "Mostra perché"
     },
     "grid": {
       "title": "Griglia",
@@ -4592,7 +4727,11 @@
       "leave": "Togli {name} dalla selezione",
       "copy": "Copia",
       "hint": "{copy} copia i riquadri con tutte le loro impostazioni. Scegli una pagina o una cella, qui o su un altro schermo, e premi {paste}.",
-      "remove": "Rimuovi riquadro | Rimuovi {n} riquadri"
+      "remove": "Rimuovi riquadro | Rimuovi {n} riquadri",
+      "shared": {
+        "hint": "Una modifica qui vale per tutti i {n} riquadri.",
+        "mixed": "Diverso"
+      }
     },
     "menu": {
       "cut": "Taglia",
@@ -4746,7 +4885,14 @@
         "off": "Disattiva"
       },
       "alarm": "Allarme",
-      "calls": "Chiamate"
+      "calls": "Chiamate",
+      "parts": {
+        "automations": "{n} automazione | {n} automazioni",
+        "no_automation": "Ancora nessuna automazione",
+        "alarm_panels": "{n} pannello d'allarme | {n} pannelli d'allarme",
+        "no_alarm": "Nessun pannello d'allarme in Home Assistant",
+        "rings_with": "Squilla con {sound}"
+      }
     },
     "doorbell": {
       "intro": "Qualcuno suona e i tuoi schermi mostrano la porta. Un'automazione invia l'evento con la telecamera del campanello: uno schermo P4 si riattiva, suona un avviso e apre la telecamera dal vivo con l'audio; ogni altro schermo mostra la sua immagine in un avviso. Funziona qualsiasi campanello, qualunque sia il trigger.",
@@ -5161,6 +5307,82 @@
         "soft_ends": "Bordi morbidi",
         "even_level": "Volume uniforme",
         "repeats": "Si ripete"
+      }
+    },
+    "updates_card": {
+      "title": "{n} aggiornamento per {screen} | {n} aggiornamenti per {screen}",
+      "one": "Una compilazione di {screen}.",
+      "one_build": "Tutto in una compilazione di {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} è offline. Si potrà aggiornare quando torna.",
+      "go_all": "Aggiorna tutto"
+    },
+    "build_room": {
+      "title": "Questo Home Assistant potrebbe non avere memoria a sufficienza per compilare",
+      "text": "Ha {free} GB liberi e una compilazione richiede circa {need} GB. Può fallire o rallentare Home Assistant. Un server di compilazione su un altro computer lo evita, come anche aggiornare lo schermo da ESPHome Device Builder su un computer.",
+      "server": "Server di compilazione"
+    },
+    "history": {
+      "title": "Ultima compilazione di questo schermo | Ultime {n} compilazioni di questo schermo",
+      "by": {
+        "update": "Aggiornamento",
+        "plugins": "Plugin",
+        "install": "Installazione",
+        "icons": "Icone",
+        "other": "Compilazione"
+      }
+    },
+    "steps": {
+      "later": "Più tardi",
+      "set_up": "Configuralo",
+      "update": "Aggiornalo",
+      "not_now": "Non ora",
+      "not_done": "non fatto",
+      "kept": "Va bene. Aspetta nel menu di {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Scrivi il firmware",
+          "again": "Riprova",
+          "cable": "Collega prima il cavo USB dello schermo a questo computer.",
+          "phase": {
+            "port": "Scegli il chip nell'elenco del browser. Mostra solo questo.",
+            "restart": "Il chip si riavvia come unità USB.",
+            "drive": "Ora il chip è un'unità USB chiamata {drive}. Sceglila e lascia che questa pagina ci scriva.",
+            "write": "Scrittura del firmware.",
+            "wait": "Il chip si avvia. In attesa che lo schermo lo trovi.",
+            "wait_chip": "Il chip esegue {version}. In attesa che lo schermo lo trovi."
+          },
+          "choose_drive": "Scegli l'unità {drive}",
+          "wrong_drive": "Quella non è l'unità {drive}. Scegli l'unità stessa, in cima all'elenco, non una cartella di questo computer.",
+          "drive_there": "L'unità {drive} c'è già",
+          "done": "Il firmware {version} è sul chip e lo schermo l'ha trovato.",
+          "try": "Riproduci un suono",
+          "errors": {
+            "no_port": "Non è stata scelta nessuna porta. Con il cavo USB dello schermo collegato a questo computer, l'elenco del browser mostra il chip.",
+            "port": "La porta del chip non si è aperta. Chiudi ogni altro programma che la usa, poi riprova.",
+            "file": "Il firmware non è arrivato da Tessera. Riprova.",
+            "write": "Non è stato possibile scrivere il file sull'unità. Riprova.",
+            "silent": "Lo schermo non ha trovato il chip. Togli il cavo USB, rimettilo e riprova."
+          },
+          "hand": {
+            "insecure": "Questa pagina è stata aperta in semplice http, quindi il browser non le dà nessuna porta USB. Aperta in https in Chrome o Edge (il tuo indirizzo Home Assistant Cloud va bene), bastano due clic. Si può fare anche a mano:",
+            "browser": "Questo browser non può raggiungere le porte USB. In Chrome o Edge su un computer bastano due clic. Si può fare anche a mano:",
+            "download": "Scarica {name}",
+            "drag": "Compare un'unità chiamata {drive}. Trascinaci sopra il file. L'unità sparisce da sola e il chip si avvia.",
+            "did": "Fatto"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware del cicalino",
+        "title": "Dai al cicalino il suo suono",
+        "lead": "Un secondo chip in questo schermo pilota il cicalino. Con il firmware di Tessera su quel chip, il cicalino suona il campanello della porta e i suoni dei tuoi avvisi. Ci vuole mezzo minuto.",
+        "note": "Questo sostituisce il firmware di Seeed su quel chip, che puoi riavere da Seeed. Quello di Tessera non legge i sensori di un D1S o D1Pro.",
+        "button": "Togli il cavo USB dallo schermo. Tieni premuto con una graffetta il pulsante dentro il piccolo foro della scocca e rimetti il cavo, con l'altro capo in questo computer.",
+        "done_title": "Il cicalino ha il suo suono",
+        "done_lead": "Scegli in Eventi che cosa suona per gli avvisi e per il campanello.",
+        "update_title": "Un firmware più recente per il cicalino",
+        "update_lead": "Tessera ha un firmware più recente di quello installato per il chip che pilota il cicalino di questo schermo. Ci vuole mezzo minuto."
       }
     }
   }

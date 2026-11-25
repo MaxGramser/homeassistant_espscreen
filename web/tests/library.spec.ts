@@ -2,7 +2,7 @@
 // the kinds and rooms with their counts, and how an entity is named and marked.
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
-import { FILTERS, entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
+import { FILTERS, isExtra, entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
   type Entry, type LibraryFilter } from "../src/model/library";
 
 const ENTRIES: Entry[] = [
@@ -109,5 +109,23 @@ describe("the Call tile in the library", () => {
   it("is offered only to a screen that says it can call", () => {
     expect(libraryBase(entries, { ...(base as object), callTiles: true } as never).map((e: { id: string }) => e.id)).toContain("screen.call");
     expect(libraryBase(entries, { ...(base as object), callTiles: false } as never).map((e: { id: string }) => e.id)).not.toContain("screen.call");
+  });
+});
+
+describe("a device's extras in the library", () => {
+  // Home Assistant's device page puts a setting (entity_category config), a reading for diagnosis and a hidden entity
+  // apart from the controls; the library lists them after the rest of their room, where Library.vue folds them.
+  const extras: Entry[] = [
+    { id: "select.hue_start", name: "Hue Power-on behaviour", area: "Hall", category: "config" },
+    { id: "sensor.hue_signal", name: "Hue Signal", area: "Hall", category: "diagnostic" },
+    { id: "light.hidden", name: "Hidden lamp", area: "Hall", hidden: true },
+    { id: "light.hue", name: "Hue", area: "Hall" },
+  ];
+  it("tells an extra from a control", () => {
+    expect(extras.map(isExtra)).toEqual([true, true, true, false]);
+  });
+  it("stands them after the rest of their room, and after an equal match in a search", () => {
+    expect(libraryGroups(extras, true)[0].entities.map((e) => e.id)).toEqual(["light.hue", "select.hue_start", "sensor.hue_signal", "light.hidden"]);
+    expect(libraryMatches(extras, "", "hue").map((e) => e.id)).toEqual(["light.hue", "select.hue_start", "sensor.hue_signal", "light.hidden"]);
   });
 });

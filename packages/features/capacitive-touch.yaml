@@ -61,9 +61,7 @@ substitutions:
         lv_indev_set_read_cb(indev, filtered);
       }
     }
-    id(last_touch_ms) = millis();
-    id(last_use_ms) = millis();
-    id(display_dimmed) = false;
+    screen_standby::the().touch(millis());
   # what LVGL's gesture over the tiles does
   BOOT_PAGE_GESTURE: |-
     // A quick flick or wipe over the tiles is never a tap (firmware 0.2.65+). LVGL reports it as a gesture that
@@ -78,7 +76,7 @@ substitutions:
       if (runtime_tiles::captured_slider) return;
       screen_input::touch_guard.consume();
       ESP_LOGI("touch", "flick: no tap");
-      if (id(display_dimmed)) return;
+      if (screen_standby::the().in_standby()) return;
       if (auto *input = lv_indev_active()) lv_indev_wait_release(input);
     }, LV_EVENT_GESTURE, nullptr);
 

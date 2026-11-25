@@ -30,6 +30,7 @@ class Firmware:
 
     def start(self, data):
         assert not (self.task and not self.task.done()), 'two builds at once'
+        self.check(data)   # as Firmware.start does: a refusal before anything runs
         self.calls.append((data['file'], data['action']))
         self.job = {'file': data['file'], 'action': data['action'], 'state': 'running', 'started': len(self.calls)}
         self.logs = [f"ESPHome: {data['action']} {data['file']}"]
@@ -255,7 +256,23 @@ class TheLine(unittest.IsolatedAsyncioTestCase):
         await line.close()
         self.assertEqual((running.state, waiting.state), ('interrupted', 'interrupted'))
         self.assertTrue(running.done.is_set())
-        owner.firmware.task.cancel()
+        if owner.firmware.task:
+            owner.firmware.task.cancel()
+
+
+class ARefusedStep(unittest.IsolatedAsyncioTestCase):
+    async def test_leaves_no_step_and_no_log_behind(self):
+        with tempfile.TemporaryDirectory() as data:
+            from build_logs import BuildLogs
+            owner = Owner()
+            owner.build_logs = BuildLogs(data)
+            line = owner.build_queue
+            build = line.add('update', 'missing.yaml', one_step(line, 'missing.yaml'), screen='gone')
+            await line.idle()
+            self.assertEqual(build.state, 'failed')
+            self.assertFalse(build.stepped, 'nothing ran')
+            self.assertIsNone(build.log)
+            self.assertEqual(owner.build_logs.listed(), [])
 
 
 class ThePageHears(unittest.TestCase):

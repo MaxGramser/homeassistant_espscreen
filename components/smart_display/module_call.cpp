@@ -11,6 +11,7 @@
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
 #include "module_call.h"
+#include "volume_lift.h"
 #include "hw.h"
 #include "plugin_host.h"
 #include "settings_screen.h"
@@ -28,8 +29,6 @@ namespace runtime_tiles {
 namespace call {
 
 std::function<void(const std::string &, const std::string &, bool, const std::string &)> report;
-std::function<float()> volume_get;
-std::function<void(float)> volume_set;
 std::function<bool()> ring_on;
 std::function<bool()> switch_on;
 std::function<void(bool)> echo_cancel;
@@ -86,8 +85,9 @@ void say(const char *action, const std::string &to = "", bool video = false) {
 esphome::speaker::Speaker *speaker_out = nullptr;
 tessera::SoundPlayer player;
 tessera::Sound ring_sound;
-// While it rings the speaker's volume stands at the top; ring_stop puts back what it was, from one place.
-float ring_volume_restore = -1.0f;
+// While it rings the speaker's volume stands at the top: a lift of the call's (volume_lift.h), which ring_stop takes down.
+// The lifts keep what the volume was, so an alarm of a plugin ringing at the same moment never leaves the speaker loud.
+constexpr uintptr_t RING_LIFT = 1;
 roomy::List<int16_t> ring_samples;
 void make_ring() {
   // Two bursts of a bright two-tone ring at full scale, made once at 16 kHz. Bright on purpose: these small speakers carry 1.4 to
@@ -134,8 +134,10 @@ bool ring_tone(uint32_t now) {
 }
 void ring_stop() {
   player.stop();
-  if (ring_volume_restore >= 0.0f && volume_set) volume_set(ring_volume_restore);
-  ring_volume_restore = -1.0f;
+  if (volume_lift::the().up(RING_LIFT)) {
+    volume_lift::the().drop(RING_LIFT);
+    ESP_LOGI(TAG, "ring done, volume %.3f", volume_lift::the().now());
+  }
 }
 void ring_once() {
   if (ring_on && !ring_on()) return;
@@ -666,7 +668,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
     claim_audio();
     show_out();
   } else if (state == "ring") {
-    if (plugin_host::wake) plugin_host::wake("call");
+    if (plugin_host::wake) plugin_host::wake("call", false);
     settings_screen::close();
     close_list();
     stage = Stage::RING;
@@ -674,9 +676,10 @@ void on_call(const std::string &state, const std::string &key, const std::string
     want_tone(ringtone);
     ring_since = esphome::millis();
 #ifdef USE_SPEAKER
-    if (volume_get && volume_set && ring_volume_restore < 0.0f && (!ring_on || ring_on())) {
-      ring_volume_restore = volume_get();
-      if (ring_volume_restore < ring_top) volume_set(ring_top);
+    if (!volume_lift::the().up(RING_LIFT) && (!ring_on || ring_on())) {
+      const float before = volume_lift::the().now();
+      const bool lifted = volume_lift::the().lift(RING_LIFT, ring_top);
+      ESP_LOGI(TAG, "ring volume %.3f to %.3f (top %.3f)%s", before, volume_lift::the().now(), ring_top, lifted ? "" : ", not lifted");
     }
 #endif
     show_ring();

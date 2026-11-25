@@ -41,4 +41,9 @@ defineExpose({ open });
 @media (max-width: 640px) {
   .funding { left: 12px; right: 12px; bottom: 12px; width: auto; }
 }
+/* Under a finger the two keys that send the card away get room around them (app.css, "A finger"). */
+@media (pointer: coarse) {
+  .funding-later { position: relative; }
+  .funding-close::after, .funding-later::after { content: ""; position: absolute; inset: -12px -10px; }
+}
 </style>

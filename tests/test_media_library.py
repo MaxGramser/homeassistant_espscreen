@@ -86,6 +86,18 @@ class TheLibrary(unittest.TestCase):
         self.assertEqual([i['icon'] for i in folder['items']][:4], ['F0CB8', 'F0803', 'F0025', 'F0387'])
         self.assertTrue(all(i['expand'] and not i['play'] and not i['thumb'] for i in folder['items']))
 
+    def test_a_proxy_thumbnail_loses_its_signature_and_keeps_the_rest_of_its_query(self):
+        """GitHub #456: Lyrion's thumbnails carry the token first; the rest of the address must stay a query."""
+        def thumb(address):
+            return media_library.item_of({'title': 'Spotty', 'media_content_id': 'x', 'media_content_type': 'app',
+                                          'can_play': False, 'can_expand': True, 'thumbnail': address})['thumb']
+        base = '/api/media_player_proxy/media_player.kitchen/browse_media/app/synthetic'
+        self.assertEqual(thumb(f'{base}?token=abc.def&media_image_id=s_1'), f'{base}?media_image_id=s_1')
+        self.assertEqual(thumb(f'{base}?media_image_id=s_1&token=abc'), f'{base}?media_image_id=s_1')
+        self.assertEqual(thumb(f'{base}?token=abc&cache=7f&authSig=x'), f'{base}?cache=7f')
+        self.assertEqual(thumb(f'{base}?token=abc'), base)
+        self.assertEqual(thumb('https://i.scdn.co/image/a?token=keep'), 'https://i.scdn.co/image/a?token=keep')
+
     def test_a_folder_holds_at_most_48_and_only_what_a_screen_can_use(self):
         answer = albums(60)
         answer['children'][0]['can_play'] = answer['children'][0]['can_expand'] = False  # neither plays nor opens

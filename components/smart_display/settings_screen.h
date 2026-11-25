@@ -54,8 +54,8 @@ inline bool dimmable = true;
 // the boost converter behind its LEDs, and switching that on from a dark screen pulls the 3.3 V rail under the
 // brownout level: measured on 2026-09-21, every wake from a dark standby ended in a reset or a dead I2C bus. A
 // board that says CAN_STANDBY false never dims, so it has no standby and no night (night is standby with a clock):
-// these rows, the entities behind them and the add-on's Settings leave them out, and dim_display in
-// packages/core.yaml does nothing there.
+// these rows, the entities behind them and the add-on's Settings leave them out, and screen_standby::enter does
+// nothing there.
 inline bool can_standby = true;
 // What this screen is able to do, in the words ESP Screens reads from its "Screen features" sensor (firmware
 // 0.2.99+): one word per ability, space separated, and "none" for a screen that can do none of them. The add-on

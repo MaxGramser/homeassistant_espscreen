@@ -18,22 +18,22 @@ Waveshare's ESP32-P4 boards come with two revisions of the chip, and firmware fo
 first lines of the USB log name it: "chip revision: v1.3", or "chip revision: v3.x". This board file builds for the
 earlier silicon (v1.3), which the board it was run on has.
 
-Nobody has run this board on rev3 silicon (v3.0 or higher), and there is no board file for that yet. What is known
-comes from its neighbours:
+Nobody has run this board on rev3 silicon (v3.0 or higher) yet. Tessera reads the chip when it installs a screen and
+builds for the revision it finds ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)): on rev3 that is both changes its neighbours
+needed, so a rev3 board needs no board file or Override YAML of its own. What is known comes from those neighbours:
 
 - On the 10.1-inch of the same series, rev3 needed two changes, not one: the chip revision (`engineering_sample:
   false`) and the repository's display driver, `components/mipi_dsi_v3`, in place of ESPHome's `mipi_dsi`
   ([WAVESHARE101.md](WAVESHARE101.md), "Which board"). With the chip revision alone, a unit of chip revision v3.2 got
-  as far as "Performing bus recovery" in the USB log and then stopped in `esp_lcd_new_dsi_bus`, again and again. This
-  board file uses ESPHome's `mipi_dsi` too, so the same is likely here, but it is not proven.
+  as far as "Performing bus recovery" in the USB log and then stopped in `esp_lcd_new_dsi_bus`, again and again. On
+  rev3 this board now takes `mipi_dsi_v3` as well.
 - The [7B](WAVESHAREP47B.md) (`packages/boards/wavesharep47b.yaml`) is the board to compare with: another panel, but
   the same main board family, and it builds for rev3 with `mipi_dsi_v3`.
 
-So setting `engineering_sample: false` in the Override YAML, the advice this page used to give, is unproven and on
-the 10.1-inch was not enough. If you have a rev3 board, the log tells which case it is: a restart straight after the
+If you have a rev3 board, please report how it runs (see [the open issue](open-issues/waveshare-7-inch-rev3.md) for
+what helps). A screen that stays dark has a USB log that tells which part it is: a restart straight after the
 bootloader is the chip revision; "Performing bus recovery" followed by a stop in `esp_lcd_new_dsi_bus` is the display
-driver. Please report what yours shows (see [the open issue](open-issues/waveshare-7-inch-rev3.md) for what helps),
-so the board can get a rev3 file once one has been seen to run.
+driver.
 
 ## Install
 

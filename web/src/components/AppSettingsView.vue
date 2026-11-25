@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Everything around the screens, in parts (docs/PAGES.md, "Settings"): the page opens on a list of them, one row each
+// Everything around the screens, in parts (docs/PAGES.md, "Pages of parts"): the page opens on a list of them, one row each
 // with what is set now, and a part opens as a page of its own at #/settings/<part> (model/settings-parts.ts).
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
@@ -9,21 +9,23 @@ import BuildLog from "./BuildLog.vue";
 import BuildFilesCard from "./BuildFilesCard.vue";
 import BuildServerCard from "./BuildServerCard.vue";
 import Icon from "./ui/Icon.vue";
-import SettingsHead from "./SettingsHead.vue";
-import SettingsLink from "./SettingsLink.vue";
-import type { IconName } from "../model/ui-icons";
-import { PART_LOOK, partCards, type AppSettingsPart } from "../model/settings-parts";
+import PartsPage from "./parts/PartsPage.vue";
+import { PART_LOOK, type AppSettingsPart } from "../model/settings-parts";
+import type { PartRow } from "../model/parts";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
 import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
+import { useSessionStore } from "../stores/session";
+import { text } from "../model/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const builds = useBuildsStore();
 const inv = useInventoryStore();
 const plugins = usePluginsStore();
+const session = useSessionStore();
 // What this app shares about plugins (plugin_likes.py): counting the plugins it runs, and the stars card's asking.
 const sharing = computed(() => inv.inventory.plugin_sharing || null);
 const sharingBusy = ref(false);
@@ -36,6 +38,15 @@ async function share(what: "counting" | "asking", on: boolean) {
 }
 
 const u = computed(() => inv.inventory.updates);
+// The hour as Home Assistant's clock writes it (24 or 12 hours), for the nightly round's start.
+const hourText = (h: number) => new Date(2000, 0, 1, h, 0).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+// When the nightly round may run, as the add-on says it (its start hour and the hours it has from then).
+const night = computed(() => (u.value?.hour !== undefined && u.value.window !== undefined
+  ? { from: hourText(u.value.hour), to: hourText((u.value.hour + u.value.window) % 24) } : null));
+// The screens with plugin updates, each with what it gets (plugins.updatesEverywhere); a row opens that screen's tab.
+const pluginUpdates = computed(() => plugins.updatesEverywhere.map((row) => ({ screen: row.screen,
+  names: row.plugins.map((p) => `${text(p.name)} ${p.version}`).join(", ") })));
+const openPlugins = (screen: (typeof inv.inventory.screens)[number]) => void session.openTab(screen.id, "plugins");
 const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
 const running = computed(() => inv.inventory.screens.find((s) => s.id === inv.inventory.updates?.busy));
 // Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
@@ -153,45 +164,27 @@ const haLine = computed(() => [
   ...(inv.pluginsEnabled ? [t("editor.settings.parts.home_assistant.video", { state: videoState.value })] : []),
   t("editor.settings.parts.home_assistant.claude", { state: claudeState.value }),
 ].join(" · "));
-type Part = { id: AppSettingsPart; icon: IconName; title: string; summary: string; badge?: string };
+type Part = { id: AppSettingsPart; title: string; summary: string; badge?: string };
 const parts = computed<Part[]>(() => [
-  ...(u.value ? [{ id: "updates" as const, icon: "update" as const, title: t("editor.settings.parts.updates.title"),
+  ...(u.value ? [{ id: "updates" as const, title: t("editor.settings.parts.updates.title"),
     summary: [updatesHint.value, ...(auto.value ? [t("editor.settings.parts.updates.nightly")] : [])].join(" · "),
     badge: outdated.value && !u.value.busy ? t("editor.settings.parts.updates.badge", outdated.value) : undefined }] : []),
-  { id: "builds", icon: "hammer-wrench", title: t("editor.settings.parts.builds.title"), summary: buildsLine.value },
-  ...(lang.value ? [{ id: "language" as const, icon: "translate" as const, title: t("editor.settings.language.title"), summary: languageLine.value }] : []),
-  ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, icon: "puzzle-outline" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
-  { id: "home-assistant", icon: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
+  { id: "builds", title: t("editor.settings.parts.builds.title"), summary: buildsLine.value },
+  ...(lang.value ? [{ id: "language" as const, title: t("editor.settings.language.title"), summary: languageLine.value }] : []),
+  ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
+  { id: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
 ]);
+// The rows of the list (model/parts.ts): each part with its icon's colour and card.
+const rows = computed<PartRow<AppSettingsPart>[]>(() => parts.value.map((p) => ({ ...p, ...PART_LOOK[p.id] })));
 // The part the address names, while this app has it (an add-on without language settings has no Language part).
 const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) || null);
 </script>
 
 <template>
-  <div class="panel" id="settings-view">
-    <div class="panel-head">
-      <div class="tx">
-        <template v-if="part">
-          <SettingsHead :back="t('editor.nav.settings')" :title="part.title" as="h1" @back="ui.openSettings(null)" />
-        </template>
-        <template v-else>
-          <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
-          <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
-        </template>
-      </div>
-      <button type="button" class="btn quiet" id="close-settings" @click="ui.go('')">{{ t("editor.settings.back") }}</button>
-    </div>
-
-    <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
-    <div v-if="!part" class="set-column">
-      <div id="settings-parts" class="set-cards">
-        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
-          <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="p.title" :summary="p.summary" :badge="p.badge" @open="ui.openSettings(p.id)" />
-        </div>
-      </div>
-    </div>
-
-    <div v-else class="set-column">
+  <PartsPage id="settings-view" close-id="close-settings" list-id="settings-parts" row-prefix="settings-part" title-id="settings-title"
+    :eyebrow="t('editor.nav.settings')" :title="t('editor.settings.title')" :close-label="t('editor.settings.back')"
+    :rows="rows" :open="part?.id ?? null" @open="ui.openSettings" @close="ui.go('')">
+    <template v-if="part">
       <template v-if="part.id === 'updates'">
       <section v-if="u" class="card updates" id="updates">
         <h2>{{ t("editor.settings.updates.title") }}</h2>
@@ -210,8 +203,21 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
         </details>
         <label class="check">
           <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="builds.setAutoUpdate(($event.target as HTMLInputElement).checked)" />
-          <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint") }}</small></span>
+          <span>{{ t("editor.settings.updates.auto_label") }}<small v-if="night">{{ t("editor.settings.updates.auto_hint_hour", night) }}</small></span>
         </label>
+        <!-- When the nightly round may start (wish 113): a screen beside a bed restarts at full brightness. -->
+        <label v-if="u.auto && u.hour !== undefined" class="field update-hour">
+          <span class="f-label">{{ t("editor.settings.updates.hour_label") }}</span>
+          <select id="update-hour" :value="u.hour" @change="builds.setUpdateHour(Number(($event.target as HTMLSelectElement).value))">
+            <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ hourText(h - 1) }}</option>
+          </select>
+        </label>
+        <!-- Plugin updates wait on the screens they are on: each one opens that screen's Plugins tab. -->
+        <ul v-if="pluginUpdates.length" class="plugin-update-list" id="settings-plugin-updates">
+          <li v-for="row in pluginUpdates" :key="row.screen.id">
+            <button type="button" class="btn link" @click="openPlugins(row.screen)"><Icon name="puzzle-outline" />{{ t("editor.settings.updates.plugin_row", { screen: row.screen.name, names: row.names }) }}<Icon name="arrow-right" /></button>
+          </li>
+        </ul>
       </section>
       <!-- The expert path: build and install a firmware by USB or Wi-Fi (FirmwareView). -->
       <section class="card">
@@ -287,7 +293,14 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
       <section v-if="inv.pluginsEnabled" class="card" id="video">
         <h2>{{ t("editor.settings.video.title") }}</h2>
         <p>{{ t("editor.settings.video.text") }}</p>
-        <div class="actions">
+        <!-- An app that cannot reach Home Assistant's configuration (in Docker on its own, GitHub #357): the zip to unpack there. -->
+        <template v-if="video && video.home_assistant === false">
+          <p id="video-elsewhere">{{ t("editor.settings.video.no_home_assistant") }}</p>
+          <div class="actions">
+            <a class="btn primary" id="video-download" href="api/video.zip" download="tessera_video.zip">{{ t("editor.settings.video.download") }}</a>
+          </div>
+        </template>
+        <div v-else class="actions">
           <button type="button" id="video-install" class="btn" :class="video?.installed && video.current ? 'quiet' : 'primary'" :disabled="!video || videoBusy" @click="installVideo">
             {{ !video || !video.installed ? t("editor.settings.video.install") : video.current ? t("editor.settings.video.install_again") : t("editor.settings.video.update") }}
           </button>
@@ -299,14 +312,15 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
           </span>
         </div>
         <small id="video-screens">{{ video?.screens.length ? t("editor.settings.video.screens", { names: video.screens.join(", ") }) : t("editor.settings.video.no_screens") }}</small>
-        <i18n-t keypath="editor.settings.video.writes" tag="small" scope="global">
+        <i18n-t v-if="video?.home_assistant !== false" keypath="editor.settings.video.writes" tag="small" scope="global">
           <template #path><code id="video-path">{{ video?.path || "/homeassistant/custom_components/tessera_video" }}</code></template>
         </i18n-t>
       </section>
       <section class="card" id="claude">
         <h2>Claude</h2>
         <p>{{ t("editor.settings.claude.text") }}</p>
-        <div class="actions">
+        <!-- Install writes into Home Assistant's configuration: an app without one (in Docker on its own) offers the zip alone. -->
+        <div v-if="skill?.home_assistant !== false" class="actions">
           <button type="button" id="claude-install" class="btn" :class="skill?.installed && skill.current ? 'quiet' : 'primary'" :disabled="!skill || installing" @click="install">
             {{ !skill || !skill.installed ? t("editor.settings.claude.install") : skill.current ? t("editor.settings.claude.install_again") : t("editor.settings.claude.update") }}
           </button>
@@ -314,7 +328,7 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
             {{ !skill ? t("editor.common.loading") : !skill.installed ? t("editor.settings.claude.not_installed") : skill.current ? t("editor.settings.claude.installed_chip") : t("editor.settings.claude.newer") }}
           </span>
         </div>
-        <i18n-t keypath="editor.settings.claude.writes" tag="small" scope="global">
+        <i18n-t v-if="skill?.home_assistant !== false" keypath="editor.settings.claude.writes" tag="small" scope="global">
           <template #path><code id="claude-path">{{ skill?.path || "/homeassistant/.claude/skills/esp-screens" }}</code></template>
         </i18n-t>
         <div class="actions">
@@ -330,6 +344,6 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
         </div>
       </section>
       </template>
-    </div>
-  </div>
+    </template>
+  </PartsPage>
 </template>

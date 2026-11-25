@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import boardShapes from "../../screen_manager/app/boards.json";
-import { energyFits, pillMetrics, tallKeys, textEms, touchMin, uiScale, widestSetpoint, cardContent, cardHeight, modeBar, watchCard, watchPadding, wideChip, restContent } from "../src/model/ui-scale";
+import { energyFits, labelWeight, pillMetrics, tallKeys, textEms, touchMin, uiScale, widestSetpoint, cardContent, cardHeight, modeBar, watchCard, watchPadding, wideChip, restContent } from "../src/model/ui-scale";
 
 describe("the firmware's sizes in the mockup (app 0.4.32)", () => {
   it("scales as ui::px does, from the board's density and look", () => {
@@ -104,5 +104,15 @@ describe("the sizes the energy card is offered (app 0.4.77)", () => {
     expect(fits("waveshare43", 2, 2)).toBe(false);
     expect(fits("cyd", 1, 3, "portrait")).toBe(true);
     expect(fits("cyd", 1, 2, "portrait")).toBe(false);
+  });
+});
+
+describe("a tile's name weight (TILE_NAME_FONT_FILE of the look)", () => {
+  it("is the board's own: medium on the compact look, bold elsewhere, and the look's for a shape without it", () => {
+    const boards = boardShapes as Record<string, any>;
+    expect([boards.cyd.label_weight, boards.hosyond40.label_weight, boards.guition.label_weight]).toEqual([500, 500, 700]);
+    expect(labelWeight(boards.cyd)).toBe(500);
+    expect(labelWeight({ dpi: 143, look: "compact" })).toBe(500);
+    expect(labelWeight({ dpi: 170, look: "standard" })).toBe(700);
   });
 });

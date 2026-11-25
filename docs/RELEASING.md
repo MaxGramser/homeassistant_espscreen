@@ -140,9 +140,14 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    So before anything is published, `publish` checks that the plugins' check is green on their dev, that every plugin
    of dev's index fits this release's plugin API, and that their dev merges into their main without a conflict outside
    `index.json`, `likes.json` and `stats.json`; any of these refuses the release. Right after main moved, it merges their dev into
-   their main, runs their index workflow on main (built against the released core), and checks main's index: it names
+   their main, runs their index workflow on main (built against the released core; a run that a run of the hour pushed out
+   is started once more), and checks main's index: it names
    this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
-   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
+   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. Last it looks at the
+   editor's modules (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): every plugin main offers must have its module, or the
+   reason it has none, for the number of this release's preview on the plugins repository's branch `modules`. What is
+   missing is built by the plugins' workflow `modules`, waited for and looked at again; a plugin still without one
+   leaves the release not done. A step that fails
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
    main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
    `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
@@ -190,9 +195,34 @@ checks would flag is listed in its `KNOWN` and `TOUCH_FLOORS` with the code behi
 it is skipped on a laptop and fails in CI, and a preview older than the firmware sources fails everywhere.
 **Firmware preview.** The editor's preview is the shared firmware compiled to WebAssembly (web/wasm/README.md), and
 `tools/check.sh` fails when it is older than the firmware sources, which every firmware number bump makes it. On dev,
-`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev (a few
-minutes): pull that commit before your next push. The release commit changes the firmware number, so rebuild it there
+`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev: pull that
+commit before your next push. The release commit changes the firmware number, so rebuild it there
 locally with `sh web/wasm/build.sh` (Emscripten) and `cd web && npm run build`, and commit it with the release.
+
+The job builds for about ten minutes and dev moves meanwhile, so it keeps to one rule: a built file is committed on
+the head it was built from, and is never merged or rebased. The WebAssembly is made from the firmware sources alone
+(`web/wasm/generate_renderer_manifest.py --check` knows which), so one build of it is good for every later head on
+which that check passes. The editor's bundle is made from the WebAssembly and `web/src`, and its files are named after
+their content, so two builds of it cannot be merged: it is built again on the head it lands on, which takes about a
+minute. `web/wasm/land.py` does the landing, and what it does follows from the head dev has by then:
+
+- The head already has a current preview (someone built it by hand): nothing to land.
+- The built preview fits the head, because the head is still the one the job started from or the firmware sources did
+  not change since: the editor is built on that head, and both go to dev as one commit.
+- The firmware sources changed while the job built: the run is out of date. It ends without a commit and without
+  failing, because the push that changed them started a run of its own.
+- dev moved again between taking the head and the push, so the push is refused: the same again on the new head, a
+  few times (`ATTEMPTS` in `land.py`), and then the run fails.
+
+A run that builds is never cancelled, or none would finish on a day with a push every few minutes. One run per branch
+runs at a time, the run of the newest push waits behind it, and a push that arrives while one waits takes its place
+(GitHub's `concurrency` without `cancel-in-progress`). So a run that failed says something is broken: the preview does
+not build, one of its tests fails, or the editor does not build on the head of dev. A run that passed without a commit
+was overtaken, and the run after it has the work. The preview lands once the firmware sources stand still for the
+length of one build, whatever else is pushed in that time. The preview's tests are one list, `web/wasm/test.sh`, which
+the job and `tools/check.sh` both run, and `tests/test_preview_land.py` walks the landing between two repositories on
+one machine, with a branch that moves during the build.
+
 docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
 and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-<board>` and
 build under `.esphome/check`, apart from the profiles of real screens). Check that no secrets are in Git.
@@ -231,9 +261,13 @@ from at most 256 KB back, and ESP-IDF puts a function's literals in front of the
 header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
 then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
 while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
-`components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
-in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
-about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
+`components/smart_display/page_receiver.cpp` since 0.3.8, the picture loader's bodies in `picture_loader.cpp` since
+2026-11-24), not a global compiler flag. `tools/literal_margin.py BUILD.map` prints the margin: for each function, the
+distance from its own `.literal.<name>` to the end of its own `.text.<name>`, against the 256 KB reach, the tightest
+first. `tools/check.sh --firmware` runs it on every build and fails under `LITERAL_FLOOR` (8 KB). 0.3.8 left about
+14 KB on the S3 boards and 66 KB on the CYD; on 2026-11-24 the S3 boards failed at -16 KB (picture_loader::Loader::end,
+an inline function laid out far from its literals) and stood at 24 KB on the Guition and 50 KB on the CYD once the loader
+left main.cpp. The ESP32-P4 is RISC-V and has no such limit.
 
 Before a release, test app start, saving, restarting and updating with existing layouts, reconnecting to Home
 Assistant and an ESP restart (the upgrade test walks them), and a new card on real hardware. A good build doesn't

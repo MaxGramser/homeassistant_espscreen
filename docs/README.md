@@ -26,6 +26,10 @@
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
 - [CALLS.md](CALLS.md): calls between screens, the Call tile, echo and Do not disturb.
+- [BOARD_STEPS.md](BOARD_STEPS.md): what there is to do with a board beyond its firmware, once (a second chip that takes
+  a firmware of its own), as a page of New screen and a card above the screen; the recipe for a step and for a new kind
+- [SECOND_CHIP.md](SECOND_CHIP.md): Tessera's firmware for a board's second chip (the SenseCAP Indicator's RP2040), the
+  line between the two chips, and the buzzer as the screen's speaker
 - [SOUNDS.md](SOUNDS.md): the ringtone, the doorbell's chime and the alert sound a screen plays, chosen under Events
   or cut from a sound file of your own, and adding a kind of sound (also a recipe).
 - [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
@@ -73,6 +77,8 @@
 - [RESPONSIVE.md](RESPONSIVE.md): how one firmware fits every glass: looks, grids, the font set and card design rules.
 - [MODULES.md](MODULES.md): tiers and modules, the parts of the UI only boards with 8 MB of flash or more get (a recipe).
 - [ADDING_A_BOARD.md](ADDING_A_BOARD.md): adding a board, from its datasheet to the glass.
+- [CHIP_REVISIONS.md](CHIP_REVISIONS.md): why a screen's firmware is built for its chip's silicon revision, where Tessera
+  reads it, and adding a rule when a chip changes its silicon (a recipe).
 - [BOARD_RELEASES.md](BOARD_RELEASES.md): which boards a change reaches, and the firmware number it gets.
 - [PROFILES.md](PROFILES.md): how a screen's YAML is put together from the core, looks, features and board files.
 - [THEME.md](THEME.md): colours and Dark mode, from one table.

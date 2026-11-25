@@ -4,8 +4,7 @@
 # 720x720 at 255 dpi, the standard look, a grid of 2 x 3 cells whichever way it hangs. The pins come from Waveshare's
 # ESP32-P4-WIFI6-Touch-LCD-4B schematic, page 1: the 86 panel and that board share their main board, and a community
 # member ran this file on a 4B as well. The first build came from pull request #142, tried on a panel with a pre-v3
-# ESP32-P4 ("chip revision: v1.3" in the boot log); a panel with rev3 silicon needs `engineering_sample: false`
-# (docs/WAVESHAREP4.md). The speaker and microphone share one I2S bus. The AEC transport permits simultaneous
+# ESP32-P4 ("chip revision: v1.3" in the boot log); ESP Screen Manager reads the chip and builds for the revision it finds (CHIP_REVISION, docs/CHIP_REVISIONS.md). The speaker and microphone share one I2S bus. The AEC transport permits simultaneous
 # capture/playback, and the original half-duplex transport remains selectable. The two relays are HA switches.
 # RS485, Ethernet and the microSD slot are not configured here.
 #
@@ -91,7 +90,8 @@ output:
 
 # ESPHome's own mipi_dsi platform knows the panel by name: the ST7703's init sequence and timings come with it.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: WAVESHARE-P4-86-PANEL
     enable_pin: GPIO33

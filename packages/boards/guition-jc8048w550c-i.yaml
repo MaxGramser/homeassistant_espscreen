@@ -10,11 +10,15 @@ packages:
   backlight: !include ../features/backlight.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
+  # The BOOT key, GPIO0, as the standby key: a press puts the screen in standby or wakes it.
+  # GPIO0 also reaches the NS4168 amplifier's bit clock, which no board file drives; a speaker would take the pin from the key.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   BOARD_ID: "jc8048w550ci"
   DEVICE_NAME: "jc8048w550ci-new"
   DEVICE_FRIENDLY_NAME: "My Guition 5"
+  STANDBY_KEY_PIN: GPIO0                        # the standby key (features/standby-key.yaml)
 
   PANEL_W: "800"
   PANEL_H: "480"
@@ -74,47 +78,16 @@ touchscreen:
       y_min: 0
       y_max: ${PANEL_H}
 
-# The ST7262 is driven directly as an RGB panel; no SPI init sequence.
-# mipi_rgb does not swap the red/blue GPIO groups for BGR as rpi_dpi_rgb does;
-# these groups are exchanged to preserve the JC8048W550's working physical bus mapping.
+# The ST7262 is driven directly as an RGB panel; no SPI init sequence. ESPHome knows this glass as its own model
+# (mipi_rgb ESP32-8048S050: the 800 x 480 Sunton/Guition boards, its pins, timings and colour order), so the board takes
+# it whole. The pins this file had of its own swapped red and blue (a light's yellow bulb blue, GitHub #243); owners of
+# the JC8048W550C_I and the Sunton ESP32-8048S050C_I confirmed the model's colours on their glass.
 display:
   - platform: mipi_rgb
-    model: RPI
+    model: ESP32-8048S050
     id: my_display
     dimensions:
       width: ${PANEL_W}
       height: ${PANEL_H}
-    color_order: BGR
-    # LVGL's RGB565 bytes otherwise make neutral grays green and purple on this RGB bus.
-    byte_order: little_endian
-    pclk_frequency: 16MHz
-    pclk_inverted: true
-    de_pin: GPIO40
-    pclk_pin: GPIO42
-    hsync_pin: GPIO39
-    vsync_pin: GPIO41
-    hsync_pulse_width: 4
-    hsync_back_porch: 8
-    hsync_front_porch: 8
-    vsync_pulse_width: 4
-    vsync_back_porch: 8
-    vsync_front_porch: 8
-    data_pins:
-      red: [GPIO21, GPIO14, GPIO5, GPIO6, GPIO7]
-      green:
-        - number: GPIO46
-          ignore_strapping_warning: true
-        - GPIO9
-        - GPIO1
-        - number: GPIO45
-          ignore_strapping_warning: true
-        - GPIO48
-        - GPIO47
-      blue:
-        - GPIO15
-        - GPIO16
-        - GPIO4
-        - GPIO8
-        - GPIO3
     update_interval: never
     auto_clear_enabled: false

@@ -31,6 +31,9 @@ describe("plugins", () => {
     const plugins = usePluginsStore();
     plugins.appFit = { "text.guition": { voice: "feature" } };
     expect(plugins.fits(plugin({ id: "voice" }), screen("guition"))).toEqual({ ok: false, reason: "feature" });
+    // A CYD without a plugin yet pays for the plugin host with the first one (#440); one that runs a plugin does not.
+    expect(plugins.fits(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: false, reason: "flash" });
+    plugins.installed = { "text.cyd": [{ id: "other", version: "1.0.0", source: "index", state: "active" }] };
     expect(plugins.fits(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: true });
   });
 
@@ -101,13 +104,14 @@ describe("plugins", () => {
     expect(fit(plugin({ flash_kb: 4 }), full)).toEqual({ ok: false, reason: "flash" });
   });
 
-  it("keeps a 4 MB board under the 97 % line of its slot", () => {
-    expect(headroomKb()).toBe(49);
+  it("keeps a 4 MB board under the 97 % line of its slot, the first plugin with the plugin host (#440)", () => {
+    expect(headroomKb()).toBe(20);
     expect(fit(plugin(), screen("cyd"))).toEqual({ ok: true });
-    expect(fit(plugin({ flash_kb: 50 }), screen("cyd"))).toEqual({ ok: false, reason: "flash" });
+    expect(fit(plugin(), screen("cyd"), {}, true)).toEqual({ ok: false, reason: "flash" });
+    expect(fit(plugin({ flash_kb: 21 }), screen("cyd"))).toEqual({ ok: false, reason: "flash" });
     const share = flashShare(plugin(), screen("cyd"))!;
-    expect(share.before).toBeCloseTo(0.945, 3);
-    expect(share.after).toBeCloseTo((1_919_472 + 12 * 1024) / 2_031_616, 3);
+    expect(share.before).toBeCloseTo(1_949_619 / 2_031_616, 3);
+    expect(share.after).toBeCloseTo((1_949_619 + 12 * 1024) / 2_031_616, 3);
     expect(flashShare(plugin(), screen("guition"))).toBeNull();
   });
 });

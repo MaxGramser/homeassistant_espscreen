@@ -148,7 +148,7 @@ export type TallCard = {
  * cover's slats and keys, which cover-tile.ts lays out). */
 export function tallCard(shape: Shape, look: CardLook, width: number, height: number, input: TallInput): TallCard | null {
   const { large, px } = uiScale(shape), gap = px(large ? 8 : 4), touchKey = Math.max(touchMin(shape), px(large ? 48 : 34));
-  const nameH = lineOf(look.label), stateH = lineOf(look.sublabel), label: Face = { size: look.label, weight: 700 }, small: Face = { size: look.sublabel, weight: 400 };
+  const nameH = lineOf(look.label), stateH = lineOf(look.sublabel), label: Face = { size: look.label, weight: look.labelWeight }, small: Face = { size: look.sublabel, weight: 400 };
   const mediaKey = input.domain === "media_player" ? Math.min(Math.max(div(height, 6), touchKey), div(touchKey * 3, 2)) : touchKey;
   const reach = px(large ? 740 : 620);
   let selected = input.panel;

@@ -1,27 +1,17 @@
-// The automations of Tessera in Home Assistant, of one kind of Events (screen_manager/app/automations.py): the list the
-// page shows, saving the one a wizard built (a new one, or the same one again), and removing one this app made. Home
-// Assistant's own page of an automation is in the frame around the editor (ingress), so its address is the same origin.
-import { ref } from "vue";
-import { getJson, send } from "../api";
+// One kind of the automations of Tessera (stores/automations.ts, the one list of the page), in the shape a part of
+// Events uses: its list, asking for it again, saving the one a wizard built, removing one this app made.
+import { computed } from "vue";
 import type { Automation } from "../model/automation";
+import { automationLink, useAutomationsStore, type AutomationKind, type ListedAutomation } from "../stores/automations";
 
-export type ListedAutomation = { entity: string; id: string | null; kind: string | null; name: string; on: boolean; last?: string | null };
-export const automationLink = (id: string) => `/config/automation/edit/${encodeURIComponent(id)}`;
+export { automationLink, type ListedAutomation };
 
-export function useAutomations(kind: "doorbell" | "alert") {
-  const listed = ref<ListedAutomation[]>([]);
-  async function refresh() {
-    try { listed.value = (await getJson<{ automations: ListedAutomation[] }>(`automations?kind=${kind}`)).automations || []; } catch { listed.value = []; }
-  }
-  /** Saves `automation`; `id` saves one of ours again. The new entity is in Home Assistant's states a moment later. */
-  async function save(automation: Automation, id?: string | null) {
-    const saved = await send<{ id: string; path: string }>("automations", "POST", { kind, id: id || undefined, config: automation });
-    setTimeout(refresh, 1500);
-    return saved;
-  }
-  async function remove(id: string) {
-    await send(`automations/${encodeURIComponent(id)}`, "DELETE");
-    listed.value = listed.value.filter((item) => item.id !== id);
-  }
-  return { listed, refresh, save, remove };
+export function useAutomations(kind: AutomationKind) {
+  const store = useAutomationsStore();
+  return {
+    listed: computed(() => store.listed[kind]),
+    refresh: () => store.refresh(kind),
+    save: (automation: Automation, id?: string | null) => store.save(kind, automation, id),
+    remove: (id: string) => store.remove(kind, id),
+  };
 }

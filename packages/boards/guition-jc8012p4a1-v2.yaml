@@ -21,6 +21,8 @@ packages:
   # The board apart from its LCD: the pre-v3 ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and the GSL3680 on
   # the driver the V3 runs it with.
   hardware: !include ../hardware/guition-jc8012p4a1.yaml
+  # The newer LCD and its display block, the same on the V2 and the V3.
+  lcd: !include ../hardware/guition-jc8012p4a1-newer-lcd.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -29,12 +31,15 @@ packages:
   snapshot: !include ../features/snapshot.yaml
   # The ES8311, its speaker and its microphone, on the pins of the 10.1-inch circuit board below.
   audio: !include ../hardware/guition-p4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc8012p4a1v2"
   DEVICE_NAME: "jc8012p4a1v2-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V2"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over
@@ -79,22 +84,8 @@ substitutions:
 
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its display
-  # model, `JC8012P4A1-V2` below, arrived in 2026.8.0, and its audio (the speaker_source media player, the resamplers)
+  # model, `JC8012P4A1-V2` (hardware/guition-jc8012p4a1-newer-lcd.yaml), arrived in 2026.8.0, and its audio (the speaker_source media player, the resamplers)
   # is built and tried on 2026.9.0, as on the other boards with a speaker. A board file's min_version wins over the
   # core's, so the CYD, the Guition and the Waveshare keep building on an older ESPHome. docs/RELEASING.md says why the
   # packages stay behind the add-on's ESPHome.
   min_version: 2026.9.0
-
-# ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
-# init sequence for it, its timings and its reset pin, as on the V3. Its init sequence is the one the community
-# configuration for this build runs. On this pre-v3 chip ESPHome's own driver starts the display as on the first
-# build; the V3's copy (mipi_dsi_v3) is only for rev3 silicon. The panel is 800x1280; LVGL turns it a quarter
-# (LVGL_ROTATION).
-display:
-  - platform: mipi_dsi
-    id: my_display
-    model: JC8012P4A1-V2
-    dimensions: {width: 800, height: 1280}
-    lanes: 2
-    update_interval: never
-    auto_clear_enabled: false

@@ -19,7 +19,7 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
 | Microphones | two, through an ES7210, on a second I2S bus | `features/audio.yaml` |
 | Motion | LSM6DS3TR-C at 0x6A | its temperature, and Wake when moved |
 | Clock | PCF8563 at 0x51 | keeps the time while Home Assistant is away |
-| Button | GPIO3, high while pressed | the core's Wake and Sleep |
+| Button | GPIO3, high while pressed | the standby key, `features/standby-key.yaml` |
 | RGB LED | GPIO22, 36, 23, lit low | `features/rgb-led.yaml` |
 | Camera | SC2356, 1 MIPI-CSI lane, SCCB 0x36 on `touch_bus`, power on expander pins 1, 3 and 11 | powered by the board file, driven by the Screen camera plugin (below) |
 | SD card, LTE, LoRa | | not configured |
@@ -47,7 +47,15 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
   GPIO38, the touch bus on this board; UART0 there crashed the first boot. The board file moves the log to the USB port.
 - **16 MB of the 32.** ESPHome takes OTA on 32 MB of flash only with ESP-IDF's experimental features, so the firmware
   uses the first 16 MB, as the other P4 boards do.
-- **Wake when moved** feels the board itself: picked up, moved or knocked. It does not see someone walking past.
+- **Wake when moved** feels the board itself: picked up, tilted, turned or knocked. It does not see someone walking
+  past. The board reads its LSM6DS3TR-C ten times a second and hands every reading to
+  `features/wake-when-moved.yaml`, whose detector (`components/smart_display/moved.h`, `tests/test_moved.cpp`) keeps a
+  resting value per axis and says the board moved when one turns by more than 3 degrees a second or moves by more
+  than 0.06 g. Both come from a D1001 on a desk (`tests/data/moved_d1001.csv`): at rest it read at most 0.86 degrees a
+  second and 0.021 g, picked up gently at least 22 degrees a second and 0.17 g. With Debug mode on, the log shows the
+  largest movement of each second, to measure another board the same way.
+  ESPHome's `motion` reports acceleration in g, not in m/s²: the first version compared two readings with 1.0, a whole
+  g, which only shaking reached. The log names the axis and how far it moved (tag `moved`, at most once in two seconds).
 
 ## The camera
 

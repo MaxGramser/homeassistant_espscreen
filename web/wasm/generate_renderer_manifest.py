@@ -45,7 +45,7 @@ files += sorted((root / 'web/wasm/generated').rglob('*.h'))
 files += sorted((root / 'web/wasm/host_include').rglob('*.h'))
 files += sorted((root / 'web/wasm/generated/image').glob('*.cpp'))
 files += [root / 'web/wasm/image_buffer.h', root / 'web/wasm/image_transport.h', root / 'web/wasm/settings_transport.h', root / 'web/wasm/generate_image_decoder.py']
-files += [root / 'web/wasm/generated/font.cpp', root / 'web/wasm/generate_host_ui.py', root / 'web/wasm/preview_profiles.py', root / 'web/wasm/build.py', root / 'web/wasm/firmware_preview.cpp', root / 'web/wasm/lv_conf.h']
+files += [root / 'web/wasm/generated/font.cpp', root / 'web/wasm/generate_host_ui.py', root / 'web/wasm/preview_profiles.py', root / 'web/wasm/build.py', root / 'web/wasm/toolchain.py', root / 'web/wasm/firmware_preview.cpp', root / 'web/wasm/lv_conf.h']
 files += sorted((root / 'fonts').glob('*.ttf')) + sorted((root / 'fonts').glob('*.png'))
 files = sorted({p for p in files if p.name != 'firmware_renderer_manifest.h'})
 digest = sha256()
@@ -80,11 +80,17 @@ shapes = json.loads((root / 'screen_manager/app/boards.json').read_text()).value
 digest.update(json.dumps([max(shape.get(key, 0) for shape in shapes) for key in ('max_pages', 'max_tiles', 'max_bar_items')]).encode())
 digest.update(re.search(r'FROM ghcr.io/esphome/esphome:([^\s]+)', (root / 'screen_manager/Dockerfile').read_text())[1].encode())
 out = root / "web/wasm/generated/firmware_renderer_manifest.h"
-content = "// Generated. Do not edit; regenerate with web/wasm/build.sh.\n" + f'#define ESP_SCREEN_FIRMWARE_RENDERER_SOURCE_SHA256 "{digest.hexdigest()}"\n'
+# The number a plugin's module must carry to be loaded into this preview (toolchain.plugin_abi).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import toolchain
+plugin_abi = toolchain.plugin_abi()
+content = ("// Generated. Do not edit; regenerate with web/wasm/build.sh.\n" + f'#define ESP_SCREEN_FIRMWARE_RENDERER_SOURCE_SHA256 "{digest.hexdigest()}"\n'
+           + f'#define ESP_SCREEN_PLUGIN_ABI "{plugin_abi}"\n')
 metadata = root / 'web/src/wasm/renderer.json'
 metadata_content = json.dumps({
     'firmware': profiles.board_values('guition')['SCREEN_FIRMWARE_VERSION'].strip('"'),
     'profiles': [{'dpi': dpi, 'look': look} for dpi, look, _ in variants()],
+    'plugin_abi': plugin_abi,
 }, indent=2) + '\n'
 if '--check' in sys.argv:
     if not out.exists() or out.read_text() != content or not metadata.exists() or metadata.read_text() != metadata_content:

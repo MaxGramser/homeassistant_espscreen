@@ -1,7 +1,8 @@
-# ESP Screens - the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 apart from its chip revision and its display driver: the
-# flash, the touch panel and the backlight, the same on a board with pre-v3 silicon (packages/boards/waveshare101.yaml)
-# and one with rev3 silicon (packages/boards/waveshare101-v3.yaml). Each of those states its chip revision and the
-# display platform that starts on it; everything else of the board stands here once.
+# ESP Screens - the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 apart from the chip revision it assumes: the flash, the
+# panel, the touch panel and the backlight, the same on a board with pre-v3 silicon (packages/boards/waveshare101.yaml)
+# and one with rev3 silicon (packages/boards/waveshare101-v3.yaml). The two board files differ in the revision they
+# build for when nobody has read the chip (CHIP_REVISION, docs/CHIP_REVISIONS.md); the display platform follows from it
+# (DSI_PLATFORM, hardware/esp32p4-core.yaml). Everything else of the board stands here once.
 # Hardware reference: https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-X
 packages:
   # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
@@ -33,3 +34,16 @@ output:
     frequency: ${BACKLIGHT_FREQUENCY}
     min_power: 0.01
     zero_means_zero: true
+
+# ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-P4-NANO-10.1` brings the JD9365's init
+# sequence and timings for two lanes. The model does not bring the reset pin: GPIO27 on this board, without which the
+# panel never answers. On rev3 silicon the platform is the repository's mipi_dsi_v3: the stock driver's fixed clock
+# aborts there while the display starts (GitHub #52).
+display:
+  - platform: ${DSI_PLATFORM}
+    id: my_display
+    model: WAVESHARE-P4-NANO-10.1
+    reset_pin: GPIO27
+    dimensions: {width: 800, height: 1280}
+    update_interval: never
+    auto_clear_enabled: false

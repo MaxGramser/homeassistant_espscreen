@@ -180,7 +180,7 @@ inline void ghost_show(lv_obj_t *slider){
 inline void ghost_end(lv_obj_t *slider){
   if(ghost_slider!=slider)return;
   ghost_slider=nullptr;
-  for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider){w.cached_active=-1;refresh_tile(w.index,redraw_log::TileWhy::finger);return;}
+  for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider){w.paint_again();refresh_tile(w.index,redraw_log::TileWhy::finger);return;}
 }
 inline void slider_event(lv_event_t *e){
   auto *slider=lv_event_get_target_obj(e);auto code=lv_event_get_code(e);
@@ -289,8 +289,8 @@ inline void detail_command(int cmd){
   if(cmd>=600&&cmd<=621){alarm_command(cmd);return;}
   // A lock's keys (700-702): Lock, Unlock, Open door.
   if(cmd>=700&&cmd<=709){lock_command(cmd);return;}
-  // A cover group's key (720): its page of covers over the card.
-  if(cmd==720){if(const Tile *t=detail_tile())group_page::open(t->entity);return;}
+  // A group's key (GROUP_PAGE): its page over the card, of covers or of lamps.
+  if(cmd==GROUP_PAGE){if(const Tile *t=detail_tile())group_page::open(t->entity);return;}
   // History ranges (firmware 0.2.51+): redraw after this event, which belongs to a key the redraw deletes.
   if(cmd>=160&&cmd<163){
     static const uint32_t hours[]={1,24,168};

@@ -8,7 +8,7 @@
 # this file differs from guition-jc8012p4a1.yaml only there. The first build's firmware restarts a V3 straight after
 # its bootloader, over and over (CHIP_LP_WDT_RESET, GitHub issue #52), which is how someone finds out which of the two
 # they have. docs/JC8012P4A1.md has what to check on the glass. On rev3 silicon ESPHome's own display driver aborts
-# while the display starts; the display below says why this board has its own copy of it for now.
+# while the display starts, so on rev3 the display takes the repository's copy (DSI_PLATFORM, docs/CHIP_REVISIONS.md).
 # The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml), experimental:
 # @Eugen417 runs the same wiring, both ways at once, on a V3 with a build of his own (pull request #259).
 #
@@ -20,6 +20,8 @@ packages:
   # The board apart from its chip revision and its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 7-inch) and
   # the GSL3680, the same as on the first build.
   hardware: !include ../hardware/guition-jc8012p4a1.yaml
+  # The newer LCD and its display block, the same on the V2 and the V3.
+  lcd: !include ../hardware/guition-jc8012p4a1-newer-lcd.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -28,12 +30,18 @@ packages:
   snapshot: !include ../features/snapshot.yaml
   # The ES8311, its speaker and its microphone, on the pins of the 10.1-inch circuit board below.
   audio: !include ../hardware/guition-p4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc8012p4a1v3"
+  # Every unit of this board carries rev3 silicon: the default when the chip has not been read (hardware/esp32p4-core.yaml,
+  # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
+  CHIP_REVISION: "301"
   DEVICE_NAME: "jc8012p4a1v3-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over
@@ -78,32 +86,8 @@ substitutions:
 
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its display
-  # model, `JC8012P4A1-V2` below, arrived in 2026.8.0, and its audio (the speaker_source media player, the resamplers)
+  # model, `JC8012P4A1-V2` (hardware/guition-jc8012p4a1-newer-lcd.yaml), arrived in 2026.8.0, and its audio (the speaker_source media player, the resamplers)
   # is built and tried on 2026.9.0, as on the other boards with a speaker. A board file's min_version wins over the
   # core's, so the CYD, the Guition and the Waveshare keep building on an older ESPHome. docs/RELEASING.md says why the
   # packages stay behind the add-on's ESPHome.
   min_version: 2026.9.0
-
-# Rev3 silicon: the boot ROM of this board reports "esp32p4-eco7". The first build's chips are pre-v3, which
-# packages/hardware/guition-esp32p4.yaml builds for; ESP-IDF lays out memory differently for the two and a pre-v3
-# firmware restarts a rev3 chip straight after its bootloader (CHIP_LP_WDT_RESET, GitHub issue #52). This board file's
-# value wins over that file's. The CPU stays at 360 MHz, as the community configurations for this board run it.
-esp32:
-  engineering_sample: false
-
-# ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
-# init sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the
-# community configurations for V3 boards run this LCD's table. The panel is 800x1280; LVGL turns it a quarter
-# (LVGL_ROTATION).
-# The platform is mipi_dsi_v3, a copy of ESPHome 2026.9.0's mipi_dsi in components/ that lets ESP-IDF pick the DSI
-# clock. Upstream's fixed clock aborts on rev3 silicon while the display starts, so the screen restarts until safe mode
-# (GitHub #52). ESPHome fixes this in 2026.9.1 (esphome/esphome#18984); then this goes back to `platform: mipi_dsi`
-# and the copy goes away (components/mipi_dsi_v3/README.md).
-display:
-  - platform: mipi_dsi_v3
-    id: my_display
-    model: JC8012P4A1-V2
-    dimensions: {width: 800, height: 1280}
-    lanes: 2
-    update_interval: never
-    auto_clear_enabled: false

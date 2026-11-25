@@ -109,7 +109,8 @@ cut square with the tile's rounded corners, delivered as described below.
   corners) or a changed tile asks for a new picture.
 - **Kept pages.** On a board with PSRAM (`picture_store.h`) every tile's picture is kept under its own key, so turning
   back shows them at once, and each camera loads its next picture at its own pace. A cover, a favourite or a map of a
-  kept page is fetched ahead while the screen is in use; a camera of a kept page is not.
+  kept page is fetched ahead while the screen is in use, in spare room only (docs/KEPT_PAGES.md); a camera of a kept
+  page is not.
 - **Until the next one comes** a card keeps the picture it shows of the same place: the last track's cover, a map
   before someone moved. Until the first picture arrives, a camera card shows a spinner.
 - **A camera without a picture** keeps its icon: the app answers with an empty link.

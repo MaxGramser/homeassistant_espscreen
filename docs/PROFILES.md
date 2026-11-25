@@ -16,7 +16,7 @@ numbers.
 |---|---|---|
 | `packages/core.yaml` | Everything every screen shares: the LVGL tree (tiles, cards, overlays, the touch test page), the scripts, the API actions, the entities, the fonts, the globals, the Rotation select. It names no board and no hardware, and gives a default for every value a board may change. | The entry files |
 | `packages/looks/` | How big everything is: `standard.yaml` (drawn on the 4-inch Guition at 170 dpi) and `compact.yaml` (drawn on the CYD at 143 dpi). Every size is written at the look's own density and scaled to the board's `DISPLAY_DPI`, so a tile, a letter and a key keep their size in millimetres. | Every board, exactly one |
-| `packages/features/` | What a board can do, once for every board that can: `capacitive-touch.yaml` or `resistive-touch.yaml` (how its touch panel is read), `backlight.yaml` (a backlight the firmware dims) and `backlight-always-on.yaml` (one that must never go dark), `camera.yaml` (camera images, needs PSRAM), `self-test.yaml` (the UI self test with its geometry check), `snapshot.yaml` (a picture of the screen over the log), `rgb-led.yaml` (the RGB LED on the back of a board that has one, on the outputs its board file names). | Board files |
+| `packages/features/` | What a board can do, once for every board that can: `capacitive-touch.yaml` or `resistive-touch.yaml` (how its touch panel is read), `backlight.yaml` (a backlight the firmware dims) and `backlight-always-on.yaml` (one that must never go dark), `camera.yaml` (camera images, needs PSRAM), `self-test.yaml` (the UI self test with its geometry check), `snapshot.yaml` (a picture of the screen over the log), `rgb-led.yaml` (the RGB LED on the back of a board that has one, on the outputs its board file names), `standby-key.yaml` (the board's own key or its BOOT key as the standby key, on the pin its board file names), `wake-when-moved.yaml` (a motion sensor on the board, named `board_motion`, wakes the screen when the board is picked up). | Board files |
 | `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander), `guition-esp32p4.yaml` (the Guition ESP32-P4 boards with an ESP32-C6 for Wi-Fi) and the Guition boards on it, `guition-jc1060p470.yaml` and `guition-jc8012p4a1.yaml`, `m5stack-tab5.yaml` (the Tab5's different ESP32-C6 pins and I/O expander), and `cyd-2432s028.yaml` (the CYD apart from its display controller). | Board files, and each other |
 | `packages/hardware/parts/` | One part: a codec, a sensor or an amplifier (`es7210.yaml`, `es8311.yaml`, `es8388.yaml`, `amplifier.yaml`), the chip's own facts as defaults and the components it turns into, bound to the ids the features build on (`ts_microphone`, `ts_speaker_out`, `ts_audio_dac`). A part that runs a bus knows its transport (`es7210/aec.yaml`, `es7210/i2s.yaml`). See "Parts" below. | Board files and the hardware files that declare a family's wiring (`wavesharep4-audio.yaml`) |
 | `packages/boards/` | One board: its word (`BOARD_ID`), its glass (`PANEL_W`, `PANEL_H`, `DISPLAY_DPI`, `ROTATION_LANDSCAPE`), its grid, its draw buffer, the packages it includes, and its own hardware sections. `TOUCH_CONTROLLER` may name the physical chip when the ESPHome platform uses another chip's protocol driver. | The entry files |
@@ -79,8 +79,8 @@ has it, and a board file only states what is its own. `tools/check_packages.py` 
 repeats what the board would get anyway: a change to a default then reaches that board too.
 
 A mapping merges key by key. A list of components with ids merges by id: `!extend` adds to a widget, a script or a
-component defined anywhere in the chain, and `!remove` takes one away (`backlight-always-on.yaml` removes the
-`alert_flash` of `backlight.yaml` and defines its own). Any other list is joined, the earlier file's items first.
+component defined anywhere in the chain, and `!remove` takes one away. Any other list is joined, the earlier file's
+items first.
 A list and a mapping under the same key are not joined: the later one replaces the other whole. That is why a board
 file has no `esphome: on_boot:` of its own. The core writes its boot steps as one trigger, and a board's list there
 threw all of them away (the Waveshare 4B up to firmware 0.3.9 never took its tiles); `tools/check_packages.py`
@@ -160,7 +160,7 @@ Some of the core's lambdas have a line that differs between boards, for instance
 the touch panel, or the camera images a board with PSRAM sets up. The core writes a `${NAME}` there, a *hook*, and
 gives it a default (empty, or what most boards do). A hook is for a choice of the board that exactly one package makes:
 `features/capacitive-touch.yaml` and `features/resistive-touch.yaml` set `BOOT_TOUCH` and `BOOT_PAGE_GESTURE`;
-`features/backlight.yaml` sets `APPLY_BACKLIGHT` and `OTA_BACKLIGHT`; `features/camera.yaml` sets `BOOT_CAMERA_HOOKS`,
+`features/backlight.yaml` sets `OTA_BACKLIGHT`; `features/camera.yaml` sets `BOOT_CAMERA_HOOKS`,
 its code at boot. Every screen reads a touch panel and lights a backlight, so those have no default and a board without
 them does not build. A board file would set a hook only for code no other board has; since app 0.2.129 none does (the CYD
 used to drive its backlight and run its self test its own way).

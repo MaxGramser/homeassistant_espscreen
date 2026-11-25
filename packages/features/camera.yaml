@@ -84,8 +84,8 @@ api:
       then:
         - lambda: |-
             if (entity.empty()) { runtime_tiles::camera_close(); return; }
-            id(last_use_ms) = millis();
-            id(wake_display).execute();
+            screen_standby::the().use(millis());
+            screen_standby::the().wake(millis());
             std::string name = entity;
             for (size_t i = 0; i < runtime_tiles::model.count; ++i)
               if (runtime_tiles::model.tiles[i].entity == entity) { name = runtime_tiles::model.tiles[i].name; break; }
@@ -155,7 +155,7 @@ lvgl:
                             condition:
                               lambda: 'return screen_input::touch_guard.accept(millis(), 14) && !runtime_tiles::alert_camera.empty();'
                             then:
-                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, id(alert_title_text));'
+                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, alert_life::the().title());'
                       widgets:
                         - label:
                             id: alert_image_icon

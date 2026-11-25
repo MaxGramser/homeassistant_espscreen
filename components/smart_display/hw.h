@@ -10,6 +10,7 @@
 // the running screen knows: whether its panel and picture engine stream (live_view::available) and how much memory
 // the chip and the PSRAM hold. resolve() puts them together and is pure, so tests/test_hw.cpp checks it on a PC.
 #include <cstdint>
+#include <functional>
 
 namespace hw {
 
@@ -69,5 +70,22 @@ constexpr Caps resolve(const Facts &f) {
 // The record, resolved once on its first call. Call it after the display exists (the hello, a plugin's setup, the main
 // loop); never from a constructor that runs before the glass is bound.
 const Caps &caps();
+
+// A speaker that can be missing while the screen runs says here whether it works this moment: the buzzer of a board
+// whose second chip has to answer first (components/chip_link, docs/SECOND_CHIP.md). Empty on every other board, whose
+// speaker works whenever it has one. The hello asks at every reply, so the app learns of a chip that came or went
+// without a restart of the screen.
+inline std::function<bool()> &speaker_works() {
+  static std::function<bool()> works;
+  return works;
+}
+// Whether the screen plays sound now: it has a speaker, and the speaker works.
+bool speaker_now();
+// Whether the speaker is a buzzer: it carries one narrow band and little else, so the app sends it the sounds it made for
+// that band (the hello's `buzzer`, screen_manager/app/sounds.py BUZZER). The file that brings such a speaker says so.
+inline bool &buzzer() {
+  static bool is = false;
+  return is;
+}
 
 }  // namespace hw

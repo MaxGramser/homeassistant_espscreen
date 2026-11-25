@@ -343,6 +343,17 @@ class UpdaterTests(unittest.IsolatedAsyncioTestCase):
             again = self.setup_manager(tmp)
             self.assertTrue(again.updates.auto)
             self.assertEqual(again.updates.last_round, '2026-09-14')
+            # A chosen hour (wish 113): the round may start within three hours from it, and a window past midnight is one.
+            again.updates.set_hour(23)
+            again.updates.last_round = None
+            self.assertFalse(again.updates.due(night))
+            late = datetime(2026, 9, 16, 23, 10, tzinfo=timezone.utc)
+            self.assertTrue(again.updates.due(late))
+            again.updates.last_round = again.updates.round_day(late)
+            self.assertFalse(again.updates.due(datetime(2026, 9, 17, 0, 30, tzinfo=timezone.utc)))
+            self.assertEqual(self.setup_manager(tmp).updates.hour, 23)
+            with self.assertRaises(ValueError):
+                again.updates.set_hour(24)
             # A file of another app's version (atomic.read_json): the app starts with the defaults, the file stays exactly as
             # it is, and nothing is written over it (an older app never writes an older file over a newer one).
             (Path(tmp) / 'updates.json').write_text('{"version": 9}')

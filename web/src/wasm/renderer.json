@@ -1,5 +1,5 @@
 {
-  "firmware": "0.63.0",
+  "firmware": "0.64.0",
   "profiles": [
     {
       "dpi": 118,
@@ -65,5 +65,6 @@
       "dpi": 294,
       "look": "standard"
     }
-  ]
+  ],
+  "plugin_abi": "1cc6c3f2fa9755ec"
 }

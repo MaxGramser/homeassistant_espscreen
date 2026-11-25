@@ -266,6 +266,15 @@ inline Place place(const Metrics &m, const Plan &p, int height) {
 // whole degrees read as steps), then a day's low at five in the morning and its high at three in the afternoon,
 // joined by half cosines (the shape of a real day). The two meet over twelve hours.
 inline float ease(float t) { return (1 - std::cos(t * 3.14159265f)) / 2; }
+// How many days a forecast's first day lies from today (GitHub #280): 0 when it is today, 1 when it starts tomorrow
+// (Buienradar in the evening), -1 when it still starts with yesterday; 0 when either weekday is not known. The columns
+// are the days of the list and the hours count from today's midnight, so a week chart whose first day is not today
+// counts its hours from that day's midnight instead (weather_chart_of), or today's line lands under tomorrow.
+inline int first_day_from_today(int first_weekday, int today) {
+  if (first_weekday < 0 || first_weekday > 6 || today < 0 || today > 6) return 0;
+  const int d = ((first_weekday - today) % 7 + 7) % 7;
+  return d > 3 ? d - 7 : d;
+}
 inline float through(const std::vector<Day> &days, const std::vector<Hour> &hours, float h) {
   float v = NAN;
   if (!days.empty()) {

@@ -394,7 +394,10 @@ class ReinstallAll(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, 'No screen can be reinstalled'):
                 m.updates.start_all(reinstall=True)
             await m.build_queue.idle()
-            self.assertEqual([c['file'] for c in m.firmware.calls], ['living-room.yaml', 'kitchen.yaml'])
+            # One round of two screens: each built ahead, then installed (docs/BUILDS.md, "Building ahead").
+            self.assertEqual([(c['file'], c['action']) for c in m.firmware.calls],
+                             [('living-room.yaml', 'build'), ('living-room.yaml', 'upload'),
+                              ('kitchen.yaml', 'build'), ('kitchen.yaml', 'upload')])
             self.assertEqual(m.updates.summary()['reinstallable'], 2)
 
 

@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.28 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.29 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -34,6 +34,9 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
 | Add-on | `screen_manager/app/plugins.py` | The index and test folders, the editor's payload, the plugins file, adding and removing, a plugin tile's state message, the fetch loop. |
 | Add-on | `firmware.py` (`PLUGINS_SUFFIX`, `save_plugins`), `page_layout.py`, `core.py` (`plugin_tile`, `PLUGIN_MEMORY`), `page_delivery.py` (`plugins_of`) | The sidecar, the document, the layout check and price, the negotiation. |
 | Editor | `web/src/model/plugins.ts`, `web/src/stores/plugins.ts`, `web/src/components/Plugin*.vue`, `ScreenPluginsTab.vue` | The Plugins page, the screen's Plugins tab, a plugin tile in the library and the inspector. |
+| Add-on | `screen_manager/app/plugin_module.py`, `Plugins.module`, `modules_on` | A plugin's own code for the editor's preview: what a module says about itself, what is refused, where one comes from (a folder, what the app keeps, what the plugins repository published). docs/EMULATOR_ARCHITECTURE.md, "Plugins". |
+| Add-on | `screen_manager/app/plugin_examples.py`, `Plugins.example_message` | A plugin's own example of a tile (its `preview.yaml`) through the app's shaping, for a tile that is on no page yet. |
+| Editor | `web/wasm/build_plugin.py`, `web/wasm/toolchain.py`, `web/src/stores/plugin-code.ts`, `web/src/stores/faces.ts`, `GlassFaces.vue` | A plugin's module for the preview, its loading, and the plugin's own card on the editor's tile, on a page and in the library. |
 | Test | `tests/fixtures/plugins/host_probe/`, `tools/render/run.py --plugin` | The host probe: a complete plugin that logs every moment of the API; the render harness builds it into a board's firmware for this computer and reads the moments back (docs/TESTING.md, "The plugin host"). |
 
 ## A plugin tile, end to end
@@ -79,11 +82,16 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    `tessera::Tile` when the card shows another tile, size or options, `on_state` when the data changed, `on_theme` when
    the look did. The once-a-second gate in `tick()` calls `on_tick` for every plugin card on the glass, and a short tap
    goes to `on_tap` through the same guard as every tile's. `hide_extra` (the card shows something else), `end_extra` and `release_kept` delete the object.
-7. **In the editor** a plugin tile is drawn from its data when its manifest has a `preview`: the add-on fills in the
-   first rows (`POST api/plugins/<id>/preview/<tile>` with the options as they are kept, `Plugins.preview`) and the mockup counts down to a moment on the
-   editor's clock, so a page in the editor looks like the glass. Without a preview it shows the icon, the name and the
-   manifest's `example`. The editor loads the plugins as soon as they are on, so a page with a plugin tile knows its
-   type before the Plugins page was opened.
+7. **In the editor** a plugin tile is drawn by the plugin itself where the editor's firmware preview has the plugin's
+   code: a module of its own, built from the plugin's C++ and loaded into the preview, which draws the tile from the
+   same options and data a screen gets (docs/EMULATOR_ARCHITECTURE.md, "Plugins"). The page editor shows that card
+   over its own, the library shows the tile at each size with the plugin's own example (its `preview.yaml`), and the
+   Preview and the overview draw it as part of the screen. Until that card is there, and for a
+   plugin without a module (one from a link, one that needs hardware), the editor draws what it can know: when the
+   manifest has a `preview`, the add-on fills in the first rows (`POST api/plugins/<id>/preview/<tile>` with the
+   options as they are kept, `Plugins.preview`) and the mockup counts down to a moment on the editor's clock; without
+   one it shows the icon, the name and the manifest's `example`. The editor loads the plugins as soon as they are on,
+   so a page with a plugin tile knows its type before the Plugins page was opened.
 8. **A tile whose plugin this screen lacks** is a plain card: its icon, its name and "Plugin missing"
    (`screen.plugin.missing`). Never an error, never a restart.
 
@@ -176,6 +184,12 @@ saved there. Every value kept before 0.12 is still valid.
 - **One path language.** A fetch's `map`, a tile's `fields` and an answer's `fields` share `parse_path` and
   `plugin_fetch.field_value`, and the kinds `text`, `number`, `epoch` and `numbers`. A new kind or step goes there,
   for all three.
+- **Times.** An `epoch` field takes a number or an ISO 8601 time. A time that says no offset is read in the field's
+  own `tz`, else in Home Assistant's zone as the app knows it (`Plugins.zone()`), else in UTC while the app has not
+  heard it, and never in the zone of the machine the app runs on (`plugin_fetch.epoch_of`): a container stands in UTC
+  or wherever its host does, and the same answer would be another moment there. The app keeps Home Assistant's zone
+  as a zone and a manifest writes a `tz` as a name; `epoch_of` takes either. `tests/test_plugin_times.py` runs every
+  case with the machine in four zones, since a test that passes only where it was written proves nothing here.
 - **The host proves the host.** A change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin fields runs
   `tools/render/run.py --plugin tests/fixtures/plugins/host_probe`, plain (the CYD's path: a card made anew when its
   page comes back) and with `KEPT_PAGES_HOST=1` (the kept path of a board with PSRAM), docs/TESTING.md, "The plugin
@@ -226,7 +240,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 
 | Part | Firmware | Add-on | Editor |
 |---|---|---|---|
-| A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
+| A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector; the tile drawn by the plugin's own code where the preview has its module, else `preview` drawn from the data |
 | How large a tile is (0.25) | `TileContext::full`, the tile is the whole page; `columns` and `rows` are then the grid's | the manifest's `sizes`: `min` and `max`, `full: true` for the whole page beside them, or `full: true` alone for a tile that only takes the whole page (`plugin_manifest`, `min` and `max` then `None`); no layout check, a saved layout stays readable | `tileSizeChoices`: the rectangles from `min` to `max`, and the whole page with `full: true` or where `max` reaches the grid (a rectangle that fills the grid is called `full`, never a span). A new tile starts at the smallest size it takes (`startTile`); the inspector's Whole page switch, because a tile of at most 2 x 2 has no way there along its edges |
 | A card's own colour (0.26) | `ui::set_card_color(CardColor)` in a call of the tile: the host keeps the colour with the plugin's card (`Card::ground`, a swatch's light value as `Tile::background` keeps one), `render_slot`'s palette takes it over the tile's own (`plugin_host::ground`) for the card, its hairline, its shade under a finger and the corners of its pictures, and a call outside `render()` (a tick, a tap) marks the tile for the next pass. `ui::card_color()` is the card as it is drawn, `ui::card_color(CardColor)` a named colour in this look. A tile with background None keeps no card. | nothing | nothing: the mockup draws the plain card |
 | Entities of one kind, and a device that fills them (0.26) | nothing: the tile reads `x.entities.<option id>` as since 0.15 | an entity option's `device_class` and `matches` (`plugin_manifest.check_option`, `entity_fits`: the entity's device class, its registry translation key, or the end of its id), a tile's `from_device` (`check_tile`: at least two such options); `Plugins.payload` gains `entity_facts` (per fitting entity its device, device class, translation key, whether it is disabled or a diagnostic; `plugins.entity_facts`, at most 2000) and `devices` (their names), from the registries the add-on already reads. The layout check does not use the filter: an entity that does not fit stays valid | `PluginOptions.vue`: the picker offers what fits, with a key under the list for every entity of the domains (`UiPicker`'s `foot`); `PluginTileInspector.vue`: "Fill from a device", the devices with entities for at least two options, most first, and the pick per option (`model/plugins.ts`: enabled, no diagnostic, no `raw` between underscores, then the shortest id) |
@@ -244,6 +258,9 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | Pictures on a card (0.13) | The same `ui::picture` and `ui::set_picture` in a card's calls: `placing` is the tile's places in a tile's call and the open card's in a card's (`call`), so the places are the same `Place`s, measured from the card's room (`measure`), laid by the same `lay`. The card is one owner of the loader (`CARD_OWNER`, `Kind::CARD` 1, `Rank::CARD`, the full view's slot), its key apart from every tile's (`tile_picture::card_key`, `pcard|`), its question a tile's with `card` and `for` (`card_fields`), its answer `pcard` (`card_picture_answer`, `card_question`). The store counts its places as on the glass (`card_draws` in `picture_shown` and `picture_away`); closing lets the picture go at once (`card_pictures_end`: the loader's release, then `pictures_collect`). It shares the store's budget as the media card's cover does: the glass under it keeps its pictures, a page out of sight makes room first. | `answer_plugin_pictures` with `question.card`: a card of a plugin the screen runs (`Entry.card`), its manifest's `pictures`, every address through `plugin_pictures.allowed` (Home Assistant's own pictures only for a card shown for an entity of the layout, `of_entity`); the source pictures are kept by address, so the cover a tile shows costs no second fetch | nothing |
 | A label of several lines (0.10) | `ui::text`: a label of the plugin's height, wrapped, ending in dots | nothing | nothing |
 | Where a tap was (0.10) | `tessera::tap_point()`: the finger of the tile's `on_tap` in the tile's own pixels (`finger_at` in the tile's touch handler, made relative to the extra layer by `plugin_host::tap`) | nothing | nothing |
+| The clocks' digits (0.29) | `Font::DIGITS_LARGE` is `display_digits` (half a page's width for two digits, the flip clock's), `Font::DIGITS_PAGE` is `runtime_tiles::bedside_digits()` (the bedside clock's own step, or `display_digits` where that is an 8 px place holder): fonts every build has, so a plugin's clock costs no flash. They hold the digits and the colon alone | nothing | nothing |
+| A sound louder than the screen (0.29) | `tessera::audio::raise_volume(plugin, volume)` and `restore_volume(plugin)`: a lift of `volume_lift.h` (the screen's one set, which a call's ring lifts too), `volume` on the media player's 0 to 1 (`volume_lift::on_dac`, its `volume_min` and `volume_max`); `before_update` takes every lift down; nothing is stored, so a restart comes back at the media player's kept volume (docs/SOUNDS.md, "Louder than the screen") | nothing | nothing |
+| A plugin tile renamed (0.29) | `render()` compares one value, `made_from()`: everything of the tile that `create()` reads (the type, the room, the spans, the name, the entity, the index, the options, `full`). A tile that differs in any of it gets a new card, so a rename reaches `TileContext::name`; `tests/test_plugins.py` fails when a field of `TileContext` is read without being in it | nothing | nothing |
 | The large digits (0.9) | `Font::DIGITS` is `setpoint_digits`, a font every board has, so it costs no flash; `ui::covers()` says whether a value has only its characters (`face_covers`) | nothing | nothing |
 | Tones for a block (0.9) | `Tone::GOOD` (Home Assistant's green) beside ACCENT, BUSY and ALERT; `ui::set_fill` gives a block (a bar, a dot) a tone's colour, `ui::tone_color` the colour itself; one `tone_color` in `plugin_host.cpp` for the bar, labels and blocks | nothing | nothing |
 | A sound of its own (0.8) | `plugin_sound.h` (`tessera::Sound`, `SoundPlayer` on `ts_speaker`; `add()`, 0.11, plays a sound after the ones before it, each followed by silence to its span, so the speaker spaces a run of clicks evenly); `smart_display.sound()` builds a WAV in | nothing: a plugin that needs the feature `speaker` | nothing |
@@ -252,7 +269,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | A question to Home Assistant | `tessera::send`, `on_message` (op `plugin`) | `Plugins.answer`: only `permissions.ha_commands`, logged; an answer the manifest's `answers` maps goes as its fields, the rest as it came; both bounded (`bounded`, 3.2 KB, by bytes) | the commands under "What it may do" |
 | The moments | `on_ready`, `on_interval` (every 250 ms; `on_tick` before 0.4), `on_standby`, `before_update`, `on_cards_closed`, `on_alert`, `on_press` and `on_step(Step)` (0.11, "Touch feedback" below) | | |
 | Pictures in one system (0.17) | `ui::picture(parent, Placeholder::NONE)`, a place without its block; `on_picture(place, PictureState)` on a `Tile`, a `Card` and a `Saver` (`plugin_host::picture_outcome`, from `tile_picture_done`); the core's own sources as an address; `slide_pictures` from any call; `ui::live`, a tile's place that streams its camera on a P4 (`plugin_host::live_places`, `runtime_tiles` live places, the answer `plive`); `tessera::capturing` and the camera's dot (`plugin_host::camera_dot_update`); "Pictures on a plugin tile" below | `plugin_pictures.py` reads `cover:`, `camera:`, `entity:` and `step:`; `Manager.plugin_picture`; `picture_service._stream` streams a live place's own camera | nothing |
-| Waking the screen (0.16) | `tessera::wake(plugin)`: `plugin_host::wake`, which `packages/core.yaml` points at the script `wake_from`, the one way Home Assistant's Wake button and a board's sensor take; "Waking the screen" below | nothing | nothing |
+| Waking the screen (0.16) | `tessera::wake(plugin)`: `plugin_host::wake`, which `packages/core.yaml` points at `screen_standby::wake_from`, the one way Home Assistant's Wake button and a board's sensor take; "Waking the screen" below | nothing | nothing |
 | Entities chosen per tile (0.15) | nothing new: the tile reads `x.entities.<option id>` (state, name, attributes, updated) from its data | an option of kind `entity` (`plugin_manifest.check_option`, `option_value`); `Plugins.tile_message` puts each chosen entity's `state_part` under `entities`, `related_entities` follows them | the tile's inspector: a searchable entity picker per option (`PluginOptions.vue`) |
 | A screensaver (0.14) | `Saver`, `add_saver(id, step, make)`, `SaverContext`; `ui::takes_taps` (only for `taps: true`, `Plugin::set_taps`); `wish()`; `drift()`; "A screensaver" below | the manifest's `savers`; `Plugins.saver_kinds`, `saver_plugins`, `saver_step`, `refresh_savers`; `screen_saver.message`'s `pf`; `answer_plugin_pictures` with `question.saver` and `saver:picture` | the Screensaver card: a face per step, a step of its own in the order, its options |
 | A popup (0.18) | `Popup`, `show_popup`, `close_popup`, `popup_shown`, `PopupWidth`; `ui::animate` with `Motion` and `ui::still`; `plugin_host` "A plugin's popup"; "A popup" below | nothing | nothing |
@@ -295,9 +312,10 @@ So a new control needs at most one line, by what it is:
 `tessera::wake(this)` wakes the screen the way Home Assistant's Wake button does. It is for a plugin that senses
 someone come: motion in front of a camera, a light coming on, a sound.
 
-Every wake that is not a finger on the glass takes one way, the script `wake_from` in `packages/core.yaml`. Home
-Assistant's Wake button runs it, a board's own sensor presses that button (the reTerminal D1001's Wake when moved),
-and `tessera::wake` reaches it through `plugin_host::wake`, which the core sets at boot. The log says who woke the
+Every wake that is not a finger on the glass takes one way, `screen_standby::wake_from`
+(`components/smart_display/screen_standby.h`). Home Assistant's Wake and Motion buttons run it, as does a board's own
+sensor (the reTerminal D1001's Wake when moved), and `tessera::wake` reaches it through `plugin_host::wake`, which the
+core sets at boot. The log says who woke the
 screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 
 - A screen in standby lights up at its brightness, also in the night hours. Its screensaver goes, a Sleep is over, and
@@ -306,6 +324,11 @@ screen (`Wake from plugin <id>`). So a plugin's wake does what Wake does:
 - It is no tap. Back to page 1 keeps counting from the last touch, so waking on every motion holds no card or page 2
   up. A finger on the glass counts as use; a wake does not.
 - A board that cannot go dark (`CAN_STANDBY` false) has no standby, so there is nothing to wake.
+- After a standby by hand (firmware 0.64.0+: Home Assistant's Sleep, the board's key, the home key held) it waits for
+  the room to go quiet. The person who sent the screen to standby is still there, and walking away is motion, so a
+  sensed wake lights the screen only after a minute without one (`screen_standby.h`); each wake it holds starts that
+  minute again. Home Assistant's Motion button counts as sensed too; its Wake does not. A popup, a call, a doorbell,
+  an alert, the board's key, Wake and a finger always wake the screen.
 
 A plugin that wakes the screen by what it senses:
 
@@ -472,6 +495,13 @@ through `GET api/plugins/<id>/image` (`plugins.store_image`): the editor's `img-
 file from GitHub at the plugin's commit, checks it is a PNG of at most 1 MB and 2560 x 1440, keeps one per plugin under
 `data/images`, and serves it under an address named after the commit, which a browser keeps for a day.
 
+The pictures of a plugin's README come the same way (GitHub #450): `PluginReadme.vue` turns a relative picture (or a
+full address of a raw file of the plugin's own folder) into `GET api/plugins/<id>/readme/<path>?v=<commit>`
+(`model/readme-pictures.ts`), and `plugins.readme_image` reads it from the plugin's folder at its commit: a path of the
+folder only (no segment that starts with a dot), a PNG, JPEG, GIF or WebP of its extension's kind (no SVG), at most
+2 MB and 4096 x 4096. Pictures are kept under `data/images/readme`, one commit per plugin; a folder plugin's are read from
+its folder each time. Any other picture is left out of the README.
+
 ## Pictures on a plugin tile
 
 A plugin never fetches: its tile lays out places (`ui::picture`) and names an address for each (`ui::set_picture`), and
@@ -547,7 +577,7 @@ shows it over the whole glass while Auto standby dims it. A plugin adds to that 
   (`domains`, `attributes`, `fields`, as a tile of an entity), shown while its manifest's `when` holds: `always`,
   `data` (its fetch has an answer) or `{state: [...]}` (its entity is in one of those states).
 
-The core decides when a saver shows: standby at a level above 0, without Sleep from Home Assistant, the cards closed,
+The core decides when a saver shows: standby at a level above 0 (a Sleep from Home Assistant too, firmware 0.64.0+), the cards closed,
 no alert. It goes on a wake, an alert, an update (`before_update` first), a level of 0, a new layout or another word.
 
 **A backdrop.** A face of the music or the photos whose manifest says `backdrop: true` has the step's own picture under
