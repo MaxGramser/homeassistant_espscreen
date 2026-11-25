@@ -2893,11 +2893,12 @@ class Plugins:
                     result = (result or {}).get('response', result) if isinstance(result, dict) else result
                 else:
                     result = await self.manager.ha.request(ask, **data)
-                # An answer the manifest maps (`answers`) goes as its fields, the rest as it came; both bounded.
+                # An answer the manifest maps (`answers`) goes as its fields (or mapped `items` list from 0.30), the rest as it came; both bounded.
                 spec = next((a for a in entry.manifest.get('answers') or [] if a['command'] == ask), None)
                 if spec:
-                    result = {name: plugin_fetch.field_value(result, field, self.zone())
-                              for name, field in spec['fields'].items()}
+                    result = plugin_fetch.apply_map(spec, result, zone=self.zone())
+                    if 'items' in spec:
+                        result = fitted_data(result, 3200)
                 reply.update(ok=True, result=bounded(result, mapped=bool(spec)))
             except Exception as error:   # Home Assistant said no, or did not answer
                 reply.update(ok=False, error=str(error)[:120] or type(error).__name__)

@@ -163,8 +163,16 @@ class ProbeTile : public tessera::Tile {
 
 class ProbeCard : public tessera::Card {
  public:
-  ~ProbeCard() override { ESP_LOGI(TAG, "card destroy"); }
+  static ProbeCard *active;
+  ~ProbeCard() override {
+    if (active == this) active = nullptr;
+    ESP_LOGI(TAG, "card destroy");
+  }
   void open(const tessera::CardContext &c) override {
+    active = this;
+    parent_ = c.parent;
+    width_ = c.width;
+    height_ = c.height;
     ESP_LOGI(TAG, "card open %dx%d tile=%d entity=[%s]", c.width, c.height, c.tile, c.entity);
     words_ = ui::label(c.parent, Font::BODY_LARGE, theme::INK);
     lv_obj_set_width(words_, c.width);
@@ -204,9 +212,15 @@ class ProbeCard : public tessera::Card {
   void on_theme() override { ESP_LOGI(TAG, "card theme dark=%d", (int) theme::dark); }
   bool on_back() override { ESP_LOGI(TAG, "card back"); return false; }
 
+  lv_obj_t *room() const { return parent_; }
+  int width() const { return width_; }
+  int height() const { return height_; }
+
  private:
-  lv_obj_t *words_{}, *foot_{}, *cover_{};
+  lv_obj_t *parent_{}, *words_{}, *foot_{}, *cover_{};
+  int width_ = 0, height_ = 0;
 };
+ProbeCard *ProbeCard::active = nullptr;
 
 // A card that closes itself, or opens another card in its place, from inside one of its own calls, as the harness's
 // message says (on_message, "do"). The host must not touch it again once it closed, and must not delete it before the
@@ -591,6 +605,18 @@ void HostProbe::on_message(JsonObjectConst message) {
     ESP_LOGI(TAG, "do popup_close shown=%d", (int) tessera::popup_shown(this));
     tessera::close_popup(this);
     ESP_LOGI(TAG, "popup shown=%d", (int) tessera::popup_shown(this));
+    return;
+  }
+  if (std::string(what) == "keyboard") {
+    if (ProbeCard::active) {
+      ui::KeyboardOptions opts;
+      opts.hint = "Search";
+      const int top = ui::show_keyboard(ProbeCard::active->room(), ProbeCard::active->width(),
+                                        ProbeCard::active->height(), 0, opts);
+      ESP_LOGI(TAG, "keyboard top=%d shown=%d", top, (int) ui::keyboard_shown());
+    } else {
+      ESP_LOGI(TAG, "keyboard shown=%d", (int) ui::keyboard_shown());
+    }
     return;
   }
   if (*what) {

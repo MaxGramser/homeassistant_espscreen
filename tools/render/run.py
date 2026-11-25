@@ -1317,10 +1317,16 @@ class Run:
             if not (0 <= cx <= x2 - x1 and 0 <= cy <= y2 - y1):
                 self.failures.append(f'the card\'s tap point {cx},{cy} is not within its room {x2 - x1}x{y2 - y1}')
         self.warnings.append(f'card taps: {[(t.group(1), t.group(2)) for t in taps]} in a room of {x2 - x1}x{y2 - y1}')
+        # On-screen keyboard on the open card (plugin API 0.30): opens, reports shown=1, and clears when the card closes.
+        start = len(self.lines)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'keyboard'}})
+        await self.until(lambda l: probe(l, 'keyboard top=') and 'shown=1' in l, 10, 'the card opened the keyboard', start)
         start = len(self.lines)
         await self.call('render_close_cards')
         await self.until(lambda l: probe(l, 'card destroy'), 10, 'the card closed', start)
         await self.until(lambda l: probe(l, 'cards_closed'), 10, 'on_cards_closed', start)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'keyboard'}})
+        await self.until(lambda l: probe(l, 'keyboard shown=0'), 10, 'the keyboard closed with the card', start)
         # The card's picture leaves the store with the card (plugin API 0.13).
         if kept and 'pictures=1' in card_shows:
             gone = await self.until(lambda l: 'store:' in l and 'pcard' not in l, 10, 'the card\'s picture freed', start)
