@@ -2,6 +2,7 @@
 // Shared firmware workspace; always a concrete profile and upload target.
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useFirmwareJob, useLineBuild } from "../composables/useFirmwareJob";
+import { useStickToBottom } from "../composables/useStickToBottom";
 import { t } from "../i18n";
 import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, usbTarget } from "../model/firmware-job";
 import { serverStep } from "../model/screen-status";
@@ -85,6 +86,10 @@ onMounted(() => void builds.loadKeptLogs());
 const memoryText = computed(() => memoryOf(followed.build.value ?? data.value?.job)?.text || "");
 // The log of the build this page asked for once it is known, else whatever builds now.
 const logLines = computed(() => (followed.build.value && followed.build.value.state !== "queued" ? followed.logs.value : data.value?.logs || []));
+// The log follows its newest line, as a screen's build log and New screen's do, while the reader is at its bottom: one
+// who scrolled up to read stays there. It watches the lines, not their number: the add-on keeps the newest 300.
+const logBox = ref<HTMLElement | null>(null);
+useStickToBottom(logBox, () => logLines.value, { near: 40 });
 const downloadReady = computed(() => target.value === "download" && !!file.value && !!data.value?.downloads?.includes(file.value));
 const image = computed(() => firmwareImage(file.value));
 async function run(action: "validate" | "build" | "install") {
@@ -180,7 +185,7 @@ onBeforeUnmount(() => flash.cancel());
         </i18n-t>
       </div>
     </div>
-    <pre id="firmware-log" class="log">{{ logLines.join("\n") }}</pre>
+    <pre id="firmware-log" ref="logBox" class="log">{{ logLines.join("\n") }}</pre>
     <section class="kept-logs" id="firmware-kept-logs">
       <h3>{{ t("editor.firmware.kept_title") }}</h3>
       <p class="kept-note">{{ t("editor.firmware.kept_note") }}</p>
