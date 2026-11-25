@@ -158,6 +158,7 @@
       "extras": "Extras",
       "microphone": "Mikrofon",
       "media_player": "Lautstärke",
+      "volume": "Lautstärke",
       "wake_when_moved": "Bei Bewegung aufwecken",
       "backlight_pwm": "Hintergrundlicht-PWM",
       "dimmest_level": "Dunkelste Stufe",
@@ -1061,6 +1062,9 @@
         "none": "Dieser Bildschirm spielt dafür keinen Ton. Wähle zuerst einen.",
         "older": "Dieser Bildschirm braucht dafür ein Firmware-Update.",
         "busy": "Dieser Bildschirm ist gerade in einem Anruf."
+      },
+      "steps": {
+        "request": "Diesen Schritt gibt es auf diesem Bildschirm nicht."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Echounterdrückung",
           "hint": "Verringert den eigenen Lautsprecher im Mikrofonsignal. Aus umgeht die Echounterdrückung; Mikrofon und Vollduplex bleiben aktiv. Erfordert den AEC-Audiopfad."
+        },
+        "volume": {
+          "label": "Lautstärke",
+          "hint": "Wie laut der Summer spielt: den Gong der Türklingel, die Töne von Meldungen und die Töne eines Plugins. Der Bildschirm behält sie nach einem Neustart."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Installation",
         "icons": "Symbole",
         "other": "Build"
+      }
+    },
+    "steps": {
+      "later": "Später",
+      "set_up": "Einrichten",
+      "update": "Aktualisieren",
+      "not_now": "Nicht jetzt",
+      "not_done": "nicht erledigt",
+      "kept": "Gut. Es wartet im Menü von {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Firmware schreiben",
+          "again": "Erneut versuchen",
+          "cable": "Steck zuerst das USB-Kabel des Bildschirms in diesen Computer.",
+          "phase": {
+            "port": "Wähle den Chip in der Liste des Browsers. Sie zeigt nur diesen.",
+            "restart": "Der Chip startet als USB-Laufwerk neu.",
+            "drive": "Der Chip ist jetzt ein USB-Laufwerk namens {drive}. Wähle es und erlaube dieser Seite, darauf zu schreiben.",
+            "write": "Firmware wird geschrieben.",
+            "wait": "Der Chip startet. Warte, bis der Bildschirm ihn findet.",
+            "wait_chip": "Auf dem Chip läuft {version}. Warte, bis der Bildschirm ihn findet."
+          },
+          "choose_drive": "Laufwerk {drive} wählen",
+          "wrong_drive": "Das ist nicht das Laufwerk {drive}. Wähle das Laufwerk selbst, oben in der Liste, nicht einen Ordner auf diesem Computer.",
+          "drive_there": "Das Laufwerk {drive} ist schon da",
+          "done": "Firmware {version} ist auf dem Chip, und der Bildschirm hat ihn gefunden.",
+          "try": "Ton abspielen",
+          "errors": {
+            "no_port": "Es wurde kein Port gewählt. Steckt das USB-Kabel des Bildschirms in diesem Computer, zeigt die Liste des Browsers den Chip.",
+            "port": "Der Port des Chips ließ sich nicht öffnen. Schließe jedes andere Programm, das ihn benutzt, und versuche es erneut.",
+            "file": "Die Firmware ist nicht von Tessera angekommen. Versuche es erneut.",
+            "write": "Die Datei ließ sich nicht auf das Laufwerk schreiben. Versuche es erneut.",
+            "silent": "Der Bildschirm hat den Chip nicht gefunden. Zieh das USB-Kabel ab, steck es wieder ein und versuche es erneut."
+          },
+          "hand": {
+            "insecure": "Diese Seite wurde über einfaches http geöffnet, deshalb gibt der Browser ihr keinen USB-Port. Über https in Chrome oder Edge geöffnet (deine Home Assistant Cloud-Adresse geht), sind es zwei Klicks. Es geht auch von Hand:",
+            "browser": "Dieser Browser kann keine USB-Ports erreichen. In Chrome oder Edge auf einem Computer sind es zwei Klicks. Es geht auch von Hand:",
+            "download": "{name} herunterladen",
+            "drag": "Ein Laufwerk namens {drive} erscheint. Zieh die Datei darauf. Das Laufwerk verschwindet von selbst und der Chip startet.",
+            "did": "Das habe ich gemacht"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Summer-Firmware",
+        "title": "Gib dem Summer seinen Ton",
+        "lead": "Ein zweiter Chip in diesem Bildschirm steuert seinen Summer. Mit der Firmware von Tessera auf diesem Chip spielt der Summer den Gong der Türklingel und die Töne deiner Meldungen. Das dauert eine halbe Minute.",
+        "note": "Das ersetzt die Firmware von Seeed auf diesem Chip, die du von Seeed wiederbekommst. Die von Tessera liest die Sensoren eines D1S oder D1Pro nicht.",
+        "button": "Zieh das USB-Kabel aus dem Bildschirm. Halte mit einer Büroklammer die Taste in dem kleinen Loch des Gehäuses gedrückt und steck das Kabel wieder ein, mit dem anderen Ende in diesem Computer.",
+        "done_title": "Der Summer hat seinen Ton",
+        "done_lead": "Wähle unter Events, was er bei Meldungen und bei der Türklingel spielt.",
+        "update_title": "Eine neuere Firmware für den Summer",
+        "update_lead": "Tessera hat eine neuere Firmware für den Chip, der den Summer dieses Bildschirms steuert, als die, die darauf ist. Das dauert eine halbe Minute."
       }
     }
   }

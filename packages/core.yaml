@@ -87,6 +87,7 @@ substitutions:
   BOOT_MIC_CONTROLS: ""                            # the microphones' gain and ALC (parts/es7210-controls.yaml)
   BOOT_MICROPHONE_PART: ""                         # the microphones' codec and its transport (parts/es7210.yaml)
   BOOT_BOARD_SETTINGS: ""                          # the board file's own
+  HELLO_BOARD_STEPS: ""                            # the board file's own: its steps that are done (docs/BOARD_STEPS.md)
   # The screen's moments (every 250 ms, the cards closing, the settings page opening, away from page 1, an alert) are
   # lists, not substitutions (screen_hooks.h): a feature adds to them at boot, a plugin through the plugin API.
   # one more line of the ui_state diagnostics
@@ -772,6 +773,10 @@ api:
                       memory["page"] = board.page_bytes;
                       if (runtime_tiles::memory_short(now)) memory["short"] = 1;
                     }
+                    // The board's own steps that this screen can see are done (docs/BOARD_STEPS.md), each with what it
+                    // found: the firmware of a second chip that answers. The board file fills it (HELLO_BOARD_STEPS).
+                    // A board without steps writes nothing here.
+                    { ${HELLO_BOARD_STEPS} }
                     // What this firmware takes beyond the flags above, as a list (firmware 0.19.0+, app 0.4.32+): a newer
                     // option adds its name here. climate_range: a thermostat's range on its -/+, with the chip for its end.
                     auto features = root["features"].to<JsonArray>();
@@ -844,8 +849,13 @@ api:
                     #endif
                     // sounds (docs/SOUNDS.md): this screen plays sounds the app chose as files it downloads (kept_sound.h),
                     // so ESP Screens sends a doorbell's ring its chime (`ch`) and an alert its tone (the op "sound").
+                    // A speaker on a second chip counts while that chip answers (hw::speaker_now).
                     #if defined(USE_SPEAKER) && defined(SCREEN_PICTURES)
-                    if (hw::caps().speaker) features.add("sounds");
+                    if (hw::speaker_now()) {
+                      features.add("sounds");
+                      // buzzer: its speaker is a buzzer, so ESP Screens sends the sounds it made for a buzzer's band.
+                      if (hw::buzzer()) features.add("buzzer");
+                    }
                     #endif
                     // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
                     #ifdef SD_MOD_CALL

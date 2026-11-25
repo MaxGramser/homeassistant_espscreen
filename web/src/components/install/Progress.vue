@@ -6,7 +6,15 @@
 // anything is asked of the person; ESPHome's own log is a click away. Only when Home Assistant has the screen, online
 // and allowed to act, does the page say it is ready, with the way on to its pages. When it stops short, it says where
 // and what helps: the build's reason, the hotspot when the Wi-Fi is wrong, the way by hand when Home Assistant asks.
-import { computed, ref } from "vue";
+// A board with steps of its own (docs/BOARD_STEPS.md: a second chip that takes a firmware of its own) gets each of them
+// as a page before the last one, once the screen works: the same page the card above a screen opens later. Later goes
+// on and is kept by the add-on, so the card does not ask again.
+import { computed, ref, watch } from "vue";
+import { send } from "../../api";
+import { stepsToDo } from "../../model/board-steps";
+import { useInventoryStore } from "../../stores/inventory";
+import BoardStepView from "../steps/BoardStepView.vue";
+import { KINDS as STEP_KINDS } from "../steps/kinds";
 import { ESPHOME_WEB } from "../../model/firmware-job";
 import { injectInstaller } from "../../composables/useInstaller";
 import { useStickToBottom } from "../../composables/useStickToBottom";
@@ -54,12 +62,40 @@ const lead = computed(() => {
 const stepName = (key: string) => t(`editor.installer.flow.steps.${key === "write" && install.download ? "write_self" : key}`);
 // The page's own check stands beside the screen once it is ready, so the drawing itself keeps quiet then.
 const artState = computed(() => (ready.value ? "idle" : failed.value ? "failed" : "working"));
+// The board's own steps, one page each, between "it works" and the last page. The page of a step stays until someone
+// goes on from it (it shows what was done), so the steps that were passed are kept here, not read from their state.
+const inv = useInventoryStore();
+const passed = ref<string[]>([]);
+const stepId = ref<string | null>(null);
+watch(() => [ready.value, install.made?.steps] as const, () => {
+  if (!ready.value || stepId.value) return;
+  stepId.value = stepsToDo(install.made).find((step) => STEP_KINDS[step.kind] && !passed.value.includes(step.id))?.id ?? null;
+}, { immediate: true });
+const boardStep = computed(() => (install.made?.steps || []).find((step) => step.id === stepId.value) || null);
+function stepPassed() {
+  if (stepId.value) passed.value.push(stepId.value);
+  stepId.value = stepsToDo(install.made).find((step) => STEP_KINDS[step.kind] && !passed.value.includes(step.id))?.id ?? null;
+}
+async function stepLater() {
+  const screen = install.made, step = boardStep.value;
+  stepPassed();
+  if (!screen || !step || step.state !== "open") return;
+  try {
+    await send(`screens/${encodeURIComponent(screen.id)}/steps/${encodeURIComponent(step.id)}`, "POST", { answer: "later" });
+    await inv.refresh(false);
+  } catch (error) {
+    ui.toast((error as Error).message);
+  }
+}
 // Pages next: the screen's own page in the editor, where its tiles are chosen.
 function toPages() { if (install.made) session.select(install.made.id); else ui.go(""); }
 </script>
 
 <template>
-  <div id="install-progress" class="ob-body follow" :class="{ ready, failed }">
+  <div v-if="boardStep" id="install-step" class="ob-body">
+    <BoardStepView :step="boardStep" :screen="install.made" @later="stepLater" @next="stepPassed" />
+  </div>
+  <div v-else id="install-progress" class="ob-body follow" :class="{ ready, failed }">
     <div class="ob-hero" aria-hidden="true">
       <div class="ob-frame" :style="{ '--art-ratio': install.art.width / install.art.height }">
         <DeviceArt v-bind="install.art" :name="name" :lit="saved ? 0 : install.journey.percent / 100" :state="artState" />

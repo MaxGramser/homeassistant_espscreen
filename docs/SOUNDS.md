@@ -69,6 +69,13 @@ twelve sounds of your own, in its own data, so they are still there after a rest
 your own can be chosen for every kind whose length it fits. Removing it puts whatever played it back on that kind's own
 sound.
 
+## A screen with a buzzer
+
+A SenseCAP Indicator has a buzzer for a speaker (docs/SECOND_CHIP.md). A buzzer rings at one pitch and carries little
+else, so such a screen says `buzzer` in its hello and gets each built-in sound in a version with its notes in the
+buzzer's band (`sounds.BUZZER`), and every sound 20 dB louder, up to full scale: where a kind's Volume starts, a buzzer
+plays as loud as it can. A sound of your own plays as it is.
+
 ## How a sound reaches a screen
 
 Every sound is a file of the app (docs/SCREEN_FILES.md), named by its content. The message that needs it carries its

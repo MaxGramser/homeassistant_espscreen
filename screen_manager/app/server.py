@@ -35,6 +35,7 @@ import live_stream
 import talk_bridge
 import calls
 import sounds
+import board_steps
 import screen_files
 import screen_source
 import claude_skill
@@ -1200,6 +1201,8 @@ class Manager:
         # The files screens download from the camera port (docs/SCREEN_FILES.md), and the sounds among them (docs/SOUNDS.md).
         self.files = screen_files.ScreenFiles(self.path.parent)
         self.sounds = sounds.Sounds(self.path.parent, self.files)
+        # What people said of their screens' own steps (docs/BOARD_STEPS.md): later, or done where a screen cannot tell.
+        self.board_steps = board_steps.BoardSteps(self.path.parent)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -2013,6 +2016,7 @@ class Manager:
         self.plugins.forget_screen(inbox)
         self.icons.forget_screen(inbox)
         self.sounds.forget_screen(inbox)
+        self.board_steps.forget_screen(inbox)
         self.labels.forget(screen.get('device_id'))
         self.hangs.forget(screen.get('device_id'))
         self.savers.forget(screen.get('device_id'))
@@ -4778,6 +4782,39 @@ class Manager:
                          'ip': screen.get('ip') or ''}
         return out
 
+    def steps_of_screen(self, screen):
+        """The own steps of a screen's board (docs/BOARD_STEPS.md, boards.yaml `steps`), each with its state for this
+        screen: what its hello says it sees done, and what a person said. Empty for a board without steps."""
+        steps = (SHAPES.get(board_of(screen), {}).get('catalog') or {}).get('steps')
+        if not steps:
+            return []
+        sender = self.page_senders.get(self.aliases.get(screen.get('id'), screen.get('id')))
+        return board_steps.view(steps, getattr(sender, 'steps', None), self.board_steps.of(screen.get('id')))
+
+    async def ask_steps(self, inbox):
+        """A screen's own steps, asked of the screen this moment: the page of a step waits for it, as for a chip that
+        just got its firmware and now answers the screen. A screen that does not answer keeps what it said last."""
+        inbox = self.aliases.get(inbox, inbox)
+        screen = self.screen(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        with contextlib.suppress(Exception):
+            await self.ping(inbox, screen)
+        return self.steps_of_screen(screen)
+
+    def answer_step(self, inbox, step, said):
+        """A person's word for a step of this screen: 'later', 'done' where the screen cannot see it, '' to take it back."""
+        inbox = self.aliases.get(inbox, inbox)
+        screen = self.screen(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        steps = (SHAPES.get(board_of(screen), {}).get('catalog') or {}).get('steps')
+        try:
+            self.board_steps.answer(steps, inbox, step, said)
+        except ValueError:
+            raise ValueError(t('addon.errors.steps.request')) from None
+        return self.steps_of_screen(screen)
+
     def plays_sounds(self, screen):
         """Whether a screen takes the sounds of docs/SOUNDS.md as files: a speaker and the hello's `sounds`."""
         sender = self.page_senders.get(screen['id'])
@@ -4789,7 +4826,8 @@ class Manager:
         if not self.plays_sounds(screen):
             return None
         base = await self.link_base(screen)
-        return self.sounds.link(kind, base, screen['id']) if base else None
+        buzzer = sounds.BUZZER_FEATURE in (getattr(self.page_senders.get(screen['id']), 'features', None) or ())
+        return self.sounds.link(kind, base, screen['id'], buzzer) if base else None
 
     def sound_screens(self):
         """Per kind the screens that can play its sound (the editor's lists): a call's from the module call, the others
@@ -5267,6 +5305,8 @@ def create_app(manager, development=False):
             screen['plugin_ask'] = manager.plugins.ask_card(screen) if editor_features['plugins'] else None
             # A plugin for hardware its board has (plugin_defaults.py): suggested once, above the screen.
             screen['plugin_suggest'] = manager.plugins.suggest_card(screen) if editor_features['plugins'] else None
+            # Its board's own steps (docs/BOARD_STEPS.md): what is left to do with it beyond its firmware, and what is done.
+            screen['steps'] = manager.steps_of_screen(screen)
         return {'csrf': csrf, 'connected': manager.ha.online, 'screens': screens,
                 'editor_features': editor_features,
                 'pending': manager.pending_profiles(screens, profiles),
@@ -5991,6 +6031,25 @@ def create_app(manager, development=False):
             raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
         manager.ha.changed.set()
         return web.json_response(manager.alarm_screens.view(manager.ha.states))
+    async def steps_ask(request):
+        """A screen's own steps (docs/BOARD_STEPS.md), asked of the screen now."""
+        return web.json_response({'steps': await manager.ask_steps(request.match_info['inbox'])})
+    async def step_answer(request):
+        """A person's word for one step: {"answer": "later" | "done" | ""}."""
+        body = await request.json()
+        said = body.get('answer') if isinstance(body, dict) else None
+        if not isinstance(said, str):
+            raise ValueError(t('addon.errors.steps.request'))
+        steps = manager.answer_step(request.match_info['inbox'], request.match_info['step'], said)
+        manager.notify()
+        return web.json_response({'steps': steps})
+    async def chip_firmware(request):
+        """Tessera's firmware for a board's second chip, for the browser to write to it (the kind chip_firmware)."""
+        found = board_steps.chip_file(request.match_info['chip'])
+        if found is None:
+            raise web.HTTPNotFound()
+        return web.Response(body=found[0], content_type='application/octet-stream',
+                            headers={'Content-Disposition': f'attachment; filename="{found[1]}"', 'Cache-Control': 'no-cache'})
     def sound_error(error):
         return ValueError(t(f'addon.errors.sounds.{error}', seconds=f'{sounds.MAX_SECONDS:g}', most=sounds.MAX_OWN))
     async def sounds_view(request):
@@ -6795,6 +6854,9 @@ def create_app(manager, development=False):
     app.router.add_post('/api/doorbell/test', test_doorbell)
     app.router.add_get('/api/alarms', alarms_view)
     app.router.add_put('/api/alarms', alarms_change)
+    app.router.add_post('/api/screens/{inbox}/steps', steps_ask)
+    app.router.add_post('/api/screens/{inbox}/steps/{step}', step_answer)
+    app.router.add_get('/api/chips/{chip}/firmware', chip_firmware)
     app.router.add_get('/api/sounds', sounds_view)
     app.router.add_post('/api/sounds', sound_add)
     app.router.add_put('/api/sounds/choice', sound_choose)

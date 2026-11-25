@@ -201,6 +201,21 @@ CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes
 PICTURE_TURNS = (90, 180, 270)
 
 
+# The features a screen can gain or lose while it runs, read at every ping too (PageSender.now): the sounds it plays as
+# files and whether its speaker is a buzzer, which a second chip that has to answer decides (firmware hw::speaker_now).
+LIVE_FEATURES = ("sounds", "buzzer")
+
+
+def steps_of(answer):
+    """The board's own steps a screen sees done (docs/BOARD_STEPS.md), from its hello or a ping: {step: what it found},
+    as the firmware of a second chip that answers. None for a screen that says nothing of steps: its firmware is from
+    before its board had any, so it cannot tell whether one is done."""
+    steps = answer.get("steps") if isinstance(answer, dict) else None
+    if not isinstance(steps, dict):
+        return None
+    return {key: value for key, value in steps.items() if isinstance(key, str) and isinstance(value, str) and len(key) <= 40 and len(value) <= 40}
+
+
 def caps_of(answer):
     """The capability record of a hello (firmware hw.h, docs/PLATFORM_PLAN.md 3.3): the flags of CAP_FLAGS as booleans and
     the counts of CAP_COUNTS as ints, or None for a count the screen did not give. A firmware without the record (before
@@ -349,6 +364,9 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        # The board's own steps the screen sees done, {step: what it found} (steps_of), from its hello and every ping;
+        # None until it said, and for a firmware that says nothing of steps.
+        self.steps = None
         # The features of its last hello, kept while it is offline (page_capabilities keeps them across restarts of the
         # app): what a save is judged by while the screen is away, so a template, to-do or call tile is not refused as
         # "needs newer firmware" only because the screen is off (GitHub #452). None until a hello named them.
@@ -456,6 +474,24 @@ class Sender:
         if self.memory is None or self.memory["room"] is not None:
             self.last_memory = self.memory
         self.grids = self.last_grids = grids_of(answer)
+        self.now(answer)
+
+    def now(self, answer):
+        """What a screen can gain or lose while it runs, read from a hello and from every ping after it: whether its
+        speaker works (a buzzer on a second chip that came or went, firmware hw::speaker_now) and with it the features
+        of LIVE_FEATURES, and the board's own steps that it sees done (docs/BOARD_STEPS.md, the hello's `steps`).
+        Everything else of a hello holds for its session."""
+        if not isinstance(answer, dict):
+            return
+        listed = answer.get("features")
+        if isinstance(listed, list):
+            live = {name for name in listed if name in LIVE_FEATURES}
+            self.features = (self.features - set(LIVE_FEATURES)) | live
+            self.last_features = set(self.features)
+        record = answer.get("caps")
+        if isinstance(record, dict) and isinstance(getattr(self, "caps", None), dict):
+            self.caps["speaker"] = record.get("speaker") is True
+        self.steps = steps_of(answer)
 
     async def probe(self, empty=False):
         async with self.lock:

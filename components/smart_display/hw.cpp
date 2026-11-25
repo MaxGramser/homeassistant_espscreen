@@ -52,11 +52,13 @@ const Caps &caps() {
   return resolved;
 }
 
+bool speaker_now() { return caps().speaker && (!speaker_works() || speaker_works()()); }
+
 void hello(JsonObject root) {
   const Caps &c = caps();
   auto caps = root["caps"].to<JsonObject>();
   caps["live"] = c.live_video;
-  caps["speaker"] = c.speaker;
+  caps["speaker"] = speaker_now();
   caps["microphone"] = c.microphone;
   caps["echo_cancel"] = c.echo_cancel;
   caps["camera"] = c.camera;

@@ -158,6 +158,7 @@
       "extras": "Extra's",
       "microphone": "Microfoon",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
       "backlight_pwm": "Achtergrondlicht-PWM",
       "dimmest_level": "Laagste stand",
@@ -1061,6 +1062,9 @@
         "none": "Dit scherm speelt hier geen geluid voor. Kies er eerst een.",
         "older": "Dit scherm heeft hiervoor een firmware-update nodig.",
         "busy": "Dit scherm is nu in gesprek."
+      },
+      "steps": {
+        "request": "Deze stap bestaat niet op dit scherm."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Echo-onderdrukking",
           "hint": "Verminder de eigen speaker in het microfoonsignaal. Uit omzeilt de verwerking; microfoon en full-duplex blijven werken. Vereist het AEC-audiopad."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Hoe hard de zoemer speelt: de chime van de deurbel, de geluiden van alerts en de geluiden van een plugin. Het scherm onthoudt het na een herstart."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Installatie",
         "icons": "Iconen",
         "other": "Build"
+      }
+    },
+    "steps": {
+      "later": "Later",
+      "set_up": "Instellen",
+      "update": "Bijwerken",
+      "not_now": "Niet nu",
+      "not_done": "niet gedaan",
+      "kept": "Prima. Het wacht in het menu van {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Firmware schrijven",
+          "again": "Opnieuw proberen",
+          "cable": "Steek eerst de USB-kabel van het scherm in deze computer.",
+          "phase": {
+            "port": "Kies de chip in de lijst van de browser. Die toont alleen deze.",
+            "restart": "De chip herstart als USB-schijf.",
+            "drive": "De chip is nu een USB-schijf met de naam {drive}. Kies die, en laat deze pagina erop schrijven.",
+            "write": "Firmware schrijven.",
+            "wait": "De chip start. Wachten tot het scherm hem vindt.",
+            "wait_chip": "Op de chip draait {version}. Wachten tot het scherm hem vindt."
+          },
+          "choose_drive": "Kies de schijf {drive}",
+          "wrong_drive": "Dat is niet de schijf {drive}. Kies de schijf zelf, bovenaan de lijst, niet een map op deze computer.",
+          "drive_there": "De schijf {drive} is er al",
+          "done": "Firmware {version} staat op de chip, en het scherm heeft hem gevonden.",
+          "try": "Geluid afspelen",
+          "errors": {
+            "no_port": "Er is geen poort gekozen. Met de USB-kabel van het scherm in deze computer toont de lijst van de browser de chip.",
+            "port": "De poort van de chip ging niet open. Sluit elk ander programma dat hem gebruikt en probeer het opnieuw.",
+            "file": "De firmware kwam niet aan vanaf Tessera. Probeer het opnieuw.",
+            "write": "Het bestand kon niet naar de schijf worden geschreven. Probeer het opnieuw.",
+            "silent": "Het scherm vond de chip niet. Haal de USB-kabel eruit, steek hem er weer in en probeer het opnieuw."
+          },
+          "hand": {
+            "insecure": "Deze pagina is geopend over gewoon http, dus de browser geeft haar geen USB-poort. Geopend over https in Chrome of Edge (je Home Assistant Cloud-adres werkt) is dit twee klikken. Het kan ook met de hand:",
+            "browser": "Deze browser kan niet bij USB-poorten. In Chrome of Edge op een computer is dit twee klikken. Het kan ook met de hand:",
+            "download": "{name} downloaden",
+            "drag": "Er verschijnt een schijf met de naam {drive}. Sleep het bestand erop. De schijf verdwijnt vanzelf en de chip start.",
+            "did": "Dat heb ik gedaan"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Zoemerfirmware",
+        "title": "Geef de zoemer zijn geluid",
+        "lead": "Een tweede chip in dit scherm stuurt de zoemer aan. Met de firmware van Tessera op die chip speelt de zoemer de chime van de deurbel en de geluiden van je alerts. Het duurt een halve minuut.",
+        "note": "Dit vervangt de firmware van Seeed op die chip, die je bij Seeed kunt terughalen. Die van Tessera leest de sensoren van een D1S of D1Pro niet.",
+        "button": "Haal de USB-kabel uit het scherm. Houd met een paperclip de knop in het kleine gaatje van de behuizing ingedrukt en steek de kabel er weer in, met het andere eind in deze computer.",
+        "done_title": "De zoemer heeft zijn geluid",
+        "done_lead": "Kies onder Events wat hij speelt bij alerts en bij de deurbel.",
+        "update_title": "Een nieuwere firmware voor de zoemer",
+        "update_lead": "Tessera heeft een nieuwere firmware voor de chip die de zoemer van dit scherm aanstuurt dan die erop staat. Het duurt een halve minuut."
       }
     }
   }

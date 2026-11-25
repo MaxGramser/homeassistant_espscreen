@@ -158,6 +158,7 @@
       "extras": "Extras",
       "microphone": "Microphone",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Réveil au mouvement",
       "backlight_pwm": "PWM du rétroéclairage",
       "dimmest_level": "Niveau le plus bas",
@@ -1061,6 +1062,9 @@
         "none": "Cet écran ne joue aucun son pour cela. Choisissez-en un d'abord.",
         "older": "Cet écran a besoin d'une mise à jour du firmware pour cela.",
         "busy": "Cet écran est en appel en ce moment."
+      },
+      "steps": {
+        "request": "Cette étape n'existe pas sur cet écran."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Annulation d'écho",
           "hint": "Réduit le son du haut-parleur de l'écran dans le signal du microphone. Désactivée, l'annulation est contournée ; le microphone et le duplex intégral restent actifs. Nécessite le chemin audio AEC."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Le niveau sonore du buzzer : le carillon de la sonnette, les sons des alertes et les sons d'un plugin. L'écran le conserve après un redémarrage."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Installation",
         "icons": "Icônes",
         "other": "Compilation"
+      }
+    },
+    "steps": {
+      "later": "Plus tard",
+      "set_up": "Configurer",
+      "update": "Mettre à jour",
+      "not_now": "Pas maintenant",
+      "not_done": "pas fait",
+      "kept": "Très bien. Cela attend dans le menu de {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Écrire le firmware",
+          "again": "Réessayer",
+          "cable": "Branchez d'abord le câble USB de l'écran sur cet ordinateur.",
+          "phase": {
+            "port": "Choisissez la puce dans la liste du navigateur. Elle n'affiche que celle-ci.",
+            "restart": "La puce redémarre en tant que lecteur USB.",
+            "drive": "La puce est maintenant un lecteur USB nommé {drive}. Choisissez-le et laissez cette page y écrire.",
+            "write": "Écriture du firmware.",
+            "wait": "La puce démarre. En attente que l'écran la trouve.",
+            "wait_chip": "La puce exécute {version}. En attente que l'écran la trouve."
+          },
+          "choose_drive": "Choisir le lecteur {drive}",
+          "wrong_drive": "Ce n'est pas le lecteur {drive}. Choisissez le lecteur lui-même, en haut de la liste, pas un dossier de cet ordinateur.",
+          "drive_there": "Le lecteur {drive} est déjà là",
+          "done": "Le firmware {version} est sur la puce, et l'écran l'a trouvée.",
+          "try": "Jouer un son",
+          "errors": {
+            "no_port": "Aucun port n'a été choisi. Avec le câble USB de l'écran branché sur cet ordinateur, la liste du navigateur affiche la puce.",
+            "port": "Le port de la puce ne s'est pas ouvert. Fermez tout autre programme qui l'utilise, puis réessayez.",
+            "file": "Le firmware n'est pas arrivé de Tessera. Réessayez.",
+            "write": "Le fichier n'a pas pu être écrit sur le lecteur. Réessayez.",
+            "silent": "L'écran n'a pas trouvé la puce. Débranchez le câble USB, rebranchez-le, puis réessayez."
+          },
+          "hand": {
+            "insecure": "Cette page a été ouverte en simple http, le navigateur ne lui donne donc aucun port USB. Ouverte en https dans Chrome ou Edge (votre adresse Home Assistant Cloud convient), cela prend deux clics. Cela se fait aussi à la main :",
+            "browser": "Ce navigateur ne peut pas accéder aux ports USB. Dans Chrome ou Edge sur un ordinateur, cela prend deux clics. Cela se fait aussi à la main :",
+            "download": "Télécharger {name}",
+            "drag": "Un lecteur nommé {drive} apparaît. Faites glisser le fichier dessus. Le lecteur disparaît tout seul et la puce démarre.",
+            "did": "C'est fait"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware du buzzer",
+        "title": "Donnez sa voix au buzzer",
+        "lead": "Une deuxième puce de cet écran pilote son buzzer. Avec le firmware de Tessera sur cette puce, le buzzer joue le carillon de la sonnette et les sons de vos alertes. Cela prend une demi-minute.",
+        "note": "Cela remplace le firmware de Seeed sur cette puce, que vous pouvez récupérer auprès de Seeed. Celui de Tessera ne lit pas les capteurs d'un D1S ou d'un D1Pro.",
+        "button": "Débranchez le câble USB de l'écran. Maintenez enfoncé avec un trombone le bouton situé dans le petit trou du boîtier, puis rebranchez le câble, l'autre extrémité sur cet ordinateur.",
+        "done_title": "Le buzzer a sa voix",
+        "done_lead": "Choisissez sous Événements ce qu'il joue pour les alertes et pour la sonnette.",
+        "update_title": "Un firmware plus récent pour le buzzer",
+        "update_lead": "Tessera a un firmware plus récent que celui installé pour la puce qui pilote le buzzer de cet écran. Cela prend une demi-minute."
       }
     }
   }

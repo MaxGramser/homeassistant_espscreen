@@ -24,6 +24,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager' / 'app'))
 import alert_layout  # noqa: E402
+import board_steps  # noqa: E402
 import font_metrics  # noqa: E402
 import profiles  # noqa: E402
 
@@ -127,13 +128,19 @@ def catalog_of(board, values, lying):
     for key in settings:
         if not re.fullmatch(r'[a-z0-9_]+', key) or key not in named:
             raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
+    # A board's own steps (docs/BOARD_STEPS.md): checked by the code that serves them, so a step of a kind nobody wrote,
+    # or for a chip the app has no firmware for, stops the build of this file.
+    try:
+        steps = board_steps.checked(entry.get('steps'))
+    except ValueError as error:
+        raise SystemExit(f'boards.yaml: {board}: {error}') from None
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
             'status': entry['status'], 'recommended': recommended,
             'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
-            'choices': choices, 'settings': settings}
+            'choices': choices, 'settings': settings, **({'steps': steps} if steps else {})}
 
 
 def chip_of(board):

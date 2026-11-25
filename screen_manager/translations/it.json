@@ -158,6 +158,7 @@
       "extras": "Extra",
       "microphone": "Microfono",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Riattiva se mosso",
       "backlight_pwm": "PWM retroilluminazione",
       "dimmest_level": "Livello minimo",
@@ -1061,6 +1062,9 @@
         "none": "Questo schermo non riproduce nessun suono per questo. Scegline prima uno.",
         "older": "Questo schermo ha bisogno di un aggiornamento del firmware per questo.",
         "busy": "Questo schermo è in chiamata in questo momento."
+      },
+      "steps": {
+        "request": "Questo passaggio non esiste su questo schermo."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Cancellazione eco",
           "hint": "Riduce il suono dell'altoparlante dello schermo nel segnale del microfono. Se disattivata, la cancellazione viene bypassata; microfono e full duplex restano attivi. Richiede il percorso audio AEC."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Quanto forte suona il cicalino: il campanello della porta, i suoni degli avvisi e i suoni di un plugin. Lo schermo lo conserva dopo un riavvio."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Installazione",
         "icons": "Icone",
         "other": "Compilazione"
+      }
+    },
+    "steps": {
+      "later": "Più tardi",
+      "set_up": "Configuralo",
+      "update": "Aggiornalo",
+      "not_now": "Non ora",
+      "not_done": "non fatto",
+      "kept": "Va bene. Aspetta nel menu di {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Scrivi il firmware",
+          "again": "Riprova",
+          "cable": "Collega prima il cavo USB dello schermo a questo computer.",
+          "phase": {
+            "port": "Scegli il chip nell'elenco del browser. Mostra solo questo.",
+            "restart": "Il chip si riavvia come unità USB.",
+            "drive": "Ora il chip è un'unità USB chiamata {drive}. Sceglila e lascia che questa pagina ci scriva.",
+            "write": "Scrittura del firmware.",
+            "wait": "Il chip si avvia. In attesa che lo schermo lo trovi.",
+            "wait_chip": "Il chip esegue {version}. In attesa che lo schermo lo trovi."
+          },
+          "choose_drive": "Scegli l'unità {drive}",
+          "wrong_drive": "Quella non è l'unità {drive}. Scegli l'unità stessa, in cima all'elenco, non una cartella di questo computer.",
+          "drive_there": "L'unità {drive} c'è già",
+          "done": "Il firmware {version} è sul chip e lo schermo l'ha trovato.",
+          "try": "Riproduci un suono",
+          "errors": {
+            "no_port": "Non è stata scelta nessuna porta. Con il cavo USB dello schermo collegato a questo computer, l'elenco del browser mostra il chip.",
+            "port": "La porta del chip non si è aperta. Chiudi ogni altro programma che la usa, poi riprova.",
+            "file": "Il firmware non è arrivato da Tessera. Riprova.",
+            "write": "Non è stato possibile scrivere il file sull'unità. Riprova.",
+            "silent": "Lo schermo non ha trovato il chip. Togli il cavo USB, rimettilo e riprova."
+          },
+          "hand": {
+            "insecure": "Questa pagina è stata aperta in semplice http, quindi il browser non le dà nessuna porta USB. Aperta in https in Chrome o Edge (il tuo indirizzo Home Assistant Cloud va bene), bastano due clic. Si può fare anche a mano:",
+            "browser": "Questo browser non può raggiungere le porte USB. In Chrome o Edge su un computer bastano due clic. Si può fare anche a mano:",
+            "download": "Scarica {name}",
+            "drag": "Compare un'unità chiamata {drive}. Trascinaci sopra il file. L'unità sparisce da sola e il chip si avvia.",
+            "did": "Fatto"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware del cicalino",
+        "title": "Dai al cicalino il suo suono",
+        "lead": "Un secondo chip in questo schermo pilota il cicalino. Con il firmware di Tessera su quel chip, il cicalino suona il campanello della porta e i suoni dei tuoi avvisi. Ci vuole mezzo minuto.",
+        "note": "Questo sostituisce il firmware di Seeed su quel chip, che puoi riavere da Seeed. Quello di Tessera non legge i sensori di un D1S o D1Pro.",
+        "button": "Togli il cavo USB dallo schermo. Tieni premuto con una graffetta il pulsante dentro il piccolo foro della scocca e rimetti il cavo, con l'altro capo in questo computer.",
+        "done_title": "Il cicalino ha il suo suono",
+        "done_lead": "Scegli in Eventi che cosa suona per gli avvisi e per il campanello.",
+        "update_title": "Un firmware più recente per il cicalino",
+        "update_lead": "Tessera ha un firmware più recente di quello installato per il chip che pilota il cicalino di questo schermo. Ci vuole mezzo minuto."
       }
     }
   }

@@ -158,6 +158,7 @@
       "extras": "Dodatki",
       "microphone": "Mikrofon",
       "media_player": "Głośność",
+      "volume": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
       "backlight_pwm": "PWM podświetlenia",
       "dimmest_level": "Najniższy poziom",
@@ -1061,6 +1062,9 @@
         "none": "Ten ekran nie odtwarza do tego żadnego dźwięku. Najpierw wybierz jeden.",
         "older": "Ten ekran potrzebuje do tego aktualizacji firmware'u.",
         "busy": "Ten ekran jest teraz w trakcie rozmowy."
+      },
+      "steps": {
+        "request": "Ten krok nie istnieje na tym ekranie."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Usuwanie echa",
           "hint": "Ogranicza dźwięk własnego głośnika w sygnale mikrofonu. Wyłączenie omija usuwanie echa; mikrofon i pełny dupleks nadal działają. Wymaga toru audio AEC."
+        },
+        "volume": {
+          "label": "Głośność",
+          "hint": "Jak głośno gra brzęczyk: gong dzwonka do drzwi, dźwięki alertów i dźwięki wtyczki. Ekran pamięta ją po ponownym uruchomieniu."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Instalacja",
         "icons": "Ikony",
         "other": "Kompilacja"
+      }
+    },
+    "steps": {
+      "later": "Później",
+      "set_up": "Skonfiguruj",
+      "update": "Zaktualizuj",
+      "not_now": "Nie teraz",
+      "not_done": "nie zrobiono",
+      "kept": "Dobrze. Czeka w menu ekranu {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Zapisz firmware",
+          "again": "Spróbuj ponownie",
+          "cable": "Najpierw podłącz kabel USB ekranu do tego komputera.",
+          "phase": {
+            "port": "Wybierz układ z listy przeglądarki. Pokazuje ona tylko ten jeden.",
+            "restart": "Układ uruchamia się ponownie jako dysk USB.",
+            "drive": "Układ jest teraz dyskiem USB o nazwie {drive}. Wybierz go i pozwól tej stronie na nim zapisywać.",
+            "write": "Zapisywanie firmware'u.",
+            "wait": "Układ się uruchamia. Czekam, aż ekran go znajdzie.",
+            "wait_chip": "Układ działa z wersją {version}. Czekam, aż ekran go znajdzie."
+          },
+          "choose_drive": "Wybierz dysk {drive}",
+          "wrong_drive": "To nie jest dysk {drive}. Wybierz sam dysk, na górze listy, a nie folder na tym komputerze.",
+          "drive_there": "Dysk {drive} już jest",
+          "done": "Firmware {version} jest na układzie, a ekran go znalazł.",
+          "try": "Odtwórz dźwięk",
+          "errors": {
+            "no_port": "Nie wybrano portu. Gdy kabel USB ekranu jest w tym komputerze, lista przeglądarki pokazuje układ.",
+            "port": "Port układu się nie otworzył. Zamknij każdy inny program, który go używa, i spróbuj ponownie.",
+            "file": "Firmware nie dotarł z Tessera. Spróbuj ponownie.",
+            "write": "Nie udało się zapisać pliku na dysku. Spróbuj ponownie.",
+            "silent": "Ekran nie znalazł układu. Wyjmij kabel USB, włóż go z powrotem i spróbuj ponownie."
+          },
+          "hand": {
+            "insecure": "Ta strona została otwarta przez zwykłe http, więc przeglądarka nie daje jej portu USB. Otwarta przez https w Chrome lub Edge (Twój adres Home Assistant Cloud się nada) to dwa kliknięcia. Da się też ręcznie:",
+            "browser": "Ta przeglądarka nie ma dostępu do portów USB. W Chrome lub Edge na komputerze to dwa kliknięcia. Da się też ręcznie:",
+            "download": "Pobierz {name}",
+            "drag": "Pojawia się dysk o nazwie {drive}. Przeciągnij na niego plik. Dysk sam zniknie, a układ się uruchomi.",
+            "did": "Zrobione"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware brzęczyka",
+        "title": "Daj brzęczykowi jego dźwięk",
+        "lead": "Brzęczykiem tego ekranu steruje drugi układ. Z firmware'em Tessera na tym układzie brzęczyk gra gong dzwonka do drzwi i dźwięki Twoich alertów. Zajmuje to pół minuty.",
+        "note": "To zastępuje na tym układzie firmware Seeed, który możesz odzyskać od Seeed. Firmware Tessera nie odczytuje czujników D1S ani D1Pro.",
+        "button": "Wyjmij kabel USB z ekranu. Przytrzymaj spinaczem przycisk w małym otworze obudowy i włóż kabel z powrotem, z drugim końcem w tym komputerze.",
+        "done_title": "Brzęczyk ma swój dźwięk",
+        "done_lead": "W Zdarzeniach wybierz, co gra przy alertach i przy dzwonku do drzwi.",
+        "update_title": "Nowszy firmware dla brzęczyka",
+        "update_lead": "Tessera ma nowszy firmware dla układu sterującego brzęczykiem tego ekranu niż ten, który na nim jest. Zajmuje to pół minuty."
       }
     }
   }

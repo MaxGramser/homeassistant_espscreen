@@ -35,6 +35,8 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
 | send a file from the add-on to a screen (a ringtone, a new kind of file) | docs/SCREEN_FILES.md | `screen_manager/app/screen_files.py`, `file_fetch.h`, `http_get.h` |
+| give a board a step of its own in New screen (a second chip's firmware, something set by hand), or add a kind of step | docs/BOARD_STEPS.md | `boards.yaml` `steps`, `KINDS` in `screen_manager/app/board_steps.py`, `web/src/components/steps/` |
+| change the firmware of a board's second chip (the SenseCAP Indicator's RP2040), or the buzzer as a speaker | docs/SECOND_CHIP.md | `chips/`, `components/chip_link/`, `tools/build_chips.py` |
 | change a sound a screen plays (ringtone, chime, alert), or add a kind of sound | docs/SOUNDS.md | `screen_manager/app/sounds.py`, `kept_sound.h`, `web/src/components/sounds/` |
 | change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |

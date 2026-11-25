@@ -1,5 +1,11 @@
 ## Unreleased
 
+- **The SenseCAP Indicator's buzzer plays sounds.** The Indicator has a second chip that drives its buzzer. New screen now ends with a step for it: two clicks put Tessera's firmware on that chip over the same USB cable, and from then on the buzzer plays the doorbell's chime, the sounds of your alerts and a plugin's sounds, at a Volume of its own under Extras. A buzzer only carries a narrow band of high notes, so the built-in sounds come to it in a version made for that band. A SenseCAP you already have gets the step as a card above the screen after its next update. Seeed's own firmware on that chip is replaced and can be put back.
+
+- **The SenseCAP Indicator shows pictures.** Camera tiles, the snapshot with an alert and a player's artwork now work on it, as on the other boards with the memory for them.
+
+- **A board can have a step of its own after installing.** Some boards need one more thing done once, such as a second chip that takes a firmware of its own. New screen offers it as a page after the screen works, a card above the screen offers it until it is done, and the screen's menu keeps it for later.
+
 - **Installing from the browser stops and says why when the chosen port does not answer.** With the wrong port chosen, Install kept turning and said nothing, and every new try used that same port again without asking. The page now waits 20 seconds for the chip, then stops with what to do, gives Install back and asks for the port again at the next click. On a board that shows two ports on one cable, such as the SenseCAP Indicator ("USB Serial" and "INDICATOR RP2040"), it knows the port of the second chip and says at once to choose the other one.
 
 ## 0.4.104 (firmware 0.64.0)

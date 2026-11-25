@@ -219,6 +219,56 @@ class Library(unittest.TestCase):
                 self.sounds.set_volume('call', bad)
         self.assertIsNotNone(self.sounds.wav('classic', -10))
 
+    def pitch(self, name):
+        """Where a file's sound lies, in Hz: its zero crossings in the hundredths of a second in which it is loud."""
+        data = self.files.get(name)[0][44:]
+        pcm = [int.from_bytes(data[i:i + 2], 'little', signed=True) for i in range(0, len(data), 2)]
+        floor, block = max(abs(v) for v in pcm) * 0.1, sounds.RATE // 100
+        crossings = loud = 0
+        for at in range(0, len(pcm) - block, block):
+            part = pcm[at:at + block + 1]
+            if max(abs(v) for v in part) > floor:
+                loud += 1
+                crossings += sum(1 for a, b in zip(part, part[1:]) if (a < 0) != (b < 0))
+        return crossings / 2 / (loud / 100)
+
+    def test_a_buzzer_gets_the_sounds_made_for_its_band(self):
+        # A buzzer rings at one pitch: a SenseCAP Indicator's carries 2.5 to 3.05 kHz and little else (measured
+        # 2026-11-25), where no built-in sound has a note. A screen whose hello says `buzzer` gets each built-in sound
+        # with its notes in that band, the same length, so it fits the same kinds and loops the same.
+        self.assertEqual(list(sounds.BUZZER), list(sounds.BUILT_IN))
+        for key in sounds.BUILT_IN:
+            name = self.sounds.for_buzzer(key, self.sounds.built[key])
+            self.assertNotEqual(name, self.sounds.built[key], key)
+            self.assertEqual(read(self.files.get(name)[0]), read(self.files.get(self.sounds.built[key])[0]), key)
+            self.assertTrue(2450 < self.pitch(name) < 3100, (key, self.pitch(name)))
+            self.assertFalse(2450 < self.pitch(self.sounds.built[key]) < 3100, key)
+            # Made once, and the same at every start: a screen keeps it by its name.
+            self.assertEqual(self.sounds.for_buzzer(key, self.sounds.built[key]), name, key)
+        # A screen with a speaker gets what it got: nothing of this reaches it.
+        self.assertEqual(self.sounds.link('doorbell', 'http://h:8098', 'kitchen').rsplit('/', 1)[1].split('.')[0],
+                         self.sounds.at_volume(self.sounds.built['chime'], -7))
+
+    def test_a_buzzer_plays_louder(self):
+        # A buzzer's loudest is about a speaker's -20 dB and it does not distort there, so each kind's volume is raised
+        # by BUZZER_LIFT for it, up to full scale: where a kind starts (-7 and -20) a buzzer plays as loud as it can.
+        def peak_db(link):
+            data = self.files.get(link.rsplit('/', 1)[1].split('.')[0])[0][44:]
+            return 20 * math.log10(max(abs(int.from_bytes(data[i:i + 2], 'little', signed=True)) for i in range(0, len(data), 2)) / 32767)
+        self.sounds.choose('alert', '', 'notice')
+        for kind in ('doorbell', 'alert'):
+            self.assertAlmostEqual(peak_db(self.sounds.link(kind, 'http://h:8098', 'hall', buzzer=True)), 0, delta=0.1, msg=kind)
+        self.sounds.set_volume('alert', -32)
+        self.assertAlmostEqual(peak_db(self.sounds.link('alert', 'http://h:8098', 'hall', buzzer=True)), -12, delta=0.1)
+        self.assertAlmostEqual(peak_db(self.sounds.link('alert', 'http://h:8098', 'hall')), -32, delta=0.1)
+        # A sound of one's own plays as it is, louder; silence stays silence.
+        own = self.sounds.add('Mine', a_wav(1.0))
+        self.sounds.choose('alert', 'hall', own)
+        self.assertEqual(self.sounds.link('alert', 'http://h:8098', 'hall', buzzer=True).rsplit('/', 1)[1].split('.')[0],
+                         self.sounds.at_volume(self.sounds.file_of(own), -12))
+        self.sounds.choose('alert', 'hall', sounds.NONE)
+        self.assertEqual(self.sounds.link('alert', 'http://h:8098', 'hall', buzzer=True), sounds.NONE)
+
     def test_a_volume_is_kept_only_once_set(self):
         # A choice of sound saves the store; the volumes nobody set stay unset, so a kind follows where it starts.
         self.sounds.choose('call', 'kitchen', 'bell')
@@ -268,6 +318,10 @@ class TheMessages(unittest.TestCase):
         # The screen says `sounds` where it plays them, and the app sends a chime or an alert's tone only there.
         self.assertIn('features.add("sounds")', (ROOT / 'packages/core.yaml').read_text())
         self.assertIn('sounds.FEATURE in', server)
+        # And `buzzer` where its speaker is one (hw::buzzer), which is what makes the app send a buzzer's sounds.
+        self.assertIn('if (hw::buzzer()) features.add("buzzer");', (ROOT / 'packages/core.yaml').read_text())
+        self.assertIn('sounds.BUZZER_FEATURE in', server)
+        self.assertEqual(sounds.BUZZER_FEATURE, 'buzzer')
 
     def test_a_doorbell_ring_carries_its_chime(self):
         import doorbell

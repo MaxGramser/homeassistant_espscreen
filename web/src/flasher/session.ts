@@ -72,7 +72,9 @@ export function useBrowserFlash() {
       // only one (Chrome's remembered devices, app 0.4.96): the same screen on the same cable, as after a build that
       // failed or a Wi-Fi that was wrong. Another board on it is caught by the chip check below, and the picker is
       // asked as before when none or several are remembered.
-      const remembered = (await navigator.serial.getPorts?.()) || [];
+      // A remembered port of another chip (a board's RP2040, which a step of its own was given: docs/BOARD_STEPS.md)
+      // is no port to write a screen through, and does not make the remembered ones "several".
+      const remembered = ((await navigator.serial.getPorts?.()) || []).filter((known) => !otherChip(known.getInfo?.()));
       port = remembered.length === 1 ? remembered[0] : await navigator.serial.requestPort();
     } catch (error) {
       fail(pickProblem(error), {}, (error as Error)?.message || "");

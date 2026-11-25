@@ -236,6 +236,18 @@ export type BoardCatalog = {
   calibrate: boolean; choices: Record<string, string[]>;
   // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
   settings?: string[];
+  // Its own steps beyond its firmware (boards.yaml `steps`, docs/BOARD_STEPS.md), as the catalog lists them.
+  steps?: { id: string; kind: string }[];
+};
+// A step of a screen's board (docs/BOARD_STEPS.md, the add-on's board_steps.view): what it is, how far it is for this
+// screen (open, put off, done, or done with something older than the app has), what the screen found of it, and what
+// its kind gives the editor to do it with.
+export type BoardStepState = "open" | "later" | "done" | "update";
+export type BoardStep = { id: string; kind: string; state: BoardStepState; found: string };
+// The kind chip_firmware: Tessera's firmware for a second chip of the board, written through the chip's own USB port.
+export type ChipFirmwareStep = BoardStep & {
+  kind: "chip_firmware"; chip: string; version: string; size: number; file: string; download: string;
+  usb: { vendor: number; product: number }[]; drive: string;
 };
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
@@ -333,6 +345,8 @@ export type Screen = {
   plugin_ask?: PluginAsk | null;
   // A plugin for hardware its board has, suggested once (plugin_defaults.py): the card, or none.
   plugin_suggest?: PluginSuggest | null;
+  // Its board's own steps (docs/BOARD_STEPS.md): what is left to do with it beyond its firmware, and what is done.
+  steps?: BoardStep[];
   alert_action?: string; dismiss_action?: string;
   // What a doorbell's ring does here (app 0.4.91, docs/DOORBELL.md): its camera live, its alert with the picture, or the alert alone.
   doorbell?: "view" | "picture" | "plain";

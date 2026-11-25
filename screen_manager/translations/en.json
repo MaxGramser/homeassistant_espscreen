@@ -158,6 +158,7 @@
       "extras": "Extras",
       "microphone": "Microphone",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Wake when moved",
       "backlight_pwm": "Backlight PWM",
       "dimmest_level": "Dimmest level",
@@ -1061,6 +1062,9 @@
         "none": "This screen plays no sound for this. Choose one first.",
         "older": "This screen needs a firmware update for this.",
         "busy": "This screen is in a call right now."
+      },
+      "steps": {
+        "request": "This step does not exist on this screen."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Echo cancellation",
           "hint": "Reduce the screen speaker in microphone input. Off bypasses cancellation; it does not disable the microphone or full-duplex audio. Requires the AEC transport."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "How loud the buzzer plays: the doorbell's chime, the sounds of alerts and a plugin's sounds. The screen keeps it after a restart."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Install",
         "icons": "Icons",
         "other": "Build"
+      }
+    },
+    "steps": {
+      "later": "Later",
+      "set_up": "Set it up",
+      "update": "Update it",
+      "not_now": "Not now",
+      "not_done": "not done",
+      "kept": "Fine. It waits in the menu of {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Write the firmware",
+          "again": "Try again",
+          "cable": "Put the screen's USB cable in this computer first.",
+          "phase": {
+            "port": "Choose the chip in the browser's list. It shows only this one.",
+            "restart": "The chip restarts as a USB drive.",
+            "drive": "The chip is a USB drive called {drive} now. Choose it, and let this page write to it.",
+            "write": "Writing the firmware.",
+            "wait": "The chip starts. Waiting for the screen to find it.",
+            "wait_chip": "The chip runs {version}. Waiting for the screen to find it."
+          },
+          "choose_drive": "Choose the drive {drive}",
+          "wrong_drive": "That is not the drive {drive}. Choose the drive itself, at the top of the list, not a folder on this computer.",
+          "drive_there": "The drive {drive} is there already",
+          "done": "Firmware {version} is on the chip, and the screen found it.",
+          "try": "Play a sound",
+          "errors": {
+            "no_port": "No port was chosen. With the screen's USB cable in this computer, the browser's list shows the chip.",
+            "port": "The chip's port did not open. Close any other program that uses it, then try again.",
+            "file": "The firmware did not arrive from Tessera. Try again.",
+            "write": "The file could not be written to the drive. Try again.",
+            "silent": "The screen did not find the chip. Take the USB cable out, put it back in, and try again."
+          },
+          "hand": {
+            "insecure": "This page was opened over plain http, so the browser gives it no USB port. Opened over https in Chrome or Edge (your Home Assistant Cloud address works), this is two clicks. It also goes by hand:",
+            "browser": "This browser cannot reach USB ports. In Chrome or Edge on a computer this is two clicks. It also goes by hand:",
+            "download": "Download {name}",
+            "drag": "A drive called {drive} appears. Drag the file onto it. The drive goes away by itself and the chip starts.",
+            "did": "I did that"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Buzzer firmware",
+        "title": "Give the buzzer its sound",
+        "lead": "A second chip in this screen drives its buzzer. With Tessera's firmware on that chip the buzzer plays the doorbell's chime and the sounds of your alerts. It takes half a minute.",
+        "note": "This replaces Seeed's firmware on that chip, which you can get back from Seeed. Tessera's does not read the sensors of a D1S or D1Pro.",
+        "button": "Take the USB cable out of the screen. Hold the button inside the small hole of its case with a paperclip, and put the cable back in with the other end in this computer.",
+        "done_title": "The buzzer has its sound",
+        "done_lead": "Choose what it plays for alerts and for the doorbell under Events.",
+        "update_title": "A newer firmware for the buzzer",
+        "update_lead": "Tessera has a newer firmware for the chip that drives this screen's buzzer than the one on it. It takes half a minute."
       }
     }
   }

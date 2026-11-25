@@ -158,6 +158,7 @@
       "extras": "Extras",
       "microphone": "Microfone",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Acordar ao mover",
       "backlight_pwm": "PWM da retroiluminação",
       "dimmest_level": "Nível mais baixo",
@@ -1061,6 +1062,9 @@
         "none": "Este ecrã não reproduz nenhum som para isto. Escolha um primeiro.",
         "older": "Este ecrã precisa de uma atualização de firmware para isto.",
         "busy": "Este ecrã está numa chamada neste momento."
+      },
+      "steps": {
+        "request": "Este passo não existe neste ecrã."
       }
     },
     "status": {
@@ -1297,6 +1301,10 @@
         "echo_cancellation": {
           "label": "Cancelamento eco",
           "hint": "Reduz o som do próprio altifalante no sinal do microfone. Desativado, ignora o cancelamento; o microfone e o duplex completo continuam ativos. Requer o caminho de áudio AEC."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "O volume a que o buzzer toca: o toque da campainha, os sons dos alertas e os sons de um plugin. O ecrã mantém-no depois de reiniciar."
         }
       }
     },
@@ -5314,6 +5322,59 @@
         "install": "Instalação",
         "icons": "Ícones",
         "other": "Compilação"
+      }
+    },
+    "steps": {
+      "later": "Mais tarde",
+      "set_up": "Configurar",
+      "update": "Atualizar",
+      "not_now": "Agora não",
+      "not_done": "por fazer",
+      "kept": "Tudo bem. Fica à espera no menu de {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Gravar o firmware",
+          "again": "Tentar novamente",
+          "cable": "Ligue primeiro o cabo USB do ecrã a este computador.",
+          "phase": {
+            "port": "Escolha o chip na lista do navegador. Só mostra este.",
+            "restart": "O chip reinicia como unidade USB.",
+            "drive": "O chip é agora uma unidade USB chamada {drive}. Escolha-a e deixe esta página gravar nela.",
+            "write": "A gravar o firmware.",
+            "wait": "O chip arranca. À espera de que o ecrã o encontre.",
+            "wait_chip": "O chip executa {version}. À espera de que o ecrã o encontre."
+          },
+          "choose_drive": "Escolher a unidade {drive}",
+          "wrong_drive": "Essa não é a unidade {drive}. Escolha a própria unidade, no topo da lista, e não uma pasta deste computador.",
+          "drive_there": "A unidade {drive} já lá está",
+          "done": "O firmware {version} está no chip e o ecrã encontrou-o.",
+          "try": "Tocar um som",
+          "errors": {
+            "no_port": "Não foi escolhida nenhuma porta. Com o cabo USB do ecrã ligado a este computador, a lista do navegador mostra o chip.",
+            "port": "A porta do chip não abriu. Feche qualquer outro programa que a use e tente novamente.",
+            "file": "O firmware não chegou do Tessera. Tente novamente.",
+            "write": "Não foi possível gravar o ficheiro na unidade. Tente novamente.",
+            "silent": "O ecrã não encontrou o chip. Retire o cabo USB, volte a ligá-lo e tente novamente."
+          },
+          "hand": {
+            "insecure": "Esta página foi aberta por http simples, por isso o navegador não lhe dá nenhuma porta USB. Aberta por https no Chrome ou no Edge (o seu endereço do Home Assistant Cloud serve), são dois cliques. Também se faz à mão:",
+            "browser": "Este navegador não consegue aceder às portas USB. No Chrome ou no Edge num computador são dois cliques. Também se faz à mão:",
+            "download": "Transferir {name}",
+            "drag": "Aparece uma unidade chamada {drive}. Arraste o ficheiro para ela. A unidade desaparece sozinha e o chip arranca.",
+            "did": "Já fiz isso"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Firmware do buzzer",
+        "title": "Dê ao buzzer o seu som",
+        "lead": "Um segundo chip neste ecrã controla o buzzer. Com o firmware do Tessera nesse chip, o buzzer toca o toque da campainha e os sons dos seus alertas. Demora meio minuto.",
+        "note": "Isto substitui o firmware da Seeed nesse chip, que pode recuperar junto da Seeed. O do Tessera não lê os sensores de um D1S ou D1Pro.",
+        "button": "Retire o cabo USB do ecrã. Mantenha premido com um clipe o botão dentro do pequeno orifício da caixa e volte a ligar o cabo, com a outra ponta neste computador.",
+        "done_title": "O buzzer tem o seu som",
+        "done_lead": "Escolha em Eventos o que ele toca nos alertas e na campainha.",
+        "update_title": "Um firmware mais recente para o buzzer",
+        "update_lead": "O Tessera tem um firmware mais recente para o chip que controla o buzzer deste ecrã do que o que lá está. Demora meio minuto."
       }
     }
   }

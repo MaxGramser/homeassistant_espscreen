@@ -2271,6 +2271,16 @@
   },
   "battery": false,
   "board": "sensecapd1",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -2280,15 +2290,26 @@
    "name": "SenseCAP",
    "order": 24,
    "recommended": false,
-   "settings": [],
+   "settings": [
+    "volume"
+   ],
    "status": "experimental",
+   "steps": [
+    {
+     "chip": "indicator-rp2040",
+     "id": "buzzer",
+     "kind": "chip_firmware"
+    }
+   ],
    "touch": "FT6336U"
   },
   "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 172,
-  "features": [],
+  "features": [
+   "speaker"
+  ],
   "firmware": "0.64.0",
   "fonts": {
    "headline": 27,
@@ -2324,6 +2345,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
@@ -2339,6 +2370,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
@@ -9202,6 +9243,16 @@
   },
   "battery": false,
   "board": "sensecapd1",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -9211,15 +9262,26 @@
    "name": "SenseCAP",
    "order": 24,
    "recommended": false,
-   "settings": [],
+   "settings": [
+    "volume"
+   ],
    "status": "experimental",
+   "steps": [
+    {
+     "chip": "indicator-rp2040",
+     "id": "buzzer",
+     "kind": "chip_firmware"
+    }
+   ],
    "touch": "FT6336U"
   },
   "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 172,
-  "features": [],
+  "features": [
+   "speaker"
+  ],
   "firmware": "0.64.0",
   "fonts": {
    "headline": 27,
@@ -9255,6 +9317,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
@@ -9270,6 +9342,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
@@ -11959,6 +12041,16 @@
   },
   "battery": false,
   "board": "sensecapd1",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -11968,15 +12060,26 @@
    "name": "SenseCAP",
    "order": 24,
    "recommended": false,
-   "settings": [],
+   "settings": [
+    "volume"
+   ],
    "status": "experimental",
+   "steps": [
+    {
+     "chip": "indicator-rp2040",
+     "id": "buzzer",
+     "kind": "chip_firmware"
+    }
+   ],
    "touch": "FT6336U"
   },
   "chip": "ESP32-S3",
   "columns": 2,
   "dimmable": true,
   "dpi": 172,
-  "features": [],
+  "features": [
+   "speaker"
+  ],
   "firmware": "0.64.0",
   "fonts": {
    "headline": 27,
@@ -12012,6 +12115,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
@@ -12027,6 +12140,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
     "columns": 2,
     "height": 480,
     "max": [
