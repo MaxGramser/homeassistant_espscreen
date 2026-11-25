@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.104 (firmware 0.64.0)
 
 - **Save & send and Add tile work on a phone again.** With an AI connected for Layoutbot, a tap anywhere in the bar at the bottom of the phone editor opened Layoutbot's chat instead: an invisible part of its key lay over the whole bar. Each key in the bar is its own again. ([#471](https://github.com/MaxGramser/homeassistant_espscreen/issues/471), [#438](https://github.com/MaxGramser/homeassistant_espscreen/issues/438))
 
