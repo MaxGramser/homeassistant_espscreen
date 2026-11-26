@@ -1766,6 +1766,10 @@
       "log": {
         "copied": "Napló kimásolva.",
         "selected": "A napló ki van jelölve. Másold Ctrl+C vagy Command+C billentyűkkel."
+      },
+      "address": {
+        "copied": "Cím kimásolva.",
+        "selected": "A cím ki van jelölve. Másold Ctrl+C-vel vagy Command+C-vel."
       }
     },
     "sidebar": {
@@ -3955,7 +3959,7 @@
         "here_click": "Kattints lent a Telepítés gombra.",
         "here_pick": "A böngésző megkérdezi, melyik eszköz: válaszd ki a kijelzőt, és kattints a Csatlakozás gombra.",
         "file_title": "Kapsz egy fájlt, amit rá kell tenned",
-        "file_lead": "Ez a böngésző nem tud magától a kijelzőre írni. A Tessera készít egy fájlt, amit az ESPHome Weben keresztül töltesz fel a kijelzőre Chrome-ban vagy Edge-ben.",
+        "file_lead": "A Tessera készít egy fájlt, amit az ESPHome Weben keresztül töltesz fel a kijelzőre Chrome-ban vagy Edge-ben.",
         "ha_title": "Dugd a kábelt a Home Assistantodba",
         "ha_lead": "Nem ebbe a számítógépbe, hanem abba a gépbe, amelyen a Home Assistant fut. Magunktól látjuk, amint bedugtad.",
         "ha_which": "Melyik a kijelző?",
@@ -3993,7 +3997,8 @@
           "ha": "Hozzáadás a Home Assistanthoz"
         },
         "may_close": "bezárhatod ezt az ablakot",
-        "keep_open": "hagyd nyitva ezt az oldalt, amíg rá nem kerül a kijelzőre",
+        "keep_open_title": "Hagyd nyitva ezt az oldalt",
+        "keep_open": "Ez az oldal maga tölti fel a szoftvert a kijelzőre, amint elkészült. Ha bezárod ezt a lapot, elhagyod az oldalt vagy a számítógép alvó módba lép, semmi sem íródik ki. Az USB-kábelt is hagyd bedugva.",
         "show_log": "Mi történik pontosan",
         "to_pages": "Oldalak létrehozása",
         "another": "Újabb kijelző hozzáadása",
@@ -4003,6 +4008,19 @@
           "ha": "A Home Assistantben",
           "actions": "Vezérelheti az otthonodat"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Ez az oldal nem biztonságos címen fut, ezért nem éri el az USB-t",
+        "insecure": "Erről a számítógépről két kattintás a telepítés, fájl nélkül, de csak Chrome-ban vagy Edge-ben, biztonságos című (https) oldalon. Ezt az oldalt sima http-n nyitottad meg, ahol a böngésző elrejti az USB-portjait.",
+        "browser_title": "Ez a böngésző nem éri el az USB-t",
+        "browser": "Erről a számítógépről két kattintás a telepítés, fájl nélkül, de csak Chrome-ban vagy Edge-ben, számítógépen. Nyisd meg ott a Home Assistantot, és indítsd újra az Új kijelzőt.",
+        "fix": "Kétféleképpen működhet:",
+        "https": "Nyisd meg a Home Assistantot https-en Chrome-ban vagy Edge-ben, például a Home Assistant Cloud címeden.",
+        "flag": "Vagy mondd meg a Chrome-nak, hogy kezelje biztonságosként ennek a Home Assistantnak a címét:",
+        "flag_open": "Másold ezt a Chrome címsorába, és nyomj Entert. Egy oldal nem tudja megnyitni helyetted.",
+        "flag_add": "A(z) \"Insecure origins treated as secure\" alatti mezőbe írd be ezt a címet, és állítsd Enabled értékre.",
+        "flag_relaunch": "Kattints a Relaunch gombra, nyisd meg újra a Home Assistantot, és indítsd el az Új kijelzőt.",
+        "else": "Addig a Tessera itt készít egy fájlt, amit te magad töltesz fel a kijelzőre."
       }
     },
     "alerts": {

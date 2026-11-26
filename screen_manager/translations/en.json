@@ -1766,6 +1766,10 @@
       "log": {
         "copied": "Log copied.",
         "selected": "Log is selected. Copy with Ctrl+C or Command+C."
+      },
+      "address": {
+        "copied": "Address copied.",
+        "selected": "Address is selected. Copy with Ctrl+C or Command+C."
       }
     },
     "sidebar": {
@@ -3464,7 +3468,7 @@
         "here_click": "Click Install below.",
         "here_pick": "Your browser asks which device: choose the screen and click Connect.",
         "file_title": "You'll get a file to put on it",
-        "file_lead": "This browser cannot write to a screen itself. Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
+        "file_lead": "Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
         "ha_title": "Plug the cable into your Home Assistant",
         "ha_lead": "Not into this computer, but into the machine Home Assistant runs on. We see it as soon as it is there.",
         "ha_which": "Which one is the screen?",
@@ -3502,7 +3506,8 @@
           "ha": "Adding it to Home Assistant"
         },
         "may_close": "you can close this window",
-        "keep_open": "keep this page open until it is on the screen",
+        "keep_open_title": "Keep this page open",
+        "keep_open": "This page puts the software on the screen itself, as soon as it is built. Close this tab, leave the page or let the computer sleep, and nothing is written. Leave the USB cable in too.",
         "show_log": "What happens exactly",
         "to_pages": "Make its pages",
         "another": "Add another screen",
@@ -3512,6 +3517,19 @@
           "ha": "In Home Assistant",
           "actions": "Allowed to control your home"
         }
+      },
+      "no_usb": {
+        "insecure_title": "This page is not on a secure address, so it cannot reach USB",
+        "insecure": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a page with a secure address (https). This page was opened over plain http, where a browser hides its USB ports.",
+        "browser_title": "This browser cannot reach USB",
+        "browser": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a computer. Open Home Assistant there and start New screen again.",
+        "fix": "Two ways to make it work:",
+        "https": "Open Home Assistant over https in Chrome or Edge, for example through your Home Assistant Cloud address.",
+        "flag": "Or tell Chrome to treat this Home Assistant's address as secure:",
+        "flag_open": "Copy this into Chrome's address bar and press Enter. A page cannot open it for you.",
+        "flag_add": "In the box under \"Insecure origins treated as secure\", put this address, and set it to Enabled.",
+        "flag_relaunch": "Click Relaunch, open Home Assistant again and start New screen.",
+        "else": "Until then Tessera makes a file here that you put on the screen yourself."
       }
     },
     "alerts": {

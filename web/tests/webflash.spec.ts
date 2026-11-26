@@ -402,6 +402,9 @@ describe("New screen from this browser", () => {
     // port and nothing would be written, and no word that the window may close.
     expect(view.find("#install-close").exists()).toBe(false);
     expect(view.text()).not.toContain(t("editor.installer.flow.may_close"));
+    // And a red card that says so for as long as it holds, where a line under the steps was missed.
+    expect(view.find("#keep-open h2").text()).toContain(t("editor.installer.flow.keep_open_title"));
+    expect(view.find("#keep-open").text()).toContain(t("editor.installer.flow.keep_open"));
     // The add-on's next live answer: built, and the page writes it.
     useInventoryStore().applyLive({ line: [build("success") as any] });
     await flush();

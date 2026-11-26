@@ -1766,6 +1766,10 @@
       "log": {
         "copied": "Log gekopieerd.",
         "selected": "Log is geselecteerd. Kopieer met Ctrl+C of Command+C."
+      },
+      "address": {
+        "copied": "Adres gekopieerd.",
+        "selected": "Adres is geselecteerd. Kopieer met Ctrl+C of Command+C."
       }
     },
     "sidebar": {
@@ -3464,7 +3468,7 @@
         "here_click": "Klik hieronder op Installeren.",
         "here_pick": "Je browser vraagt welk apparaat: kies het scherm en klik op Verbinden.",
         "file_title": "Je krijgt een bestand om erop te zetten",
-        "file_lead": "Deze browser kan zelf niet naar een scherm schrijven. Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
+        "file_lead": "Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
         "ha_title": "Steek de kabel in je Home Assistant",
         "ha_lead": "Niet in deze computer, maar in het apparaat waar Home Assistant op draait. We zien vanzelf wanneer hij er is.",
         "ha_which": "Welke is het scherm?",
@@ -3502,7 +3506,8 @@
           "ha": "Toevoegen aan Home Assistant"
         },
         "may_close": "je mag dit venster sluiten",
-        "keep_open": "laat deze pagina open tot hij op het scherm staat",
+        "keep_open_title": "Laat deze pagina open",
+        "keep_open": "Deze pagina zet de software zelf op het scherm, zodra die gebouwd is. Sluit je dit tabblad, verlaat je de pagina of gaat de computer in slaap, dan wordt er niets geschreven. Laat ook de USB-kabel erin.",
         "show_log": "Wat er precies gebeurt",
         "to_pages": "Pagina's maken",
         "another": "Nog een scherm toevoegen",
@@ -3512,6 +3517,19 @@
           "ha": "In Home Assistant",
           "actions": "Mag je huis bedienen"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Deze pagina staat niet op een veilig adres en kan daardoor niet bij USB",
+        "insecure": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een pagina met een veilig adres (https). Deze pagina is geopend over gewoon http, en daar verbergt een browser zijn USB-poorten.",
+        "browser_title": "Deze browser kan niet bij USB",
+        "browser": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een computer. Open Home Assistant daar en begin Nieuw scherm opnieuw.",
+        "fix": "Twee manieren om het te laten werken:",
+        "https": "Open Home Assistant over https in Chrome of Edge, bijvoorbeeld via je Home Assistant Cloud-adres.",
+        "flag": "Of laat Chrome het adres van deze Home Assistant als veilig behandelen:",
+        "flag_open": "Kopieer dit naar de adresbalk van Chrome en druk op Enter. Een pagina kan dit niet voor je openen.",
+        "flag_add": "Zet dit adres in het vak onder \"Insecure origins treated as secure\" en zet het op Enabled.",
+        "flag_relaunch": "Klik op Relaunch, open Home Assistant opnieuw en begin Nieuw scherm.",
+        "else": "Tot die tijd maakt Tessera hier een bestand dat je zelf op het scherm zet."
       }
     },
     "alerts": {

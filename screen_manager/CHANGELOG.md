@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **New screen says in red what must not be missed.** While a screen is installed from this computer, a red card says to keep the page open: the page itself puts the software on the screen once it is built, and closing it writes nothing. And where "In this computer" would only make a file, a red card says why: the page is not in Chrome or Edge, or it was opened over plain http. For a Home Assistant on a local http address it gives Chrome's setting that treats that one address as secure, with the setting's address and your Home Assistant's own to copy.
+
 - **The SenseCAP Indicator's buzzer plays sounds.** The Indicator has a second chip that drives its buzzer. New screen now ends with a step for it: two clicks put Tessera's firmware on that chip over the same USB cable, and from then on the buzzer plays the doorbell's chime, the sounds of your alerts and a plugin's sounds, at a Volume of its own under Extras. A buzzer only carries a narrow band of high notes, so the built-in sounds come to it in a version made for that band. A SenseCAP you already have gets the step as a card above the screen after its next update. Seeed's own firmware on that chip is replaced and can be put back.
 
 - **The SenseCAP Indicator shows pictures.** Camera tiles, the snapshot with an alert and a player's artwork now work on it, as on the other boards with the memory for them.

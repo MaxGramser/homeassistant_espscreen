@@ -1766,6 +1766,10 @@
       "log": {
         "copied": "Registo copiado.",
         "selected": "O registo está selecionado. Copie com Ctrl+C ou Comando+C."
+      },
+      "address": {
+        "copied": "Endereço copiado.",
+        "selected": "O endereço está selecionado. Copie com Ctrl+C ou Comando+C."
       }
     },
     "sidebar": {
@@ -3955,7 +3959,7 @@
         "here_click": "Clique em Instalar, em baixo.",
         "here_pick": "O navegador pergunta qual é o dispositivo: escolha o ecrã e clique em Ligar.",
         "file_title": "Vai receber um ficheiro para pôr nele",
-        "file_lead": "Este navegador não consegue escrever num ecrã por si só. O Tessera cria um ficheiro, que você põe no ecrã com o ESPHome Web no Chrome ou no Edge.",
+        "file_lead": "O Tessera cria um ficheiro, que você põe no ecrã com o ESPHome Web no Chrome ou no Edge.",
         "ha_title": "Ligue o cabo ao seu Home Assistant",
         "ha_lead": "Não a este computador, mas ao equipamento em que o Home Assistant funciona. Vemos assim que estiver ligado.",
         "ha_which": "Qual é o ecrã?",
@@ -3993,7 +3997,8 @@
           "ha": "A adicionar ao Home Assistant"
         },
         "may_close": "pode fechar esta janela",
-        "keep_open": "mantém esta página aberta até estar no ecrã",
+        "keep_open_title": "Mantenha esta página aberta",
+        "keep_open": "É esta página que põe o software no ecrã, assim que estiver compilado. Se fechar este separador, sair da página ou deixar o computador entrar em suspensão, nada é escrito. Deixe também o cabo USB ligado.",
         "show_log": "O que acontece exatamente",
         "to_pages": "Criar as suas páginas",
         "another": "Adicionar outro ecrã",
@@ -4003,6 +4008,19 @@
           "ha": "No Home Assistant",
           "actions": "Pode controlar a sua casa"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Esta página não está num endereço seguro, por isso não chega ao USB",
+        "insecure": "Instalar a partir deste computador são dois cliques, sem qualquer ficheiro, mas só no Chrome ou no Edge, numa página com endereço seguro (https). Esta página foi aberta em http simples, onde o navegador esconde as suas portas USB.",
+        "browser_title": "Este navegador não chega ao USB",
+        "browser": "Instalar a partir deste computador são dois cliques, sem qualquer ficheiro, mas só no Chrome ou no Edge num computador. Abra o Home Assistant aí e comece Novo ecrã outra vez.",
+        "fix": "Duas formas de o pôr a funcionar:",
+        "https": "Abra o Home Assistant por https no Chrome ou no Edge, por exemplo através do seu endereço do Home Assistant Cloud.",
+        "flag": "Ou diga ao Chrome para tratar o endereço deste Home Assistant como seguro:",
+        "flag_open": "Copie isto para a barra de endereço do Chrome e prima Enter. Uma página não o pode abrir por si.",
+        "flag_add": "Na caixa por baixo de \"Insecure origins treated as secure\", ponha este endereço e defina Enabled.",
+        "flag_relaunch": "Clique em Relaunch, abra o Home Assistant de novo e comece Novo ecrã.",
+        "else": "Até lá, o Tessera cria aqui um ficheiro que você mesmo põe no ecrã."
       }
     },
     "alerts": {

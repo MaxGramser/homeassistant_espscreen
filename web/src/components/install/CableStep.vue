@@ -8,6 +8,7 @@ import { injectInstaller } from "../../composables/useInstaller";
 import { t } from "../../i18n";
 import type { Cable } from "../../model/installer";
 import CableArt from "./CableArt.vue";
+import NoUsbCard from "./NoUsbCard.vue";
 import Icon from "../ui/Icon.vue";
 
 const install = injectInstaller();
@@ -28,6 +29,7 @@ const order = computed<Cable[]>(() => (install.support === "ok" ? ["here", "ha"]
         <span class="ob-tick" aria-hidden="true"><Icon name="check" /></span>
       </label>
     </fieldset>
-    <p v-if="install.cable === 'here' && install.support !== 'ok'" class="ob-note" id="cable-browser"><Icon name="information-outline" />{{ t(`editor.webflash.unavailable.${install.support}`) }}</p>
+    <!-- In this computer, where this page cannot reach a USB port: why, and what makes it work, before a file is made. -->
+    <NoUsbCard v-if="install.cable === 'here' && install.support !== 'ok'" :support="install.support" />
   </section>
 </template>

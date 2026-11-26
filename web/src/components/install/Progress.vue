@@ -138,7 +138,13 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
           <span v-if="step.state === 'running' && step.percent !== null" class="ob-journey-pct">{{ step.percent }} %</span>
         </li>
       </ol>
-      <p v-if="install.elapsed && install.running" class="ob-meta">{{ t("editor.installer.elapsed", { time: install.elapsed }) }} · {{ t(tied ? "editor.installer.flow.keep_open" : "editor.installer.flow.may_close") }}</p>
+      <p v-if="install.elapsed && install.running" class="ob-meta">{{ t("editor.installer.elapsed", { time: install.elapsed }) }}<template v-if="!tied"> · {{ t("editor.installer.flow.may_close") }}</template></p>
+      <!-- From this browser the page itself writes the screen once it is built: closed or left, nothing is written. Said
+           where nobody misses it, in red, for as long as it holds. -->
+      <div v-if="tied && install.running" class="ob-alert" id="keep-open" role="alert">
+        <h2><Icon name="alert-circle-outline" />{{ t("editor.installer.flow.keep_open_title") }}</h2>
+        <p>{{ t("editor.installer.flow.keep_open") }}</p>
+      </div>
     </template>
 
     <!-- The memory the build has (app 0.4.65): a slower build the person understands, or why it stopped. -->

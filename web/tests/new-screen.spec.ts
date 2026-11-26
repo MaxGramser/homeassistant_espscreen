@@ -228,7 +228,11 @@ describe("New screen, where the cable is", () => {
     expect(view.find('[data-cable="ha"] .ca-mark').exists()).toBe(true);
     // In this computer, where this browser cannot write a screen: a file instead, said before the way.
     await view.find('input[name="cable"][value="here"]').setValue();
-    expect(view.find("#cable-browser").exists()).toBe(true);
+    // In red, with the reason (this page is on plain http) and Chrome's setting for it, so nobody takes the file for how
+    // it always goes.
+    expect(view.find("#no-usb").attributes("data-support")).toBe("insecure");
+    expect(view.find("#no-usb h2").text()).toContain(t("editor.installer.no_usb.insecure_title"));
+    expect(view.find("#no-usb-flag-link").text()).toBe("chrome://flags/#unsafely-treat-insecure-origin-as-secure");
     await next(view);
     expect(at(view)).toBe("connect-here");
     expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_download"));

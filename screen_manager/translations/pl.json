@@ -1766,6 +1766,10 @@
       "log": {
         "copied": "Dziennik skopiowany.",
         "selected": "Dziennik jest zaznaczony. Skopiuj Ctrl+C lub Command+C."
+      },
+      "address": {
+        "copied": "Adres skopiowany.",
+        "selected": "Adres jest zaznaczony. Skopiuj go klawiszami Ctrl+C lub Command+C."
       }
     },
     "sidebar": {
@@ -3955,7 +3959,7 @@
         "here_click": "Kliknij poniżej Zainstaluj.",
         "here_pick": "Przeglądarka zapyta o urządzenie: wybierz ekran i kliknij Połącz.",
         "file_title": "Dostaniesz plik do wgrania na ekran",
-        "file_lead": "Ta przeglądarka nie potrafi sama zapisać danych na ekranie. Tessera tworzy plik, który wgrywasz na ekran przez ESPHome Web w Chrome lub Edge.",
+        "file_lead": "Tessera tworzy plik, który wgrywasz na ekran przez ESPHome Web w Chrome lub Edge.",
         "ha_title": "Podłącz kabel do swojego Home Assistant",
         "ha_lead": "Nie do tego komputera, tylko do urządzenia, na którym działa Home Assistant. Zobaczymy to od razu, gdy będzie podłączony.",
         "ha_which": "Które to ekran?",
@@ -3993,7 +3997,8 @@
           "ha": "Dodawanie do Home Assistant"
         },
         "may_close": "możesz zamknąć to okno",
-        "keep_open": "nie zamykaj tej strony, dopóki nie trafi na ekran",
+        "keep_open_title": "Nie zamykaj tej strony",
+        "keep_open": "Ta strona sama wgrywa oprogramowanie na ekran, gdy tylko zostanie zbudowane. Jeśli zamkniesz tę kartę, opuścisz stronę albo komputer przejdzie w stan uśpienia, nic nie zostanie zapisane. Zostaw też podłączony kabel USB.",
         "show_log": "Co dokładnie się dzieje",
         "to_pages": "Stwórz jego strony",
         "another": "Dodaj kolejny ekran",
@@ -4003,6 +4008,19 @@
           "ha": "W Home Assistant",
           "actions": "Może sterować Twoim domem"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Ta strona nie działa pod bezpiecznym adresem, więc nie ma dostępu do USB",
+        "insecure": "Instalacja z tego komputera to dwa kliknięcia, bez żadnego pliku, ale tylko w Chrome lub Edge na stronie z bezpiecznym adresem (https). Ta strona została otwarta przez zwykłe http, a tam przeglądarka ukrywa swoje porty USB.",
+        "browser_title": "Ta przeglądarka nie ma dostępu do USB",
+        "browser": "Instalacja z tego komputera to dwa kliknięcia, bez żadnego pliku, ale tylko w Chrome lub Edge na komputerze. Otwórz tam Home Assistant i zacznij Nowy ekran jeszcze raz.",
+        "fix": "Dwa sposoby, żeby to zadziałało:",
+        "https": "Otwórz Home Assistant przez https w Chrome lub Edge, na przykład pod swoim adresem Home Assistant Cloud.",
+        "flag": "Albo każ Chrome traktować adres tego Home Assistant jako bezpieczny:",
+        "flag_open": "Skopiuj to do paska adresu Chrome i naciśnij Enter. Strona nie może otworzyć tego za ciebie.",
+        "flag_add": "W polu pod \"Insecure origins treated as secure\" wpisz ten adres i ustaw Enabled.",
+        "flag_relaunch": "Kliknij Relaunch, otwórz Home Assistant ponownie i zacznij Nowy ekran.",
+        "else": "Do tego czasu Tessera tworzy tutaj plik, który wgrywasz na ekran samodzielnie."
       }
     },
     "alerts": {
