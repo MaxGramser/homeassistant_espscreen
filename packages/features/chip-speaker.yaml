@@ -1,5 +1,5 @@
 # ESP Screens - the sound output of a board's second chip as the screen's speaker (docs/SECOND_CHIP.md), for a board
-# file that names the chip's serial line: `chip_link:` with `id: ts_chip`.
+# file that names the pins of the serial line to that chip: CHIP_LINK_TX_PIN (out) and CHIP_LINK_RX_PIN (in).
 #
 # The chip plays what the screen sends it (components/chip_link), so the screen has what a board with a speaker has
 # under the id a plugin may count on (`ts_speaker`, plugin_manifest.FEATURES): the sounds chosen in the app
@@ -28,6 +28,12 @@ substitutions:
     // (kept_sound.h, docs/SOUNDS.md).
     runtime_tiles::doorbell_audio(id(ts_speaker));
     kept_sound::bind_speaker(id(ts_speaker));
+
+# The line to the chip, and whether a chip with Tessera's firmware answers on it (components/chip_link).
+chip_link:
+  id: ts_chip
+  tx_pin: ${CHIP_LINK_TX_PIN}
+  rx_pin: ${CHIP_LINK_RX_PIN}
 
 speaker:
   - platform: chip_link

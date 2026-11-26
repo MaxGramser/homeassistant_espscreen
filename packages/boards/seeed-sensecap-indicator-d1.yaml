@@ -30,7 +30,7 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
-  # The buzzer on the RP2040 as the screen's speaker (the line to that chip is `chip_link` below).
+  # The buzzer on the RP2040 as the screen's speaker (the line to that chip is CHIP_LINK_TX_PIN and CHIP_LINK_RX_PIN below).
   chip_speaker: !include ../features/chip-speaker.yaml
   # The user button on the side, GPIO38 (low while pressed, Seeed's BSP), as the standby key: a press puts the screen in standby or wakes it.
   standby_key: !include ../features/standby-key.yaml
@@ -63,6 +63,11 @@ substitutions:
   TOUCH_MIRROR_X: "true"
   TOUCH_MIRROR_Y: "true"
 
+  # The serial line to the RP2040, as Seeed wired it (features/chip-speaker.yaml opens it): GPIO19 out and GPIO20 in,
+  # the chip's GPIO17 and GPIO16. These are the ESP32-S3's USB pins, free here because the USB-C port reaches the chip
+  # through a CH340.
+  CHIP_LINK_TX_PIN: GPIO19
+  CHIP_LINK_RX_PIN: GPIO20
   # The board's step in New screen, Tessera's firmware for the RP2040 (boards.yaml `steps`, docs/BOARD_STEPS.md): done
   # when that chip answers, with the firmware it runs. `steps` is there either way, empty while the chip is silent: a
   # screen whose firmware says nothing of steps is one that cannot tell, and is not asked to do one.
@@ -90,13 +95,6 @@ i2c:
   scl: GPIO40
   frequency: 100kHz
   scan: true
-
-# The serial line to the RP2040, as Seeed wired it: GPIO19 out and GPIO20 in, the chip's GPIO17 and GPIO16. These are
-# the ESP32-S3's USB pins, free here because the USB-C port reaches the chip through a CH340.
-chip_link:
-  id: ts_chip
-  tx_pin: GPIO19
-  rx_pin: GPIO20
 
 # A PCA9535 at 0x20, which ESPHome's pca9554 platform drives with 16 lines: the panel's chip select and reset, the
 # touch panel's reset and interrupt, the LoRa radio's lines and the RP2040's reset.
