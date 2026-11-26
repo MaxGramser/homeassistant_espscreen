@@ -132,7 +132,9 @@
       "update_failed": "Bijwerken mislukt",
       "hint_key": "Een verbinding van {address} is geweigerd: de sleutel hoort niet bij dit scherm. Vul de sleutel van dit scherm in bij de ESPHome-integratie van Home Assistant.",
       "no_answer_title": "Geen antwoord van Home Assistant",
-      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren."
+      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren.",
+      "logbook_tile": "bediend op {screen}, pagina {page}, tegel {tile}",
+      "logbook_page": "bediend op {screen}, pagina {page}"
     },
     "preparing": {
       "default": "Je tegels schikken",

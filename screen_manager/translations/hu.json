@@ -132,7 +132,9 @@
       "update_failed": "A frissítés nem sikerült",
       "hint_key": "Egy kapcsolat elutasítva innen: {address}. A kulcsa nem ehhez a kijelzőhöz tartozik. Add meg a kijelző kulcsát a Home Assistant ESPHome-integrációjában.",
       "no_answer_title": "Nincs válasz a Home Assistanttól",
-      "no_answer_text": "Gyakran ez a kijelző még nem hajthat végre műveleteket. Kapcsold be a Home Assistantban: ESPHome > ez a kijelző > Konfigurálás."
+      "no_answer_text": "Gyakran ez a kijelző még nem hajthat végre műveleteket. Kapcsold be a Home Assistantban: ESPHome > ez a kijelző > Konfigurálás.",
+      "logbook_tile": "kezelve itt: {screen}, oldal: {page}, csempe: {tile}",
+      "logbook_page": "kezelve itt: {screen}, oldal: {page}"
     },
     "preparing": {
       "default": "Csempék elrendezése",

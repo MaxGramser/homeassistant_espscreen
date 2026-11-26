@@ -132,7 +132,9 @@
       "update_failed": "Aktualisierung fehlgeschlagen",
       "hint_key": "Eine Verbindung von {address} wurde abgewiesen: ihr Schlüssel gehört nicht zu diesem Bildschirm. Gib den Schlüssel dieses Bildschirms in der ESPHome-Integration von Home Assistant ein.",
       "no_answer_title": "Keine Antwort von Home Assistant",
-      "no_answer_text": "Oft darf dieser Bildschirm noch keine Aktionen ausführen. Erlaube es in Home Assistant: ESPHome > dieser Bildschirm > Konfigurieren."
+      "no_answer_text": "Oft darf dieser Bildschirm noch keine Aktionen ausführen. Erlaube es in Home Assistant: ESPHome > dieser Bildschirm > Konfigurieren.",
+      "logbook_tile": "bedient auf {screen}, Seite {page}, Kachel {tile}",
+      "logbook_page": "bedient auf {screen}, Seite {page}"
     },
     "preparing": {
       "default": "Kacheln werden sortiert",

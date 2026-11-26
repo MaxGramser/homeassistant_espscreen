@@ -4,6 +4,8 @@
 
 - **A humidifier's modes, a vacuum's suction speeds and a remote's activities show only when Home Assistant shows them.** As with the thermostat's fan and swing rows in 0.4.106: an integration that keeps listing choices for a feature the device lacks, or that is switched off in Home Assistant, no longer gets them on its tile or card. Each list now needs its feature in Home Assistant (`supported_features`) besides something in the list.
 
+- **Home Assistant's logbook says which screen operated something.** When you change something on a screen, the entity's logbook in Home Assistant gets a line such as "operated on Hall screen, page Living room, tile Thermostat", next to the change itself. Until now such a change stood there without a person or a device, because Home Assistant does not record which ESPHome device sent an action. Several changes to the same entity within a few seconds, like dragging a slider, give one line. It needs nothing set up, and it comes with the screen's next update.
+
 ## 0.4.106 (firmware 0.66.0)
 
 - **The thermostat's card shows a fan or swing row only when Home Assistant does.** A device whose integration lists swing modes while it has no louvres, or with the swing feature switched off in Home Assistant, still got a swing row on its card that did nothing useful. The fan row and the swing row now each need their feature in Home Assistant (`supported_features`) besides a list of choices, exactly as Home Assistant's own thermostat card decides it.

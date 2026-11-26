@@ -132,7 +132,9 @@
       "update_failed": "Aggiornamento non riuscito",
       "hint_key": "Una connessione da {address} è stata rifiutata: la sua chiave non è quella di questo schermo. Inserisci la chiave di questo schermo nell'integrazione ESPHome di Home Assistant.",
       "no_answer_title": "Nessuna risposta da Home Assistant",
-      "no_answer_text": "Spesso questo schermo non può ancora eseguire azioni. Attivalo in Home Assistant: ESPHome > questo schermo > Configura."
+      "no_answer_text": "Spesso questo schermo non può ancora eseguire azioni. Attivalo in Home Assistant: ESPHome > questo schermo > Configura.",
+      "logbook_tile": "comandato su {screen}, pagina {page}, tessera {tile}",
+      "logbook_page": "comandato su {screen}, pagina {page}"
     },
     "preparing": {
       "default": "Sistemando i riquadri",

@@ -9,6 +9,7 @@
 #include <string_view>
 #include "runtime_model.h"
 #include "redraw_log.h"
+#include "action_log.h"
 #include "loop_stack.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
@@ -1083,6 +1084,37 @@ inline void expire_calls(uint32_t now) {
   }
 }
 #endif
+// The line in Home Assistant's logbook for an action that went out (action_log.h; docs/ARCHITECTURE.md, "An action's
+// line in the logbook"): `logbook.log` on the entity, with this screen's name, the page on the glass and the tile of
+// the entity on it. It asks for no answer and takes none of the four watched places; a Home Assistant without the
+// logbook only writes a line in its own log. The host has no name and writes nothing.
+inline std::string screen_name();
+inline const std::string &media_entity(const Tile &t);
+inline action_log::Recent logged_actions;
+inline void log_action(const std::string &entity) {
+  const std::string screen = screen_name();
+  if (screen.empty() || !logged_actions.due(entity, esphome::millis())) return;
+  const int page = shown_page ? *shown_page : 0;
+  // The tile on this page that shows the entity, or plays on it (a card's media keys act on the speaker it follows).
+  std::array<Placement, TILES_MAX> places;
+  place(model, places);
+  std::string tile;
+  for (size_t i = 0; i < model.count && i < grid.max_tiles() && tile.empty(); ++i)
+    if (places[i].page == page && (model.tiles[i].entity == entity || media_entity(model.tiles[i]) == entity)) tile = model.tiles[i].name;
+  const std::string message = action_log::message(tr(txt::status_logbook_tile), tr(txt::status_logbook_page), screen, model.title_of(page), tile);
+  esphome::api::HomeassistantActionRequest request;
+  request.service = api_text::of("logbook.log");
+  request.data.init(3);
+  const std::string *const values[] = {&screen, &message, &entity};
+  const char *const keys[] = {"name", "message", "entity_id"};
+  for (int i = 0; i < 3; ++i) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(*values[i]);
+    request.data.push_back(entry);
+  }
+  esphome::api::global_api_server->send_homeassistant_action(request);
+}
 // Marks every tile of the entity busy and sends; `watch` asks Home Assistant for an answer (a tap).
 // `busy`: the tiles of the entity wait for the answer (the busy sheet, greyed keys); a wish (docs/OPTIMISTIC.md) shows
 // its value instead and waits for nothing.
@@ -1097,6 +1129,7 @@ inline bool send_action(esphome::api::HomeassistantActionRequest &request, const
   if (watch) watched = watch_call(request, entity);
 #endif
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   return watched;
 }
 // `key2` and `value2`: a second field, for a thermostat's range (both ends in one call, firmware 0.19.0).
@@ -1154,6 +1187,7 @@ inline void step_action(const std::string &service, const std::string &entity, c
   target.key = api_text::of("entity_id"); target.value = api_text::of(entity); request.data.push_back(target);
   if (!key.empty()) { field.key = api_text::of(key); field.value = api_text::of(value); request.data.push_back(field); }
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   ESP_LOGI("runtime_action", "Sent %s%s%s to %s", service.c_str(), value.empty() ? "" : " ", value.c_str(), entity.c_str());
 }
 // A remote's key (firmware 0.22.0+): remote.send_command with one command, sent as a remote sends it. It changes no state,
