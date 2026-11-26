@@ -4762,7 +4762,7 @@ class Run:
         if self.only != 'plugin':
             await self.render('starting')
         # Each step of it as the screen says it (firmware 0.38.0), from Wi-Fi to an update, then back as it was.
-        if 'render_boot' in self.services and self.only not in ('plugin', 'dock'):  # the Dock's round needs no boot screens
+        if 'render_boot' in self.services and self.only not in ('plugin', 'dock', 'climate'):  # the Dock's round needs no boot screens
             for name, given in BOOT_STATES:
                 await self.call('render_boot', **{**BOOT_DEFAULTS, **given})
                 await self.render(name)
