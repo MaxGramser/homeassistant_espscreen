@@ -58,6 +58,7 @@ async function play() {
         <span v-if="chip.busy.value" class="spin small"></span>{{ now }}
       </p>
       <p v-if="state.wrongDrive" class="ob-note warn" id="step-wrong-drive" role="status"><Icon name="alert-circle-outline" />{{ words("wrong_drive") }}</p>
+      <p v-if="state.noWindow" class="ob-note warn" id="step-no-window" role="status"><Icon name="alert-circle-outline" />{{ words("no_window") }}</p>
 
       <button v-if="state.phase === 'idle'" type="button" class="ob-go" id="step-go" @click="chip.start">{{ words("go") }}</button>
       <button v-else-if="state.phase === 'drive'" type="button" class="ob-go" id="step-drive" @click="chip.chooseDrive">{{ words("choose_drive") }}</button>

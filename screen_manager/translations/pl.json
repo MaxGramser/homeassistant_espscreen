@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Wybierz dysk {drive}",
           "wrong_drive": "To nie jest dysk {drive}. Wybierz sam dysk, na górze listy, a nie folder na tym komputerze.",
+          "no_window": "Przeglądarka nie otworzyła okna dysku. Być może gdzieś jest jeszcze otwarte inne okno plików: zamknij je albo odśwież tę stronę i kliknij ponownie.",
           "drive_there": "Dysk {drive} już jest",
           "done": "Firmware {version} jest na układzie, a ekran go znalazł.",
           "try": "Odtwórz dźwięk",

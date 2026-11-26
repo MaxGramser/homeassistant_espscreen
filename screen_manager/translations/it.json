@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Scegli l'unità {drive}",
           "wrong_drive": "Quella non è l'unità {drive}. Scegli l'unità stessa, in cima all'elenco, non una cartella di questo computer.",
+          "no_window": "Il browser non ha aperto la finestra per l'unità. Forse un'altra finestra dei file è ancora aperta da qualche parte: chiudila, o ricarica questa pagina, e clicca di nuovo.",
           "drive_there": "L'unità {drive} c'è già",
           "done": "Il firmware {version} è sul chip e lo schermo l'ha trovato.",
           "try": "Riproduci un suono",

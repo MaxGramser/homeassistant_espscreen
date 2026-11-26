@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Kies de schijf {drive}",
           "wrong_drive": "Dat is niet de schijf {drive}. Kies de schijf zelf, bovenaan de lijst, niet een map op deze computer.",
+          "no_window": "De browser opende zijn venster voor de schijf niet. Misschien staat er nog ergens een ander bestandsvenster open: sluit dat, of herlaad deze pagina, en klik opnieuw.",
           "drive_there": "De schijf {drive} is er al",
           "done": "Firmware {version} staat op de chip, en het scherm heeft hem gevonden.",
           "try": "Geluid afspelen",

@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Choose the drive {drive}",
           "wrong_drive": "That is not the drive {drive}. Choose the drive itself, at the top of the list, not a folder on this computer.",
+          "no_window": "The browser did not open its window for the drive. Another of its file windows may still be open somewhere: close it, or reload this page, and click again.",
           "drive_there": "The drive {drive} is there already",
           "done": "Firmware {version} is on the chip, and the screen found it.",
           "try": "Play a sound",

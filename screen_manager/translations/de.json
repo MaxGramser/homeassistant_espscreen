@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Laufwerk {drive} wählen",
           "wrong_drive": "Das ist nicht das Laufwerk {drive}. Wähle das Laufwerk selbst, oben in der Liste, nicht einen Ordner auf diesem Computer.",
+          "no_window": "Der Browser hat sein Fenster für das Laufwerk nicht geöffnet. Vielleicht ist irgendwo noch ein anderes Dateifenster offen: schließe es oder lade diese Seite neu und klicke noch einmal.",
           "drive_there": "Das Laufwerk {drive} ist schon da",
           "done": "Firmware {version} ist auf dem Chip, und der Bildschirm hat ihn gefunden.",
           "try": "Ton abspielen",

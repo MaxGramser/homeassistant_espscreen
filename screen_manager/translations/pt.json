@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Escolher a unidade {drive}",
           "wrong_drive": "Essa não é a unidade {drive}. Escolha a própria unidade, no topo da lista, e não uma pasta deste computador.",
+          "no_window": "O navegador não abriu a janela da unidade. Talvez outra janela de ficheiros ainda esteja aberta algures: fecha-a, ou recarrega esta página, e clica de novo.",
           "drive_there": "A unidade {drive} já lá está",
           "done": "O firmware {version} está no chip e o ecrã encontrou-o.",
           "try": "Tocar um som",

@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "A(z) {drive} meghajtó kiválasztása",
           "wrong_drive": "Ez nem a(z) {drive} meghajtó. Magát a meghajtót válaszd, a lista tetején, ne egy mappát ezen a számítógépen.",
+          "no_window": "A böngésző nem nyitotta meg a meghajtó ablakát. Lehet, hogy valahol még nyitva van egy másik fájlablak: zárd be, vagy töltsd újra ezt az oldalt, és kattints újra.",
           "drive_there": "A(z) {drive} meghajtó már ott van",
           "done": "A(z) {version} firmware a chipen van, és a kijelző megtalálta.",
           "try": "Hang lejátszása",

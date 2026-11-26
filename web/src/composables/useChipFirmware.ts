@@ -26,6 +26,8 @@ export function useChipFirmware(step: () => ChipFirmwareStep, screen: () => Scre
     onChip: "",
     // The drive was not the chip's: said beside the key that asks for it again.
     wrongDrive: false,
+    // The browser did not open its window for the drive.
+    noWindow: false,
   });
   let data: Uint8Array | null = null;
   let alive = true;
@@ -47,7 +49,7 @@ export function useChipFirmware(step: () => ChipFirmwareStep, screen: () => Scre
 
   /** The first click: the chip's port, and the chip restarted as a drive. */
   async function start() {
-    Object.assign(state, { phase: "port", problem: null, onChip: "", wrongDrive: false });
+    Object.assign(state, { phase: "port", problem: null, onChip: "", wrongDrive: false, noWindow: false });
     let port: SerialPort;
     try {
       port = await chipPort(step());
@@ -72,10 +74,15 @@ export function useChipFirmware(step: () => ChipFirmwareStep, screen: () => Scre
   async function chooseDrive() {
     state.wrongDrive = false;
     let folder: FileSystemDirectoryHandle;
+    state.noWindow = false;
     try {
       folder = await pickFolder();
-    } catch {
-      return;  // closed without a choice: the key is still there
+    } catch (error) {
+      // Closed without a choice (AbortError): the key is still there. Anything else is a window that did not open, as
+      // when one the browser opened before still stands somewhere out of sight; the page said nothing then, and
+      // someone looked for a window that was not there (2026-11-26).
+      if ((error as Error)?.name !== "AbortError") state.noWindow = true;
+      return;
     }
     if (!isChipDrive(await driveInfo(folder), step().drive)) {
       state.wrongDrive = true;

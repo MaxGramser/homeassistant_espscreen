@@ -206,6 +206,23 @@ describe("writing a chip's firmware from the page", () => {
     expect(view.find("#step-drive").exists()).toBe(true);
   });
 
+  it("says so when the browser does not open its window for the drive, and nothing when someone closes it", async () => {
+    flasher.chipPort.mockResolvedValue({});
+    flasher.restartAsDrive.mockResolvedValue(undefined);
+    const view = page();
+    await view.find("#step-go").trigger("click");
+    await flushPromises();
+    flasher.pickFolder.mockRejectedValueOnce(Object.assign(new Error("closed"), { name: "AbortError" }));
+    await view.find("#step-drive").trigger("click");
+    await flushPromises();
+    expect(view.find("#step-no-window").exists()).toBe(false);
+    flasher.pickFolder.mockRejectedValueOnce(Object.assign(new Error("File picker already active."), { name: "NotAllowedError" }));
+    await view.find("#step-drive").trigger("click");
+    await flushPromises();
+    expect(view.find("#step-no-window").text()).toContain(words("no_window"));
+    expect(view.find("#step-drive").exists()).toBe(true);
+  });
+
   it("says why when no port was chosen, and takes a drive that is there already", async () => {
     flasher.chipPort.mockRejectedValue(new Error("No port selected by the user."));
     const view = page();

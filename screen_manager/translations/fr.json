@@ -5364,6 +5364,7 @@
           },
           "choose_drive": "Choisir le lecteur {drive}",
           "wrong_drive": "Ce n'est pas le lecteur {drive}. Choisissez le lecteur lui-même, en haut de la liste, pas un dossier de cet ordinateur.",
+          "no_window": "Le navigateur n'a pas ouvert sa fenêtre pour le disque. Une autre fenêtre de fichiers est peut-être encore ouverte quelque part : fermez-la, ou rechargez cette page, puis cliquez à nouveau.",
           "drive_there": "Le lecteur {drive} est déjà là",
           "done": "Le firmware {version} est sur la puce, et l'écran l'a trouvée.",
           "try": "Jouer un son",
