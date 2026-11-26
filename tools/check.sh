@@ -5,6 +5,12 @@
 #   tools/check.sh                   the Python tests, every tests/*.cpp, the package check, the icon generator's --check, the editor's
 #                                    tests, its sizes against the firmware's, types and build, and whether the editor bundle in Git
 #                                    equals that build
+#   tools/check.sh --app             the short list of an app and editor release (docs/RELEASING.md, "An app and editor release"):
+#                                    first that nothing a screen's firmware is built from changed since main
+#                                    (tools/affected_boards.py --app-only; it stops there when something did), then the Python
+#                                    tests, the generated files, tools/i18n.py check, the editor's tests, lint, types, sizes and
+#                                    build, the bundle in Git, and that the firmware preview in Git is current. No C++ tests,
+#                                    no preview tests or rebuild, no firmware builds, no renders; it goes alone
 #   tools/check.sh --firmware        compiles every board profile (tools/profiles.py) and applies the flash budget to every
 #                                    board with 4 MB of flash (the CYD's rule, docs/RELEASING.md step 2) and the Xtensa
 #                                    literal margin to every build (tools/literal_margin.py, LITERAL_FLOOR)
@@ -43,9 +49,10 @@ read -r -a ESPHOME_CMD <<< "${ESPHOME:-esphome}"
 
 usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'; }
 
-want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline="" only=() affected=0 sample=0 every_board=0
+want_app=0 want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline="" only=() affected=0 sample=0 every_board=0
 while (($#)); do
   case $1 in
+    --app) want_app=1 ;;
     --firmware) saw_firmware=1 ;;
     --all) saw_all=1 ;;
     --render) saw_render=1 ;;
@@ -65,6 +72,12 @@ while (($#)); do
   esac
   shift
 done
+if ((want_app)); then
+  if ((saw_firmware || saw_all || saw_render || affected || sample || every_board || ${#only[@]})) || [[ -n $baseline ]]; then
+    echo "--app goes alone: it is the list of a release that changes no firmware" >&2; exit 2
+  fi
+  want_fast=0
+fi
 if ((saw_firmware || saw_all)); then want_firmware=1; fi
 if ((saw_firmware && !saw_all)); then want_fast=0; fi
 if ((saw_render)); then want_render=1; if ((!saw_all && !saw_firmware)); then want_fast=0; fi; fi
@@ -192,6 +205,20 @@ firmware_numbers_raised() {
 }
 # The translations (app 0.2.90, docs/TRANSLATING.md): every language against English, the key header the firmware
 # builds against, and no English left in the firmware's code.
+# An app and editor release (--app): nothing a screen's firmware or its preview is built from changed since main.
+app_only() {
+  local out status=0
+  cd "$ROOT" || return 1
+  out=$("$PYTHON" tools/affected_boards.py --app-only 2>&1) || status=$?
+  echo "$out"
+  ((status != 1)) || echo "This is a firmware release: run tools/check.sh, and take the steps of docs/RELEASING.md, \"The release\"."
+  return "$status"
+}
+# The texts alone (--app): every language against English. The key header and the firmware's own code are the
+# firmware's, and a changed screen text is no app and editor release.
+translations_texts() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt"; }
+# The preview in Git is the one the firmware sources build to (--app): asked, never rebuilt or tested here.
+preview_current() { cd "$ROOT" && "$PYTHON" web/wasm/generate_renderer_manifest.py --check; }
 translations_check() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt" && "$PYTHON" tools/i18n.py header --check && "$PYTHON" tools/i18n.py lint; }
 editor_install() { cd "$ROOT/web" && npm ci --no-audit --no-fund; }
 editor_tests() { cd "$ROOT/web" && npm test; }
@@ -513,6 +540,34 @@ if ((want_fast)); then
     if ((last_ok)); then run "Editor: bundle in Git is fresh" editor_bundle; else skip "Editor: bundle in Git is fresh" "no build"; fi
   else
     skip "Editor: tests, types, build" "npm ci failed"
+  fi
+fi
+
+if ((want_app)); then
+  run "App and editor only" app_only
+  if ((last_ok)); then
+    run "Python packages" python_packages
+    run "Python tests" python_tests
+    run "Board shapes for the manager" shapes_current
+    run "Entry files of every board" entries_current
+    run "Issue template boards" issue_templates_current
+    run "Icons match tile_icons.py" icons_current
+    run "Tile catalogue" catalogue_current
+    run "Translations: every language" translations_texts
+    run "Firmware preview in Git is current" preview_current
+    run "Editor: npm ci" editor_install
+    if ((last_ok)); then
+      run "Editor: tests (Vitest)" editor_tests
+      run "Editor: lint (ESLint)" editor_lint
+      run "Editor: the firmware's numbers" editor_parity
+      run "Editor: types (vue-tsc)" editor_types
+      run "Editor: build" editor_build
+      if ((last_ok)); then run "Editor: bundle in Git is fresh" editor_bundle; else skip "Editor: bundle in Git is fresh" "no build"; fi
+    else
+      skip "Editor: tests, types, build" "npm ci failed"
+    fi
+  else
+    skip "The checks of an app and editor release" "a firmware source changed"
   fi
 fi
 

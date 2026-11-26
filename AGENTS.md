@@ -167,6 +167,8 @@ release is checked fully, once a week. docs/TESTING.md says what each layer prov
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
   draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"). What fails there is fixed
   in the release.
+- **A release of the app and the editor alone** runs `tools/check.sh --app` instead: no firmware builds, no preview
+  rebuild, no CI on every board, no upgrade test (docs/RELEASING.md, "An app and editor release").
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
@@ -198,6 +200,8 @@ Two branches, and the difference between them is the most important rule in this
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
   upgrade from main on the home Home Assistant, and then main moves to that exact commit with its tag and GitHub release. The
   plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
+- **A release that changes no firmware source** (only the app, the editor, their texts, docs) takes the short route of
+  docs/RELEASING.md, "An app and editor release": `tools/release.py` picks it by what changed, never by a flag.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into
   dev.

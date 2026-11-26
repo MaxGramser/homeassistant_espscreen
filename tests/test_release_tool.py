@@ -4,6 +4,9 @@ Every edit runs on the real files of this tree, so a changed line format fails h
 Standard library and PyYAML only.
 """
 from pathlib import Path
+import argparse
+import contextlib
+import io
 import shutil
 import subprocess
 import sys
@@ -13,6 +16,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
+import affected_boards  # noqa: E402
 import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 import release  # noqa: E402
@@ -203,6 +207,156 @@ class TheCandidate(unittest.TestCase):
                 text = release.git('show', f'{commit}:{path}', cwd=clone)
                 self.assertNotRegex(text, release.REF_MAIN)
                 self.assertIn(release.CANDIDATE, text)
+
+
+class World:
+    """What tools/release.py sees of git, GitHub and the tree at a publish, made up: a release commit that is pushed,
+    with main behind it. Every push and every call to GitHub is written down in `did` and goes nowhere; a call the
+    route should not make fails the test (the release tool's tests must never reach GitHub, where one once started the
+    real workflow)."""
+    HEAD, MAIN, VERSION = 'a' * 40, 'b' * 40, '9.9.9'
+
+    def __init__(self, changed, ci='success', candidate=None, checks=True):
+        self.changed, self.ci, self.candidate, self.checks = list(changed), ci, candidate, checks
+        self.did = []
+        firmware = profiles.substitutions_in(CORE_YAML)['SCREEN_FIRMWARE_VERSION'].strip('"')
+        self.files = {release.CHANGELOG: f'## {self.VERSION} (firmware {firmware})\n\n- A fix in the editor.\n\n'
+                                         + without_unreleased(CHANGELOG),
+                      release.CONFIG: release.with_name(release.with_version(CONFIG, self.VERSION), dev=False)}
+
+    def git(self, *args, **_):
+        if args[0] in ('push', 'tag', 'commit'):
+            self.did.append(('git', *args))
+            return ''
+        if args[0] == 'rev-parse':
+            if '--abbrev-ref' in args:
+                return 'hotfix-editor'
+            if '--verify' in args:   # has(ref): the tag of the release does not exist yet
+                return ''
+            return {f'{self.candidate}^': 'c' * 40 if self.candidate == 'other' else self.HEAD}.get(args[-1], self.HEAD)[:40]
+        if args[0] == 'ls-remote':
+            return f'{self.candidate}\trefs/heads/{release.CANDIDATE}' if self.candidate and '--heads' in args else ''
+        if args[0] == 'branch':
+            return 'origin/hotfix-editor'
+        if args[0] in ('status', 'fetch'):
+            return ''
+        raise AssertionError(f'a git call the test does not know: {args}')
+
+    def gh(self, *args):
+        self.did.append(('gh', *args[:2]))
+        return ''
+
+    def ci_state(self, _sha):
+        self.did.append(('ci_state',))
+        return {job: self.ci for job in release.CI_JOBS}
+
+    def app_checks(self):
+        self.did.append(('check.sh --app',))
+        return self.checks
+
+    def the_release(self):
+        with mock.patch.object(affected_boards, 'only_comments', return_value=False):
+            reach = affected_boards.sort(self.changed, 'HEAD')
+        return 'b' * 40, reach, set(), affected_boards.release_of(reach)
+
+    def publish(self, *flags):
+        """(exit status or the refusal's text, what was printed) of `tools/release.py publish --notes <file> flags`."""
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            notes = Path(folder) / 'notes.md'
+            notes.write_text('What is new.\n')
+            for name, stand_in in (('git', self.git), ('gh', self.gh), ('fetch', lambda: None), ('ci_state', self.ci_state),
+                                   ('app_checks', self.app_checks), ('the_release', self.the_release),
+                                   ('ancestor', lambda *_: True), ('lint_problem', lambda: None),
+                                   ('read', lambda path: self.files[path]),
+                                   ('write', mock.Mock(side_effect=AssertionError('a publish from a hotfix writes no file'))),
+                                   ('plugins_clone', mock.Mock(side_effect=AssertionError('a hotfix leaves the plugins alone')))):
+                stack.enter_context(mock.patch.object(release, name, stand_in))
+            # Whatever slips past the stand-ins above is stopped here instead of reaching a real repository.
+            stack.enter_context(mock.patch.object(release.subprocess, 'run',
+                                                  mock.Mock(side_effect=AssertionError('a publish test ran a real command'))))
+            stack.enter_context(contextlib.redirect_stdout(out))
+            args = argparse.Namespace(notes=str(notes), yes='--yes' in flags, without_ci='--without-ci' in flags,
+                                      without_upgrade_test='--without-upgrade-test' in flags, without_plugins=False)
+            try:
+                return release.publish(args), out.getvalue()
+            except release.Refusal as refusal:
+                return str(refusal), out.getvalue()
+
+    def moved(self):
+        """Whether main and the tag were pushed."""
+        return any(step[:2] == ('git', 'push') and f'{self.HEAD}:refs/heads/main' in step for step in self.did)
+
+
+APP_AND_EDITOR = ('web/src/App.vue', 'screen_manager/app/core.py', 'screen_manager/app/static/index.html',
+                  'screen_manager/config.yaml', 'screen_manager/CHANGELOG.md', 'docs/RELEASING.md')
+
+
+class TheShortRoute(unittest.TestCase):
+    """An app and editor release (docs/RELEASING.md, "An app and editor release"): what changed since main picks the
+    route at publish. Without a firmware source it asks neither CI nor the upgrade test and runs tools/check.sh --app
+    itself; with one it is the release it always was, and no flag of the short route exists to get past that."""
+
+    def test_app_and_editor_only_publishes_after_its_own_checks(self):
+        world = World(APP_AND_EDITOR, ci='missing', candidate=None)
+        status, said = world.publish('--yes')
+        self.assertEqual(status, 0, status)
+        self.assertNotIn(('ci_state',), world.did)             # CI on every board is not asked for
+        self.assertIn(('check.sh --app',), world.did)
+        self.assertTrue(world.moved())
+        self.assertLess(world.did.index(('check.sh --app',)), world.did.index(('git', 'tag', 'screens-v9.9.9', world.HEAD)))
+        self.assertIn(('gh', 'release', 'create'), world.did)
+        self.assertIn('Published Tessera 9.9.9', said)
+
+    def test_without_yes_it_says_so_and_runs_nothing(self):
+        world = World(APP_AND_EDITOR, ci='missing')
+        status, said = world.publish()
+        self.assertEqual(status, 0, status)
+        self.assertIn('run tools/check.sh --app first (app and editor only', said)
+        self.assertIn('Nothing done', said)
+        self.assertEqual(world.did, [])
+
+    def test_a_failing_check_moves_nothing(self):
+        world = World(APP_AND_EDITOR, checks=False)
+        status, _said = world.publish('--yes')
+        self.assertIn('tools/check.sh --app failed', status)
+        self.assertEqual(world.did, [('check.sh --app',)])
+
+    def test_a_firmware_source_takes_the_full_route(self):
+        """One package, component, screen text source or Dockerfile among the app's files: CI and the candidate are
+        asked for as before, the refusal names the file, and the short checks are not what it is published on."""
+        for source in ('packages/core.yaml', 'components/smart_display/theme.h', 'screen_manager/Dockerfile',
+                       str(profiles.BOARDS['cyd'].relative_to(ROOT)), 'web/wasm/firmware_preview.cpp'):
+            with self.subTest(source=source):
+                world = World([*APP_AND_EDITOR, source], ci='missing', candidate=None)
+                status, _said = world.publish('--yes')
+                self.assertIn('Not published', status)
+                self.assertIn(f'this is no app and editor release, a firmware source changed since main ({source})', status)
+                self.assertIn('CI is not green on HEAD', status)
+                self.assertIn(f'there is no {release.CANDIDATE}', status)
+                self.assertFalse(world.moved())
+                self.assertNotIn(('check.sh --app',), world.did)
+                self.assertEqual([step for step in world.did if step[0] in ('git', 'gh')], [])
+
+    def test_a_firmware_release_that_is_proven_goes_out_as_before(self):
+        world = World([*APP_AND_EDITOR, 'packages/core.yaml'], ci='success', candidate='d' * 40)
+        status, said = world.publish('--yes')
+        self.assertEqual(status, 0, status)
+        self.assertIn(('ci_state',), world.did)
+        self.assertNotIn(('check.sh --app',), world.did)
+        self.assertNotIn('app and editor', said)
+        self.assertTrue(world.moved())
+        # A candidate made of another commit is still refused.
+        world = World([*APP_AND_EDITOR, 'packages/core.yaml'], candidate='other')
+        self.assertIn('was made of another commit', world.publish('--yes')[0])
+        self.assertFalse(world.moved())
+
+    def test_the_route_follows_what_changed_in_prepare_and_status_too(self):
+        self.assertTrue(release.app_only(affected_boards.sort(list(APP_AND_EDITOR), 'HEAD')))
+        with mock.patch.object(affected_boards, 'only_comments', return_value=False):
+            self.assertFalse(release.app_only(affected_boards.sort([*APP_AND_EDITOR, 'packages/core.yaml'], 'HEAD')))
+        # No flag picks the short route: the command line has none for it.
+        self.assertNotRegex((ROOT / 'tools/release.py').read_text(), r"add_argument\('--(app|short|editor)")
 
 
 def plugin_index(api, *plugins):

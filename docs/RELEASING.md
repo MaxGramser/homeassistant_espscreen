@@ -102,7 +102,9 @@ an app of that version must find its tag.
 ## The release
 
 About once a week, or when a fix can't wait for the next one, everything on dev goes out as one release. `tools/release.py`
-does the steps that can go wrong by hand, and refuses when something is missing.
+does the steps that can go wrong by hand, and refuses when something is missing. These are the steps of a release that
+changes a firmware source; one that changes only the app and the editor takes the short route of "An app and editor
+release" below, and `tools/release.py status` says which of the two it is.
 
 1. **Freeze dev.** Nobody pushes to dev until the release is out; whoever has work in progress keeps it on a branch of
    their own. `tools/release.py status` lists the commits since main, the notes under `## Unreleased` and the firmware
@@ -157,6 +159,55 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    at the new release's tag when it starts ("Which firmware a screen builds"). Every issue the release's CHANGELOG section names gets a short
 reply (which version has it, and how to get it) and is closed; `publish` lists them. Keep an eye on new issues that
 day.
+
+## An app and editor release
+
+A release that changes only the app (`screen_manager/`) and the editor (`web/`, its bundle in
+`screen_manager/app/static`, the `editor` and `addon` texts of the translations, docs, tests, tools) builds no screen
+anything new. A new firmware number, a rebuilt preview, CI on every board and the upgrade test would prove nothing
+about it, so it takes a short route. What changed picks the route, never a flag: `tools/affected_boards.py` sorts every
+path that differs from main, and the route is the short one when none of them is a firmware source. A firmware source
+is:
+
+- a path that reaches a board: the core, a board file or a package a board includes, `components/`, `fonts/`, an
+  entry file, and the `screen` section of a translation file. The section decides, not the file: a text under
+  `editor` or `addon` reaches no screen, a text under `screen` is firmware for every board;
+- any other file under `packages/`, `components/`, `fonts/` or `checkout/`, also when it reaches no screen that exists
+  yet (a new board, a change in comments alone);
+- `screen_manager/Dockerfile`, which names the ESPHome the app builds every screen with;
+- `web/wasm/`, the preview's own code (not `web/wasm/generated/`, which its build writes).
+
+`tools/affected_boards.py --app-only` answers the question alone: exit 0 for the short route, exit 1 with the files
+when a firmware source changed.
+
+1. **Freeze dev and look.** `tools/release.py status` says "App and editor only" and lists the short checks. When it
+   names a firmware number instead, this is "The release" above.
+2. **Prepare.** `tools/release.py prepare` bumps the app version in `screen_manager/config.yaml`, takes " (dev)" off
+   the app's name and turns `## Unreleased` into the release's heading. The firmware number stays: the heading names
+   the firmware main already has, `packages/core.yaml`, `FIRMWARE_VERSION` and `boards.json` are not touched, and the
+   preview is not rebuilt.
+3. **Check.** `PYTHON=.venv-portal/bin/python tools/check.sh --app`, one command:
+   - first that this still is an app and editor release (it stops there when a firmware source changed);
+   - the Python tests, `tests/test_release_lint.py` among them;
+   - the generated files of the app and the editor: board shapes, entry files, issue templates, icons, the tile
+     catalogue;
+   - `tools/i18n.py check`, every language against English;
+   - that the firmware preview in Git is the one the firmware sources build to (asked, not rebuilt);
+   - the editor: `npm ci`, `npm test`, lint, both `vue-tsc` passes, its sizes against the firmware's, `npm run build`,
+     and that the bundle in `screen_manager/app/static` in Git is that build.
+
+   It runs no C++ tests, no preview tests, no firmware builds and no renders.
+4. **Commit and push**: `Release X.Y.Z (firmware A.B.C): what it brings`, with the firmware number main has.
+5. **Publish.** Write the GitHub release notes in a file, then `tools/release.py publish --notes <file> --yes`. It asks
+   for no CI run and no `release-candidate`, and takes neither `--without-ci` nor `--without-upgrade-test`: it runs
+   `tools/check.sh --app` on the pushed commit itself, and publishes only when every check passed. Everything else is
+   as in step 6 of "The release": the tag, main, the GitHub release, the app named "(dev)" on dev again, and the
+   plugins. Without `--yes` it says what it would do and runs nothing.
+6. **After**, as in step 7 of "The release". No screen is offered an update, so there is none to run.
+
+With a firmware source among the changes, `publish` is the full release again: it refuses without green CI and a
+candidate of that commit, and its refusal names the files that make it one. A hotfix that changes only the app or the
+editor takes this route on its `hotfix` branch.
 
 ## A hotfix
 
