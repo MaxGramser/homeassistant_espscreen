@@ -276,7 +276,9 @@ often a Raspberry Pi, so each kind of camera takes the cheapest road:
 
 - A camera with a stream of its own (an RTSP camera through Generic Camera, ONVIF, Reolink, UniFi Protect and others)
   comes through Home Assistant's WebRTC: its built-in go2rtc relays the camera's H.264 as it is, and the app receives
-  it with aiortc and decodes it with PyAV. The P4 cannot decode H.264 (its hardware encodes it, and Espressif's
+  it with aiortc and decodes it with PyAV (aiortc 1.16 or later: up to 1.15 its video jitter buffer held 128 RTP
+  packets, about 150 KB, so a key frame larger than that was never put together, and a camera's main or medium
+  stream gave no frame at all, only its stills). The P4 cannot decode H.264 (its hardware encodes it, and Espressif's
   software decoder takes only the baseline profile most cameras do not send), so Home Assistant's host does, once per
   camera however many screens watch it. The JPEG is made straight from the decoder's YUV with FFmpeg's encoder, at the
   camera's own size where that fits the room, or scaled down to it. Until the first frame (WebRTC waits for the
