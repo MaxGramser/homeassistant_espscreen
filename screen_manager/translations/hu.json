@@ -2871,7 +2871,13 @@
         "hint_auto": "Amit a kijelző magától kiszámol: fényerő, hőmérséklet, mikor futott utoljára egy szkript.",
         "hint_none": "A csempe a nevét mutatja, alatta semmit.",
         "hint_attr": "Ennek az entitásnak egy értéke, úgy megnevezve és kiírva, ahogy a Home Assistant teszi.",
-        "hint_text": "Mindig ugyanaz a szöveg, bármit is csinál az entitás."
+        "hint_text": "Mindig ugyanaz a szöveg, bármit is csinál az entitás.",
+        "parts_aria": "Mit mond a termosztát sora",
+        "part_mode": "Mód",
+        "part_action": "Művelet",
+        "part_target": "Beállított",
+        "part_now": "Most",
+        "hint_parts": "Válaszd ki, mit mondjon a sor. Ahol a csempe − és + gombja már mutatja a beállított hőmérsékletet, a sor kihagyja."
       },
       "slider": {
         "label": "Kis csúszka a csempén",

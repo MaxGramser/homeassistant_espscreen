@@ -2871,7 +2871,13 @@
         "hint_auto": "Quello che lo schermo calcola da sé: una luminosità, una temperatura, quando è stato eseguito uno script.",
         "hint_none": "Il riquadro mostra il suo nome e niente sotto.",
         "hint_attr": "Un valore di questa entità, con il nome e la forma di Home Assistant.",
-        "hint_text": "Le stesse parole, qualunque cosa faccia l'entità."
+        "hint_text": "Le stesse parole, qualunque cosa faccia l'entità.",
+        "parts_aria": "Cosa dice la riga del termostato",
+        "part_mode": "Modalità",
+        "part_action": "Azione",
+        "part_target": "Impostata",
+        "part_now": "Ora",
+        "hint_parts": "Scegli cosa dice la riga. Dove il − e il + del riquadro mostrano già la temperatura impostata, la riga la omette."
       },
       "slider": {
         "label": "Piccolo cursore sul riquadro",

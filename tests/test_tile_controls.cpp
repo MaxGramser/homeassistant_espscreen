@@ -217,6 +217,23 @@ int main() {
   assert(climate_card_status(dry, true) == "Drying · 68%" && climate_card_status(dry) == "Drying · Now 68%");
   assert(status_text(dry) == "Drying · 68%" && humidity_text(45.5f) == "45.5%" && reading_text(dry, 68) == "68%");
 
+  // A thermostat tile's own line (firmware 0.68.0): mode, target and the room's temperature unless its second line
+  // names other parts; Off and the room's temperature while it is off; the target leaves where the -/+ shows it.
+  Tile airco = make("climate.airco", "cool", 1); airco.target = 19; airco.current = 22.5f; airco.edit_extra().hvac_action = "cooling";
+  assert(climate_parts("") == CLIMATE_PARTS_DEFAULT && climate_parts("auto") == CLIMATE_PARTS_DEFAULT && climate_parts("show:") == 0);
+  assert(climate_parts("show:now,mode") == (CLIMATE_PART_NOW | CLIMATE_PART_MODE) && climate_parts("show:later,action") == CLIMATE_PART_ACTION);
+  assert(!subtitle_by_hand("show:mode"));
+  assert(climate_tile_line(airco, CLIMATE_PARTS_DEFAULT, false) == "Cool · 19° · Now 22.5°");
+  assert(climate_tile_line(airco, CLIMATE_PARTS_DEFAULT, true) == "Cool · Now 22.5°");
+  assert(climate_tile_line(airco, CLIMATE_PARTS_DEFAULT, false, CLIMATE_PART_NOW) == "Cool · 19°");
+  assert(climate_tile_line(airco, climate_parts("show:action,now"), false) == "Cooling · Now 22.5°");
+  assert(climate_tile_line(airco, climate_parts("show:"), false).empty());
+  Tile airco_off = airco; airco_off.state = "off";
+  assert(climate_tile_line(airco_off, CLIMATE_PARTS_DEFAULT, false) == "Off · Now 22.5°");
+  assert(climate_tile_line(airco_off, climate_parts("show:target"), false) == "Off");
+  Tile ranged = make("climate.house", "heat_cool", 2); ranged.current = 21; ranged.edit_extra().target_low = 18; ranged.edit_extra().target_high = 22.5f;
+  assert(climate_tile_line(ranged, CLIMATE_PARTS_DEFAULT, false) == "Heat/Cool · 18 - 22.5° · Now 21°");
+
   // A vacuum's battery ends its own status line only; Nothing, its own text and a value stay as chosen (#293).
   Tile docked_robot = make("vacuum.robot", "docked"); docked_robot.battery = 100;
   assert(vacuum_tail(docked_robot) == " / 100%");

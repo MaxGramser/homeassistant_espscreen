@@ -2871,7 +2871,13 @@
         "hint_auto": "Ce que l'écran calcule lui-même : une luminosité, une température, la dernière exécution d'un script.",
         "hint_none": "La tuile affiche son nom et rien en dessous.",
         "hint_attr": "Une valeur de cette entité, nommée et écrite comme dans Home Assistant.",
-        "hint_text": "Les mêmes mots, quoi que fasse l'entité."
+        "hint_text": "Les mêmes mots, quoi que fasse l'entité.",
+        "parts_aria": "Ce que dit la ligne du thermostat",
+        "part_mode": "Mode",
+        "part_action": "Action",
+        "part_target": "Consigne",
+        "part_now": "Maintenant",
+        "hint_parts": "Choisissez ce que dit la ligne. Là où le − et le + de la tuile affichent déjà la consigne, la ligne l'omet."
       },
       "slider": {
         "label": "Petit curseur sur la tuile",

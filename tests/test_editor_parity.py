@@ -875,8 +875,8 @@ def number(value):
 
 class TileText(unittest.TestCase):
     """The words a card writes where the firmware has a rule for them (tile-text.ts): a temperature (temperature_text), a
-    humidity (humidity_text), what a thermostat measures (reading_text), a thermostat's line beside its controls
-    (status_text, for a humidifier climate_card_status brief) and a binary sensor's state by its class (binary_state_text),
+    humidity (humidity_text), what a thermostat measures (reading_text), a thermostat's own line (climate_tile_line, with
+    the parts its tile chose) and a humidifier's beside its controls (status_text: climate_card_status brief) and a binary sensor's state by its class (binary_state_text),
     in English, on the values Home Assistant sends."""
 
     @classmethod
@@ -884,6 +884,11 @@ class TileText(unittest.TestCase):
         compiler(), node()
         cls.climates = [{'state': state, 'action': action, 'current': current} for state in HVAC_MODES for action in HVAC_ACTIONS
                         for current in (None, 20.25, 21, 19.5)]
+        # A thermostat's own line (firmware 0.68.0): the temperature it is set to, the parts its tile chose and whether
+        # its -/+ stands on the card, each walking its own round so every pair of them meets.
+        for i, case in enumerate(cls.climates):
+            case.update(target=(None, 19, 21.5)[i % 3], sub=('auto', 'show:action,now', 'show:target', 'show:', 'show:mode,action,target,now')[i % 5],
+                        stepper=bool(i % 2))
         cls.humidifiers = [{'state': state, 'action': action, 'current': current} for state in ('on', 'off') for action in HUMIDIFIER_ACTIONS
                            for current in (None, 41.5, 45, 41.25)]
         cls.binaries = [{'device_class': dc, 'state': state} for dc in BINARY_CLASSES for state in ('on', 'off')]
@@ -896,20 +901,22 @@ console.log(JSON.stringify({
   humidities: DATA.humidities.map((v: number) => humidityText(v, words)),
   readings: DATA.temperatures.flatMap((v: number) => [readingText("climate", v, words), readingText("humidifier", v, words)]),
   climates: DATA.climates.map((c: any) => stateText("climate.x", live(c.state, { ...(c.action ? { hvac_action: c.action } : {}),
-    ...(c.current !== null ? { current_temperature: c.current } : {}) }), { controlled: true }, words)),
+    ...(c.current !== null ? { current_temperature: c.current } : {}), ...(c.target !== null ? { temperature: c.target, supported_features: 1 } : {}) }),
+    { controlled: true, sub: c.sub, stepper: c.stepper }, words)),
   humidifiers: DATA.humidifiers.map((c: any) => stateText("humidifier.x", live(c.state, { ...(c.action ? { action: c.action } : {}),
     ...(c.current !== null ? { current_humidity: c.current } : {}) }), { controlled: true }, words)),
   binaries: DATA.binaries.map((b: any) => stateText("binary_sensor.x", live(b.state, { device_class: b.device_class }), {}, words)),
 }));''', {'temperatures': TEMPERATURES, 'humidities': HUMIDITIES, 'climates': cls.climates, 'humidifiers': cls.humidifiers,
                  'binaries': cls.binaries}, tmp)
-            thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}}}'
+            thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}, '
+                                     f'{number(c.get("target"))}, {json.dumps(c.get("sub", ""))}, {int(c.get("stepper", False))}}}'
                                      for domain, cases in (('climate.x', cls.climates), ('humidifier.x', cls.humidifiers)) for c in cases)
             binaries = ',\n'.join(f'  {{{json.dumps(b["device_class"])}, {int(b["state"] == "on")}}}' for b in cls.binaries)
             cls.cpp = build_and_run(f'''#include "screen_text_en.h"
 #define THEME_TEST
 #include "components/smart_display/tile_controls.h"
 #include <cstdio>
-struct Thermostat {{ const char *entity, *state, *action; float current; }};
+struct Thermostat {{ const char *entity, *state, *action; float current, target; const char *sub; int stepper; }};
 static const Thermostat THERMOSTATS[] = {{
 {thermostats}
 }};
@@ -929,7 +936,10 @@ int main() {{
   for (const auto &c : THERMOSTATS) {{
     runtime_tiles::Tile t; t.entity = c.entity; t.state = c.state; t.received = true; t.current = c.current;
     t.edit_extra().hvac_action = c.action;
-    std::printf("status %s\\n", tile_controls::status_text(t).c_str());
+    if (t.domain() == "climate") {{
+      t.target = c.target; t.supported = std::isfinite(c.target) ? 1 : 0;
+      std::printf("status %s\\n", tile_controls::climate_tile_line(t, tile_controls::climate_parts(c.sub), c.stepper).c_str());
+    }} else std::printf("status %s\\n", tile_controls::status_text(t).c_str());
   }}
   for (const auto &b : BINARIES) std::printf("binary %s\\n", tile_controls::binary_state_text(b.device_class, b.on));
 }}
@@ -953,7 +963,7 @@ int main() {{
 
     def test_a_thermostats_line_beside_its_controls(self):
         theirs = self.lines('status')
-        self.same(self.climates, self.ts['climates'], theirs[:len(self.climates)], 'a climate: stateText is not status_text')
+        self.same(self.climates, self.ts['climates'], theirs[:len(self.climates)], 'a climate: stateText is not climate_tile_line')
         self.same(self.humidifiers, self.ts['humidifiers'], theirs[len(self.climates):], 'a humidifier: stateText is not status_text')
 
     def test_a_binary_sensors_state(self):

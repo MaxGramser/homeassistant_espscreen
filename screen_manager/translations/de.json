@@ -2871,7 +2871,13 @@
         "hint_auto": "Was der Bildschirm selbst ermittelt: eine Helligkeit, eine Temperatur, wann ein Skript zuletzt lief.",
         "hint_none": "Die Kachel zeigt ihren Namen und nichts darunter.",
         "hint_attr": "Ein Wert dieser Entität, benannt und geschrieben wie in Home Assistant.",
-        "hint_text": "Immer dieselben Worte, was die Entität auch tut."
+        "hint_text": "Immer dieselben Worte, was die Entität auch tut.",
+        "parts_aria": "Was die Zeile des Thermostats sagt",
+        "part_mode": "Modus",
+        "part_action": "Aktion",
+        "part_target": "Eingestellt",
+        "part_now": "Jetzt",
+        "hint_parts": "Wähle, was die Zeile sagt. Wo − und + der Kachel die eingestellte Temperatur zeigen, lässt die Zeile sie weg."
       },
       "slider": {
         "label": "Kleiner Schieberegler auf der Kachel",

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -620,6 +621,57 @@ inline std::string climate_card_status(const Tile &t, bool brief = false) {
   }
   if (!brief && std::isfinite(t.humidity)) status += " · " + screen_text::percent(static_cast<int>(std::lround(t.humidity)));
   return status;
+}
+// ---- A thermostat tile's own line (firmware 0.68.0) ----
+// What a thermostat tile says under its name while its second line is Automatic: the parts the tile names
+// ("show:mode,target,now" in its second line, the inspector's switches), in this order, joined by " · ": its mode
+// (Cool), what it is doing (Home Assistant's hvac_action: Cooling), the temperature it is set to (19°, or a range) and
+// the room's ("Now 22.5°"). Without a choice it says the mode, the target and the room's temperature. An airco that is
+// off says Off and, when chosen, the room's temperature: a temperature to reach means nothing then. Where the tile's own
+// -/+ shows the target, the line leaves it out. A screen before 0.68.0 reads "show:" as Automatic: its own line.
+constexpr unsigned CLIMATE_PART_MODE = 1, CLIMATE_PART_ACTION = 2, CLIMATE_PART_TARGET = 4, CLIMATE_PART_NOW = 8;
+constexpr unsigned CLIMATE_PARTS_DEFAULT = CLIMATE_PART_MODE | CLIMATE_PART_TARGET | CLIMATE_PART_NOW;
+inline unsigned climate_parts(const std::string &choice) {
+  if (choice.compare(0, 5, "show:") != 0) return CLIMATE_PARTS_DEFAULT;
+  unsigned parts = 0;
+  size_t at = 5;
+  while (at <= choice.size()) {
+    size_t end = choice.find(',', at);
+    if (end == std::string::npos) end = choice.size();
+    const std::string part = choice.substr(at, end - at);
+    if (part == "mode") parts |= CLIMATE_PART_MODE;
+    else if (part == "action") parts |= CLIMATE_PART_ACTION;
+    else if (part == "target") parts |= CLIMATE_PART_TARGET;
+    else if (part == "now") parts |= CLIMATE_PART_NOW;
+    at = end + 1;
+  }
+  return parts;
+}
+// The temperature a thermostat is set to, as its tile line writes it: one number (19°), or a range (18 - 22°).
+inline std::string climate_target_text(const Tile &t) {
+  if (climate_range(t)) {
+    std::string low = temperature_text(range_end(t, RANGE_LOW));
+    low.resize(low.size() - std::strlen("°"));
+    return low + " - " + temperature_text(range_end(t, RANGE_HIGH));
+  }
+  return std::isfinite(t.target) ? temperature_text(t.target) : std::string();
+}
+// The line itself. `stepper`: the tile's -/+ shows the target. `drop`: parts to leave out where the whole line has no
+// room (a narrow tile: the room's temperature first, then the mode).
+inline std::string climate_tile_line(const Tile &t, unsigned parts, bool stepper, unsigned drop = 0) {
+  parts &= ~drop;
+  std::string line;
+  auto add = [&line](const std::string &part) { if (!part.empty()) line += (line.empty() ? "" : " · ") + part; };
+  if (climate_off(t)) {
+    add(climate_mode_text("off"));
+  } else {
+    if (parts & CLIMATE_PART_MODE) add(climate_mode_text(lower_case(t.state)));
+    if (parts & CLIMATE_PART_ACTION) add(climate_action_text(lower_case(t.extra().hvac_action)));
+    if ((parts & CLIMATE_PART_TARGET) && !stepper) add(climate_target_text(t));
+  }
+  if ((parts & CLIMATE_PART_NOW) && std::isfinite(t.current))
+    add(screen_text::fill(screen_text::txt::climate_now, "value", temperature_text(t.current)));
+  return line;
 }
 inline const char *cover_state_text(const std::string &state) {
   if (state == "open") return screen_text::tr(screen_text::txt::ha_cover_open);

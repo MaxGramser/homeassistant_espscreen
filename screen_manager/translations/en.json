@@ -2380,7 +2380,13 @@
         "hint_auto": "What the screen works out itself: a brightness, a temperature, when a script last ran.",
         "hint_none": "The tile shows its name and nothing under it.",
         "hint_attr": "A value of this entity, named and written the way Home Assistant does.",
-        "hint_text": "The same words, whatever the entity does."
+        "hint_text": "The same words, whatever the entity does.",
+        "parts_aria": "What the thermostat's line says",
+        "part_mode": "Mode",
+        "part_action": "Action",
+        "part_target": "Set to",
+        "part_now": "Now",
+        "hint_parts": "Choose what the line says. Where the tile's own − and + show the temperature it is set to, the line leaves it out."
       },
       "slider": {
         "label": "Small slider on the tile",

@@ -9,6 +9,7 @@ import rules from './page-rules.json';
 import { cleanPreset, MAX as PRESETS_MAX } from './light-presets';
 import type { PageLayout, PageTile } from '../types';
 import { allTiles } from './page-tiles';
+import { climateParts, climatePartsChoice } from './tile-text';
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 const matches = (pattern: RegExp, value: string) => value.match(pattern)?.[0] === value;
@@ -256,7 +257,9 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
   if (a.subtitle !== undefined) {
     const sub = a.subtitle;
     if (typeof sub !== 'string' || bytes(sub) > 96 || sub === 'auto' ||
-        !(sub === 'none' || (sub.startsWith('text:') && sub.length > 5 && !sub.includes('\n')) || matches(/^attr:[a-z_0-9]+$/, sub)) ||
+        !(sub === 'none' || (sub.startsWith('text:') && sub.length > 5 && !sub.includes('\n')) || matches(/^attr:[a-z_0-9]+$/, sub) ||
+          // A thermostat's own line names its parts, in the order the screen says them (core.validate_layout).
+          (sub.startsWith('show:') && entityId.startsWith('climate.') && climatePartsChoice(climateParts(sub)) === sub)) ||
         (sub.startsWith('text:') && (!sub.slice(5).trim() || sub.slice(5) !== sub.slice(5).trim()))) fail('normalization');
   }
   if (i.tap === 'action') {

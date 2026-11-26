@@ -33,9 +33,11 @@ import InspectorHead from "./ui/InspectorHead.vue";
 import Section from "./ui/Section.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import UiChips from "./ui/UiChips.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import rules from "../model/page-rules.json";
+import { CLIMATE_PARTS, climateParts, climatePartsChoice } from "../model/tile-text";
 import { precisionOffered } from "../model/display-precision";
 import { controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, offeredChoices, presetsOffered, roomHere, sliderOffered, subChoices,
   tapChoices, tapHint, tileControls, tileDisplay, tiltOffered, type TilePanel } from "../model/tile-options";
@@ -183,7 +185,10 @@ const hasSlats = computed(() => {
 // your own. The list of values is Home Assistant's, asked for the entity when this panel opens; an entity Home
 // Assistant names no attribute of - a scene, a switch, a Go to page tile - simply offers the other three.
 const sub = computed(() => current("sub", "auto") as string);
-const subKind = computed(() => (sub.value.startsWith("attr:") ? "attr" : sub.value.startsWith("text:") || typing.value ? "text" : sub.value));
+// A thermostat's Automatic line names its parts ("show:mode,now", firmware 0.68.0): still Automatic, with chips for them.
+const subKind = computed(() => (sub.value.startsWith("attr:") ? "attr" : sub.value.startsWith("text:") || typing.value ? "text" : sub.value.startsWith("show:") ? "auto" : sub.value));
+const lineParts = computed(() => domain.value === "climate" && subKind.value === "auto");
+const linePartChips = computed(() => CLIMATE_PARTS.map((part) => ({ value: part, label: t(`editor.tile.sub.part_${part}`) })));
 const subValues = computed(() => entities.subtitleValues[props.tile.entity] ?? []);
 if (entities.subtitleValues[props.tile.entity] === undefined) entities.loadSubtitleValues(props.tile.entity);
 const subAttribute = computed(() => (sub.value.startsWith("attr:") ? sub.value.slice(5) : subValues.value[0]?.key ?? ""));
@@ -303,10 +308,12 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       </PropRow>
       <!-- A bedside clock and its keys have no second line: the clock draws the time, a key its name alone. A meter
            writes its value and name itself. -->
-      <PropRow v-if="!bedside && !key && !mapCard && !energyTile && !meterCard" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${subKind}`)">
+      <PropRow v-if="!bedside && !key && !mapCard && !energyTile && !meterCard" :label="t('editor.tile.sub.label')" icon="text-short" :hint="t(`editor.tile.sub.hint_${lineParts ? 'parts' : subKind}`)">
         <ChoiceField :choices="subList" :value="subKind" :tile="tile" preview-key="sub" :sample="subSample" :aria-label="t('editor.tile.sub.label')" @pick="pickSubKind" />
-        <template v-if="subKind === 'attr' || subKind === 'text'" #note>
-          <UiSelect v-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
+        <template v-if="subKind === 'attr' || subKind === 'text' || lineParts" #note>
+          <UiChips v-if="lineParts" class="sub-parts" :model-value="climateParts(sub)" :chips="linePartChips" :label="t('editor.tile.sub.parts_aria')"
+            @update:model-value="(parts) => setTileOption(tile, 'sub', climatePartsChoice(parts))" />
+          <UiSelect v-else-if="subKind === 'attr'" class="sub-value" :model-value="subAttribute" :options="subValues.map((value) => [value.key, value.name] as [string, string])"
             :aria-label="t('editor.tile.sub.value_aria')" @update:model-value="(key) => setTileOption(tile, 'sub', `attr:${key}`)" />
           <input v-else class="sub-text" :value="subText" maxlength="60"
             @focus="doc.beginFieldEdit(`sub:${tile.id}`)" @blur="doc.endFieldEdit()"

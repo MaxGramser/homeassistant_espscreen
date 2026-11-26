@@ -1,7 +1,7 @@
 // What a card on the mockup writes (model/tile-text.ts): the line under its name, the second line, the values a large card
 // stands tall, and the firmware's number rules it ports (tests/test_editor_parity.py runs those against the C++ too).
 import { describe, expect, it } from "vitest";
-import { bigKeyLine, bigValue, bodyText, decimalText, favoriteLine, fillPercent, haWord, headLine, humidityText, isOn, ownWords, pageLink, rangeChip,
+import { bigKeyLine, bigValue, bodyText, climateParts, climatePartsChoice, decimalText, favoriteLine, fillPercent, haWord, headLine, humidityText, isOn, ownWords, pageLink, rangeChip,
   readingText, roundValue, runText, sameLive, setpointText, stateText, subLine, temperatureText, unitSuffix, type ScreenWords } from "../src/model/tile-text";
 
 const en: ScreenWords = { locale: "en", marks: { decimal: ".", group: ",", from: 4 } };
@@ -30,14 +30,25 @@ describe("the firmware's number rules", () => {
 });
 
 describe("the line under a card's name", () => {
-  it("says what a thermostat with a control is doing and what it measures (status_text)", () => {
-    const heating = climate("heat", { hvac_action: "heating", current_temperature: 20.25, temperature: 21.5 });
-    expect(stateText("climate.living", heating, { controlled: true }, en)).toBe("Heating · 20.25°");
-    // Without a control the temperature it is set to; off, its mode and what it measures; a range, its state.
-    expect(stateText("climate.living", heating, {}, en)).toBe("21.5°");
-    expect(stateText("climate.living", climate("off", { current_temperature: 19 }), {}, en)).toBe("Off · 19°");
-    expect(stateText("climate.living", climate("heat_cool", { current_temperature: 21 }), {}, en)).toBe("Heat/Cool · 21°");
-    expect(stateText("climate.living", climate("cool", {}), { controlled: true }, en)).toBe("Cool");
+  it("says the parts a thermostat's tile chose (climate_tile_line, firmware 0.68.0)", () => {
+    const cooling = climate("cool", { hvac_action: "cooling", current_temperature: 22.5, temperature: 19, supported_features: 1 });
+    // Without a choice: its mode, the temperature it is set to and the room's.
+    expect(stateText("climate.living", cooling, {}, en)).toBe("Cool · 19° · Now 22.5°");
+    // Where its own -/+ shows the target, the line leaves it out.
+    expect(stateText("climate.living", cooling, { controlled: true, stepper: true }, en)).toBe("Cool · Now 22.5°");
+    expect(stateText("climate.living", cooling, { controlled: true }, en)).toBe("Cool · 19° · Now 22.5°");
+    expect(stateText("climate.living", cooling, { sub: "show:action,now" }, en)).toBe("Cooling · Now 22.5°");
+    expect(stateText("climate.living", cooling, { sub: "show:target" }, en)).toBe("19°");
+    expect(stateText("climate.living", cooling, { sub: "show:" }, en)).toBe("");
+    // Off says so with the room's temperature; a range is written whole.
+    expect(stateText("climate.living", climate("off", { current_temperature: 19, temperature: 21 }), {}, en)).toBe("Off · Now 19°");
+    expect(stateText("climate.living", climate("off", { current_temperature: 19 }), { sub: "show:target" }, en)).toBe("Off");
+    expect(stateText("climate.living", climate("heat_cool", { current_temperature: 21, target_temp_low: 18, target_temp_high: 22.5, supported_features: 2 }), {}, en))
+      .toBe("Heat/Cool · 18 - 22.5° · Now 21°");
+    expect(stateText("climate.living", climate("cool", {}), {}, en)).toBe("Cool");
+    // The choice is kept in one order, and the parts it says by itself are Automatic.
+    expect([climateParts("auto"), climateParts("show:now,mode"), climateParts("show:")]).toEqual([["mode", "target", "now"], ["mode", "now"], []]);
+    expect([climatePartsChoice(["now", "target", "mode"]), climatePartsChoice(["now", "action"]), climatePartsChoice([])]).toEqual(["auto", "show:action,now", "show:"]);
   });
 
   it("names the activity a remote runs, as the screen does (firmware 0.22.0)", () => {

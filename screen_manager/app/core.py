@@ -856,6 +856,10 @@ def tile_limit(version, grid=DEFAULT_GRID):
     return grid.legacy_pages * grid.slots if version >= FULL_PAGE_MIN_FIRMWARE else LEGACY_MAX_TILES if version >= TWENTY_TILES_MIN_FIRMWARE else FIRST_MAX_TILES
 
 CLIMATE_RANGE_MIN_FIRMWARE = (0, 19, 0)
+# The parts a thermostat tile's own line may say, in the order it says them, and the ones it says without a choice
+# (firmware 0.68.0, tile_controls::climate_tile_line; web/src/model/tile-text.ts CLIMATE_PARTS).
+CLIMATE_LINE_PARTS = ('mode', 'action', 'target', 'now')
+CLIMATE_LINE_DEFAULT = 'show:mode,target,now'
 
 def tile_cost(tile, memory):
     """What one tile takes inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md), by the tile catalogue's
@@ -2101,7 +2105,16 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     words = sub[5:].strip()
                     sub = f'text:{words}' if words else 'none'
                     options = {**options, 'sub': sub}
-                if sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
+                # A thermostat's own line names the parts it says (firmware 0.68.0, tile_controls::climate_tile_line),
+                # kept in one order; its mode, target and the room's temperature are the line it says without a choice.
+                if sub.startswith('show:') and domain == 'climate':
+                    parts = sub[5:].split(',') if sub[5:] else []
+                    if any(part not in CLIMATE_LINE_PARTS for part in parts):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
+                    sub = 'show:' + ','.join(part for part in CLIMATE_LINE_PARTS if part in parts)
+                    sub = 'auto' if sub == CLIMATE_LINE_DEFAULT else sub
+                    options = {**options, 'sub': sub}
+                elif sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
                 if sub == 'auto':
                     options = {k: v for k, v in options.items() if k != 'sub'}

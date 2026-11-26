@@ -118,7 +118,8 @@ export function useTileCard(props: TileCardProps) {
   const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entities.entityName(props.tile.entity));
   const note = computed(() => (face.value.display !== "standard" ? displayName(face.value.display) : ""));
   const status = computed(() => stateText(props.tile.entity, current.value, { runs: runs.value, note: note.value,
-    controlled: Boolean(face.value.controls && face.value.controls !== "none" && (face.value.wide || face.value.tall) && !face.value.full) }, words.value));
+    controlled: Boolean(face.value.controls && face.value.controls !== "none" && (face.value.wide || face.value.tall) && !face.value.full),
+    sub: typeof props.tile.options?.sub === "string" ? props.tile.options.sub : undefined, stepper: ["setpoint", "setpoint_mode"].includes(face.value.controls || "") }, words.value));
   const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value));
   const fill = computed(() => fillPercent(domain.value, current.value));
   const lit = computed(() => isOn(domain.value, current.value, runs.value));

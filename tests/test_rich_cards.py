@@ -219,6 +219,20 @@ class SecondLine(unittest.TestCase):
         for bad in ('attr:Bad Name', 'weird', 'attr:', 3, 'text:' + 'x' * 96):
             with self.assertRaises(ValueError, msg=bad):
                 options(bad)
+        # A thermostat's own line names its parts (firmware 0.68.0), kept in the order the screen says them; the
+        # parts it says without a choice are stored as nothing at all, and no other type has parts.
+        def climate(sub):
+            layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'climate.airco', 'options': {'sub': sub}}]})
+            return layout['tiles'][0].get('options')
+        self.assertEqual(climate('show:now,mode'), {'sub': 'show:mode,now'})
+        self.assertEqual(climate('show:action'), {'sub': 'show:action'})
+        self.assertEqual(climate('show:'), {'sub': 'show:'})
+        self.assertEqual(climate('show:now,target,mode'), {})
+        for bad in ('show:mode,humidity', 'show:mode,'):
+            with self.assertRaises(ValueError, msg=bad):
+                climate(bad)
+        with self.assertRaises(ValueError):
+            options('show:mode')
         # A Go to page tile keeps it: not saying "Page 3" is the reason this exists.
         page = validate_layout({'title': 'Home', 'tiles': [{'entity': 'screen.page_2', 'options': {'sub': 'none'}}]})
         self.assertEqual(page['tiles'][0]['options'], {'sub': 'none'})

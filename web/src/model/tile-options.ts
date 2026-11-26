@@ -16,6 +16,7 @@ import type { Capability, PageTile, Tile, TileOptions } from "../types";
 import { BUILTIN_CARDS, type BuiltinName } from "../types";
 import { PLUGIN_TILE, PLUGIN_TILE_OPTIONS } from "./plugins";
 import { canonicalMeter } from "./meter";
+import { climateParts, climatePartsChoice } from "./tile-text";
 
 const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
@@ -73,6 +74,9 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
     const words = out.sub.slice(5).trim();
     out.sub = words ? `text:${words}` : "none";
   }
+  // A thermostat's own line keeps its parts in one order, the ones it says by itself are Automatic, and no other type
+  // has parts.
+  if (typeof out.sub === "string" && out.sub.startsWith("show:")) out.sub = entity.startsWith("climate.") ? climatePartsChoice(climateParts(out.sub)) : "auto";
   if (out.sub === "auto") delete out.sub;
   // Where a cover's slats stand open: Home Assistant's 100 is never stored, and no other tile has the choice.
   if (out.tilt_open !== undefined && (!entity.startsWith("cover.") || String(out.tilt_open) === "100")) delete out.tilt_open;

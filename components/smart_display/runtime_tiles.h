@@ -2064,14 +2064,9 @@ inline void render_slot(size_t slot) {
   else if (tile_controls::text_value(t)) value = tile_controls::text_shown(t);
   else if (d == "light" && t.state == "on" && tile_controls::effect_running(t.extra().effect)) value = t.extra().effect;
   else if (d == "light" && t.state == "on" && std::isfinite(t.brightness)) value = screen_text::percent(static_cast<int>(std::lround(std::clamp(t.brightness, 0.0f, 255.0f) * 100 / 255)));
-  // An airco that is off says so, with the room's temperature when it knows it, as Home Assistant's tile does
-  // (firmware 0.2.71+); while it runs, the tile shows the temperature it is set to, written as Home Assistant writes
-  // it: 68°, 21.5° (firmware 0.19.0; before, always one decimal).
-  else if (d == "climate" && t.state == "off") { value = tile_controls::climate_mode_text(t.state); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
-  else if (d == "climate" && std::isfinite(t.target)) value = tile_controls::temperature_text(t.target);
-  // Without one temperature to reach (a range, dry, fan only) the line is Home Assistant's own tile line for a
-  // thermostat, its state and the room's temperature (state-display: climate ["state", "current_temperature"]).
-  else if (d == "climate") { value = tile_controls::climate_mode_text(tile_controls::lower_case(t.state)); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
+  // A thermostat says the parts its tile chose, its mode, the temperature it is set to and the room's by default:
+  // "Cool · 19° · Now 22.5°", or Off and the room's temperature (firmware 0.68.0, tile_controls::climate_tile_line).
+  else if (d == "climate") value = tile_controls::climate_tile_line(t, tile_controls::climate_parts(t.subtitle), false);
   // A humidifier says what it is doing (or On, Off) and the humidity it measures: Home Assistant's tile line for it,
   // state and current_humidity, with its action in the state's place, as its dialog writes it (firmware 0.42.0+).
   else if (d == "humidifier") value = tile_controls::climate_card_status(t, true);
@@ -2112,6 +2107,12 @@ inline void render_slot(size_t slot) {
   if(t.runs() && !t.running && t.state=="on")value_short=last_run_text(t.last_run,true);
   // A lock-only tile's word where the whole of it does not fit.
   if(d=="lock"&&lock_noting(t))value_short=tr(txt::lock_lock_only_short);
+  // A thermostat's line without the room's temperature, then without its mode as well, where the whole has no room.
+  if(d=="climate"&&fresh()&&t.available()&&!refused&&!set_by_hand){
+    const unsigned parts=tile_controls::climate_parts(t.subtitle);
+    value_short=tile_controls::climate_tile_line(t,parts,false,tile_controls::CLIMATE_PART_NOW);
+    if(value_short==value)value_short.clear();
+  }
   // A vacuum's status ends on its battery; the unavailable and refused words and a line chosen by hand do not (#293).
   if(fresh() && t.available() && !refused){value_tail=tile_controls::vacuum_tail(t);value+=value_tail;}
   // A humidifier's humidity stays readable when its action word does not fit ("Humidif… · 38%").
@@ -2135,7 +2136,11 @@ inline void render_slot(size_t slot) {
     if(content_width(w)<panel_need+pm.text_gap+ui::px(lt?54:36)+ui::px(60))with_panel=false;
   }
   // A wide card with a panel says what its control is doing, unless the second line was set by hand.
-  if(with_panel && !set_by_hand){std::string status=tile_controls::status_text(t);if(!status.empty()){value=status;value_short.clear();value_tail.clear();}}
+  // A thermostat's is its own line with what its -/+ already shows left out (tile_controls::climate_tile_line).
+  if(with_panel && !set_by_hand){
+    std::string status=d=="climate"?tile_controls::climate_tile_line(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):tile_controls::status_text(t);
+    if(!status.empty()){value=status;value_short.clear();value_tail.clear();}
+  }
   // A wish Home Assistant takes long to square says so where the state stands (docs/OPTIMISTIC.md).
   if(!t.builtin() && wish_slow(t.entity,esphome::millis())){value=tr(txt::tile_updating);value_short.clear();value_tail.clear();}
   label(w.value, value);

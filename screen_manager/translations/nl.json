@@ -2380,7 +2380,13 @@
         "hint_auto": "Wat het scherm zelf uitrekent: een helderheid, een temperatuur, wanneer een script voor het laatst liep.",
         "hint_none": "De tegel toont zijn naam en niets eronder.",
         "hint_attr": "Een waarde van deze entiteit, met de naam en de schrijfwijze van Home Assistant.",
-        "hint_text": "Dezelfde woorden, wat de entiteit ook doet."
+        "hint_text": "Dezelfde woorden, wat de entiteit ook doet.",
+        "parts_aria": "Wat de regel van de thermostaat zegt",
+        "part_mode": "Modus",
+        "part_action": "Actie",
+        "part_target": "Ingesteld",
+        "part_now": "Nu",
+        "hint_parts": "Kies wat de regel zegt. Staat de ingestelde temperatuur al tussen de − en + van de tegel, dan laat de regel die weg."
       },
       "slider": {
         "label": "Kleine slider op de tegel",

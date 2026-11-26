@@ -2871,7 +2871,13 @@
         "hint_auto": "Lo que la pantalla calcula por sí misma: un brillo, una temperatura, cuándo se ejecutó un script por última vez.",
         "hint_none": "El mosaico muestra su nombre y nada debajo.",
         "hint_attr": "Un valor de esta entidad, con el nombre y el formato de Home Assistant.",
-        "hint_text": "Las mismas palabras, haga lo que haga la entidad."
+        "hint_text": "Las mismas palabras, haga lo que haga la entidad.",
+        "parts_aria": "Qué dice la línea del termostato",
+        "part_mode": "Modo",
+        "part_action": "Acción",
+        "part_target": "Ajustada",
+        "part_now": "Ahora",
+        "hint_parts": "Elige qué dice la línea. Donde el − y el + del mosaico ya muestran la temperatura ajustada, la línea la omite."
       },
       "slider": {
         "label": "Control deslizante pequeño en el mosaico",
