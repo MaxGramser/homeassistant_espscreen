@@ -36,11 +36,14 @@ const support = flashSupport();
 const asked = ref<{ id: number; file: string; browser: boolean } | null>(null);
 const followed = useLineBuild(() => asked.value?.id);
 // The job, followed every few seconds while the page is in sight (composables/useFirmwareJob.ts): every answer, this
-// page's own or another's, lands here. The first one picks the first profile.
+// page's own or another's, lands here. The first one picks the profile of the build that runs, so the form does not
+// name another screen while its log shows this one's, else the first profile. After that the choice is the person's.
 let first = true;
 function take(next: any) {
   data.value = next;
-  if (first || !file.value) file.value = next.profiles[0]?.file || "";
+  const files: string[] = (next.profiles || []).map((p: { file: string }) => p.file);
+  const building = next.job?.state === "running" && files.includes(next.job.file) ? next.job.file : "";
+  if (first || !file.value) file.value = building || files[0] || "";
   first = false;
   // USB stays chosen while the board is replugged; a port that went away falls back to the first one.
   target.value = usbTarget(target.value, next.ports || []);
