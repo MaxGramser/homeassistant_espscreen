@@ -168,9 +168,11 @@ describe("writing a chip's firmware from the page", () => {
     await flushPromises();
     expect(view.find("#step-now").text()).toBe(words("phase.wait_chip"));
     expect(view.find("#step-done").exists()).toBe(false);
-    // The screen found it: done, with the way on and the chip's own sound to hear.
+    // The screen found it: done, with the way on and the chip's own sound to hear. The page that holds this one hears
+    // it from the inventory at the same moment (its step turns done), and the part that did the work stays.
     found = "1.0.0";
     await vi.advanceTimersByTimeAsync(1600);
+    await view.setProps({ step: step({ state: "done", found: "1.0.0" }) });
     await flushPromises();
     expect(view.find("#step-done").text()).toContain(words("done"));
     expect(view.find("h1").text()).toBe(t("editor.steps.buzzer.done_title"));
@@ -180,6 +182,13 @@ describe("writing a chip's firmware from the page", () => {
     await view.find("#board-step-next").trigger("click");
     expect(view.emitted("next")).toHaveLength(1);
     vi.useRealTimers();
+  });
+
+  it("shows a step that was done before the page opened as done, with nothing to do", () => {
+    const view = mount(BoardStepView, { props: { step: step({ state: "done", found: "1.0.0" }), screen: screen() } });
+    expect(view.find("h1").text()).toBe(t("editor.steps.buzzer.done_title"));
+    expect(view.find("#step-go").exists()).toBe(false);
+    expect(view.find("#board-step-next").exists()).toBe(true);
   });
 
   it("writes nothing to a folder that is not the chip's drive, and asks again", async () => {

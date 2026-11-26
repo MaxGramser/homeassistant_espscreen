@@ -14,7 +14,11 @@ const props = defineProps<{ step: BoardStep; screen: Screen | null; continueLabe
 const emit = defineEmits<{ later: []; next: [] }>();
 // Done on this page: the kind said so, or the screen does (it found a chip someone wrote by hand meanwhile).
 const finished = ref(false);
-watch(() => props.step.id, () => { finished.value = false; });
+// Done before this page opened: there is nothing left to do, so the kind's part stays away. A step that turns done
+// while the page is open keeps its part, which then shows what it did and lets it be tried (the screen's word reaches
+// the page a moment before the part itself says done; taking the part away then took its last page along).
+const doneAtOpen = ref(props.step.state === "done");
+watch(() => props.step.id, () => { finished.value = false; doneAtOpen.value = props.step.state === "done"; });
 const done = computed(() => finished.value || props.step.state === "done");
 const kind = computed(() => KINDS[props.step.kind]);
 const words = (key: string) => t(`editor.steps.${props.step.id}.${key}`);
@@ -27,7 +31,7 @@ const lead = computed(() => words(done.value ? "done_lead" : props.step.state ==
     <span class="ob-badge" :class="{ good: done }" aria-hidden="true"><Icon :name="done ? 'check' : stepIcon(step.id)" /></span>
     <h1 id="board-step-title">{{ title }}</h1>
     <p class="ob-lead">{{ lead }}</p>
-    <component :is="kind" v-if="kind && !(done && !finished)" :step="step" :screen="screen" @done="finished = true" />
+    <component :is="kind" v-if="kind && !doneAtOpen" :step="step" :screen="screen" @done="finished = true" />
     <p v-if="!done" class="ob-hint board-step-note">{{ words("note") }}</p>
     <footer class="ob-foot">
       <button v-if="done" type="button" class="ob-go" id="board-step-next" @click="emit('next')">{{ continueLabel || t("editor.installer.flow.continue") }}</button>

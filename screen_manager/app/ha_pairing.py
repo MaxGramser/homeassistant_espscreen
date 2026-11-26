@@ -232,7 +232,10 @@ class Pairing:
             flow_id = flow.get('flow_id')
             if not flow_id or now < self.flow_due.get(flow_id, 0):
                 continue
-            self.flow_due[flow_id] = now + AGAIN
+            # A screen whose firmware just went on is still starting when its discovery is first answered: it is answered
+            # at every look until it takes the key, not AGAIN seconds later (35 s from restart to ready where 15 would
+            # have done, a SenseCAP installed again, 2026-11-26).
+            self.flow_due[flow_id] = now + (0 if node in self.new_until else AGAIN)
             await self.attempt(ha, node, ours[node], flow_id, flow.get('step_id'))
         for node in waiting:
             if node in flowing:
