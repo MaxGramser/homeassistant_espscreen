@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.106 (firmware 0.66.0)
 
 - **The thermostat's card shows a fan or swing row only when Home Assistant does.** A device whose integration lists swing modes while it has no louvres, or with the swing feature switched off in Home Assistant, still got a swing row on its card that did nothing useful. The fan row and the swing row now each need their feature in Home Assistant (`supported_features`) besides a list of choices, exactly as Home Assistant's own thermostat card decides it.
 
