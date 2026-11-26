@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.105 (firmware 0.65.0)
 
 - **A new screen no longer waits minutes for Home Assistant after it joined the Wi-Fi.** When Home Assistant did not discover a freshly installed screen by itself, Tessera asked for it by name only now and then, counted from the moment the installation started: after a long build the next try could be five minutes away, while the screen already said "Waiting for Home Assistant" and the page still said it was joining the Wi-Fi. Tessera now asks every five seconds from the moment the software is on the screen.
 
