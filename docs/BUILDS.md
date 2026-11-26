@@ -100,7 +100,8 @@ and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
   `web/src/model/plugins.ts`), naming no screen or home; the person attaches the log they downloaded.
 - A plugin's details and the screen's build note (`BuildLog.vue`) offer the same download.
 - The screen's Plugins tab lists its last builds with their logs (`BuildHistory.vue`).
-- Firmware & USB lists every kept log, to download.
+- Firmware & USB lists every kept log, to download, under the log of the build that runs. Its rows keep their own
+  height (`#firmware-dialog` in `app.css`), so a long list never squeezes that log to one line (GitHub #473).
 
 ## Building ahead
 
