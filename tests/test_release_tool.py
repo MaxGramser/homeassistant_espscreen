@@ -147,9 +147,14 @@ class TheName(unittest.TestCase):
     """The App store shows the app from the #dev URL beside the stable one: on dev its name says dev, a release takes
     that off, and publish refuses a release that still has it (docs/RELEASING.md, "Testing dev")."""
     def test_dev_names_the_app_dev(self):
-        # On dev the CHANGELOG starts with "## Unreleased"; the release commit has its version there and the plain name.
-        on_dev = CHANGELOG.startswith('## Unreleased')
-        self.assertEqual(release.name_of(CONFIG), 'Tessera Screen Manager (dev)' if on_dev else 'Tessera Screen Manager')
+        # Work under "## Unreleased" is dev's, so the name says dev. A CHANGELOG that starts with a version is the
+        # release commit, with the plain name, or dev right after it: publish puts the mark back there in a commit of
+        # its own, and "## Unreleased" only returns with the first line someone writes under it.
+        name = release.name_of(CONFIG)
+        if CHANGELOG.startswith('## Unreleased'):
+            self.assertEqual(name, 'Tessera Screen Manager (dev)')
+        else:
+            self.assertIn(name, ('Tessera Screen Manager', 'Tessera Screen Manager (dev)'))
 
     def test_a_release_takes_the_mark_off_and_dev_puts_it_back(self):
         # From dev's file also on a release commit, whose own file has the plain name already.
