@@ -28,4 +28,13 @@ describe("a log that follows its last line", () => {
     await nextTick(); await nextTick();
     expect([reading.scrollTop, following.scrollTop]).toEqual([100, 500]);
   });
+  it("follows a log that keeps only its newest lines, whose number no longer grows", async () => {
+    // The add-on's live log holds 300 lines (build_logs.Tee): past them every new answer has 300, with the newest last.
+    const element = box(500, 400), lines = ref(Array.from({ length: 300 }, (_, i) => `line ${i}`));
+    inScope(() => useStickToBottom(element, lines, { near: 40 }));
+    lines.value = [...lines.value.slice(1), "line 300"];
+    await nextTick(); await nextTick();
+    expect(lines.value).toHaveLength(300);
+    expect(element.scrollTop).toBe(500);
+  });
 });
