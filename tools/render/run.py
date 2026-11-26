@@ -3476,6 +3476,12 @@ class Run:
         states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425),
                   'climate.fan_coil': unit('Fan coil', 8, swing=False)}
         states['climate.fan_coil']['attributes'].pop('temperature')
+        # A thermostat that keeps a range: the longest line a tile writes ("Heat/Cool · 18 - 22° · Now 21.5°"), which a
+        # narrow tile shortens in turn (tile_controls::climate_tile_shorter).
+        states['climate.range'] = unit('Range', 386 | 8, swing=False)
+        states['climate.range']['state'] = 'heat_cool'
+        states['climate.range']['attributes'].update(hvac_modes=['off', 'heat_cool', 'cool', 'heat'], target_temp_low=18, target_temp_high=22)
+        states['climate.range']['attributes'].pop('temperature')
         region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
         tiles_in = [dict(entity=entity, name=state['attributes']['friendly_name'], options={}, slot=slot)
                     for slot, (entity, state) in enumerate(states.items())]

@@ -53,7 +53,14 @@ inline bool face_covers(const lv_font_t *face,const std::string &text){
 inline void fit_value(lv_obj_t *obj,const std::string &value,const std::string &shorter,const std::string &tail,int room){
   const lv_font_t *font=lv_obj_get_style_text_font(obj,LV_PART_MAIN);
   if(!font||room<=0||text_width(value,font)<=room)return;
-  if(!shorter.empty()&&shorter!=value&&text_width(shorter,font)<=room){label(obj,shorter);return;}
+  // `shorter` may hold several lines, a line break between them, each shorter than the one before: the first that fits.
+  for(size_t at=0;at<shorter.size();){
+    size_t end=shorter.find('\n',at);
+    if(end==std::string::npos)end=shorter.size();
+    const std::string candidate=shorter.substr(at,end-at);
+    if(!candidate.empty()&&candidate!=value&&text_width(candidate,font)<=room){label(obj,candidate);return;}
+    at=end+1;
+  }
   if(tail.empty()||value.size()<=tail.size())return;
   static const std::string dots="…";
   const int head_room=room-text_width(dots+tail,font);

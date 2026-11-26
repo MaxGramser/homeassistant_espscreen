@@ -673,6 +673,21 @@ inline std::string climate_tile_line(const Tile &t, unsigned parts, bool stepper
     add(screen_text::fill(screen_text::txt::climate_now, "value", temperature_text(t.current)));
   return line;
 }
+// What the line gives up where the whole of it has no room, each on a line of its own for the tile to try in turn
+// (fit_value): first without the room's temperature, then without the mode as well, so the temperature it is set to
+// stays readable beside a long word for the mode ("Verwarmen/koelen · 20°" on a narrow tile reads "20°"). Empty when
+// there is nothing shorter to say.
+inline std::string climate_tile_shorter(const Tile &t, unsigned parts, bool stepper) {
+  const std::string whole = climate_tile_line(t, parts, stepper);
+  std::string shorter, last = whole;
+  for (unsigned drop : {CLIMATE_PART_NOW, CLIMATE_PART_NOW | CLIMATE_PART_MODE}) {
+    const std::string line = climate_tile_line(t, parts, stepper, drop);
+    if (line.empty() || line == last) continue;
+    shorter += (shorter.empty() ? "" : "\n") + line;
+    last = line;
+  }
+  return shorter;
+}
 inline const char *cover_state_text(const std::string &state) {
   if (state == "open") return screen_text::tr(screen_text::txt::ha_cover_open);
   if (state == "closed") return screen_text::tr(screen_text::txt::ha_cover_closed);

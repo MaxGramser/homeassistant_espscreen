@@ -2110,8 +2110,7 @@ inline void render_slot(size_t slot) {
   // A thermostat's line without the room's temperature, then without its mode as well, where the whole has no room.
   if(d=="climate"&&fresh()&&t.available()&&!refused&&!set_by_hand){
     const unsigned parts=tile_controls::climate_parts(t.subtitle);
-    value_short=tile_controls::climate_tile_line(t,parts,false,tile_controls::CLIMATE_PART_NOW);
-    if(value_short==value)value_short.clear();
+    value_short=tile_controls::climate_tile_shorter(t,parts,false);
   }
   // A vacuum's status ends on its battery; the unavailable and refused words and a line chosen by hand do not (#293).
   if(fresh() && t.available() && !refused){value_tail=tile_controls::vacuum_tail(t);value+=value_tail;}
@@ -2139,7 +2138,10 @@ inline void render_slot(size_t slot) {
   // A thermostat's is its own line with what its -/+ already shows left out (tile_controls::climate_tile_line).
   if(with_panel && !set_by_hand){
     std::string status=d=="climate"?tile_controls::climate_tile_line(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):tile_controls::status_text(t);
-    if(!status.empty()){value=status;value_short.clear();value_tail.clear();}
+    if(!status.empty()){
+      value=status;value_tail.clear();
+      value_short=d=="climate"?tile_controls::climate_tile_shorter(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):std::string();
+    }
   }
   // A wish Home Assistant takes long to square says so where the state stands (docs/OPTIMISTIC.md).
   if(!t.builtin() && wish_slow(t.entity,esphome::millis())){value=tr(txt::tile_updating);value_short.clear();value_tail.clear();}

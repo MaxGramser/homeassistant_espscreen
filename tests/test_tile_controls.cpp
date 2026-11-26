@@ -574,6 +574,26 @@ int main() {
     assert(rows.size() == 1 && rows[0].kind == 'f');
     ducted.supported = 0; assert(climate_rows(ducted).empty() && climate_modes(ducted).size() == 4);
   }
+  // Where a thermostat's line has no room, the tile tries shorter ones in turn: without the room's temperature, then
+  // without the mode too, so the temperature it is set to stays readable beside a long word for the mode.
+  {
+    Tile room = make("climate.room", "heat_cool", 1); room.target = 20; room.current = 22.5f;
+    assert(climate_tile_line(room, CLIMATE_PARTS_DEFAULT, false) == "Heat/Cool · 20° · Now 22.5°");
+    assert(climate_tile_shorter(room, CLIMATE_PARTS_DEFAULT, false) == "Heat/Cool · 20°\n20°");
+    room.current = NAN;   // nothing measured: the whole line is already without it, and one shorter line is left
+    assert(climate_tile_line(room, CLIMATE_PARTS_DEFAULT, false) == "Heat/Cool · 20°");
+    assert(climate_tile_shorter(room, CLIMATE_PARTS_DEFAULT, false) == "20°");
+    // The tile's own - and + show the target: the line has the mode alone, and nothing shorter says anything.
+    assert(climate_tile_line(room, CLIMATE_PARTS_DEFAULT, true) == "Heat/Cool" && climate_tile_shorter(room, CLIMATE_PARTS_DEFAULT, true).empty());
+    assert(climate_tile_shorter(room, CLIMATE_PART_MODE, false).empty());
+    // The temperature it is set to as Home Assistant writes it: 68° and 21.5°, never 68.0° (this was a test that read
+    // the source's line in tests/test_climate_range.py before the line became climate_tile_line).
+    room.target = 68; assert(climate_tile_line(room, CLIMATE_PART_TARGET, false) == "68°");
+    room.target = 21.5f; assert(climate_tile_line(room, CLIMATE_PART_TARGET, false) == "21.5°");
+    room.target = 20;
+    room.state = "off"; room.current = 19;
+    assert(climate_tile_line(room, CLIMATE_PARTS_DEFAULT, false) == "Off · Now 19°" && climate_tile_shorter(room, CLIMATE_PARTS_DEFAULT, false) == "Off");
+  }
   // The thermostat's power key (the card's key and the tile's circle) exists only while it can do something, by the
   // flags Home Assistant asks for climate.turn_off and climate.turn_on. 128 is TURN_OFF, 256 TURN_ON.
   {
