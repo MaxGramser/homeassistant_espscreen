@@ -37,7 +37,9 @@ every Tessera view has been physically validated.
 Tessera already offers **0°, 90°, 180° and 270°** on a square pixel canvas, including this circular panel. Under
 **Screen settings → Screen → Rotation**, choose 90° or 270° to suit the mounting. The same setting is exposed as
 `select.<screen>_rotation` in Home Assistant and persists across restart. LVGL rotates the content and touch together;
-do not add another touch swap to the board profile. Quarter turns preserve the 466 × 466 canvas and grid.
+do not add a touch swap for it. The board profile has one fixed touch transform, a half turn (`TOUCH_MIRROR_X` and
+`TOUCH_MIRROR_Y` in `packages/boards/lilygo175.yaml`), because on the first unit tested taps landed on the diagonally opposite tile. That is the controller's fixed
+orientation against the glass, not a Rotation setting. Quarter turns preserve the 466 × 466 canvas and grid.
 
 ## Building and hardware
 
