@@ -53,6 +53,12 @@ not show. The thermostat's card follows this for its fan row (`FAN_MODE` and `fa
 (`SWING_MODE` and `swing_modes`), in `tile_controls::climate_rows`; its mode keys follow `hvac_modes` alone, which has
 no flag in Home Assistant. `tests/test_tile_controls.cpp` holds the case.
 
+Three other lists go with a flag the same way, and the screen keeps such a list only with its flag
+(`tile_controls::list_supported`, asked where the attributes arrive in `page_receiver.cpp`), so no tile, row or card
+offers it: a humidifier's `available_modes` with `MODES`, a vacuum's `fan_speed_list` with `FAN_SPEED` (the add-on's
+suction row in `vacuum_extras` asks the same flag) and a remote's `activity_list` with `ACTIVITY`. A list without a
+flag of its own, such as a select's `options`, is always kept.
+
 ## The files are the list of types
 
 A type exists in the add-on, the editor and the firmware only when it has a file in `catalogue/`. Home Assistant has

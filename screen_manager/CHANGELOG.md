@@ -1,3 +1,7 @@
+## Unreleased
+
+- **A humidifier's modes, a vacuum's suction speeds and a remote's activities show only when Home Assistant shows them.** As with the thermostat's fan and swing rows in 0.4.106: an integration that keeps listing choices for a feature the device lacks, or that is switched off in Home Assistant, no longer gets them on its tile or card. Each list now needs its feature in Home Assistant (`supported_features`) besides something in the list.
+
 ## 0.4.106 (firmware 0.66.0)
 
 - **The thermostat's card shows a fan or swing row only when Home Assistant does.** A device whose integration lists swing modes while it has no louvres, or with the swing feature switched off in Home Assistant, still got a swing row on its card that did nothing useful. The fan row and the swing row now each need their feature in Home Assistant (`supported_features`) besides a list of choices, exactly as Home Assistant's own thermostat card decides it.

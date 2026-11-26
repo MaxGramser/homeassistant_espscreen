@@ -2355,6 +2355,10 @@ VACUUM_ROLES = {'vacuum': 'v', 'sweeping': 'v', 'mop': 'm', 'mopping': 'm', 'cus
 MODE_COVERED = frozenset(('off', 'off_raise_main_brush', 'custom', 'custom_water_flow', 'smart_mode', 'vac_followed_by_mop'))
 VACUUM_CHOICES = 6
 
+# VacuumEntityFeature.FAN_SPEED, from Home Assistant's source through the tile catalogue (catalogue/_ha.json).
+VACUUM_FAN_SPEED = catalogue.bits('vacuum', 'FAN_SPEED')
+
+
 def vacuum_label(value):
     key = VACUUM_LABELS.get(value)
     return short(screen_t(key) if key else str(value).replace('_', ' ').capitalize(), 24)
@@ -2435,7 +2439,10 @@ def vacuum_extras(tile, states, device):
     water = select(related['water'], lambda o, current: o not in covered) if 'water' in related else None
     if water:
         result['water'] = water
-    speeds = attrs.get('fan_speed_list')
+    # The suction speeds only with the vacuum's FAN_SPEED flag, as Home Assistant's card: an integration may list
+    # speeds for a feature that is off.
+    features = attrs.get('supported_features')
+    speeds = attrs.get('fan_speed_list') if isinstance(features, int) and features & VACUUM_FAN_SPEED else None
     fan = row([s for s in speeds if isinstance(s, str) and s not in covered]) if isinstance(speeds, list) else None
     if fan:
         result['fan'] = fan

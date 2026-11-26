@@ -42,6 +42,8 @@ constexpr uint32_t VACUUM_TURN_ON = ha::vacuum::TURN_ON, VACUUM_TURN_OFF = ha::v
 constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE;
 // The climate card's fan and swing rows: Home Assistant shows each only with its flag (more-info-climate).
 constexpr uint32_t CLIMATE_FAN = ha::climate::FAN_MODE, CLIMATE_SWING = ha::climate::SWING_MODE;
+// The lists of the other types that go with a flag: a humidifier's modes, a vacuum's suction speeds, a remote's activities.
+constexpr uint32_t HUMIDIFIER_MODES = ha::humidifier::MODES, VACUUM_FAN_SPEED = ha::vacuum::FAN_SPEED, REMOTE_ACTIVITY = ha::remote::ACTIVITY;
 constexpr uint32_t FAN_SPEED = ha::fan::SET_SPEED;
 }
 // Material Design Icons glyphs the icon fonts carry (tile_icons.py FIXED).
@@ -72,6 +74,16 @@ using runtime_tiles::Tile;
 // modes as the mode bar and the card's mode keys, and its circle or power key switches it. `thermostat` names both.
 inline bool humidifier(const Tile &t) { return t.domain() == "humidifier"; }
 inline bool thermostat(const Tile &t) { return t.domain() == "climate" || humidifier(t); }
+// Whether a list of choices Home Assistant sends is one its own cards show: the flag that goes with the list must be in
+// supported_features (more-info-humidifier, more-info-vacuum, more-info-remote). An integration may keep sending a
+// list for a feature the device lacks or that is switched off; the screen then keeps none of it (page_receiver.cpp),
+// so no tile, row or card offers it. `list` is Home Assistant's name of the attribute.
+inline bool list_supported(const std::string &list, uint32_t supported) {
+  if (list == "available_modes") return supported & feature::HUMIDIFIER_MODES;
+  if (list == "fan_speed_list") return supported & feature::VACUUM_FAN_SPEED;
+  if (list == "activity_list") return supported & feature::REMOTE_ACTIVITY;
+  return true;
+}
 // A text of Home Assistant (text, input_text; docs/TEXT_ENTITY.md): its state is its value, any text up to 255
 // characters, an empty one included. The tile shows it as it is, never as a state word, and a password as a dot per
 // character, as Home Assistant's own field does. "unknown" (no value yet) and "unavailable" are state words as anywhere.

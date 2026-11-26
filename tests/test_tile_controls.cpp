@@ -557,6 +557,14 @@ int main() {
     assert(rows.size() == 1 && rows[0].kind == 'f');
     ducted.supported = 0; assert(climate_rows(ducted).empty() && climate_modes(ducted).size() == 4);
   }
+  // The lists of the other types that go with a flag, as Home Assistant's cards ask: a humidifier's modes (MODES), a
+  // vacuum's suction speeds (FAN_SPEED), a remote's activities (ACTIVITY). The screen keeps a list only with its flag;
+  // a list without a flag of its own (a select's options, a thermostat's hvac_modes) is always kept.
+  assert(list_supported("available_modes", feature::HUMIDIFIER_MODES) && !list_supported("available_modes", 0));
+  assert(list_supported("fan_speed_list", feature::VACUUM_FAN_SPEED | feature::VACUUM_START));
+  assert(!list_supported("fan_speed_list", feature::VACUUM_START | feature::VACUUM_RETURN | feature::VACUUM_LOCATE));
+  assert(list_supported("activity_list", feature::REMOTE_ACTIVITY) && !list_supported("activity_list", 3));
+  assert(list_supported("options", 0) && list_supported("hvac_modes", 0));
   // Fan and swing settings in Home Assistant's words where it names them, an integration's own as its name.
   assert(climate_setting_text('f', "low") == "Low" && climate_setting_text('s', "both") == "Both");
   assert(climate_setting_text('f', "quiet_night") == "Quiet night" && climate_setting_text('s', "low") == "Low");
