@@ -59,6 +59,15 @@ offers it: a humidifier's `available_modes` with `MODES`, a vacuum's `fan_speed_
 suction row in `vacuum_extras` asks the same flag) and a remote's `activity_list` with `ACTIVITY`. A list without a
 flag of its own, such as a select's `options`, is always kept.
 
+The thermostat's card follows the flags for its two other parts as well. Its power key (in the card's top bar, and the
+circle of its tile) exists only while it can do something, decided once in `tile_controls::climate_power`: while the
+device runs it calls `climate.turn_off` with `TURN_OFF`, else sets the mode `off` where `hvac_modes` lists it; while it
+is off it calls `climate.turn_on`, which needs `TURN_ON`. Home Assistant refuses both actions without their flag (its
+service registration names them as required features). The card's box with the temperature between - and + is there
+only with `TARGET_TEMPERATURE` or `TARGET_TEMPERATURE_RANGE` (`tile_controls::climate_setpoint`); without either the
+line under the name says what the device does and the temperature it measures, and the modes and rows close up
+(`climate_card::layout` without its box). A humidifier's on and off and its humidity have no flag.
+
 ## The files are the list of types
 
 A type exists in the add-on, the editor and the firmware only when it has a file in `catalogue/`. Home Assistant has

@@ -107,27 +107,30 @@ inline int key_size(const Metrics &m, int card_w, int card_h, bool small_number 
 inline int min_column(const Metrics &m) { return m.number_w + 2 * m.touch + 2 * m.key_inset(); }
 
 // The height the one-column form asks for once everything that can give has given.
-inline int need_height(const Metrics &m, int modes, int rows) {
+inline int need_height(const Metrics &m, int modes, int rows, bool box = true) {
   const int keys = modes > 1 ? m.min_key() : 0;
   const int settings = rows > 0 ? 2 * ui::px(6) + rows * m.min_row() + (rows - 1) * m.row_gap() : 0;
   const int gaps = ((keys ? 1 : 0) + (settings ? 1 : 0)) * ui::px(6);
+  if (!box) return keys + settings + ((keys && settings) ? ui::px(6) : 0);
   return m.min_setpoint(false, true) + keys + settings + gaps;
 }
 
 // The card's parts in an area `width` wide, between `top` (under the top bar) and `bottom` (the glass, minus
 // the margin). `modes` is how many hvac modes the device supports apart from off, `rows` how many setting rows
-// it has (the fan, the swing). `columns` comes from overlay_card::columns().
-inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes, int rows, int columns = 1, bool range = false) {
+// it has (the fan, the swing). `columns` comes from overlay_card::columns(). Without `box` (a device with no temperature
+// to set) the setpoint card is left out: the modes and the rows stand in one column under the state line, which stays.
+inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes, int rows, int columns = 1, bool range = false,
+                     bool box = true) {
   Layout l;
-  l.range = range;
-  l.columns = columns >= 2 ? 2 : 1;
+  l.range = range && box;
+  l.columns = columns >= 2 && box ? 2 : 1;
   l.row_count = std::clamp(rows, 0, 2);
   l.mode_gap = m.mode_gap();
   l.power = {width - m.bar_x - m.bar, m.bar_y, m.bar, m.bar};
 
   int gap = m.gap(), mode_h = m.mode_h(), row_h = m.row_h(), edge = m.edge();
-  int setpoint_h = m.setpoint_max();
-  bool caption = true, status = true;
+  int setpoint_h = box ? m.setpoint_max() : 0;
+  bool caption = box, status = true;
 
   const int inner = width - 2 * m.side;
   const int left_w = l.columns == 2 ? std::max(min_column(m), (inner - ui::column_gap()) / 2) : inner;
@@ -135,11 +138,12 @@ inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes
   l.mode_count = modes > 1 ? mode_keys_fit(m, right_w, modes) : 0;
 
   auto number_height = [&] { return l.small_number ? m.small_number_h : m.number_h; };
-  auto floor_setpoint = [&] { return m.min_setpoint(caption, l.small_number); };
+  auto floor_setpoint = [&] { return box ? m.min_setpoint(caption, l.small_number) : 0; };
   auto settings_h = [&] { return l.row_count ? 2 * edge + l.row_count * row_h + (l.row_count - 1) * m.row_gap() : 0; };
   // In one column the blocks stand under each other; in two the setpoint stands beside them.
   auto stack = [&] {
     const int below = (l.mode_count ? gap + mode_h : 0) + (l.row_count ? gap + settings_h() : 0);
+    if (!box) return std::max(0, below - gap);
     return l.columns == 2 ? std::max(setpoint_h, below - gap) : setpoint_h + below;
   };
   // Give room up in order: the spaces, the setpoint card, the keys and the rows, the state line (which moves
@@ -152,9 +156,9 @@ inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes
     if (mode_h > m.min_key()) { mode_h = std::max(m.min_key(), mode_h - over); continue; }
     if (row_h > m.min_row()) { row_h = std::max(m.min_row(), row_h - over); continue; }
     if (edge > ui::px(6)) { edge = std::max(ui::px(6), edge - over); continue; }
-    if (status) { status = false; l.caption_is_status = caption && !l.range; continue; }
+    if (status && box) { status = false; l.caption_is_status = caption && !l.range; continue; }
     // The number itself is the last thing to give: smaller digits, but every control keeps its place.
-    if (!l.small_number && m.small_number_h < m.number_h) {
+    if (box && !l.small_number && m.small_number_h < m.number_h) {
       l.small_number = true;
       setpoint_h = std::max(floor_setpoint(), setpoint_h - (m.number_h - m.small_number_h));
       continue;
@@ -177,7 +181,7 @@ inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes
   };
   give(row_h, m.row_h(), std::max(1, l.row_count));
   give(mode_h, m.mode_h(), 1);
-  give(setpoint_h, m.setpoint_max(), 1);
+  if (box) give(setpoint_h, m.setpoint_max(), 1);
 
   int y = top;
   if (status) {
@@ -189,27 +193,29 @@ inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes
   const int spare = std::max(0, bottom - y - content_h);
   y += spare / 2;  // a card that leaves room stands in the middle of what is left
 
-  l.setpoint = {left_x, y, left_w, setpoint_h};
-  const int key = key_size(m, left_w, setpoint_h, l.small_number);
-  l.minus = {left_x + m.key_inset(), y + (setpoint_h - key) / 2, key, key};
-  l.plus = {left_x + left_w - m.key_inset() - key, l.minus.y, key, key};
-  const int block = number_height() + (caption ? m.caption_h : 0);
-  const int number_x = l.minus.right(), number_w = std::max(1, l.plus.x - number_x);
-  l.number = {number_x, y + (setpoint_h - block) / 2, number_w, number_height()};
-  if (caption) l.caption = {number_x, l.number.bottom(), number_w, m.caption_h};
-  if (l.range) {
-    // The band runs along the card's foot; the number and its keys share what is above it.
-    const int foot = m.caption_h + m.pad();
-    const int upper = std::max(1, setpoint_h - foot);
-    const int k = key_size(m, left_w, upper - m.pad(), l.small_number);
-    l.minus = {left_x + m.key_inset(), y + m.pad() + std::max(0, (upper - m.pad() - k) / 2), k, k};
-    l.plus = {left_x + left_w - m.key_inset() - k, l.minus.y, k, k};
-    const int nx = l.minus.right(), nw = std::max(1, l.plus.x - nx);
-    l.number = {nx, l.minus.cy() - number_height() / 2, nw, number_height()};
-    l.caption = {left_x + m.key_inset(), y + setpoint_h - foot, left_w - 2 * m.key_inset(), m.caption_h};
+  if (box) {
+    l.setpoint = {left_x, y, left_w, setpoint_h};
+    const int key = key_size(m, left_w, setpoint_h, l.small_number);
+    l.minus = {left_x + m.key_inset(), y + (setpoint_h - key) / 2, key, key};
+    l.plus = {left_x + left_w - m.key_inset() - key, l.minus.y, key, key};
+    const int block = number_height() + (caption ? m.caption_h : 0);
+    const int number_x = l.minus.right(), number_w = std::max(1, l.plus.x - number_x);
+    l.number = {number_x, y + (setpoint_h - block) / 2, number_w, number_height()};
+    if (caption) l.caption = {number_x, l.number.bottom(), number_w, m.caption_h};
+    if (l.range) {
+      // The band runs along the card's foot; the number and its keys share what is above it.
+      const int foot = m.caption_h + m.pad();
+      const int upper = std::max(1, setpoint_h - foot);
+      const int k = key_size(m, left_w, upper - m.pad(), l.small_number);
+      l.minus = {left_x + m.key_inset(), y + m.pad() + std::max(0, (upper - m.pad() - k) / 2), k, k};
+      l.plus = {left_x + left_w - m.key_inset() - k, l.minus.y, k, k};
+      const int nx = l.minus.right(), nw = std::max(1, l.plus.x - nx);
+      l.number = {nx, l.minus.cy() - number_height() / 2, nw, number_height()};
+      l.caption = {left_x + m.key_inset(), y + setpoint_h - foot, left_w - 2 * m.key_inset(), m.caption_h};
+    }
   }
 
-  int ry = l.columns == 2 ? y : l.setpoint.bottom() + gap;
+  int ry = l.columns == 2 || !box ? y : l.setpoint.bottom() + gap;
   if (l.columns == 2) {
     const int below = (l.mode_count ? mode_h : 0) + (l.mode_count && l.row_count ? gap : 0) + settings_h();
     ry = y + std::max(0, (setpoint_h - below) / 2);

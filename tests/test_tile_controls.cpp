@@ -557,6 +557,35 @@ int main() {
     assert(rows.size() == 1 && rows[0].kind == 'f');
     ducted.supported = 0; assert(climate_rows(ducted).empty() && climate_modes(ducted).size() == 4);
   }
+  // The thermostat's power key (the card's key and the tile's circle) exists only while it can do something, by the
+  // flags Home Assistant asks for climate.turn_off and climate.turn_on. 128 is TURN_OFF, 256 TURN_ON.
+  {
+    using P = ClimatePower;
+    Tile ac = make("climate.ac", "cool", feature::CLIMATE_OFF | feature::CLIMATE_ON | 1);
+    ac.edit_extra().hvac_modes = "[\"off\",\"cool\",\"heat\"]";
+    assert(climate_power(ac) == P::TURN_OFF);                       // it runs and has turn_off
+    ac.state = "off"; assert(climate_power(ac) == P::TURN_ON);      // it is off and has turn_on
+    ac.supported = feature::CLIMATE_ON | 1; ac.state = "cool";
+    assert(climate_power(ac) == P::MODE_OFF);                       // no turn_off: the mode "off" it lists
+    ac.edit_extra().hvac_modes = "[\"Cool\",\"OFF\"]"; assert(climate_power(ac) == P::MODE_OFF);
+    ac.edit_extra().hvac_modes = "[\"cool\",\"heat\"]"; assert(climate_power(ac) == P::NONE);   // nothing turns it off
+    ac.supported = feature::CLIMATE_OFF | 1; ac.state = "off";
+    assert(climate_power(ac) == P::NONE);                           // off without turn_on: the mode keys start it
+    ac.state = "unavailable"; assert(climate_power(ac) == P::NONE);
+    ac.supported = 1; ac.state = "heat"; ac.edit_extra().hvac_modes = "[\"heat\"]";
+    assert(climate_power(ac) == P::NONE);
+    // A humidifier's on and off have no flag: its key is always there.
+    Tile wet = make("humidifier.cellar", "on"); assert(climate_power(wet) == P::TURN_OFF);
+    wet.state = "off"; assert(climate_power(wet) == P::TURN_ON);
+    // The setpoint card with - and + only where there is a temperature to set: one, or a range.
+    assert(climate_setpoint(make("climate.a", "heat", feature::CLIMATE_TEMPERATURE)));
+    assert(climate_setpoint(make("climate.a", "heat_cool", feature::CLIMATE_RANGE | feature::CLIMATE_FAN)));
+    assert(!climate_setpoint(make("climate.fan_coil", "fan_only", feature::CLIMATE_FAN | feature::CLIMATE_OFF | feature::CLIMATE_ON)));
+    assert(!climate_setpoint(make("climate.bare", "heat")) && climate_setpoint(make("humidifier.cellar", "on")));
+    // What such a card says instead: what it does and the temperature it measures, in the line under the name.
+    Tile coil = make("climate.fan_coil", "fan_only", feature::CLIMATE_FAN); coil.current = 21.5f;
+    assert(climate_card_status(coil) == "Fan only · Now 21.5°");
+  }
   // The lists of the other types that go with a flag, as Home Assistant's cards ask: a humidifier's modes (MODES), a
   // vacuum's suction speeds (FAN_SPEED), a remote's activities (ACTIVITY). The screen keeps a list only with its flag;
   // a list without a flag of its own (a select's options, a thermostat's hvac_modes) is always kept.

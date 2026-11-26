@@ -3471,8 +3471,11 @@ class Run:
             if swing:
                 attributes.update(swing_modes=['Highest', 'Middle', 'Normal', 'Lowest', 'Swing'], swing_mode='Swing')
             return {'state': 'cool', 'attributes': attributes, 'last_changed': MOMENT.isoformat()}
-        # 393: a temperature, a fan, off and on. 425: the same with swing.
-        states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425)}
+        # 393: a temperature, a fan, off and on. 425: the same with swing. 8: a fan coil with a fan alone, no temperature
+        # to set and no turn_off or turn_on, so its card has no setpoint card and its power key sets the mode "off".
+        states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425),
+                  'climate.fan_coil': unit('Fan coil', 8, swing=False)}
+        states['climate.fan_coil']['attributes'].pop('temperature')
         region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
         tiles_in = [dict(entity=entity, name=state['attributes']['friendly_name'], options={}, slot=slot)
                     for slot, (entity, state) in enumerate(states.items())]
@@ -3485,7 +3488,8 @@ class Run:
         await self.page_done(0)
         await asyncio.sleep(1.0)
         await self.render('climate-tiles')
-        for name, entity, dark in (('climate-card-no-swing', 'climate.ducted', True), ('climate-card-swing', 'climate.split', False)):
+        for name, entity, dark in (('climate-card-no-swing', 'climate.ducted', True), ('climate-card-swing', 'climate.split', False),
+                                   ('climate-card-no-setpoint', 'climate.fan_coil', True)):
             spots = await self.slots()
             if entity not in spots:
                 self.warnings.append(f'climate: {entity} is not on the glass')

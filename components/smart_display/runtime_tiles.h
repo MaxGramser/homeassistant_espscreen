@@ -2107,7 +2107,8 @@ inline void render_slot(size_t slot) {
   label(w.value, value);
   // Only a thermostat with controls takes a tap on its circle (climate_circle_event); every other card's circle is
   // part of the card and the card's own tap.
-  if((d=="climate"||d=="humidifier")&&with_panel)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
+  // And only while its power key can do something (tile_controls::climate_power).
+  if((d=="climate"||d=="humidifier")&&with_panel&&tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
   bool mini=t.inline_control=="slider" && !watch && t.available() && !with_panel;
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.

@@ -115,6 +115,32 @@ int main() {
     assert(l.mode_count == 0 && l.row_count == 0 && l.modes.empty() && l.settings.empty());
     assert(l.setpoint.h == m.setpoint_max());
   }
+  // A device with no temperature to set (no TARGET_TEMPERATURE and no range: tile_controls::climate_setpoint) has no
+  // setpoint card and no - and +: the state line, which says what it does and what it measures, then the modes and
+  // the rows in one column, on a large glass and on the smallest. The line stays, also where a thermostat's gives way.
+  for (int small = 0; small < 2; ++small) {
+    Metrics m = small ? cyd() : guition();
+    const int width = small ? 320 : 451, top = small ? 52 : 84, bottom = (small ? 240 : 480) - m.margin();
+    for (int columns = 1; columns <= 2; ++columns) {
+      Layout l = layout(m, width, top, bottom, 4, 2, columns, false, false);
+      assert(l.columns == 1 && l.mode_count == 4 && l.row_count == 2);
+      assert(l.setpoint.empty() && l.minus.empty() && l.plus.empty() && l.number.empty() && l.caption.empty());
+      assert(!l.small_number && !l.caption_is_status && !l.range);
+      assert(!l.status.empty() && inside(l.status, width, top, bottom));
+      assert(inside(l.modes, width, top, bottom) && inside(l.settings, width, top, bottom));
+      assert(l.status.bottom() <= l.modes.y && l.modes.bottom() <= l.settings.y);
+      assert(l.modes.h >= m.min_key() && l.modes.w == l.settings.w);
+      for (int i = 0; i < 2; ++i) assert(l.rows[i].h >= m.min_row() && l.rows[i].bottom() <= l.settings.bottom());
+      // The blocks stand in the middle of the room under the line, as a thermostat's do.
+      assert(std::abs((l.modes.y - l.status.bottom()) - (bottom - l.settings.bottom())) <= m.gap());
+    }
+    // With nothing but its modes, or nothing at all, the card is the line and what there is.
+    Layout only = layout(m, width, top, bottom, 3, 0, 1, false, false);
+    assert(only.mode_count == 3 && only.settings.empty() && only.setpoint.empty() && !only.status.empty());
+    Layout bare = layout(m, width, top, bottom, 1, 0, 1, false, false);
+    assert(bare.modes.empty() && bare.settings.empty() && bare.setpoint.empty() && !bare.status.empty());
+    assert(need_height(m, 4, 2, false) < need_height(m, 4, 2));
+  }
   // The CYD: the smallest glass that ships. Setpoint, modes and a fan row all keep their place.
   {
     Metrics m = cyd();

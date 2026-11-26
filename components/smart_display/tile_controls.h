@@ -40,6 +40,9 @@ constexpr uint32_t MEDIA_SEEK = ha::media_player::SEEK, MEDIA_SHUFFLE = ha::medi
 constexpr uint32_t VACUUM_TURN_ON = ha::vacuum::TURN_ON, VACUUM_TURN_OFF = ha::vacuum::TURN_OFF, VACUUM_PAUSE = ha::vacuum::PAUSE, VACUUM_STOP = ha::vacuum::STOP,
                    VACUUM_RETURN = ha::vacuum::RETURN_HOME, VACUUM_START = ha::vacuum::START, VACUUM_LOCATE = ha::vacuum::LOCATE;
 constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE;
+// What climate.turn_off and climate.turn_on ask for: Home Assistant registers each with its flag as a required
+// feature (homeassistant/components/climate/services.py), so a call without it is refused.
+constexpr uint32_t CLIMATE_OFF = ha::climate::TURN_OFF, CLIMATE_ON = ha::climate::TURN_ON;
 // The climate card's fan and swing rows: Home Assistant shows each only with its flag (more-info-climate).
 constexpr uint32_t CLIMATE_FAN = ha::climate::FAN_MODE, CLIMATE_SWING = ha::climate::SWING_MODE;
 // The lists of the other types that go with a flag: a humidifier's modes, a vacuum's suction speeds, a remote's activities.
@@ -440,6 +443,31 @@ inline bool climate_off(const Tile &t) {
   if (humidifier(t)) return t.state != "on";
   const std::string mode = lower_case(t.state);
   return mode == "off" || mode.empty() || mode == "unknown" || mode == "unavailable";
+}
+// What the power key of a thermostat does now (the card's key in the top bar and the circle of its tile), and whether
+// there is one: a key exists only while it can do something. While the device runs it turns it off, with
+// climate.turn_off where the entity has TURN_OFF, else by the mode "off" where hvac_modes lists it (what Home
+// Assistant's own turn_off falls back to); while it is off it turns it on with climate.turn_on, which needs TURN_ON,
+// since which mode to start is Home Assistant's to know (the mode keys switch it on otherwise). A humidifier's on and
+// off have no flag.
+enum class ClimatePower : uint8_t { NONE, TURN_OFF, MODE_OFF, TURN_ON };
+inline ClimatePower climate_power(const Tile &t) {
+  if (humidifier(t)) return climate_off(t) ? ClimatePower::TURN_ON : ClimatePower::TURN_OFF;
+  if (climate_off(t)) return (t.supported & feature::CLIMATE_ON) ? ClimatePower::TURN_ON : ClimatePower::NONE;
+  if (t.supported & feature::CLIMATE_OFF) return ClimatePower::TURN_OFF;
+  for (unsigned i = 0; i < 8; ++i) {
+    const std::string mode = lower_case(screen_input::list_item(t.extra().hvac_modes, i));
+    if (mode.empty()) break;
+    if (mode == "off") return ClimatePower::MODE_OFF;
+  }
+  return ClimatePower::NONE;
+}
+// Whether the card has its box with the temperature between - and +: only where there is a temperature to set, one
+// (TARGET_TEMPERATURE) or a range (TARGET_TEMPERATURE_RANGE), as Home Assistant's card draws its keys
+// (ha-state-control-climate-temperature). Without either, the line under the name says what the device does and the
+// temperature it measures, which is what Home Assistant shows in that case, and the modes and rows close up.
+inline bool climate_setpoint(const Tile &t) {
+  return humidifier(t) || (t.supported & (feature::CLIMATE_TEMPERATURE | feature::CLIMATE_RANGE));
 }
 // The icon of a mode, as Home Assistant's own thermostat card draws it.
 inline const char *climate_mode_icon(const std::string &mode) {
