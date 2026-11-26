@@ -263,6 +263,21 @@ class AScreenJoinsTheNetwork(Looking):
         await self.look(ha_pairing.INTERVAL, on)
         self.assertIn('E-kitchen-2', self.ha.entries)
 
+    async def test_a_screen_installed_again_under_its_name_is_not_sent_to_do_it_by_hand(self):
+        # The firmware it ran before is on the network during the build and does not take the new key: Home Assistant
+        # holds its discovery, and after three minutes that would count as "found but not added" (seen on a SenseCAP
+        # installed again, 2026-11-26). The new firmware starts with a clean count and is answered at the next look.
+        self.ha.network['kitchen-2'] = {'key': 'an older key', 'friendly': 'Kitchen 2'}
+        self.ha.discover('kitchen-2', 'Kitchen 2')
+        await self.look()
+        await self.look(ha_pairing.HELP_AFTER)
+        self.assertEqual(self.pairing.state.get('kitchen-2'), 'failed')
+        self.ha.network['kitchen-2']['key'] = KEY
+        on = {node: {**profile, 'installed': True} for node, profile in OURS.items()}
+        await self.look(1, on)
+        self.assertIn('E-kitchen-2', self.ha.entries, 'answered at once, not after the pause of an answer in vain')
+        self.assertNotEqual(self.pairing.state.get('kitchen-2'), 'failed')
+
     async def test_a_screen_that_never_comes_is_asked_for_less_often_again(self):
         self.ha.resolvable = False
         on = {node: {**profile, 'installed': True} for node, profile in OURS.items()}

@@ -189,6 +189,14 @@ class Pairing:
             if ours[node].get('installed') and node not in self.installed:
                 self.new_until[node] = now + NEW
                 self.look_ups[node] = (0, now + FIRST)
+                # A discovery of the firmware it ran before (the same name, older keys) was answered in vain and waits
+                # AGAIN seconds for its next answer: the new firmware takes the key, so it is answered at the next look.
+                self.flow_due.clear()
+                # And how long it has been "found but not added" counts from now: what Home Assistant found during the
+                # build was the firmware before this one, and its three minutes are no reason to send someone to do it
+                # by hand the moment the new firmware starts.
+                self.found_at.pop(node, None)
+                self.stuck.discard(node)
         self.installed = {node for node in ours if ours[node].get('installed')}
         self.new_until = {node: until for node, until in self.new_until.items() if node in waiting and now < until}
         # A screen whose key changed keeps its integration loaded while Home Assistant asks for the key (a reauth flow
