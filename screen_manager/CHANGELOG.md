@@ -1,3 +1,7 @@
+## Unreleased
+
+- **The thermostat's card shows a fan or swing row only when Home Assistant does.** A device whose integration lists swing modes while it has no louvres, or with the swing feature switched off in Home Assistant, still got a swing row on its card that did nothing useful. The fan row and the swing row now each need their feature in Home Assistant (`supported_features`) besides a list of choices, exactly as Home Assistant's own thermostat card decides it.
+
 ## 0.4.105 (firmware 0.65.0)
 
 - **A new screen no longer waits minutes for Home Assistant after it joined the Wi-Fi.** When Home Assistant did not discover a freshly installed screen by itself, Tessera asked for it by name only now and then, counted from the moment the installation started: after a long build the next try could be five minutes away, while the screen already said "Waiting for Home Assistant" and the page still said it was joining the Wi-Fi. Tessera now asks every five seconds from the moment the software is on the screen.

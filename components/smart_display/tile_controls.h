@@ -40,6 +40,8 @@ constexpr uint32_t MEDIA_SEEK = ha::media_player::SEEK, MEDIA_SHUFFLE = ha::medi
 constexpr uint32_t VACUUM_TURN_ON = ha::vacuum::TURN_ON, VACUUM_TURN_OFF = ha::vacuum::TURN_OFF, VACUUM_PAUSE = ha::vacuum::PAUSE, VACUUM_STOP = ha::vacuum::STOP,
                    VACUUM_RETURN = ha::vacuum::RETURN_HOME, VACUUM_START = ha::vacuum::START, VACUUM_LOCATE = ha::vacuum::LOCATE;
 constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE;
+// The climate card's fan and swing rows: Home Assistant shows each only with its flag (more-info-climate).
+constexpr uint32_t CLIMATE_FAN = ha::climate::FAN_MODE, CLIMATE_SWING = ha::climate::SWING_MODE;
 constexpr uint32_t FAN_SPEED = ha::fan::SET_SPEED;
 }
 // Material Design Icons glyphs the icon fonts carry (tile_icons.py FIXED).
@@ -505,7 +507,9 @@ inline std::vector<std::string> climate_modes(const Tile &t) {
   return modes;
 }
 // One row of settings under the modes: the fan and the swing, each with the entity's own choices, in its own
-// order and in Home Assistant's words. 'f' and 's' are what a tap reports back.
+// order and in Home Assistant's words. 'f' and 's' are what a tap reports back. A row needs its flag in
+// supported_features and a list with something in it, as Home Assistant's own card asks: an integration may keep
+// listing swing_modes for a device without louvres, or have the feature switched off.
 struct ClimateRow {
   char kind = 0;
   const char *icon = "";
@@ -528,11 +532,12 @@ inline std::vector<ClimateRow> climate_rows(const Tile &t) {
     rows.push_back(std::move(out));
     return rows;
   }
-  const struct { char kind; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
-      {'f', glyph::FAN, x.fan_modes, x.fan_mode},
-      {'s', "\U000F1C91", x.swing_modes, x.swing_mode},
+  const struct { char kind; uint32_t flag; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
+      {'f', feature::CLIMATE_FAN, glyph::FAN, x.fan_modes, x.fan_mode},
+      {'s', feature::CLIMATE_SWING, "\U000F1C91", x.swing_modes, x.swing_mode},
   };
   for (const auto &row : wanted) {
+    if (!(t.supported & row.flag)) continue;
     auto values = list_values(row.modes, 6);
     if (values.empty()) continue;
     ClimateRow out;

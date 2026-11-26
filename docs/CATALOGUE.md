@@ -46,6 +46,13 @@ add-on and `bits('cover', 'SET_TILT_POSITION')` from `model/catalogue.ts` in the
 fails where shared code compares `supported_features` with a number or defines a feature constant as one. A bit the
 catalogue lacks comes from Home Assistant's source through `catalogue/_ha.json`, never from a constant of our own.
 
+A choice that comes with a list needs both, as Home Assistant's own cards ask: the flag and a list with something in
+it. An integration may keep sending a list for a feature the device lacks or that is switched off (a ducted air
+conditioner without louvres that still lists `swing_modes`), and a list alone then draws a control Home Assistant does
+not show. The thermostat's card follows this for its fan row (`FAN_MODE` and `fan_modes`) and its swing row
+(`SWING_MODE` and `swing_modes`), in `tile_controls::climate_rows`; its mode keys follow `hvac_modes` alone, which has
+no flag in Home Assistant. `tests/test_tile_controls.cpp` holds the case.
+
 ## The files are the list of types
 
 A type exists in the add-on, the editor and the firmware only when it has a file in `catalogue/`. Home Assistant has

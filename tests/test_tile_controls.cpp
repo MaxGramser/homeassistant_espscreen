@@ -536,6 +536,27 @@ int main() {
     assert(weather_color("windy") == GREEN && weather_color("windy-variant") == GREEN && weather_color("exceptional") == RED);
     assert(weather_color("something-new") == AMBER && colour("weather.a", "pouring") == INDIGO);
   }
+  // The card's fan and swing rows, as Home Assistant's own card shows them: the flag in supported_features and a list
+  // with something in it. A ducted unit whose integration still lists swing modes while the feature is off (393: a
+  // temperature, a fan, off and on, no swing) keeps its four fan speeds and its modes, and has no swing row.
+  {
+    Tile ducted = make("climate.ducted", "cool", 393);
+    auto &x = ducted.edit_extra();
+    x.hvac_modes = "[\"off\",\"cool\",\"heat\",\"dry\",\"fan_only\"]";
+    x.fan_modes = "[\"Auto\",\"Quiet\",\"Low\",\"Medium\"]"; x.fan_mode = "Low";
+    x.swing_modes = "[\"Highest\",\"Middle\",\"Normal\",\"Lowest\",\"Swing\"]"; x.swing_mode = "Swing";
+    auto rows = climate_rows(ducted);
+    assert(rows.size() == 1 && rows[0].kind == 'f' && rows[0].values.size() == 4 && rows[0].current == "Low");
+    assert(climate_modes(ducted).size() == 4);
+    ducted.supported = 393 | feature::CLIMATE_SWING; rows = climate_rows(ducted);
+    assert(rows.size() == 2 && rows[1].kind == 's' && rows[1].values.size() == 5 && rows[1].current == "Swing");
+    ducted.supported = feature::CLIMATE_SWING; rows = climate_rows(ducted);     // the fan's flag is off: the swing alone
+    assert(rows.size() == 1 && rows[0].kind == 's');
+    ducted.supported = feature::CLIMATE_FAN | feature::CLIMATE_SWING; ducted.edit_extra().swing_modes = "[]";
+    rows = climate_rows(ducted);                                               // a flag without a list is no row either
+    assert(rows.size() == 1 && rows[0].kind == 'f');
+    ducted.supported = 0; assert(climate_rows(ducted).empty() && climate_modes(ducted).size() == 4);
+  }
   // Fan and swing settings in Home Assistant's words where it names them, an integration's own as its name.
   assert(climate_setting_text('f', "low") == "Low" && climate_setting_text('s', "both") == "Both");
   assert(climate_setting_text('f', "quiet_night") == "Quiet night" && climate_setting_text('s', "low") == "Low");

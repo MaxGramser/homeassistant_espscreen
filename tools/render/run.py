@@ -3457,6 +3457,55 @@ class Run:
         await show('humidifier-full', [e('humidifier.bedroom', size='full', controls='setpoint_mode')])
         return 1
 
+    async def climate_panel(self, grid):
+        """A thermostat's card with and without its swing row (`--only climate`): a ducted air conditioner whose
+        integration lists swing modes while the feature is off in supported_features shows its fan row alone, as Home
+        Assistant's own card does; the same unit with the feature on shows both rows. The ducted one in Dark mode too."""
+        from core import extras, state_message
+        def unit(name, features, swing=True):
+            attributes = {'friendly_name': name, 'current_temperature': 21.5, 'temperature': 20, 'min_temp': 16,
+                          'max_temp': 32, 'target_temp_step': 0.5, 'hvac_action': 'cooling',
+                          'hvac_modes': ['off', 'cool', 'heat', 'dry', 'fan_only'],
+                          'fan_modes': ['Auto', 'Quiet', 'Low', 'Medium'], 'fan_mode': 'Low',
+                          'supported_features': features}
+            if swing:
+                attributes.update(swing_modes=['Highest', 'Middle', 'Normal', 'Lowest', 'Swing'], swing_mode='Swing')
+            return {'state': 'cool', 'attributes': attributes, 'last_changed': MOMENT.isoformat()}
+        # 393: a temperature, a fan, off and on. 425: the same with swing.
+        states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425)}
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=state['attributes']['friendly_name'], options={}, slot=slot)
+                    for slot, (entity, state) in enumerate(states.items())]
+        record = send_layout.migrate_legacy(dict(title='Climate', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await asyncio.sleep(1.0)
+        await self.render('climate-tiles')
+        for name, entity, dark in (('climate-card-no-swing', 'climate.ducted', True), ('climate-card-swing', 'climate.split', False)):
+            spots = await self.slots()
+            if entity not in spots:
+                self.warnings.append(f'climate: {entity} is not on the glass')
+                continue
+            await self.hold(*spots[entity])
+            opened = await self.alarm_until(lambda c: c['open'], f'holding {entity} never opened its card')
+            await asyncio.sleep(0.8)
+            await self.render(name)
+            if opened['faults']:
+                self.warnings.append(f'climate card {entity}: {opened["faults"]}')
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await asyncio.sleep(1.5)
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            await self.tap(*opened['back'][:2])
+            await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
+        return 1
+
     async def remote_panel(self, grid):
         """A remote (firmware 0.22.0, GitHub #117) the way it is used: a tap opens its card, as Home Assistant's tile card
         opens its dialog, with the power key in the top bar and the activities where the remote has them; the tap option
@@ -4762,6 +4811,8 @@ class Run:
             return 1, await self.saver_panel()
         if self.only == 'doorbell':
             return 1, await self.doorbell_round()
+        if self.only == 'climate':
+            return 1, await self.climate_panel(grid)
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
         if self.only == 'vacuum':
@@ -4881,7 +4932,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
