@@ -47,6 +47,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | change when a screen goes to standby, what wakes it, or Back to page 1 | docs/ARCHITECTURE.md, "The standby" | `screen_standby.h`, `tests/test_screen_standby.cpp` |
 | change when an alert shows, what ends it, its blinks or what Home Assistant hears of it | docs/ARCHITECTURE.md, "An alert's life" | `alert_life.h`, `tests/test_alert_life.cpp` |
+| change the line a screen leaves in Home Assistant's logbook for an action (which screen, page and tile) | docs/ARCHITECTURE.md, "An action's line in the logbook" | `action_log.h`, `tests/test_action_log.cpp` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
 | change the alarm panel's card, the keypad for a code, or what the screens do when it goes off | docs/ALARM_PANEL.md | `alarm_panel.h`, `alarm_panel_lvgl.h`, `screen_manager/app/alarm_screens.py` |

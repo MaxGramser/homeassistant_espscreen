@@ -132,7 +132,9 @@
       "update_failed": "Aktualizacja nie powiodła się",
       "hint_key": "Odrzucono połączenie z {address}: jego klucz nie pasuje do tego ekranu. Wpisz klucz tego ekranu w integracji ESPHome w Home Assistant.",
       "no_answer_title": "Brak odpowiedzi z Home Assistant",
-      "no_answer_text": "Często ten ekran nie może jeszcze wykonywać akcji. Włącz to w Home Assistant: ESPHome > ten ekran > Konfiguruj."
+      "no_answer_text": "Często ten ekran nie może jeszcze wykonywać akcji. Włącz to w Home Assistant: ESPHome > ten ekran > Konfiguruj.",
+      "logbook_tile": "obsłużono na {screen}, strona {page}, kafelek {tile}",
+      "logbook_page": "obsłużono na {screen}, strona {page}"
     },
     "preparing": {
       "default": "Układanie kafelków",

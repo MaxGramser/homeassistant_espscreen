@@ -132,7 +132,9 @@
       "update_failed": "La actualización falló",
       "hint_key": "Se rechazó una conexión desde {address}: su clave no es la de esta pantalla. Introduce la clave de esta pantalla en la integración ESPHome de Home Assistant.",
       "no_answer_title": "Sin respuesta de Home Assistant",
-      "no_answer_text": "A menudo esta pantalla aún no puede realizar acciones. Actívalo en Home Assistant: ESPHome > esta pantalla > Configurar."
+      "no_answer_text": "A menudo esta pantalla aún no puede realizar acciones. Actívalo en Home Assistant: ESPHome > esta pantalla > Configurar.",
+      "logbook_tile": "controlado en {screen}, página {page}, tarjeta {tile}",
+      "logbook_page": "controlado en {screen}, página {page}"
     },
     "preparing": {
       "default": "Ordenando tus mosaicos",

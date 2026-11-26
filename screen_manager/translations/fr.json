@@ -132,7 +132,9 @@
       "update_failed": "Échec de la mise à jour",
       "hint_key": "Une connexion depuis {address} a été refusée : sa clé n'est pas celle de cet écran. Saisissez la clé de cet écran dans l'intégration ESPHome de Home Assistant.",
       "no_answer_title": "Pas de réponse de Home Assistant",
-      "no_answer_text": "Souvent, cet écran ne peut pas encore effectuer d'actions. Activez-le dans Home Assistant : ESPHome > cet écran > Configurer."
+      "no_answer_text": "Souvent, cet écran ne peut pas encore effectuer d'actions. Activez-le dans Home Assistant : ESPHome > cet écran > Configurer.",
+      "logbook_tile": "commandé sur {screen}, page {page}, tuile {tile}",
+      "logbook_page": "commandé sur {screen}, page {page}"
     },
     "preparing": {
       "default": "On range vos tuiles",

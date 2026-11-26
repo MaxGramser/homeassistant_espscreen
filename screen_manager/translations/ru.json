@@ -132,7 +132,9 @@
       "update_failed": "Ошибка обновления",
       "hint_key": "Подключение с {address} отклонено: его ключ не подходит к этому экрану. Введите ключ этого экрана в интеграции ESPHome в Home Assistant.",
       "no_answer_title": "Home Assistant не отвечает",
-      "no_answer_text": "Скорее всего, этому экрану ещё не разрешено выполнять действия. Включите это в Home Assistant: ESPHome > этот экран > Настроить."
+      "no_answer_text": "Скорее всего, этому экрану ещё не разрешено выполнять действия. Включите это в Home Assistant: ESPHome > этот экран > Настроить.",
+      "logbook_tile": "управление с {screen}, страница {page}, плитка {tile}",
+      "logbook_page": "управление с {screen}, страница {page}"
     },
     "preparing": {
       "default": "Раскладываем плитки",

@@ -132,7 +132,9 @@
       "update_failed": "A atualização falhou",
       "hint_key": "Uma ligação de {address} foi recusada: a chave não é a deste ecrã. Introduza a chave deste ecrã na integração ESPHome do Home Assistant.",
       "no_answer_title": "Sem resposta do Home Assistant",
-      "no_answer_text": "Muitas vezes este ecrã ainda não pode executar ações. Ative-o no Home Assistant: ESPHome > este ecrã > Configurar."
+      "no_answer_text": "Muitas vezes este ecrã ainda não pode executar ações. Ative-o no Home Assistant: ESPHome > este ecrã > Configurar.",
+      "logbook_tile": "controlado em {screen}, página {page}, cartão {tile}",
+      "logbook_page": "controlado em {screen}, página {page}"
     },
     "preparing": {
       "default": "A arrumar os mosaicos",

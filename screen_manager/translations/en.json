@@ -132,7 +132,9 @@
       "update_failed": "Update failed",
       "hint_key": "A connection from {address} was turned away: its key is not this screen's. Enter this screen's key in Home Assistant's ESPHome integration.",
       "no_answer_title": "No answer from Home Assistant",
-      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure."
+      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure.",
+      "logbook_tile": "operated on {screen}, page {page}, tile {tile}",
+      "logbook_page": "operated on {screen}, page {page}"
     },
     "preparing": {
       "default": "Arranging your tiles",
