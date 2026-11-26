@@ -210,7 +210,9 @@ in Tessera's sidebar, ready for its tiles; until then it waits there under its n
 Tessera keeps at it until that holds. It answers Home Assistant's discovery of the screen, finds the screen by its name
 on the network when Home Assistant didn't discover it (or the discovery was dismissed or ignored), gives Home Assistant
 the new key when **New screen** made new ones for a screen it already had, and turns the actions back on when Home
-Assistant ignored a tap. Should it still not work out, the screen's card in the sidebar says so.
+Assistant ignored a tap. Should it still not work out, the screen's card in the sidebar says so. A screen whose firmware went on a moment ago is asked for by name every five seconds for the
+first three minutes, so it is in Home Assistant within seconds of joining the Wi-Fi, also when Home Assistant does not
+discover it by itself; a profile that only waits for its firmware is asked for less and less often.
 
 Tessera adds a screen by itself when it knows the screen's key: when the screen's YAML is in the ESPHome folder Tessera
 reads. That is every screen made with **New screen**, and a screen of your own whose YAML sits in Home Assistant's

@@ -1842,8 +1842,11 @@ class Manager:
     async def pair_screens(self):
         """One look of pairing_loop: the screens this app made (their profiles with the key New screen wrote), against
         what Home Assistant has and has found."""
-        ours = {meta['node']: {'api_key': meta['api_key'], 'friendly': meta.get('friendly') or meta['node']}
-                for meta in self.firmware.profile_names().values()
+        # `installed`: its firmware went on in this run of the app (by the app or from the browser), which is when a
+        # look for it is worth the most.
+        installed = getattr(self.firmware, 'installed', set())
+        ours = {meta['node']: {'api_key': meta['api_key'], 'friendly': meta.get('friendly') or meta['node'], 'installed': file in installed}
+                for file, meta in self.firmware.profile_names().items()
                 if meta.get('screen') and meta.get('node') and ha_pairing.usable_key(meta.get('api_key'))}
         await self.pairing.run(self.ha, ours, self.screens())
 

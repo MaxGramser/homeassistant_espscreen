@@ -240,6 +240,38 @@ class AScreenJoinsTheNetwork(Looking):
         self.assertIn('E-kitchen-2', self.ha.entries)
         self.assertTrue(self.ha.options['E-kitchen-2']['allow_service_calls'])
 
+    async def test_a_screen_whose_firmware_just_went_on_is_looked_up_at_once_however_long_its_profile_waited(self):
+        # The build takes ten minutes, and Home Assistant never discovers this screen. The look-ups for the profile that
+        # only waits have long gone to their longest pause by the time the firmware is on; before 2026-11-26 the screen
+        # then stood on "Waiting for Home Assistant" for up to five minutes.
+        self.ha.resolvable = False
+        for _ in range(120):
+            await self.look()
+        before = len(self.ha.calls)
+        self.assertGreater(self.pairing.look_ups['kitchen-2'][1] - self.clock.now, 60, 'the next look-up is far away')
+        # The firmware goes on: it is asked for FIRST seconds later, and at every look after that while it is new.
+        on = {node: {**profile, 'installed': True} for node, profile in OURS.items()}
+        await self.look(1, on)
+        self.assertEqual(len(self.ha.calls), before)
+        await self.look(ha_pairing.FIRST, on)
+        self.assertEqual(self.ha.calls[-2], ('post', f'flow/{self.ha.calls[-1][1].split("/")[1]}', {'host': 'kitchen-2.local', 'port': 6053}))
+        asked = len(self.ha.calls)
+        await self.look(ha_pairing.INTERVAL, on)
+        self.assertGreater(len(self.ha.calls), asked, 'again at the next look, not after a longer pause')
+        # It is on the network: found at the very next look.
+        self.ha.resolvable = True
+        await self.look(ha_pairing.INTERVAL, on)
+        self.assertIn('E-kitchen-2', self.ha.entries)
+
+    async def test_a_screen_that_never_comes_is_asked_for_less_often_again(self):
+        self.ha.resolvable = False
+        on = {node: {**profile, 'installed': True} for node, profile in OURS.items()}
+        await self.look(1, on)
+        await self.look(ha_pairing.NEW + ha_pairing.INTERVAL, on)
+        asked = len(self.ha.calls)
+        await self.look(ha_pairing.INTERVAL, on)
+        self.assertEqual(len(self.ha.calls), asked, 'no longer at every look once it is not new any more')
+
     async def test_a_board_that_takes_over_a_paired_screens_name_keeps_its_history(self):
         # A replacement flashed from the same profile: Home Assistant's own "migrate".
         self.ha.paired('kitchen-2')

@@ -8,7 +8,8 @@ Assistant's own dialogs use, and keeps looking until they are done instead of tr
 
 - A screen this app made that Home Assistant does not have yet: its discovery is answered with the key the app wrote
   into the screen's YAML. Without a discovery (Home Assistant missed it, or someone dismissed or ignored it), Home
-  Assistant is asked to look the screen up by its name on the network, as Add integration -> ESPHome does. A key the
+  Assistant is asked to look the screen up by its name on the network, as Add integration -> ESPHome does: at every
+  look for the first minutes after its firmware went on, less and less often for a profile that only waits. A key the
   screen does not take yet (an older firmware still runs on it) is offered again a little later.
 - A screen Home Assistant has but cannot open any more, because New screen gave it new keys: the key Home Assistant
   asks for again is given back.
@@ -36,6 +37,13 @@ AGAIN = 30
 # Looking a screen up by its name when Home Assistant did not discover it: soon at first, then less often, never stopping
 # while the profile waits (a profile can wait days for its firmware).
 LOOK_UP = (20, 30, 60, 120, 300)
+# A screen whose firmware went on just now (New screen wrote it, from the app or from the browser) starts up within
+# seconds, so it is looked up from FIRST seconds after that and every look until NEW seconds have passed. Before this
+# (2026-11-26) the look-ups counted from the moment the profile was made: after a build of ten minutes the next one
+# could be five minutes away, and a screen Home Assistant had not discovered by itself stood on "Waiting for Home
+# Assistant" for that long while the page said it was still joining the Wi-Fi.
+FIRST = 5
+NEW = 180
 # How long a screen may stay found but not added before the editor offers the way by hand.
 HELP_AFTER = 180
 # How often the repairs are read without being told (Home Assistant also announces a new one).
@@ -153,6 +161,8 @@ class Pairing:
         self.flow_due = {}      # flow id -> monotonic time it may be answered again
         self.look_ups = {}      # node -> (attempts, monotonic time of the next look-up)
         self.found_at = {}      # node -> when Home Assistant first found it, while it waits
+        self.new_until = {}     # node -> monotonic time until which its firmware counts as just put on
+        self.installed = set()  # nodes whose firmware this app saw go on, to tell the moment it does
         self.stuck = set()      # nodes whose flow asked what only a person can answer
         self.checked = set()    # entry ids whose actions were looked at this run
         self.retry_actions = {}  # entry id -> monotonic time the switch may be tried again
@@ -173,6 +183,14 @@ class Pairing:
             if len(mine) == 1 and screen.get('node'):
                 entry_of[screen['node']] = mine[0]
         waiting = [node for node in ours if node not in entry_of]
+        # The firmware of a waiting screen went on since the last look (`installed` in its profile): it is on the network
+        # in a moment, so its look-ups start anew, soon and often.
+        for node in waiting:
+            if ours[node].get('installed') and node not in self.installed:
+                self.new_until[node] = now + NEW
+                self.look_ups[node] = (0, now + FIRST)
+        self.installed = {node for node in ours if ours[node].get('installed')}
+        self.new_until = {node: until for node, until in self.new_until.items() if node in waiting and now < until}
         # A screen whose key changed keeps its integration loaded while Home Assistant asks for the key (a reauth flow
         # of that entry), so every screen of ours counts, whatever its state.
         known = {entry_of[node]['entry_id']: node for node in ours if node in entry_of}
@@ -216,7 +234,9 @@ class Pairing:
                 self.look_ups[node] = (attempts, due)
             if now < due:
                 continue
-            self.look_ups[node] = (attempts + 1, now + LOOK_UP[min(attempts + 1, len(LOOK_UP) - 1)])
+            # A screen that is new on the network is asked for at every look; any other one less and less often.
+            again = 0 if node in self.new_until else LOOK_UP[min(attempts + 1, len(LOOK_UP) - 1)]
+            self.look_ups[node] = (0 if node in self.new_until else attempts + 1, now + again)
             await self.look_up(ha, node, ours[node])
 
     async def attempt(self, ha, node, profile, flow_id, step_id):
@@ -261,6 +281,7 @@ class Pairing:
 
     def done(self, node):
         self.look_ups.pop(node, None)
+        self.new_until.pop(node, None)
         self.found_at.pop(node, None)
         self.stuck.discard(node)
 
