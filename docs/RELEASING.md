@@ -315,7 +315,8 @@ while the CYD still links. The fix is its own compilation unit for a large part 
 `components/smart_display/page_receiver.cpp` since 0.3.8, the picture loader's bodies in `picture_loader.cpp` since
 2026-11-24), not a global compiler flag. `tools/literal_margin.py BUILD.map` prints the margin: for each function, the
 distance from its own `.literal.<name>` to the end of its own `.text.<name>`, against the 256 KB reach, the tightest
-first. `tools/check.sh --firmware` runs it on every build and fails under `LITERAL_FLOOR` (8 KB). 0.3.8 left about
+first. `tools/check.sh --firmware` runs it on every build and fails under `LITERAL_FLOOR` (8 KB). It reads the map from
+ESP-IDF's build folder, or from PlatformIO's (`.pioenvs/<name>/firmware.map`) where an older ESPHome builds there. 0.3.8 left about
 14 KB on the S3 boards and 66 KB on the CYD; on 2026-11-24 the S3 boards failed at -16 KB (picture_loader::Loader::end,
 an inline function laid out far from its literals) and stood at 24 KB on the Guition and 50 KB on the CYD once the loader
 left main.cpp. The ESP32-P4 is RISC-V and has no such limit.

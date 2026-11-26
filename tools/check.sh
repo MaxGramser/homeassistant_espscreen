@@ -430,7 +430,9 @@ flash_budget() { flash_report "$1" budget; }
 # the link having failed at -16 KB before. An ESP32-P4 (RISC-V) has no literals and passes.
 LITERAL_FLOOR=8
 literal_margin() {
+  # Where the build leaves its map: ESP-IDF's own build folder, or PlatformIO's with an older ESPHome (2026.6).
   local map="$ESPHOME_DATA_DIR/build/check-$1/build/check-$1.map"
+  [[ -f $map ]] || map="$ESPHOME_DATA_DIR/build/check-$1/.pioenvs/check-$1/firmware.map"
   [[ -f $map ]] || { echo "no map: $map"; return 1; }
   "$PYTHON" "$ROOT/tools/literal_margin.py" "$map" --floor "$LITERAL_FLOOR"
 }
