@@ -4802,7 +4802,12 @@ class Manager:
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         with contextlib.suppress(Exception):
-            await self.ping(inbox, screen)
+            if self.sent.get(inbox):
+                await self.ping(inbox, screen)
+            elif self.answers(inbox, screen):
+                # A screen that has no layout yet (it was installed a minute ago, which is when New screen asks) has
+                # no session to ping in: it is asked with a hello, which no delivery is using.
+                await self.page_sender(inbox, screen).probe(empty=inbox not in self.layouts)
         return self.steps_of_screen(screen)
 
     def answer_step(self, inbox, step, said):
