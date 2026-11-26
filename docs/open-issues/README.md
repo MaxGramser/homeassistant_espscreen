@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [tab5-does-not-render-on-the-host.md](tab5-does-not-render-on-the-host.md) | The Tab5 does not build in the render harness (`tools/render/run.py tab5`): three layers of its hardware are handled since 2026-11-26, ESPHome still refuses its `esphome:` block. The Waveshare 3.5 was fixed in the same round. | 2026-11-26 |
 | [watchdog-reset-after-an-update.md](watchdog-reset-after-an-update.md) | A Guition 4 inch reports "Other Watchdog" for the restart after an update, on 0.64.0 and on a firmware before it, and the app records it as a crash; the other boards do not | 2026-11-24 |
 | [preview-last-run-in-utc.md](preview-last-run-in-utc.md) | The editor's preview shows when a script or scene last ran in UTC where the screen shows local time: the preview's stand-in for ESPHome's local time uses `gmtime` | 2026-11-24 |
 | [module-files-asked-for-on-a-direct-link.md](module-files-asked-for-on-a-direct-link.md) | A page opened straight on a screen asks for the module lists and files of the other screens' plugins (the overview's previews ask before they leave): a few small requests once a day per browser, nobody sees it; the one change of order that fixes it and its test | 2026-11-24 |
