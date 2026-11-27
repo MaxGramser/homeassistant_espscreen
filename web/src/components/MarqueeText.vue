@@ -35,7 +35,8 @@ onMounted(measure);
 .marquee-text, .marquee-copy { flex: none; }
 .marquee-copy { padding-left: 32px; }
 .scrolling .marquee-track { animation: media-title var(--marquee-duration) linear 1.4s infinite; }
-@keyframes media-title { 0%, 15% { transform: translateX(0); } 100% { transform: translateX(calc(-1 * var(--marquee-distance))); } }
+/* Each round eases in and out as on the glass (media_card_lvgl.h marquee_ease): gently off, quickest midway, slowing to a stop. */
+@keyframes media-title { 0%, 15% { transform: translateX(0); animation-timing-function: ease-in-out; } 100% { transform: translateX(calc(-1 * var(--marquee-distance))); } }
 .still .marquee-track { width: 100%; }
 .still .marquee-text { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {

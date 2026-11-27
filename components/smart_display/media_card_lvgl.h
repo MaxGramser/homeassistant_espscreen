@@ -126,6 +126,17 @@ inline lv_obj_t *media_picture_show(lv_obj_t *parent,lv_obj_t *existing,const me
   (void)parent;(void)r;(void)src;return existing;
 #endif
 }
+// Each round of a rolling text eases in and out (dev): it starts gently, is quickest in the middle and slows down to
+// stand still where it began, instead of LVGL's even pace that starts and stops with a jolt. LVGL makes the scroll's
+// animation anew whenever the text or the label's size changes, always even (lv_label.c takes only the delays from the
+// style's template, not the curve), so the curve is put on the running one each time the label is about to draw: the
+// moment a new one shows its first step. The circular scroll is the only animation LVGL runs on a label itself (from 0
+// to minus its width and a gap); anything else is left alone.
+inline void marquee_ease(lv_event_t *e){
+  auto *label=static_cast<lv_obj_t*>(lv_event_get_target(e));
+  lv_anim_t *a=lv_anim_get(label,nullptr);
+  if(a&&a->start_value==0&&a->end_value<0&&a->path_cb!=lv_anim_path_ease_in_out)a->path_cb=lv_anim_path_ease_in_out;
+}
 // A media text that is wider than its line rolls by, round and round, and stands still when it fits (firmware 0.2.77+):
 // LVGL's own circular scroll, at its own pace, where the dots of LV_LABEL_LONG_DOT cut a long title short.
 inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
@@ -140,6 +151,9 @@ inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
     lv_obj_set_style_anim(label,&timing,0);
     lv_obj_set_style_anim_duration(label,lv_anim_speed(ui::px(24)),0);
   }
+  // Once per label: a label that rolled before already eases.
+  lv_obj_remove_event_cb(label,marquee_ease);
+  lv_obj_add_event_cb(label,marquee_ease,LV_EVENT_DRAW_MAIN_BEGIN,nullptr);
   // LVGL cancels the old animation when long mode is assigned, even unchanged.
   lv_label_set_long_mode(label,LV_LABEL_LONG_SCROLL_CIRCULAR);
 }
