@@ -85,7 +85,7 @@ describe("New screen, one question a step", () => {
   it("shows the recommended boards large, and every board in a list to search behind another screen", async () => {
     const { view } = await open();
     const recommended = view.findAll('input[name="board"]').map((input) => input.attributes("value"));
-    expect(recommended).toEqual(["guition", "jc8012p4a1v3", "reterminald1001", "waveshare101v3"]);
+    expect(recommended).toEqual(["guition", "jc8012p4a1v3", "reterminald1001", "sensecapd1", "waveshare101v3"]);
     expect(view.find(".ob-soon").text()).toBe("More to come soon.");
     expect((view.find('input[value="guition"]').element as HTMLInputElement).checked).toBe(true);
     await view.find("#board-other").trigger("click");
