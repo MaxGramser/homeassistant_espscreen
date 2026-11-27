@@ -26,9 +26,10 @@
 namespace keyboard {
 namespace cc = calendar_card;
 
-// ---- A layout: three rows of letters (at most 10, 10 and 7 keys: the third stands between shift and backspace), the
-// same number of keys on every page, and the labels of the keys that change the page. A new layout is a new table
-// like qwerty() and a line in layout(); the planner and the callers stay as they are.
+// ---- A layout: three rows of letters (at most 11, 11 and 7 keys: the first two on a grid of ten, or of eleven when one
+// of them has eleven, the third between shift and backspace), the same number of keys on every page, and the labels of
+// the keys that change the page. A new layout is a new table like qwerty() and a line in layout(); the planner and the
+// callers stay as they are.
 struct Accents {
   const char *key;            // the letter, as the lower-case page has it
   const char *lower[6], *upper[6];  // at most six each, nullptr after the last
@@ -42,6 +43,25 @@ struct Layout {
   const char *to_digits, *to_signs, *to_letters;
 };
 inline int keys(const Layout &l) { return l.rows[0] + l.rows[1] + l.rows[2]; }
+// The keys beside each other on the grid of the first two rows: ten, or eleven for a layout with a row of eleven
+// (QWERTZ, with its umlauts where a German keyboard has them).
+inline int columns(const Layout &l) { return std::max<int>(10, std::max(l.rows[0], l.rows[1])); }
+
+// The accents a long press on a letter shows, the same on every Latin layout here.
+inline constexpr Accents LATIN_ACCENTS[] = {
+    {"a", {"á", "à", "â", "ä", "ã", "å"}, {"Á", "À", "Â", "Ä", "Ã", "Å"}},
+    {"e", {"é", "è", "ê", "ë", "ę", nullptr}, {"É", "È", "Ê", "Ë", "Ę", nullptr}},
+    {"i", {"í", "ì", "î", "ï", nullptr, nullptr}, {"Í", "Ì", "Î", "Ï", nullptr, nullptr}},
+    {"o", {"ó", "ò", "ô", "ö", "õ", "ø"}, {"Ó", "Ò", "Ô", "Ö", "Õ", "Ø"}},
+    {"u", {"ú", "ù", "û", "ü", nullptr, nullptr}, {"Ú", "Ù", "Û", "Ü", nullptr, nullptr}},
+    {"c", {"ç", "ć", "č", nullptr, nullptr, nullptr}, {"Ç", "Ć", "Č", nullptr, nullptr, nullptr}},
+    {"n", {"ñ", "ń", nullptr, nullptr, nullptr, nullptr}, {"Ñ", "Ń", nullptr, nullptr, nullptr, nullptr}},
+    {"s", {"ß", "ś", "š", nullptr, nullptr, nullptr}, {"Ś", "Š", nullptr, nullptr, nullptr, nullptr}},
+    {"y", {"ý", "ÿ", nullptr, nullptr, nullptr, nullptr}, {"Ý", "Ÿ", nullptr, nullptr, nullptr, nullptr}},
+    {"z", {"ž", "ź", "ż", nullptr, nullptr, nullptr}, {"Ž", "Ź", "Ż", nullptr, nullptr, nullptr}},
+    {"l", {"ł", nullptr, nullptr, nullptr, nullptr, nullptr}, {"Ł", nullptr, nullptr, nullptr, nullptr, nullptr}},
+};
+inline constexpr uint8_t LATIN_ACCENTED = uint8_t(sizeof(LATIN_ACCENTS) / sizeof(*LATIN_ACCENTS));
 
 // QWERTY, with a page of digits (`123`) and one of signs (`#+=`). Every character is one the screens' text fonts have
 // (packages/core.yaml, the `label` font's glyphs).
@@ -54,32 +74,66 @@ inline const Layout &qwerty() {
                                          ".", ",", "?", "!", "'", "\"", "+"};
   static const char *const SIGNS[26] = {"[", "]", "{", "}", "#", "%", "^", "*", "=", "_", "\\", "|", "~", "<", ">", "$", "£", "¥", "·",
                                         ".", ",", "?", "!", "'", "°", "…"};
-  static const Accents ACCENTS[] = {
-      {"a", {"á", "à", "â", "ä", "ã", "å"}, {"Á", "À", "Â", "Ä", "Ã", "Å"}},
-      {"e", {"é", "è", "ê", "ë", "ę", nullptr}, {"É", "È", "Ê", "Ë", "Ę", nullptr}},
-      {"i", {"í", "ì", "î", "ï", nullptr, nullptr}, {"Í", "Ì", "Î", "Ï", nullptr, nullptr}},
-      {"o", {"ó", "ò", "ô", "ö", "õ", "ø"}, {"Ó", "Ò", "Ô", "Ö", "Õ", "Ø"}},
-      {"u", {"ú", "ù", "û", "ü", nullptr, nullptr}, {"Ú", "Ù", "Û", "Ü", nullptr, nullptr}},
-      {"c", {"ç", "ć", "č", nullptr, nullptr, nullptr}, {"Ç", "Ć", "Č", nullptr, nullptr, nullptr}},
-      {"n", {"ñ", "ń", nullptr, nullptr, nullptr, nullptr}, {"Ñ", "Ń", nullptr, nullptr, nullptr, nullptr}},
-      {"s", {"ß", "ś", "š", nullptr, nullptr, nullptr}, {"Ś", "Š", nullptr, nullptr, nullptr, nullptr}},
-      {"y", {"ý", "ÿ", nullptr, nullptr, nullptr, nullptr}, {"Ý", "Ÿ", nullptr, nullptr, nullptr, nullptr}},
-      {"z", {"ž", "ź", "ż", nullptr, nullptr, nullptr}, {"Ž", "Ź", "Ż", nullptr, nullptr, nullptr}},
-      {"l", {"ł", nullptr, nullptr, nullptr, nullptr, nullptr}, {"Ł", nullptr, nullptr, nullptr, nullptr, nullptr}},
-  };
-  static const Layout LAYOUT{"qwerty", {10, 9, 7}, LOWER, UPPER, DIGITS, SIGNS, ACCENTS, uint8_t(sizeof(ACCENTS) / sizeof(*ACCENTS)),
-                             "123", "#+=", "abc"};
+  static const Layout LAYOUT{"qwerty", {10, 9, 7}, LOWER, UPPER, DIGITS, SIGNS, LATIN_ACCENTS, LATIN_ACCENTED, "123", "#+=", "abc"};
+  return LAYOUT;
+}
+// QWERTZ, as a German keyboard has it: z and y change places, ü, ö and ä are keys of their own at the end of the first
+// two rows (a grid of eleven), and ß stands beside the 0 on the page of digits, where a German keyboard has it, and
+// first among the accents of s. The page of digits has the German quotes, the one of signs § and the ² and ³ of m² and
+// m³.
+inline const Layout &qwertz() {
+  static const char *const LOWER[29] = {"q", "w", "e", "r", "t", "z", "u", "i", "o", "p", "ü", "a", "s", "d", "f", "g", "h", "j", "k",
+                                        "l", "ö", "ä", "y", "x", "c", "v", "b", "n", "m"};
+  static const char *const UPPER[29] = {"Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P", "Ü", "A", "S", "D", "F", "G", "H", "J", "K",
+                                        "L", "Ö", "Ä", "Y", "X", "C", "V", "B", "N", "M"};
+  static const char *const DIGITS[29] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "ß", "-", "/", ":", ";", "(", ")", "€", "&",
+                                         "@", "„", "“", ".", ",", "?", "!", "'", "\"", "+"};
+  static const char *const SIGNS[29] = {"[", "]", "{", "}", "#", "%", "^", "*", "=", "_", "§", "\\", "|", "~", "<", ">", "$", "£", "¥",
+                                        "·", "²", "³", ".", ",", "?", "!", "'", "°", "…"};
+  static const Layout LAYOUT{"qwertz", {11, 11, 7}, LOWER, UPPER, DIGITS, SIGNS, LATIN_ACCENTS, LATIN_ACCENTED, "123", "#+=", "abc"};
   return LAYOUT;
 }
 // The layouts the screens have, by name; none for a name it does not know.
 inline const Layout *layout(const std::string &name) {
   if (name == qwerty().name) return &qwerty();
+  if (name == qwertz().name) return &qwertz();
   return nullptr;
+}
+// The layout a language types on, by its first subtag: QWERTZ for German ("de", "de-AT", "de-CH"), QWERTY for every
+// other. A screen's build makes the same choice (keyboard_build.py, whose LAYOUTS tests/test_keyboard_layout.py keeps
+// equal to this list); the browser preview, which carries every language, asks here for the one it shows.
+inline const char *layout_for(const char *language) {
+  static const char *const OWN[][2] = {{"de", "qwertz"}};
+  const char *code = language ? language : "";
+  const size_t base = std::strcspn(code, "-");
+  for (const auto &own : OWN)
+    if (base == std::strlen(own[0]) && !std::strncmp(code, own[0], base)) return own[1];
+  return "qwerty";
+}
+#ifdef SCREEN_TEXT_LANGUAGES
+// The browser preview's layout, set with the language it shows (web/wasm/firmware_preview.cpp, preview_language);
+// none: QWERTY.
+inline const Layout *&shown_layout() {
+  static const Layout *shown = nullptr;
+  return shown;
+}
+#endif
+// The layout of a Spec that names none: the one of the screen's language. The build chooses it (keyboard_build.py
+// defines SCREEN_KEYBOARD_QWERTZ for a screen built in German), so a screen's firmware holds that table alone and no
+// other; nothing changes it while the screen runs. The browser preview follows the language it shows.
+inline const Layout &standard() {
+#if defined(SCREEN_TEXT_LANGUAGES)
+  return shown_layout() ? *shown_layout() : qwerty();
+#elif defined(SCREEN_KEYBOARD_QWERTZ)
+  return qwertz();
+#else
+  return qwerty();
+#endif
 }
 
 // ---- What a caller asks for.
 struct Spec {
-  const Layout *layout = nullptr;        // none: QWERTY
+  const Layout *layout = nullptr;        // none: the screen's own (standard())
   std::string hint;                      // in the empty field
   std::vector<std::string> suggestions;  // above the keys, a tap on one is the caller's
   bool keep_row = false;                 // the row of suggestions keeps its room while it has none to show
@@ -99,7 +153,7 @@ struct Spec {
   // such a caller keeps the field where the keyboard takes the whole glass.
   bool field = true;
 };
-inline const Layout &layout_of(const Spec &k) { return k.layout ? *k.layout : qwerty(); }
+inline const Layout &layout_of(const Spec &k) { return k.layout ? *k.layout : standard(); }
 
 // Icons the screens' fonts already carry (screen_manager/app/tile_icons.py): close, the arrows that stand for backspace
 // and shift, and the check of the key that sends.
@@ -336,7 +390,7 @@ inline Place plan(cc::Scene &s, const cc::Measure &m, int W, int H, int top, con
     }
   }
   // On the whole glass the keys stand at its bottom, where the thumbs are.
-  const int kwid = (inner - 9 * g) / 10, radius = ui::px(8);
+  const int cols = columns(lay), kwid = (inner - (cols - 1) * g) / cols, radius = ui::px(8);
   const int y0 = out.whole ? std::max(sy + sp + keys_y + chips, H - sp - 4 * keyh - 3 * g) : sy + sp + keys_y + chips;
   const cc::Face letter = keyh >= 2 * L(m, cc::HEADLINE) - ui::px(8) && kwid >= ui::mm(11) ? cc::HEADLINE : cc::CONTROL;
   const cc::Paint special = cc::cal(cc::CAL_KEY, SPECIAL);
@@ -347,9 +401,10 @@ inline Place plan(cc::Scene &s, const cc::Measure &m, int W, int H, int top, con
     hit(s, x - g / 2, y - g / 2, w + g, keyh + g, KEY, code);
   };
   const char *const *keys = page_keys(lay, e.page, e.shift);
-  // The first two rows stand on a grid of ten keys, a shorter one in its middle; the third between shift and backspace.
+  // The first two rows stand on a grid of ten keys (eleven for QWERTZ), a shorter one in its middle; the third between
+  // shift and backspace.
   const int side = (3 * kwid + g) / 2;
-  const int x_of[3] = {x0 + (10 - lay.rows[0]) * (kwid + g) / 2, x0 + (10 - lay.rows[1]) * (kwid + g) / 2,
+  const int x_of[3] = {x0 + (cols - lay.rows[0]) * (kwid + g) / 2, x0 + (cols - lay.rows[1]) * (kwid + g) / 2,
                        x0 + side + g + ((inner - 2 * side - 2 * g) - (lay.rows[2] * kwid + (lay.rows[2] - 1) * g)) / 2};
   auto row = [&](int r) {
     const int n = r == 0 ? 0 : r == 1 ? lay.rows[0] : lay.rows[0] + lay.rows[1];

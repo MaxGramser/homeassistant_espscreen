@@ -57,7 +57,8 @@ names offered as its suggestions, and an item's 120 bytes. It is a sheet at the 
 16.5 cm, with keys of at most 9 mm; on glass too short to keep the list above it, it takes the whole glass, so its keys
 stay at least 6.5 mm high.
 
-- One layout, QWERTY, with a page of digits (`123`) and a page of signs (`#+=`).
+- The layout of the screen's language, QWERTZ on a screen built in German and QWERTY on every other (docs/KEYBOARD.md,
+  "The layout of a screen"), with a page of digits (`123`) and a page of signs (`#+=`).
 - Holding a letter shows its accents in a strip above it (é è ê ë for e); a tap takes one.
 - The first letter of an item is a capital, and holding backspace keeps erasing.
 - The row of offered names keeps its room while the list has names to offer, so the keys never move while you type.

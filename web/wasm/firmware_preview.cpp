@@ -10,6 +10,7 @@
 #include "../../components/smart_display/runtime_tiles.h"
 #include "../../components/smart_display/renderer_host_api.h"
 #include "../../components/smart_display/plugin_host.h"
+#include "../../components/smart_display/keyboard.h"
 #include "generated/firmware_renderer_manifest.h"
 #include "generated/profiles.h"
 #include "generated/text.h"
@@ -191,9 +192,11 @@ const char *preview_next_setting() {
   return preview_settings_host::last_action.c_str();
 }
 // The language ESP Screens builds the screens in (app 0.4.86): its code ("nl", "pt-BR"), else its base language,
-// else English, as a build of that code would carry. 1 when the code or its base has a table of its own.
+// else English, as a build of that code would carry. 1 when the code or its base has a table of its own. The keyboard
+// takes the layout a build in that language has (keyboard::layout_for: QWERTZ for German).
 int preview_language(const char *code) {
   const bool own = screen_text::choose(code);
+  keyboard::shown_layout() = keyboard::layout(keyboard::layout_for(code));
   if (runtime_tiles::enabled) theme::redraw();
   return own ? 1 : 0;
 }
