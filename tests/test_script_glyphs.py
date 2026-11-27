@@ -44,15 +44,16 @@ class FirmwareLetters(unittest.TestCase):
 
     def test_the_letters_go_only_into_a_screen_built_in_such_a_language(self):
         expression = re.search(r"(?m)^  SCRIPT_GLYPHS: '(.*)'$", CORE).group(1)
-        for language, carried in (('en', ''), ('nl', ''), ('pt-BR', ''), ('ru', core_list('cyrillic'))):
-            with self.subTest(language=language):
-                values = {'LANGUAGE': language, 'SCRIPT_GLYPHS_CYRILLIC': core_list('cyrillic')}
-                self.assertEqual(profiles.resolve(expression, values), carried)
+        for language, carried in (('en', ''), ('nl', ''), ('pt-BR', ''), ('ru', core_list('cyrillic')), ('el', core_list('greek'))):
+    with self.subTest(language=language):
+        values = {'LANGUAGE': language, 'SCRIPT_GLYPHS_CYRILLIC': core_list('cyrillic'), 'SCRIPT_GLYPHS_GREEK': core_list('greek')}
+        self.assertEqual(profiles.resolve(expression, values), carried)
+
 
     def test_the_languages_it_takes_are_the_cyrillic_translation_files(self):
         named = set(re.findall(r'"([a-z]{2,3})"', re.search(r'(?m)^  SCRIPT_GLYPHS: (.*)$', CORE).group(1)))
         files = {path.stem for path in (ROOT / 'screen_manager/translations').glob('*.json')
-                 if json.loads(path.read_text(encoding='utf-8')).get('_meta', {}).get('script') == 'cyrillic'}
+         if json.loads(path.read_text(encoding='utf-8')).get('_meta', {}).get('script') in ('cyrillic', 'greek')}
         self.assertEqual(named, files)
 
 

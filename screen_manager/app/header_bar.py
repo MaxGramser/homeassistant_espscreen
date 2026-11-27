@@ -123,7 +123,10 @@ ALARM_CLASSES = frozenset(['battery', 'carbon_monoxide', 'gas', 'heat', 'lock', 
 # The letters of a language written in another script, which a screen built in that language carries beside GLYPHS
 # (packages/core.yaml's SCRIPT_GLYPHS_<SCRIPT>, a test keeps the two equal; docs/TRANSLATING.md, "Letters"): its
 # translation file's `_meta.script` names the list.
-SCRIPT_GLYPHS = {'cyrillic': frozenset('АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№')}
+SCRIPT_GLYPHS = {
+    'greek': frozenset('ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏάέήίόύώΐΰϊϋς'),
+    'cyrillic': frozenset('АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№'),
+}
 
 def clean_text(text):
     """Text the screen can draw: known glyphs, the letters of its language's own script, accents folded to the base

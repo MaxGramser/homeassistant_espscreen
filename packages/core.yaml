@@ -28,8 +28,12 @@ substitutions:
   # flash on them. One list per script with the letters its languages here write (Russian's now), the same letters as
   # header_bar.SCRIPT_GLYPHS in the add-on (a test keeps the two equal), and the languages that take it, those whose
   # translation file says `"script": "cyrillic"` (a test as well).
+  SCRIPT_GLYPHS_GREEK: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏάέήίόύώΐΰϊϋς"
   SCRIPT_GLYPHS_CYRILLIC: "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№"
-  SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.split("-")[0] in ["ru"] else "" }'
+  SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.startswith("ru") else (SCRIPT_GLYPHS_GREEK if LANGUAGE.startswith("el") else "") }'
+
+
+
   # Swipe between pages on a screen that has stored no choice of its own: off, as every screen set up before had it, so
   # an update changes nothing there. New screen writes "1" into a new screen's own YAML, which then swipes and opens the
   # Dock out of the box. Once the screen stores a choice (any change of a setting), that choice wins. Keep "0" here.
