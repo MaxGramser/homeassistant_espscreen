@@ -181,8 +181,8 @@ inline int climate_card_mode_keys=0;  // how many mode keys the open card has
 // The power key: lit while the device runs in any mode.
 inline void climate_power_paint(lv_obj_t *key,const Tile &t,const CardPart &){
   const bool off=tile_controls::climate_off(t);
-  set_color(key,LV_STYLE_BG_COLOR,theme::color(off?theme::KEY:theme::ACCENT_TINT));
-  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(off?theme::ICON_OFF:theme::ACCENT_ICON));
+  theme::ground(key,off?theme::KEY:theme::KEY_ON);
+  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(off?theme::ICON_OFF:theme::KEY_ON_ICON));
 }
 // The number between - and +: the value being set, grey while the device is off.
 inline void climate_number_paint(lv_obj_t *number,const Tile &t,const CardPart &){
@@ -268,8 +268,8 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
   // The power key, across from the back key: lit while the device runs in any mode. It is there while it can do
   // something (tile_controls::climate_power): a card is built again when that changes (climate_shape).
   climate_card_mode_keys=0;
-  if(tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,off?theme::KEY:theme::ACCENT_TINT,
-                              off?theme::ICON_OFF:theme::ACCENT_ICON,CLIMATE_POWER),t,climate_power_paint);
+  if(tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,off?theme::KEY:theme::KEY_ON,
+                              off?theme::ICON_OFF:theme::KEY_ON_ICON,CLIMATE_POWER),t,climate_power_paint);
   if(!l.status.empty()){
     detail_status=card_bind(detail_text(detail_root,"",l.status.x,l.status.y,l.status.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED),t,card_status_paint);
   }

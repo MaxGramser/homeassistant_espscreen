@@ -198,15 +198,19 @@ int main() {
       assert(hex(words) == ink_tone);
     // The accent is ink and what stands on it paper: a chosen segment, a toggle's knob.
     assert(hex(ACCENT) == ink_tone && hex(ON_ACCENT) == paper_tone && hex(KNOB) == paper_tone);
-    // A track and what marks a chosen row are a tone between the two, never the ink that words on them are.
-    for (Role shade : {TRACK, ACCENT_TINT, TOGGLE_OFF, SPINNER_TRACK})
-      assert(hex(shade) != paper_tone && hex(shade) != ink_tone);
+    // What carries a glyph, a word or a knob is paper with a rim of ink, never a raster a glyph falls away into; a key
+    // that is on is a disc of ink with its glyph left open.
+    for (Role ground : {KEY, TRACK, ACCENT_TINT, TOGGLE_OFF, STEPPER_KEY, KNOB})
+      assert(hex(ground) == paper_tone && rimmed(ground));
+    assert(hex(KEY_ON) == ink_tone && hex(KEY_ON_ICON) == paper_tone && !rimmed(KEY_ON));
+    // An arc's track and a chart's grid carry nothing: a tone between the two.
+    for (Role shade : {SPINNER_TRACK, GRID}) assert(hex(shade) != paper_tone && hex(shade) != ink_tone);
     // A tile that is on is a disc of ink with its glyph left open; off is the glyph alone, in ink on the card.
     assert(disc(ha::AMBER) == ink_tone && on_disc(ha::AMBER) == paper_tone);
     assert(disc(STATE_OFF) == paper_tone && on_disc(STATE_OFF) == ink_tone);
     assert(disc(ha::AMBER) != disc(STATE_OFF));
     // A slider's fill is ink on a track that is not, for any colour of lamp or blind.
-    for (uint32_t accent : {ha::AMBER, ha::PURPLE, ha::CYAN, STATE_OFF}) assert(track(accent) != ink_tone && track(accent) != paper_tone);
+    for (uint32_t accent : {ha::AMBER, ha::PURPLE, ha::CYAN, STATE_OFF}) assert(track(accent) != ink_tone);
     assert(state(ha::AMBER) == ink_tone && state(ha::RED) == ink_tone && foreground(ha::INDIGO) == ink_tone);
     assert(state(STATE_OFF) == hex(OFF) && hex(OFF) != ink_tone && hex(OFF) != paper_tone);
     // A glyph without a disc of its own is always ink, never the open glyph of a disc that is not there.

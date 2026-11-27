@@ -99,7 +99,7 @@ inline void render_remote_keypad(const Tile &t,bool large,int width,int height,i
 }
 inline void render_remote_detail(const Tile &t,bool large,int width,int height,int pad,int top,int bar,int bar_x,int bar_y){
   const bool on=t.state=="on";
-  const auto fill=on?theme::ACCENT_TINT:theme::KEY,ink=on?theme::ACCENT_ICON:theme::ICON_OFF;
+  const auto fill=on?theme::KEY_ON:theme::KEY,ink=on?theme::KEY_ON_ICON:theme::ICON_OFF;
   if(!t.extra().keypad.empty()){
     // A remote whose keys Home Assistant's integration names: its keypad, the power key in the top bar.
     if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}

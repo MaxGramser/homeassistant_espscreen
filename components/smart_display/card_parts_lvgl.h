@@ -159,7 +159,7 @@ inline bool detail_status_brief=false;
 inline lv_obj_t *climate_round_key(const climate_card::Rect &r,const char *icon,const lv_font_t *font,theme::Role fill,theme::Role ink,int command){
   auto *key=detail_button("",r.x,r.y,r.w,r.h,command);
   lv_obj_set_style_radius(key,LV_RADIUS_CIRCLE,0);
-  lv_obj_set_style_bg_color(key,theme::color(fill),0);
+  theme::ground(key,fill);
   lv_obj_set_style_bg_color(key,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
   auto *glyph=lv_obj_get_child(key,0);
   if(font)lv_obj_set_style_text_font(glyph,font,0);

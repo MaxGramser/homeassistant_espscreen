@@ -38,13 +38,9 @@ class PaperGlass : public display::Display {
   void draw_pixel_at(int x, int y, Color color) override;
   void fill(Color color) override;
   display::DisplayType get_display_type() override { return this->panel_->get_display_type(); }
-  int get_width() override { return this->panel_->get_width(); }
-  int get_height() override { return this->panel_->get_height(); }
-  void set_rotation(display::DisplayRotation rotation) override {
-    display::Display::set_rotation(rotation);
-    this->panel_->set_rotation(rotation);
-  }
-  bool pixel_axes_swapped() const override { return this->panel_->pixel_axes_swapped(); }
+  // The panel is never turned: LVGL turns what it draws and what a finger touches (display.py).
+  int get_width() override { return this->panel_->get_native_width(); }
+  int get_height() override { return this->panel_->get_native_height(); }
 
  protected:
   void draw_pixels_internal(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorBitness bitness,

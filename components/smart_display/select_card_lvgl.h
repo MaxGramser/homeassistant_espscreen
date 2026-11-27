@@ -21,8 +21,8 @@ inline void select_pager_step(int step){
 // A power key in a card's top bar (light, fan, remote, switch): lit while the entity is on.
 inline void power_key_paint(lv_obj_t *key,const Tile &t,const CardPart &){
   const bool on=t.state=="on";
-  set_color(key,LV_STYLE_BG_COLOR,theme::color(on?theme::ACCENT_TINT:theme::KEY));
-  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(on?theme::ACCENT_ICON:theme::ICON_OFF));
+  theme::ground(key,on?theme::KEY_ON:theme::KEY);
+  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(on?theme::KEY_ON_ICON:theme::ICON_OFF));
 }
 // ---- The select card's parts (docs/CARD_PARTS.md), also a remote's activities ----
 // The option the card shows as chosen: a select's state, a remote's activity while it is on.

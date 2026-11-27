@@ -66,6 +66,8 @@ enum Role : uint8_t {
   ACCENT_TINT,          // pale blue: a choice under a finger, the value card's track, climate power on
   ACCENT_ICON,          // the climate power icon while on
   ICON_OFF,             // the climate power icon while off
+  KEY_ON,               // a round key that is on: the power key of a light, a fan, a thermostat, a remote
+  KEY_ON_ICON,          // the glyph on it
   BUTTON_DARK,          // the alert's key
   BUTTON_DARK_PRESSED,
   // ---- drawings
@@ -197,6 +199,8 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* ACCENT_TINT */              {0xD5EEFC, 0x12384A},
   /* ACCENT_ICON */              {0x0B6E99, 0x6CCBF5},
   /* ICON_OFF */                 {0x8A8A8A, 0x7A7A7A},
+  /* KEY_ON */                   {0xD5EEFC, 0x12384A},
+  /* KEY_ON_ICON */              {0x0B6E99, 0x6CCBF5},
   /* BUTTON_DARK */              {0x1B1B1B, 0x484848},
   /* BUTTON_DARK_PRESSED */      {0x3A3A3C, 0x585858},
   /* ROBOT_BODY */               {0xFFFFFF, 0x383D42},
@@ -290,13 +294,34 @@ inline constexpr InkOf INKS[] = {
   // The accent is ink, and what stands on it is paper: a chosen segment, a toggle that is on, a key that acts.
   {ACCENT, Ink::INK}, {ACCENT_PRESSED, Ink::INK}, {ACCENT_BRIGHT, Ink::INK}, {ACCENT_ICON, Ink::INK},
   {BUTTON_DARK, Ink::INK}, {BUTTON_DARK_PRESSED, Ink::INK}, {ON_ACCENT, Ink::PAPER}, {KNOB, Ink::PAPER},
-  // A track, an empty toggle and what marks a chosen row carry no words: the lighter tone, which reads as a shade.
-  {TRACK, Ink::SOFT}, {GRID, Ink::SOFT}, {TOGGLE_OFF, Ink::SOFT}, {SWITCH_OFF, Ink::SOFT}, {PANEL_TOGGLE_OFF, Ink::SOFT},
-  {PANEL_TOGGLE_OFF_PRESSED, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {ACCENT_TINT, Ink::SOFT}, {AMBER_TRACK, Ink::SOFT},
-  {HISTORY_OFF, Ink::SOFT},
+  // A key that is on is a disc of ink with its glyph left open, as a tile that is on is.
+  {KEY_ON, Ink::INK}, {KEY_ON_ICON, Ink::PAPER},
+  // What carries a glyph, a word or a knob is paper, never a raster: a glyph on a raster falls away into it (seen on
+  // the Sticky, 2026-11-27: the - and + of a thermostat). Its shape comes from a rim of ink (rimmed, below).
+  {TRACK, Ink::PAPER}, {TOGGLE_OFF, Ink::PAPER}, {SWITCH_OFF, Ink::PAPER}, {PANEL_TOGGLE_OFF, Ink::PAPER},
+  {PANEL_TOGGLE_OFF_PRESSED, Ink::PAPER}, {ACCENT_TINT, Ink::PAPER}, {AMBER_TRACK, Ink::PAPER},
+  {KEY, Ink::PAPER}, {KEY_PRESSED, Ink::PAPER}, {STEPPER_KEY, Ink::PAPER}, {STEPPER_KEY_PRESSED, Ink::PAPER},
+  {BUTTON, Ink::PAPER}, {SETTING_KEY, Ink::PAPER}, {SETTING_KEY_PRESSED, Ink::PAPER}, {RAISED, Ink::PAPER},
+  {CARD, Ink::PAPER}, {CARD_PRESSED, Ink::PAPER}, {PAGE, Ink::PAPER}, {PAGE_SOFT, Ink::PAPER}, {PAGE_PRESSED, Ink::PAPER},
+  // Lines and arcs with nothing on them: the lighter tone, which reads as a shade.
+  {GRID, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {HISTORY_OFF, Ink::SOFT},
   // Not there: the darker tone, a glyph or a mark that still shows but does not read as ink.
   {OFF, Ink::FIRM}, {TICK, Ink::FIRM},
 };
+
+// The grounds that are paper on paper and would be no shape there without a line around them: a key, a track, an empty
+// toggle, a knob, the mark of a chosen row. theme::ground() (the LVGL half) and the paints draw that rim.
+constexpr int PAPER_RIM = 2;  // pixels of ink around such a ground
+constexpr bool rimmed(Role role) {
+  switch (role) {
+    case KEY: case KEY_PRESSED: case TRACK: case TOGGLE_OFF: case SWITCH_OFF: case PANEL_TOGGLE_OFF:
+    case PANEL_TOGGLE_OFF_PRESSED: case ACCENT_TINT: case AMBER_TRACK: case STEPPER_KEY: case STEPPER_KEY_PRESSED:
+    case BUTTON: case SETTING_KEY: case SETTING_KEY_PRESSED: case KNOB:
+      return true;
+    default:
+      return false;
+  }
+}
 
 // The look on screen (screen_dark): the board sets it through set_dark() (below) from the Dark mode setting. And the look
 // the table and the helpers read (dark): the screen's, except while a card is painted that carries the other look (a
@@ -655,6 +680,20 @@ struct LookOf { explicit LookOf(const lv_obj_t *) {} };  // no card carries anot
 #endif
 
 inline lv_color_t color(Role role) { return lv_color_hex(hex(role)); }
+// A line of ink around an object, on paper alone: what makes a ground of paper a shape (rimmed). `on` false takes it
+// off again, for a ground that became ink.
+inline void rim(lv_obj_t *o, bool on, lv_style_selector_t selector = 0) {
+  if (!paper || !o) return;
+  lv_obj_set_style_border_width(o, on ? PAPER_RIM : 0, selector);
+  lv_obj_set_style_border_color(o, lv_color_hex(hex(INK)), selector);
+  lv_obj_set_style_border_opa(o, LV_OPA_COVER, selector);
+}
+// An object's ground in a role: its colour, and on paper the rim such a ground needs. For a key, a disc, a track; a
+// ground that is a paint of the board profile gets the same through fill().
+inline void ground(lv_obj_t *o, Role role, lv_style_selector_t selector = 0) {
+  lv_obj_set_style_bg_color(o, lv_color_hex(hex(role)), selector);
+  rim(o, rimmed(role), selector);
+}
 inline lv_color_t rgb(uint32_t value) { return lv_color_hex(value); }
 // The colour an object draws with, as the 24-bit value the table speaks in (what the media card names as the colour
 // behind its cover's corners).
@@ -706,6 +745,12 @@ inline void fill_in(lv_style_t *style, Paint paint, bool in_dark) {
   if (p.text != NONE) lv_style_set_text_color(style, in(p.text));
   if (p.line != NONE) lv_style_set_line_color(style, in(p.line));
   if (p.arc != NONE) lv_style_set_arc_color(style, in(p.arc));
+  // On paper a ground that is paper takes its rim with it (rimmed), unless the paint names a line of its own.
+  if (paper && p.bg != NONE && p.border == NONE && rimmed(static_cast<Role>(p.bg))) {
+    lv_style_set_border_color(style, lv_color_hex(hex_in(INK, in_dark)));
+    lv_style_set_border_width(style, PAPER_RIM);
+    lv_style_set_border_opa(style, LV_OPA_COVER);
+  }
 }
 // A shared style and its copy in the other look (docs/THEME.md "A card's look"): every style a paint fills is
 // remembered with its paint; the copy is made the first time a card in the other look needs it, so a board without
@@ -777,6 +822,11 @@ inline void fill(lv_style_t *style, Paint paint) {
   if (p.text != NONE) lv_style_set_text_color(style, color(static_cast<Role>(p.text)));
   if (p.line != NONE) lv_style_set_line_color(style, color(static_cast<Role>(p.line)));
   if (p.arc != NONE) lv_style_set_arc_color(style, color(static_cast<Role>(p.arc)));
+  if (paper && p.bg != NONE && p.border == NONE && rimmed(static_cast<Role>(p.bg))) {
+    lv_style_set_border_color(style, color(INK));
+    lv_style_set_border_width(style, PAPER_RIM);
+    lv_style_set_border_opa(style, LV_OPA_COVER);
+  }
 }
 // The board profile's styles and the paint of each, as fill() calls. Set and run once in on_boot.
 inline void (*paints)() = nullptr;

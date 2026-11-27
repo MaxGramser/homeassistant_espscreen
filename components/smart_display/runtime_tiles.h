@@ -2546,6 +2546,8 @@ inline void render_slot(size_t slot) {
   }
   set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
+  // On paper a disc that is not ink is a ring: a glyph alone on the card is too little to read as a tile's icon.
+  theme::rim(w.circle,!w.key&&(!available||theme::disc(state_color)!=theme::hex(theme::INK)));
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
   if(w.key){

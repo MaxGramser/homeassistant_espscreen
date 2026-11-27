@@ -215,7 +215,7 @@ static uint32_t accent() { return theme::hex(theme::ACCENT); }
 static lv_obj_t *round_key(lv_obj_t *parent, int x, int y, int size, const char *mark, lv_event_cb_t handler, intptr_t user, bool enabled = true) {
   auto *key = plain(parent, x, y, size, size);
   lv_obj_set_style_bg_opa(key, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(key, theme::color(theme::KEY), 0);
+  theme::ground(key, theme::KEY);
   lv_obj_set_style_bg_color(key, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
   lv_obj_set_style_radius(key, LV_RADIUS_CIRCLE, 0);
   auto *label = glyph(key, 0, mark, icons(), theme::hex(enabled ? theme::INK : theme::SUBTLE));
