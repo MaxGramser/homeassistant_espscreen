@@ -29,7 +29,6 @@ substitutions:
   SCREEN_MAX_BAR_ITEMS: "12"
   LVGL_BUFFER_SIZE: "12%"
   TOUCH_CONTROLLER: "CST9217"
-  # Bench observation (2026-11-26, one unit): taps landed on the diagonally opposite tile. The CST9217 lies a half turn
-  # against the glass; this is the controller's fixed orientation, not the user-facing Rotation setting (LVGL's).
+  # The CST9217 is mounted a half turn against the glass. LVGL applies the user-facing Rotation setting separately.
   TOUCH_MIRROR_X: "true"
   TOUCH_MIRROR_Y: "true"

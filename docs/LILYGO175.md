@@ -4,8 +4,9 @@ Experimental support for the **H0175Y003AM**, with a round 466 × 466 CO5300 pan
 It has an ESP32-S3, 16 MB flash and 8 MB octal PSRAM. The 1.75 inches measure the diameter, giving about 266 dpi.
 This profile does not apply to LILYGO's rectangular AMOLED boards or its 1.43-inch round board.
 
-The board has not yet passed physical acceptance. Configuration, a firmware build and native renderer tests establish
-software behavior; they do not establish panel initialization, power, brightness, wake or touch alignment on the unit.
+Hardware testing confirmed native display output, taps, a hold to open Settings, and edge swipes at 0°. After an OTA
+update with the brightness fix, the Classic clock stayed visible at 50% standby brightness. Lower brightness levels,
+touch at other rotations and repeated standby and wake still need hardware testing.
 
 ## Layout and controls
 
@@ -58,7 +59,7 @@ contains the hardware configuration, following the
 | Panel/touch power | GPIO 16, enabled before display setup |
 | CST9217 | SDA 7, SCL 6, IRQ 9, address `0x5A`, ESPHome `cst9220` driver |
 | Display RAM window | 466 × 466, column offset 6, row offset 0 |
-| Brightness | CO5300 controller command through the existing backlight output |
+| Brightness | Standby, night and normal brightness map directly to the CO5300's 8-bit level |
 
 The six-column offset belongs to the display RAM window. It is not a touch calibration offset.
 

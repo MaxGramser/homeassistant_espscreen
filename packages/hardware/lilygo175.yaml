@@ -56,8 +56,12 @@ display:
     auto_clear_enabled: false
     update_interval: never
 
-# AMOLED brightness is a controller command, not a PWM backlight pin. The shared backlight feature keeps its
-# existing entity, standby/night behaviour and action path; only its hardware output differs.
+# Map brightness to the CO5300's 8-bit level. The PWM light's default gamma of 2.8 sends only 2/255 at
+# 20% standby brightness, leaving the clock too dim to see. A level of 0 still turns the panel dark.
+light:
+  - id: !extend back_light
+    gamma_correct: 1.0
+
 output:
   - platform: template
     id: gpio_backlight_pwm
