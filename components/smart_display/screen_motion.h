@@ -19,6 +19,7 @@
 #include <functional>
 
 #include "glass.h"
+#include "glass_kind.h"
 #include "hw.h"
 #include "lvgl.h"
 #include "sheet_motion.h"
@@ -32,7 +33,7 @@ inline bool able() { return hw::caps().motion; }
 // The other end of the same rule (hw.h, docs/PAPER.md "A still glass"): a glass of ink prints, and a print takes a
 // part of a second, so nothing on it moves. Whoever draws again by itself, once a second or once a frame, asks still()
 // and does it at a pace a print keeps up with (still_glass.h) or not at all.
-inline bool still() { return hw::caps().still; }
+GLASS_KIND_ANSWER bool still() { return glass_kind::still(); }
 // An animation, started the way this glass does it: LVGL's own on a glass that is lit. On a still glass it does not
 // run: what would run for ever (a heartbeat, a ring that turns) is left standing as it was made, and what would end
 // stands at its end at once, with its last call made, so whatever the end hides or opens still happens. An animation

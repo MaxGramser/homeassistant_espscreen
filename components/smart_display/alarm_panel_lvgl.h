@@ -480,13 +480,13 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
   int d=std::min(std::min(l.hero.w,l.hero.h)-2*(ring_w+ring_gap)-ui::px(large?10:6),icon_h*5/2);
   d=std::max(d,icon_h+ui::px(8));
   const int cx=l.hero.cx(),cy=l.hero.cy();
-  // On paper the disc says the state by its shape, as a tile's does (theme::disc): armed is a disc of ink with the
-  // glyph left open, disarmed the glyph in a ring. A pale disc would be a raster under the glyph.
-  auto *circle=detail_shape(detail_root,cx-d/2,cy-d/2,d,d,!available?theme::hex(theme::TRACK):theme::paper?theme::disc(colour):theme::tint(theme::state(colour),38),d/2);
-  theme::rim(circle,!available||colour==theme::STATE_OFF);
+  // The disc that says the state (theme::state_disc): armed is the one it stands for.
+  const theme::Dress hero=theme::state_disc(colour,available,colour!=theme::STATE_OFF);
+  auto *circle=detail_shape(detail_root,cx-d/2,cy-d/2,d,d,hero.ground,d/2);
+  theme::rim(circle,hero.rim>0);
   if(icons){
     auto *icon=detail_text(circle,t.icon.empty()?alarm_panel::icon(t.state):t.icon.c_str(),0,(d-icon_h)/2,d,icons,LV_TEXT_ALIGN_CENTER,
-                           !available?theme::hex(theme::OFF):theme::paper?theme::on_disc(colour):theme::icon(theme::state(colour)));
+                           hero.ink);
     if(t.state=="triggered"&&awake()){
       lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,icon);lv_anim_set_values(&a,0,1000);lv_anim_set_duration(&a,1000);
       lv_anim_set_custom_exec_cb(&a,alarm_swing_exec);lv_anim_set_user_data(&a,(void *)(intptr_t)std::max(2,icon_h/10));
@@ -515,9 +515,9 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
     auto *key=detail_button("",r.x,r.y,r.w,r.h,ALARM_MODE_FIRST+(int)mode);
     lv_obj_set_style_radius(key,r.h/2,0);
     const uint32_t mode_colour=mode==DISARM?theme::STATE_OFF:GREEN;
-    lv_obj_set_style_bg_color(key,current?(theme::paper?theme::color(theme::KEY_ON):lv_color_hex(theme::state(mode_colour))):theme::color(theme::CARD),0);
+    lv_obj_set_style_bg_color(key,current?lv_color_hex(theme::chosen(theme::state(mode_colour))):theme::color(theme::CARD),0);
     lv_obj_set_style_bg_color(key,theme::color(theme::KEY),LV_STATE_PRESSED);
-    lv_obj_set_style_border_width(key,current?0:theme::paper?theme::PAPER_RIM:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
+    lv_obj_set_style_border_width(key,current?0:theme::hairline(),0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
     alarm_key_face(key,MODES[mode].icon,alarm_mode_text(mode),key_icons,text,
                    current?theme::color(theme::ON_ACCENT):theme::color(theme::INK),r.w,r.h);
     // The icon in the mode's colour on a white key, as Home Assistant colours its choices.

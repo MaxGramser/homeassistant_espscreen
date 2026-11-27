@@ -86,7 +86,10 @@ A panel of e-paper is a glass of another kind, and none of the above holds for i
 write, no lock and no rooms. Its glass is the paper glass (`components/paper_glass/`), a display platform that stands
 between LVGL and ESPHome's `epaper_spi` driver: every pixel LVGL flushes becomes one of the panel's inks
 (`paper_ink.h`), and a printer decides when the panel refreshes and whether it refreshes a part or all of itself
-(`paper_print.h`). The firmware reaches it through `paper_screen.h`, whose calls are empty on every other screen.
+(`paper_print.h`). The firmware reaches it through `glass_kind.h`: the kind of glass, with what follows from it under
+its own name (`ink`, `still`, `keeps`, `lit`), and the moments the screen tells its glass, which are empty calls on
+every other screen. What differs between the two kinds of glass differs in one layer, the theme's parts and their
+two stylesheets, and no card asks which glass it is on (docs/GLASS_KINDS.md, `tests/test_glass_kinds.py`).
 Detail: docs/PAPER.md; tests: `tests/test_paper_ink.cpp`, `tests/test_paper_print.cpp`.
 
 ### 3. The picture engine: decode, scale, turn
@@ -154,7 +157,7 @@ record, so nothing infers a capability from a board. Detail: docs/PLATFORM_PLAN.
 `tests/test_hw.py`.
 
 The record also says what kind of glass this is. `inks` is how many inks the panel prints with: 0 on a glass that is
-lit and shows colours, 2 for black and white, 4 for four greys (the paper glass's, `paper::inks`). `still` is true on
+lit and shows colours, 2 for black and white, 4 for four greys (`glass_kind::inks()`). `still` is true on
 a glass of ink: a change there is a print that takes a part of a second, so nothing on it runs by itself, and it has
 no `motion` whatever else the build has. The firmware asks it in one place, `screen_motion::still()`, and the hello
 carries `inks`. Detail: docs/PAPER.md, "A still glass".

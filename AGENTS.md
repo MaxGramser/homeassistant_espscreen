@@ -53,6 +53,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change the alarm panel's card, the keypad for a code, or what the screens do when it goes off | docs/ALARM_PANEL.md | `alarm_panel.h`, `alarm_panel_lvgl.h`, `screen_manager/app/alarm_screens.py` |
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
+| change what differs between a glass that is lit and a glass of ink, or add a part a card asks for (a disc that says a state, a mark, a part that waits) | docs/GLASS_KINDS.md | `glass_kind.h`, `theme_parts.h`, `theme_lit.h`, `theme_ink.h`, `tests/test_glass_kinds.py` |
 | give a board a glass of e-paper, or change how one prints, its inks or a slider on it | docs/PAPER.md | `components/paper_glass/`, `still_glass_lvgl.h`, `level_bar.h`, the ink table in `theme.h` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
@@ -123,6 +124,12 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   buffer past LVGL is a live picture in its own room and the veil, and never without the glass knowing.
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
+- **One layer for the kind of glass** (docs/GLASS_KINDS.md): a card says what a thing is and never asks which glass
+  it is on. The kind of glass is one fact in `glass_kind.h`; a colour, a ground or a strength that differs between a
+  lit glass and a glass of ink is a part of `theme_parts.h` with a form in each stylesheet (`theme_lit.h`,
+  `theme_ink.h`), and what moves asks `screen_motion::still()`. Never write `if` on the glass in a card: add the part.
+  `tests/test_glass_kinds.py` fails on it, and the host render's ink audit fails a picture of a paper board in which
+  a glyph or a word stands on a raster or on a picture.
 - **A still glass** (docs/PAPER.md): a glass of ink shows no state by colour alone and runs nothing by itself. On paper
   a role is a tone of the theme's ink table and a state is a shape (a disc of ink, a ring, a rim), and a change is a
   print the printer times, never a frame. A control is made as on any screen and takes its still form from the pass

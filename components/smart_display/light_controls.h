@@ -389,7 +389,8 @@ inline void paint(const Values &v, bool fresh_card) {
                          clamp(v.brightness, 1, 100)};
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i];
-    if (row.count) {
+    // Only a still glass has the keys (setup): asked first, so a glass that moves carries none of what paints them.
+    if (screen_motion::still() && row.count) {
       // Named keys: the name nearest to what the light has; a white shade waits for the light's own range.
       if (i == 0) {
         lv_label_set_text(row.value, "");

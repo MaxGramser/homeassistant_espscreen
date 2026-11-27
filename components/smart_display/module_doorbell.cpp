@@ -402,10 +402,10 @@ void build(lv_obj_t *root, const std::string &name) {
   lv_obj_set_pos(halo, home.x - grow, home.y - grow);
   lv_obj_set_size(halo, home.w + 2 * grow, home.h + 2 * grow);
   lv_obj_set_style_radius(halo, LV_RADIUS_CIRCLE, 0);
-  // On paper the amber is a raster: the disc and its ring are the view's own ink, with the glyph left open in it.
-  lv_obj_set_style_border_color(halo, theme::color(theme::paper ? theme::CAMERA_INK : theme::MARK_AMBER), 0);
+  // The disc and its ring are a mark on the dark stage (theme::stage_mark), the ring a little fainter (theme::whole).
+  lv_obj_set_style_border_color(halo, lv_color_hex(theme::stage_mark(theme::MARK_AMBER)), 0);
   lv_obj_set_style_border_width(halo, std::max(2, ui::px(3)), 0);
-  lv_obj_set_style_border_opa(halo, theme::paper ? LV_OPA_COVER : LV_OPA_60, 0);
+  lv_obj_set_style_border_opa(halo, theme::whole(LV_OPA_60), 0);
   lv_obj_remove_flag(halo, LV_OBJ_FLAG_CLICKABLE);
   disc = lv_obj_create(root);
   lv_obj_remove_style_all(disc);
@@ -413,7 +413,7 @@ void build(lv_obj_t *root, const std::string &name) {
   lv_obj_set_size(disc, home.w, home.h);
   lv_obj_set_style_radius(disc, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_style_bg_opa(disc, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(disc, theme::color(theme::paper ? theme::CAMERA_INK : theme::MARK_AMBER), 0);
+  lv_obj_set_style_bg_color(disc, lv_color_hex(theme::stage_mark(theme::MARK_AMBER)), 0);
   lv_obj_remove_flag(disc, LV_OBJ_FLAG_CLICKABLE);
   auto *glyph = lv_label_create(disc);
   if (detail_bar::icon_font) lv_obj_set_style_text_font(glyph, detail_bar::icon_font, 0);
@@ -634,7 +634,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
-  paper::news(now);  // someone is at the door: a glass of ink prints it at once (paper_print.h)
+  glass_moment::news(now);  // someone is at the door (a glass of ink prints it at once, paper_print.h)
   untouched_ms = doorbell_ring::untouched_ms(untouched_s);
   const auto what = doorbell_ring::ring(active && camera_root && camera.entity == camera_entity &&
                                             doorbell_door::kind_of(door_kind) == door.kind,

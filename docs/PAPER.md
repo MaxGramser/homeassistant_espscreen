@@ -17,11 +17,17 @@ stood there. ESPHome's own e-paper driver also cuts every colour to the nearest 
 So paper gets a layer of its own between LVGL and the driver, which turns colours into inks and decides when the panel
 refreshes, and three small rules above it: the theme names tones instead of colours, LVGL's own widgets take a form
 that needs no motion, and the standby is rest instead of dark. Nothing that makes a tile or a card asks which glass it
-is on.
+is on: docs/GLASS_KINDS.md is the map of where a glass that is lit and a glass of ink part, the parts a card asks
+for instead, and the tests that hold it.
 
 ## The three seams
 
 Paper uses seams the firmware already had (docs/ARCHITECTURE.md), and adds no fourth.
+
+- **The kind of glass.** `glass_kind.h` reads the panel's inks from the paper glass and names what follows, each for
+  the part that depends on it: `ink` (the theme), `still` (motion), `keeps` (standby), `lit` (the settings). No other
+  file asks which glass this is (`tests/test_glass_kinds.py`), and in a build without a paper glass every answer is
+  a constant, so a lit board carries none of the ink.
 
 - **The glass, per panel kind.** `components/paper_glass/` is a display platform, `paper_glass`: the display LVGL draws
   on (`my_display`), wrapped around a display of ESPHome's `epaper_spi`, which stays ESPHome's own, untouched: its
@@ -29,17 +35,17 @@ Paper uses seams the firmware already had (docs/ARCHITECTURE.md), and adds no fo
   any chip, no direct glass and no streams (`engine_build.py`, `picture_engine(..., paper=True)`;
   `tests/test_live_view.py`).
 - **The capability record.** `hw::caps()` carries `inks` (0 on a glass that is lit and shows colours, 2 for black and
-  white, 4 for four greys) and `still` (true on a glass of ink: a change is a print, so nothing on it runs by itself).
-  A glass of ink has no `motion`, whatever else the build has. The hello to the app carries `inks`
-  (`hw.cpp`; `tests/test_hw.cpp`).
-- **Theme, motion and standby.** `theme.h` has an ink table beside its colour table. `screen_motion.h`, which does the
-  plain thing on a glass without motion as it does on a CYD, also holds the other end of its rule: on a still glass
-  nothing moves (`still()`, `start()`). And `screen_standby.h` knows a glass that keeps its picture.
+  white, 4 for four greys) and `still`, for the app and the plugins. A glass of ink has no `motion`, whatever else
+  the build has. The hello to the app carries `inks` (`hw.cpp`; `tests/test_hw.cpp`).
+- **Theme, motion and standby.** `theme.h` has an ink table beside its colour table, and every part a card is made
+  of has a form for each glass (`theme_parts.h`, with `theme_lit.h` and `theme_ink.h`). `screen_motion.h`, which
+  does the plain thing on a glass without motion as it does on a CYD, also holds the other end of its rule: on a
+  still glass nothing moves (`still()`, `start()`). And `screen_standby.h` knows a glass that keeps its picture.
 
 ```
   ┌──────────────────────────────────────────────────────────────┐
   │ the binder, the cards, the settings, plugins: as on any glass │
-  │   theme.h: roles as tones of ink (set_paper)                  │
+  │   theme.h, theme_ink.h: tones of ink, every part in ink       │
   │   still_glass_lvgl.h: a slider is a level, nothing runs       │
   ├──────────────────────────────────────────────────────────────┤
   │ LVGL: draws while the panel is free, turns picture and touch  │
@@ -65,9 +71,10 @@ never turned: LVGL turns what it draws and what a finger touches together, as on
 way of turning for every glass.
 
 The firmware around the glass reaches it through `paper.h` (this screen's inks and its one printer) and never through
-the component. `components/smart_display/paper_screen.h` includes that file when the build has a paper glass and
-gives the same calls as empty ones when it has not, so the binder, the standby and `packages/core.yaml` say that a
-finger lifted or a key was pressed without asking which glass they are on.
+the component, and only `components/smart_display/glass_kind.h` includes that file. It gives the shared code the
+moments it says to its glass (`glass_moment`: a finger, a key, news, rest, a layout on its way, a change of the
+whole look) as calls that reach the printer on a glass of ink and are empty on every other, so the binder, the
+standby and `packages/core.yaml` say that a finger lifted or a key was pressed without asking which glass they are on.
 
 ## Ink
 
@@ -120,9 +127,10 @@ shade) still goes through the ink step.
 
 On paper a role of `theme.h` is no shade of grey or blue but one of four tones (`theme::Ink`): `PAPER`, `INK`, and two
 between them, `SOFT` (the lighter) and `FIRM` (the darker), which a panel of two inks prints as a raster and one of
-four as a grey. Dark mode trades paper and ink, as it trades white and graphite on a lit glass. `theme::set_paper()`
-says once at boot, before the first paint, that the glass prints; from then on `theme::hex()` and every helper answer
-in tones. A role takes the tone the table `INKS` names for it, and a role the table does not name takes the tone
+four as a grey. Dark mode trades paper and ink, as it trades white and graphite on a lit glass. The theme reads the
+kind of glass itself (`theme::inked()`, from `glass_kind.h`), which is known before the first paint: on a glass of
+ink `theme::hex()` answers in tones, and every part of `theme_parts.h` comes from the ink stylesheet (`theme_ink.h`,
+docs/GLASS_KINDS.md). A role takes the tone the table `INKS` names for it, and a role the table does not name takes the tone
 nearest its colour, where near white is clean paper and near black is ink.
 
 What the table says, and why:
@@ -209,7 +217,7 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
 - **A stream takes its turn.** What comes by itself and keeps coming, a meter's watts or a clock, prints no sooner
   than a few seconds after the last print ended: a value every second would be a refresh every second, on a glass
   that wears a little with each. A finger's answer does not wait for that turn, nor does news the screen was told
-  to show (`paper::news`: an alert, a ring at the door, a call, a page Home Assistant asked for), nor a whole
+  to show (`glass_moment::news`: an alert, a ring at the door, a call, a page Home Assistant asked for), nor a whole
   refresh that was asked for.
 - **Nothing prints under a finger.** What LVGL draws while a finger lies on the glass is the look of a press, which is
   gone again when it lifts. A refresh takes longer than a tap, so printing it would show the press after the fact and
@@ -233,18 +241,18 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
 - **A panel that cannot refresh a part** prints every time whole, after a longer quiet.
 
 How the firmware tells it: the board's touch listener says when a finger lands and lifts and a page key says it was
-pressed (`paper::finger`, `paper::key`, in `packages/core.yaml` and `features/page-keys.yaml`), and the paper glass
-says after every round of LVGL's drawing how many per mille of the glass it changed. The standby says whether the
-screen is at rest (`paper::rest`, once a second from `packages/core.yaml`). `paper::hold` is on while a
-layout's pages are being built (`prepare_start` to `prepare_done` in `runtime_tiles.h`), so the first page is one
-print, and `paper::whole_next` asks for a whole refresh where the whole glass changes or stays long: that first page,
+pressed (`glass_moment::finger`, `glass_moment::key`, in `packages/core.yaml` and `features/page-keys.yaml`), and the
+paper glass says after every round of LVGL's drawing how many per mille of the glass it changed. The standby says
+whether the screen is at rest (`glass_moment::rest`, once a second from `packages/core.yaml`). `glass_moment::hold`
+is on while a layout's pages are being built (`prepare_start` to `prepare_done` in `runtime_tiles.h`), so the first
+page is one print, and `glass_moment::whole` asks for a whole refresh where the whole glass changes or stays long: that first page,
 a change of look (`restyle`), and the screensaver a glass shows while it rests.
 
 ## A still glass
 
 A change on paper is a print that takes a part of a second. So nothing there can follow a finger, and nothing runs
-by itself: no hand that steps each second, no bar that creeps, no ring that turns, no dot that travels. The capability
-record says which glass that is (`hw::caps().still`), `screen_motion::still()` is the one place the firmware asks it,
+by itself: no hand that steps each second, no bar that creeps, no ring that turns, no dot that travels. The kind of
+glass says which glass that is (`glass_kind::still()`), `screen_motion::still()` is the one place the firmware asks it,
 and three files hold what follows from it.
 
 ### The pass: LVGL's own widgets
@@ -306,7 +314,8 @@ print can keep up with, and says a time that is true at the moment it is printed
 
 ### The rule for whoever makes a control
 
-Make it as on any screen. Never check the board, the chip or `paper::is()` to draw something else. A widget of LVGL's
+Make it as on any screen. Never check the board, the chip or the kind of glass to draw something else
+(`tests/test_glass_kinds.py` fails on it): a colour or a ground comes from a part of `theme_parts.h`. A widget of LVGL's
 that needs a still form gets it in the pass, an animation goes through `screen_motion::start()`, something that draws
 by itself asks `screen_motion::still()`, and a rule that needs no LVGL goes into a plain header beside it with a test,
 as `level_bar.h` and `still_glass.h` do.
@@ -383,8 +392,8 @@ there, and that page is next.
 
 ## Standby is rest
 
-A glass that keeps its picture without a light has no dark (`screen_standby.h`, `Glass::keeps`, bound to `paper::is()`
-in `packages/core.yaml`). Its standby is rest, and it is seen:
+A glass that keeps its picture without a light has no dark (`screen_standby.h`, `Glass::keeps`, bound to
+`glass_kind::keeps()` in `packages/core.yaml`). Its standby is rest, and it is seen:
 
 - **With a screensaver set** it shows that one.
   A clock face there is paper with everything on it in ink, or the other way round in its dark look
@@ -466,6 +475,11 @@ uv run --no-project --python 3.13 --with pillow \
 - **`tools/render/sheets.py`** puts a folder of renders on contact sheets, six to a sheet at two thirds of their size
   or four at full size, each with its name under it.
 
+- **The ink audit** runs over every picture (docs/GLASS_KINDS.md, "The audit"): the host program says where each
+  text stands, the ink step says where it printed a raster, and a glyph or a word on a raster or on a picture fails
+  the round. `ink-audit.txt` beside the pictures lists each fault with its text and its place, or says how many
+  texts it judged and found none. It is the check to read first; the sheets are for what an eye judges.
+
 What a render cannot show: when a refresh comes and how long it takes (the printer has no panel there and prints
 nothing), the traces partial refreshes leave, how a raster reads at arm's length on real ink, and a finger on real
 glass. Those are the glass's to show.
@@ -540,14 +554,15 @@ The platform's own options are in `components/paper_glass/display.py`: `panel`, 
 
 - `components/paper_glass/`: `display.py` (the platform), `paper_glass.h` and `paper_glass.cpp` (the display),
   `paper_ink.h`, `paper_print.h`, `paper.h`.
-- `components/smart_display/`: `paper_screen.h` (the calls on every screen), `still_glass_lvgl.h` (the pass) with
-  `level_bar.h`, `still_glass.h` (the sums) and `screen_motion.h` (`still()`, `start()`), `light_choices.h` and the
-  still rows of `light_controls.h`, `settings_screen.h` (`lit`, the word `paper`), the ink table and its helpers
-  in `theme.h`, `hw.h` and `hw.cpp` (`inks`, `still`, the hello), `engine_build.py` and `__init__.py` (the engine of a
+- `components/smart_display/`: `glass_kind.h` (the kind of glass and the moments, on every screen),
+  `still_glass_lvgl.h` (the pass) with `level_bar.h`, `still_glass.h` (the sums) and `screen_motion.h` (`still()`,
+  `start()`), `light_choices.h` and the still rows of `light_controls.h`, `settings_screen.h` (`lit`, the word
+  `paper`), the ink table in `theme.h` and the ink stylesheet `theme_ink.h` (docs/GLASS_KINDS.md has the places a
+  new part touches), `hw.h` and `hw.cpp` (`inks`, `still`, the hello), `engine_build.py` and `__init__.py` (the engine of a
   paper build), `screen_standby.h` (`keeps`, `resting`, `act`, `at_rest`).
 - `packages/core.yaml`: `PAPER_INKS`, `LVGL_WAITS_FOR_GLASS`, `FONT_TEXT_BPP`, the three backlight hooks,
-  `theme::set_paper`, `still_glass::watch`, the standby's `keeps`, the power saving's `freeze`, the touch listener's
-  `paper::finger`.
+  `still_glass::watch`, the standby's `keeps`, the settings' `lit`, the power saving's `freeze`, the touch listener's
+  `glass_moment::finger`.
 - `packages/features/paper.yaml`, and `page-keys.yaml` and `buzzer.yaml` for a board that has them; the board file's
   `paper_panel`.
 - `screen_manager/app/`: `boards.json` `inks` (from `PAPER_INKS`, `tools/generate_board_shapes.py`), `is_paper` and

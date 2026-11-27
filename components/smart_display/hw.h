@@ -56,7 +56,7 @@ struct Facts {
   bool live_video = false;
   bool direct_glass = false;  // a frame buffer a task may write past LVGL (glass::direct)
   bool full_tier = false;     // the build's tier (modules.py: 8 MB of flash or more)
-  uint8_t inks = 0;           // the paper glass's (paper::inks), 0 without one
+  uint8_t inks = 0;           // the kind of glass (glass_kind::inks), 0 on one that is lit
   uint8_t live_tiles = 0;  // the engine's (picture_engine::limits)
   uint32_t psram_bytes = 0, internal_bytes = 0;
 };

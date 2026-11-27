@@ -31,7 +31,7 @@ binary_sensor:
       - delayed_on_off: 20ms
     on_press:
       - lambda: |-
-          paper::key(millis());
+          glass_moment::key(millis());
           touch_feedback::press();
           if (screen_standby::the().act(millis())) runtime_tiles::touch_input::step_page(-1);
   - platform: gpio
@@ -45,7 +45,7 @@ binary_sensor:
       - delayed_on_off: 20ms
     on_press:
       - lambda: |-
-          paper::key(millis());
+          glass_moment::key(millis());
           touch_feedback::press();
           if (screen_standby::the().act(millis())) runtime_tiles::touch_input::step_page(1);
   - platform: gpio
@@ -64,7 +64,7 @@ binary_sensor:
           - OFF for at least 20ms
         then:
           - lambda: |-
-              paper::key(millis());
+              glass_moment::key(millis());
               touch_feedback::press();
               if (screen_standby::the().act(millis())) id(go_home).execute();
       # Held: standby, unless something holds the screen lit; then it is a press home after all.
@@ -72,6 +72,6 @@ binary_sensor:
           - ON for at least ${HOME_KEY_HOLD}
         then:
           - lambda: |-
-              paper::key(millis());
+              glass_moment::key(millis());
               touch_feedback::press();
               if (!screen_standby::the().hold_home(millis()) && screen_standby::the().act(millis())) id(go_home).execute();

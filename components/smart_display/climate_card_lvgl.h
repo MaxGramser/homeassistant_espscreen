@@ -133,9 +133,9 @@ inline void climate_hold(lv_event_t *e){
 // the target in full while the device has work to do, a dot at the humidity now and a white knob at the target.
 inline void humidity_ring(const Tile &t,const climate_card::Rect &card,const climate_card::Rect &minus,const climate_card::Rect &plus,bool large){
 #if LV_USE_ARC
-  // Not on paper: its track and its half-strength part are rasters, and on a glass this small it runs through the
-  // number it stands round. The number and the line above it say the same.
-  if(theme::paper)return;
+  // Only on a glass that shades: the ring is a track and a part at half strength, and where those are rasters the
+  // number and the line above it say the same.
+  if(!theme::shades())return;
   const int d=std::min(plus.x-minus.right()-ui::px(large?16:8),card.h-ui::px(large?16:8));
   if(d<ui::px(70))return;
   const int cx=card.cx(),cy=card.cy(),w=std::max(ui::px(large?10:6),d/14);
@@ -190,8 +190,7 @@ inline void climate_power_paint(lv_obj_t *key,const Tile &t,const CardPart &){
 // The number between - and +: the value being set, grey while the device is off.
 inline void climate_number_paint(lv_obj_t *number,const Tile &t,const CardPart &){
   label(number,climate_number_text(t));
-  // On paper it stays ink while the device is off: a number of raster is hard to read, and the line above says Off.
-  set_color(number,LV_STYLE_TEXT_COLOR,theme::color(tile_controls::climate_off(t)&&!theme::paper?theme::OFF:theme::INK));
+  set_color(number,LV_STYLE_TEXT_COLOR,tile_controls::climate_off(t)?lv_color_hex(theme::absent()):theme::color(theme::INK));
 }
 // - or + (arg -1 or 1): faded at the end of the device's span.
 inline void climate_limit_paint(lv_obj_t *key,const Tile &t,const CardPart &part){
@@ -204,10 +203,9 @@ inline void climate_limit_paint(lv_obj_t *key,const Tile &t,const CardPart &part
 inline void climate_mode_paint(lv_obj_t *key,const Tile &t,const CardPart &part){
   const bool selected=!tile_controls::climate_off(t)&&part.value==tile_controls::current_mode(t);
   const uint32_t colour=tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(part.value);
-  // On paper the mode in use is a disc of ink with its glyph left open: its colour would be a raster under the glyph.
-  set_color(key,LV_STYLE_BG_COLOR,selected?(theme::paper?theme::color(theme::KEY_ON):lv_color_hex(colour)):theme::color(theme::CARD));
-  set_number(key,LV_STYLE_BORDER_WIDTH,selected?0:theme::paper?theme::PAPER_RIM:1);
-  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(selected?(theme::paper?theme::KEY_ON_ICON:theme::ON_ACCENT):theme::SLATE));
+  set_color(key,LV_STYLE_BG_COLOR,selected?lv_color_hex(theme::chosen(colour)):theme::color(theme::CARD));
+  set_number(key,LV_STYLE_BORDER_WIDTH,selected?0:theme::hairline());
+  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(selected?theme::ON_ACCENT:theme::SLATE));
 }
 // A segment of the fan or swing row (arg: the row's kind, value: its choice).
 inline void climate_row_paint(lv_obj_t *segment,const Tile &t,const CardPart &part){

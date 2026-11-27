@@ -47,8 +47,11 @@ def paint_names():
 
 class OnePlace(unittest.TestCase):
     def test_no_header_writes_a_colour_of_its_own(self):
+        # The theme is theme.h, the table, and theme_lit.h, the lit stylesheet, which mixes a colour towards white
+        # and black as theme.h did before the parts moved there (docs/GLASS_KINDS.md). The ink stylesheet
+        # (theme_ink.h) and the parts (theme_parts.h) write no colour: ink names tones.
         for path in sorted(COMPONENT.glob('*.h')):
-            if path.name == 'theme.h':
+            if path.name in ('theme.h', 'theme_lit.h'):
                 continue
             for number, line in enumerate(path.read_text().splitlines(), 1):
                 if HEX.search(line):

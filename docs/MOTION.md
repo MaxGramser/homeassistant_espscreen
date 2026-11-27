@@ -33,7 +33,7 @@ the rule from its hardware, with no line in its board file.
 ## A still glass
 
 The other end of the same rule: a glass of ink prints, and a print takes a part of a second, so nothing on it moves
-(`hw::caps().still`, docs/PAPER.md, "A still glass"). `screen_motion::still()` is where the firmware asks.
+(`glass_kind::still()`, docs/PAPER.md, "A still glass"). `screen_motion::still()` is where the firmware asks.
 `screen_motion::start()` starts an animation the way the glass does it: on a still glass one that would run for ever
 is left standing as it was made, one that would end stands at its end at once with its last call made, and one that
 goes there and back rests where it began. An animation that keeps time for something, such as a key held long enough,

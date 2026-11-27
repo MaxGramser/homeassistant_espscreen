@@ -30,6 +30,7 @@ NEEDS_NONE = {
     ('history_card_lvgl.h', 'history_fill'): 'the history graph of the open card',
     ('history_card_lvgl.h', 'history_bar'): 'the history timeline of the open card',
     ('tile_widgets_lvgl.h', 'extra_draw'): 'its fill colour is captured in render_slot, inside the card scope',
+    ('ink_audit.h', 'task'): "the host render's recorder of what LVGL draws (docs/GLASS_KINDS.md): it paints nothing",
 }
 
 
@@ -139,18 +140,14 @@ class CardLook(unittest.TestCase):
             if line.startswith('}') or (start and line.rstrip().endswith('}')):
                 owner = None  # the end of a block at the left margin, or of a one-line one
         self.assertEqual(writers, {'LookScope', 'LookOf', 'set_dark', 'TestLook'})
-        # And no new way in: Looks' friends are exactly those four, and set_paper(), which says what the glass is
-        # (Looks::paper_, once at boot) and writes nothing of the look: its whole body is that one assignment, and
-        # nothing else in theme.h assigns it.
+        # And no new way in: Looks' friends are exactly those four. What the glass is, is no part of the look: the theme
+        # reads it from glass_kind.h (inked()) and keeps no flag of its own (tests/test_glass_kinds.py).
         looks = re.search(r'^class Looks \{\n(.*?)^\};', theme, re.S | re.M)
         self.assertIsNotNone(looks, 'theme.h keeps the looks in class Looks')
         friends = re.findall(r'\bfriend\s+(?:struct|class)?\s*(?:void\s+)?(\w+)', looks.group(1))
-        self.assertEqual(sorted(friends), sorted(['LookScope', 'LookOf', 'set_dark', 'TestLook', 'set_paper']),
+        self.assertEqual(sorted(friends), sorted(['LookScope', 'LookOf', 'set_dark', 'TestLook']),
                          'only the scopes, set_dark() and the test write the look (theme.h, Looks)')
-        self.assertIn('inline void set_paper(bool on) { Looks::paper_ = on; }', theme,
-                      'set_paper() says what the glass is and nothing else: it is a friend of Looks')
-        self.assertEqual(len(re.findall(r'\bpaper_\s*=(?!=)', '\n'.join(line.split('//')[0] for line in theme.splitlines()))), 2,
-                         'the glass is said where Looks declares it (false) and in set_paper(), nowhere else')
+        self.assertNotIn('paper_', looks.group(1), 'the kind of glass is glass_kind.h\'s, never a flag of the look')
 
     def test_the_card_carries_its_look_for_what_lvgl_draws(self):
         sections = (COMPONENT / 'module_sections.h').read_text()

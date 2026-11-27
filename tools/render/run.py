@@ -53,6 +53,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(REPO / 'diagnostics'))
 sys.path.insert(0, str(REPO / 'screen_manager' / 'app'))
 import host  # noqa: E402
+import ink_audit  # noqa: E402
 import send_layout  # noqa: E402
 
 # Every render shows the same moment: Tuesday 15 September 2026, 10:08 in Amsterdam.
@@ -328,6 +329,7 @@ class Run:
         PAPER_INKS[0] = build.inks
         self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
+        self.ink_faults, self.ink_judged = [], 0  # the ink audit's, for a board whose glass is ink (audit)
         self.alert_title_h = None  # the first alert's title, one line high: every alert's title is as high
 
     async def call(self, name, **args):
@@ -402,11 +404,9 @@ class Run:
             await asyncio.sleep(0.05)
         raise RuntimeError(f'no snapshot at {path}')
 
-    def inked(self, image):
-        """`image` as this board's glass of ink prints it: through the paper glass's own ink step (paper_ink_tool.cpp).
-        A board whose glass is lit gets its picture back as it is."""
-        if not self.build.inks:
-            return image
+    def ink_step(self, image, what=()):
+        """What the paper glass's own ink step (paper_ink_tool.cpp, which is paper_ink.h) makes of `image`: the panel's
+        inks, or with what=('raster',) where it printed a raster."""
         tool = self.build.work / 'paper_ink_tool'
         source = HERE / 'paper_ink_tool.cpp'
         rules = REPO / 'components' / 'paper_glass' / 'paper_ink.h'
@@ -414,8 +414,21 @@ class Run:
             subprocess.run([os.environ.get('CXX', 'c++'), '-std=c++17', '-O2', f'-I{REPO}', str(source), '-o', str(tool)], check=True)
         raw = io.BytesIO()
         image.convert('RGB').save(raw, 'PPM')
-        done = subprocess.run([str(tool), str(self.build.inks)], input=raw.getvalue(), capture_output=True, check=True)
-        return Image.open(io.BytesIO(done.stdout)).convert('RGB')
+        done = subprocess.run([str(tool), str(self.build.inks), *what], input=raw.getvalue(), capture_output=True, check=True)
+        return Image.open(io.BytesIO(done.stdout))
+
+    def inked(self, image):
+        """`image` as this board's glass of ink prints it. A board whose glass is lit gets its picture back as it is."""
+        return self.ink_step(image).convert('RGB') if self.build.inks else image
+
+    def audit(self, name, image, seen):
+        """The ink audit of one picture (ink_audit.py): `image` is what LVGL drew, before the ink step, and `seen`
+        what the host program saw LVGL draw for it (ink_audit.h)."""
+        if not any(kind == 'T' for kind, _, _ in seen):
+            return
+        found, judged = ink_audit.faults(name, self.ink_step(image, ('raster',)).convert('L'), seen, image.convert('RGB'))
+        self.ink_faults += found
+        self.ink_judged += judged
 
     async def render(self, name, keep=True, timeout=25):
         """Snapshots until two in a row match (at least 0.4 s apart); the last is kept as <name>.png. On a board whose
@@ -431,6 +444,11 @@ class Run:
             previous = image
             await asyncio.sleep(0.4)
         (self.out / f'{name}.ppm').unlink(missing_ok=True)
+        # What the host program saw LVGL draw for this picture, on a glass of ink: the ink audit reads it.
+        seen_file = self.out / f'{name}.ppm.seen'
+        if self.build.inks and seen_file.exists():
+            self.audit(name, image, ink_audit.read(seen_file.read_text(errors='replace')))
+        seen_file.unlink(missing_ok=True)
         image = self.inked(image)
         if keep:
             image.save(self.out / f'{name}.png')
@@ -5104,6 +5122,14 @@ def main():
         except Exception as error:  # a program that crashed or stopped answering
             run.failures.append(f'{type(error).__name__}: {error}')
             summary = 'stopped'
+        # The ink audit of a board whose glass is ink (Run.audit): each fault once, beside the pictures and among
+        # the failures. A round's other checks were written for a glass that is lit; this one is the glass of ink's.
+        ink = sorted(set(run.ink_faults))
+        if build.inks:
+            run.out.mkdir(parents=True, exist_ok=True)
+            (run.out / 'ink-audit.txt').write_text(''.join(f'{fault}\n' for fault in ink)
+                                                   + f'{run.ink_judged} texts judged: {len(ink)} on a raster or a picture\n')
+        run.failures += [f'ink: {fault}' for fault in ink]
         status = 'FAIL' if run.failures else 'PASS'
         if run.failures:
             failed.append(item.key)

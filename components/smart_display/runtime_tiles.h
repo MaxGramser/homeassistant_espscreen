@@ -55,7 +55,7 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "alert_overlay.h"
 #include "screen_motion.h"
 #include "still_glass.h"
-#include "paper_screen.h"
+#include "glass_kind.h"
 #include "theme.h"
 #include "tile_icon.h"
 #include "screen_settings.h"
@@ -1516,9 +1516,10 @@ inline void favorite_key_event(lv_event_t *e){
 // The card with its picture, or while its picture is on its way the same card with the spinner every picture card
 // has; false on a board without pictures and when the app has none, and the tile is drawn as an ordinary one.
 inline bool render_favorite_card(Widgets &w,const Tile &t,int width,int height){
-  // On paper a picture is no ground for words (tile_picture_place), and this card without its picture is two lines in
-  // a corner of an empty card: the tile is an ordinary one there, its glyph in its disc, and a tap plays it.
-  if(theme::paper){set_loading(w,false,width,height);return false;}
+  // Where the glass shades nothing a picture is no ground for words (tile_picture_place), and this card without its
+  // picture is two lines in a corner of an empty card: the tile is an ordinary one there, its glyph in its disc, and a
+  // tap plays it.
+  if(!theme::shades()){set_loading(w,false,width,height);return false;}
   tile_picture_place(w,t,0,0,0);
   const bool photo=w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN),waiting=!photo&&t.pictured()&&tile_picture_waiting(w,t);
   set_loading(w,waiting,width,height);
@@ -2529,16 +2530,12 @@ inline void render_slot(size_t slot) {
   w.painted = from;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
-  // A key is its circle and carries the tile's words on it, so it keeps the pale share; a tile's disc and its glyph
-  // say on and off as a pair (theme::disc, on_disc: by colour on a lit glass, by shape on paper).
-  // On paper a key says it by shape too: on is a disc of ink with what stands on it left open, off a ring. Its pale
-  // share would be a raster under its glyph and its words (a bedside clock's keys on a reTerminal Sticky, 2026-11-27).
-  const bool key_ink=theme::paper&&w.key&&available&&state_color!=theme::STATE_OFF;
-  auto circle_color=lv_color_hex(!available?theme::hex(theme::TRACK):w.key?(theme::paper?theme::hex(key_ink?theme::INK:theme::CARD):theme::tint(state_color,38)):theme::disc(state_color));
+  // A tile's disc and its glyph say on and off as a pair (theme::tile_disc), a key tile's too, whose circle is the
+  // tile itself and carries its words.
+  const theme::Dress disc_look=theme::tile_disc(state_color,available,w.key);
+  auto circle_color=lv_color_hex(disc_look.ground);
   // Very pale bulbs still need a visible icon: a touch darker on a light card, a touch lighter on a dark one.
-  // What cannot be reached is grey on a lit glass. On paper a grey glyph is a raster of loose dots: it is ink there,
-  // and stands without its ring (below), beside the word that says so.
-  auto icon_color=lv_color_hex(!available?theme::hex(theme::paper?theme::INK:theme::OFF):w.key?(theme::paper?theme::hex(key_ink?theme::CARD:theme::INK):theme::icon(state_color)):theme::on_disc(state_color));
+  auto icon_color=lv_color_hex(disc_look.ink);
   // Off: a grey track without fill or handle, as in Home Assistant.
   const uint32_t fill=slider_on?accent:theme::STATE_OFF;
   auto fill_color=lv_color_hex(theme::state(fill));
@@ -2567,18 +2564,17 @@ inline void render_slot(size_t slot) {
   }
   set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
-  // On paper a disc that is not ink is a ring: a glyph alone on the card is too little to read as a tile's icon.
-  theme::rim(w.circle,!w.key&&available&&theme::disc(state_color)!=theme::hex(theme::INK));
+  theme::rim(w.circle,!w.key&&disc_look.rim>0);
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
   if(w.key){
     set_color(w.tile,LV_STYLE_BG_COLOR,circle_color);
     set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(available?theme::tint(state_color,38):theme::hex(theme::TRACK))),LV_STATE_PRESSED);
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
-    theme::rim(w.tile,!key_ink);
+    theme::rim(w.tile,disc_look.rim>0);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? (key_ink ? theme::CARD : theme::INK) : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
+  auto value_color=w.key ? lv_color_hex(theme::on_key(state_color,available)) : theme::color(face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -2677,11 +2673,7 @@ inline lv_obj_t *boot_brand_create(lv_obj_t *parent) {
   if (brand_mark) {
     image = lv_image_create(box);
     lv_image_set_src(image, brand_mark);
-    // On paper the mark's four colours would be four rasters: its shape in ink, as the top bar's.
-    if (theme::paper) {
-      lv_obj_set_style_image_recolor(image, theme::color(theme::INK), 0);
-      lv_obj_set_style_image_recolor_opa(image, LV_OPA_COVER, 0);
-    }
+    theme::as_sign(image);  // the brand's mark is a sign, as the top bar's
     lv_obj_remove_flag(image, LV_OBJ_FLAG_CLICKABLE);
     mark = static_cast<const lv_image_dsc_t *>(brand_mark)->header.w;
     width = mark;
@@ -2755,7 +2747,7 @@ inline lv_obj_t *steps_create(lv_obj_t *parent, const std::vector<std::string> &
     lv_obj_set_size(mark, tile, tile);
     lv_obj_set_style_radius(mark, tile * 26 / 100, 0);
     lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(mark, theme::color(theme::paper ? theme::INK : marks[i % 4]), 0);
+    lv_obj_set_style_bg_color(mark, lv_color_hex(theme::mark(theme::hex(marks[i % 4]))), 0);
     // On the middle of the first line.
     lv_obj_set_pos(mark, 0, y + (line - tile) / 2);
     auto *words = lv_label_create(box);
@@ -4101,8 +4093,8 @@ inline void prepare_done() {
   const bool shown = preparing.foreground;
   preparing.active = preparing.foreground = false;
   // A glass of ink printed nothing of the pages being built (prepare_start): the first page is one whole print.
-  paper::whole_next(esphome::millis());
-  paper::hold(false, esphome::millis());
+  glass_moment::whole(esphome::millis());
+  glass_moment::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);  // from now on: kept pages up to date, when idle
   ESP_LOGI("kept", "pages prepared: %u of %u, PSRAM free %u B", preparing.done, preparing.total, (unsigned) psram_free());
   // The render takes the "Preparing pages" screen away; the header alone, as nothing on the cards changed.
@@ -4148,7 +4140,7 @@ inline void prepare_start() {
   preparing.active = true;
   preparing.foreground = true;
   // A glass of ink waits with printing until the pages stand (paper_print.h: a hold ends by itself after a while).
-  paper::hold(true, esphome::millis());
+  glass_moment::hold(true, esphome::millis());
   preparing.done = 0;
   preparing.total = pages - 1;
   prepare_built_at = 0;
@@ -4161,7 +4153,7 @@ inline void prepare_start() {
 // Another layout is on its way: its pages are built once it is complete (prepare_start).
 inline void prepare_cancel() {
   preparing.active = preparing.foreground = false;
-  paper::hold(false, esphome::millis());
+  glass_moment::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);
 }
 // The Page buttons setting changed (firmware 0.2.69+): the same page again, with the bar and the cards in their new places.
@@ -4389,7 +4381,7 @@ inline void tick() {
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
   // On a glass of ink the whole look changed: one whole print, which leaves no trace of the other look.
-  paper::whole_next(esphome::millis());
+  glass_moment::whole(esphome::millis());
   each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());

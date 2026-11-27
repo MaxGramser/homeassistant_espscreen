@@ -330,7 +330,7 @@ static void cell(size_t index, const Rect &at, const Rect &cover_at) {
     const Rect local{cover_at.x - at.x, cover_at.y - at.y, cover_at.w, cover_at.h};
     auto *frame = plain(holder, local.x, local.y, local.w, local.h);
     lv_obj_set_style_bg_opa(frame, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(frame, theme::rgb(theme::paper ? theme::hex(theme::CARD) : theme::tint(theme::ha::LIGHT_BLUE, 51)), 0);
+    lv_obj_set_style_bg_color(frame, theme::rgb(theme::field(theme::ha::LIGHT_BLUE, 51)), 0);
     theme::rim(frame, true);
     lv_obj_set_style_radius(frame, media_card::radius_for(local.w), 0);
     // The big icon font carries only the tiles' own glyphs: an item's icon it lacks takes the small one.
@@ -370,7 +370,7 @@ static void cell(size_t index, const Rect &at, const Rect &cover_at) {
   const int inset = effects_page::screen_metrics().inset, badge = std::min(at.h - 2 * ui::px(6), std::max(ui::px(24), at.h * 3 / 5));
   auto *circle = plain(holder, inset, (at.h - badge) / 2, badge, badge);
   lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(circle, theme::rgb(theme::paper ? theme::hex(theme::CARD) : theme::tint(theme::ha::LIGHT_BLUE, 51)), 0);
+  lv_obj_set_style_bg_color(circle, theme::rgb(theme::field(theme::ha::LIGHT_BLUE, 51)), 0);
   theme::rim(circle, true);
   lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
   auto *icon = glyph(circle, item.icon, "\U000F024B", icons(), theme::icon(theme::ha::LIGHT_BLUE));

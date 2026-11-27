@@ -452,9 +452,27 @@ ACTIONS = '''    - action: render_live_reset
       then:
         - lambda: |-
             lv_obj_update_layout(lv_screen_active());
+            // On a glass of ink the snapshot also says where every text stands, which grounds cover and where
+            // pictures are (ink_audit.h), in <path>.seen: run.py's ink audit reads it against the picture.
+            const bool audit = glass_kind::ink();
+            if (audit) {
+              ink_audit::watch(lv_screen_active());
+              ink_audit::watch(lv_layer_top());
+              ink_audit::seen.clear();
+              ink_audit::recording = true;
+            }
             lv_draw_buf_t *base = lv_snapshot_take(lv_screen_active(), LV_COLOR_FORMAT_RGB888);
             lv_draw_buf_t *top = lv_snapshot_take(lv_layer_top(), LV_COLOR_FORMAT_ARGB8888);
+            ink_audit::recording = false;
             if (!base) { ESP_LOGE("render", "snapshot failed"); return; }
+            if (audit) {
+              const std::string seen = path + ".seen";
+              if (FILE *s = fopen(seen.c_str(), "wb")) {
+                const std::string report = ink_audit::report();
+                fwrite(report.data(), 1, report.size(), s);
+                fclose(s);
+              }
+            }
             std::string part = path + ".part";
             FILE *f = fopen(part.c_str(), "wb");
             int w = base->header.w, h = base->header.h;

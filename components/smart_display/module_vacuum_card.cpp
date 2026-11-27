@@ -190,9 +190,7 @@ inline void header(lv_obj_t *parent, const Tile &t, int x, int y, int w, const M
   const VacuumLook look = vacuum_look(t.state);
   const int dot = ui::px(m.large ? 10 : 8), battery = has_battery(t) ? vacuum_power(nullptr, t, 0, 0, m.text, m.large) : 0;
   // The state's colour, as Home Assistant colours a vacuum: red on an error, grey while it is not there.
-  // On paper the dot is ink in every state: a red or a grey one is a raster of a few pixels, and the word says it.
-  const uint32_t colour = theme::paper ? theme::hex(theme::INK)
-                          : t.state == "error" ? theme::foreground(theme::ha::RED) : !t.available() ? theme::hex(theme::OFF) : look.accent;
+  const uint32_t colour = theme::mark(t.state == "error" ? theme::foreground(theme::ha::RED) : !t.available() ? theme::hex(theme::OFF) : look.accent);
   detail_shape(parent, x, y + (line_of(m.big) - dot) / 2, dot, dot, colour, dot / 2);
   const int tx = x + dot + ui::px(10), tw = x + w - tx;
   detail_badge_status = card_bind(detail_text(parent, headline(t), tx, y, stacked || !battery ? tw : tw - battery - ui::px(12), m.big,
@@ -499,11 +497,10 @@ inline void pager(int x, int y, int w, int k, int page_now, int pages, const Met
   const int dot = ui::px(8), dg = ui::px(10), dw = pages * dot + (pages - 1) * dg;
   pager_key(x, y, k, false, page_now == 0, m);
   pager_key(x + w - k, y, k, true, page_now >= pages - 1, m);
-  // On paper the page on the glass is a dot of ink and the others are rings, as on the page bar: a grey dot is a
-  // few pixels of raster.
-  for (int i = 0; i < pages; ++i)
-    theme::rim(detail_shape(detail_root, x + w / 2 - dw / 2 + i * (dot + dg), y + (k - dot) / 2, dot, dot,
-                            i == page_now ? theme::INK : theme::paper ? theme::CARD : theme::TICK, dot / 2), i != page_now);
+  for (int i = 0; i < pages; ++i) {
+    const theme::Dress look = theme::pager_dot(i == page_now, theme::TICK);
+    theme::rim(detail_shape(detail_root, x + w / 2 - dw / 2 + i * (dot + dg), y + (k - dot) / 2, dot, dot, look.ground, dot / 2), look.rim > 0);
+  }
 }
 inline int heading_h(const Metrics &m) { return line_of(m.small) + ui::px(8); }
 inline void heading(int x, int y, int w, const std::string &words, const Metrics &m) {

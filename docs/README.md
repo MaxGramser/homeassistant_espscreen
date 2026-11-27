@@ -93,6 +93,8 @@
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
+- [GLASS_KINDS.md](GLASS_KINDS.md): where a glass that is lit and a glass of ink part: the one fact, the parts a
+  card asks for and their two stylesheets, the rules for a card, and the ink audit that holds them (also a recipe).
 - [PAPER.md](PAPER.md): a glass of e-paper as a kind of panel: the paper glass between LVGL and ESPHome's driver, how
   a colour becomes an ink, when the panel prints, a slider as a level that fills in steps, standby as rest, what a board states
   and what is not built yet (also a recipe).

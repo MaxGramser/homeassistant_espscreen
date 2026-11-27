@@ -354,11 +354,7 @@ public:
       const int ink_bottom = header_name_left + slot_h;
       if (draw_mark) {
         lv_obj_set_pos(header_home_mark, left, ink_bottom - slot_h);
-        // On paper the mark's own colours would be four rasters: its shape in ink, in the look of now.
-        if (theme::paper) {
-          lv_obj_set_style_image_recolor(header_home_mark, theme::color(theme::INK), 0);
-          lv_obj_set_style_image_recolor_opa(header_home_mark, LV_OPA_COVER, 0);
-        }
+        theme::as_sign(header_home_mark);  // a sign, in the look of now
         mark_on = true;
       } else {
         const int ink_top = ink_bottom - leading.box_h;

@@ -149,7 +149,7 @@ esphome:
     - <esphome/components/smart_display/alert_overlay.h>
     - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
-    - <esphome/components/smart_display/paper_screen.h>
+    - <esphome/components/smart_display/glass_kind.h>
     - <esphome/components/smart_display/still_glass_lvgl.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/screen_standby.h>
@@ -225,7 +225,7 @@ esphome:
           // Whether this board's backlight takes levels (firmware 0.2.90+): a board whose backlight is one line
           // shows a switch where the others show a percentage. ESP Screens reads the same fact from boards.json.
           settings_screen::dimmable = ${BACKLIGHT_DIMMABLE};
-          settings_screen::lit = ${PAPER_INKS} == 0;
+          settings_screen::lit = glass_kind::lit();
           // Whether this board's screen can go dark at all (firmware 0.2.91+): the Waveshare's backlight boost pulls
           // the 3.3 V rail under the brownout level when it switches on from a dark screen, so that board has no
           // standby and no night. The rows, the entities and the add-on's Settings follow the same fact.
@@ -253,10 +253,9 @@ esphome:
             ${CAMERA_PAINT_FILL}
             ${CALIBRATION_PAINT_FILL}
           };
-          // A glass that prints takes its tones from the ink table (theme.h, "Ink"): said before the first paint.
-          theme::set_paper(paper::is());
-          // And every widget of LVGL's own takes its still form there: a slider is a level in steps, a spinner stands,
-          // a line that would roll is cut (still_glass_lvgl.h). An empty call on a glass that is lit.
+          // The kind of glass (glass_kind.h) is known before this: the theme takes a glass of ink's tones from its ink
+          // table by itself. Every widget of LVGL's own takes its still form there: a slider is a level in steps, a
+          // spinner stands, a line that would roll is cut (still_glass_lvgl.h). An empty call on a glass that is lit.
           still_glass::watch();
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
@@ -310,11 +309,13 @@ esphome:
             };
             glass.home_after = []() -> uint32_t { return runtime_tiles::auto_home ? (uint32_t) runtime_tiles::auto_home_seconds : 0; };
             glass.standby_level = []() { return runtime_tiles::standby_level(); };
-            glass.keeps = []() { return paper::is(); };
-            // One print either way on a glass of ink: whole as the screen comes to rest, at once as it wakes.
-            glass.calm = [](bool on) {
-              paper::rest(on, millis());
-              if (!on) paper::news(millis());
+            glass.keeps = []() { return glass_kind::keeps(); };
+            // Only a glass that keeps its picture rests in a calm page (screen_standby.h asks `keeps` first), so only a
+            // build with such a glass carries what makes one. One print either way there: whole as the screen comes
+            // to rest, at once as it wakes.
+            if (glass_kind::keeps()) glass.calm = [](bool on) {
+              glass_moment::rest(on, millis());
+              if (!on) glass_moment::news(millis());
               runtime_tiles::calm(on);
             };
             // One owner for the backlight's level, the board's script set_backlight (features/backlight.yaml); a glass
@@ -327,7 +328,7 @@ esphome:
             };
             // The screensaver lies over everything on the top layer without a tap of its own: the overlay takes the touch.
             // What a glass of ink keeps while it rests is printed whole: it stands for hours.
-            glass.saver = [](bool lit) { if (lit) paper::whole_next(millis()); runtime_tiles::saver_sync(lit); };
+            glass.saver = [](bool lit) { if (lit) glass_moment::whole(millis()); runtime_tiles::saver_sync(lit); };
             glass.saver_wake = []() { const bool was = runtime_tiles::saver_on(); runtime_tiles::saver_wake(); return was; };
             glass.close_settings = []() { settings_screen::close(); };
             glass.close_cards = []() { id(close_cards).execute(); };
@@ -366,7 +367,7 @@ esphome:
             };
             alert.glass.reveal = [](bool shown) {
               // News: a glass of ink prints it at once, not when a stream of values has its turn (paper_print.h).
-              paper::news(millis());
+              glass_moment::news(millis());
               if (shown) screen_motion::show(id(alert_overlay), id(alert_card));
               else screen_motion::hide(id(alert_overlay), id(alert_card));
             };
@@ -400,7 +401,7 @@ esphome:
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
           // A paper glass at rest keeps drawing: its page stays readable and follows the house (docs/PAPER.md).
           screen_power::freeze = [](bool on) {
-            if (!paper::is()) id(screen_lvgl).set_paused(on, false);
+            if (!glass_kind::keeps()) id(screen_lvgl).set_paused(on, false);
             ESP_LOGI("power", on ? "at rest: saving" : "awake");
           };
           screen_power::later = [](uint32_t ms) { screen_standby::the().power_wait(ms, millis()); };
@@ -408,7 +409,7 @@ esphome:
           // The wake for a tap LVGL may have missed while it was paused. A paper glass never pauses LVGL, so every tap
           // there is LVGL's own: a key of the screensaver among them, which must not wake the screen (a render of
           // the reTerminal Sticky, 2026-11-27: volume up on the screensaver woke it).
-          screen_power::wake = []() { if (!paper::is()) screen_standby::the().wake(millis()); };
+          screen_power::wake = []() { if (!glass_kind::keeps()) screen_standby::the().wake(millis()); };
           // Feedback a finger hears or feels (touch_feedback.h): none for the push that wakes a dimmed screen, nor in a calibration.
           touch_feedback::quiet = []() { return screen_standby::the().in_standby() || id(calibration_active); };
           {
@@ -418,11 +419,11 @@ esphome:
               void update(const esphome::touchscreen::TouchPoints_t &points) override {
                 if (points.empty()) return;
                 screen_power::touched(esphome::millis());
-                paper::finger(true, esphome::millis());
+                glass_moment::finger(true, esphome::millis());
               }
               void release() override {
                 screen_power::released(esphome::millis());
-                paper::finger(false, esphome::millis());
+                glass_moment::finger(false, esphome::millis());
               }
             };
             id(ts_touch).register_listener(new WakeListener());
@@ -663,7 +664,7 @@ api:
         - lambda: |-
             screen_standby::the().use(millis());
             screen_standby::the().wake(millis());
-            paper::news(millis());  // asked for now: a glass of ink prints it at once
+            glass_moment::news(millis());  // asked for now: a glass of ink prints it at once
             if (!runtime_tiles::navigation_ready()) {
               runtime_tiles::wanted_page = std::max(1, (int) page);
               ESP_LOGI("navigation", "show page %d waits until the pages are ready", runtime_tiles::wanted_page);
@@ -983,7 +984,7 @@ interval:
       # The standby time and Back to page 1 (screen_standby.h).
       - lambda: 'screen_standby::the().tick(millis());'
       # A glass of ink is made clean as the screen comes to rest, not while someone may be looking (paper_print.h).
-      - lambda: 'paper::rest(screen_standby::the().at_rest(), millis());'
+      - lambda: 'glass_moment::rest(screen_standby::the().at_rest(), millis());'
       # A page Home Assistant asked for while the pages were being prepared (show_page) opens once they are ready.
       - lambda: |-
           if (runtime_tiles::wanted_page > 0 && runtime_tiles::navigation_ready()) {

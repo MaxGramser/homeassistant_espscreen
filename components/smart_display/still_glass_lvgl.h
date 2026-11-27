@@ -17,9 +17,9 @@
 //
 // watch() starts it, once, on a glass of ink (packages/core.yaml); on every other screen it is an empty call, and a
 // build without a paper glass does not carry the rest of this file.
-#include "paper_screen.h"
+#include "glass_kind.h"
 
-#if __has_include("../paper_glass/paper.h")
+#ifdef GLASS_MAY_BE_INK
 #include <algorithm>
 #include <cstdint>
 
@@ -256,7 +256,7 @@ inline void pass(lv_event_t *e) {
 // Starts the pass on the screen's display, once, where the glass is ink.
 inline void watch() {
   static bool watching = false;
-  if (watching || !paper::is()) return;
+  if (watching || !glass_kind::still()) return;
   watching = true;
   // A slider on a lit glass takes a finger let go near the glass's edge for its end, because a drag cannot reach it
   // (screen_input::edge_snap). A level is not dragged, and its end near the edge is a key: with that rule a tap on

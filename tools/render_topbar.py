@@ -25,8 +25,11 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 FONTS = ('headline', 'sublabel_big', 'label', 'materialdesign_icons', 'materialdesign_icons_mini')
 # Compile the renderer independently of the device model, transport and cards.
+# The theme is theme.h with the files it reads: the kind of glass, the parts and their two stylesheets
+# (docs/GLASS_KINDS.md).
 HEADER_SOURCES = {'__init__.py', 'screen_text_gen.py', 'screen_text.h', 'screen_text_keys.h',
-                  'header_bar.h', 'page_header.h', 'theme.h', 'tile_icon.h'}
+                  'header_bar.h', 'page_header.h', 'theme.h', 'glass_kind.h', 'theme_parts.h', 'theme_lit.h',
+                  'theme_ink.h', 'tile_icon.h'}
 # Header band per board: page width and height above the tiles.
 BANDS = {'guition': (480, 56), 'cyd': (320, 37)}
 

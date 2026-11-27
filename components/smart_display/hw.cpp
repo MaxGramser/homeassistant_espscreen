@@ -4,7 +4,7 @@
 #include "glass.h"
 #include "hw_hello.h"
 #include "live_view.h"
-#include "paper_screen.h"
+#include "glass_kind.h"
 #ifdef SD_MOD_TEXT_CARD
 #include "module_text_card.h"
 #endif
@@ -39,7 +39,7 @@ Facts facts() {
   f.full_tier = true;
 #endif
   f.live_tiles = picture_engine::limits().live_tiles;
-  f.inks = paper::inks();
+  f.inks = glass_kind::inks();
 #ifdef USE_ESP32
   f.psram_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
   f.internal_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_INTERNAL));

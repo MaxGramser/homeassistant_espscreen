@@ -183,7 +183,7 @@ int main() {
   look(false);
   // ---- ink: a glass that prints (docs/PAPER.md)
   // Every role is one of four tones, in both looks, and dark trades paper and ink.
-  set_paper(true);
+  paper::inks() = 2;  // the glass is ink (glass_kind.h)
   for (bool in_dark : {false, true}) {
     look(in_dark);
     const uint32_t paper_tone = in_dark ? 0x000000 : 0xFFFFFF, ink_tone = in_dark ? 0xFFFFFF : 0x000000;
@@ -225,7 +225,7 @@ int main() {
   look(true);
   assert(hex(CAMERA_PAGE) == 0x000000 && hex(QR_DARK) == 0x000000 && hex(QR_LIGHT) == 0xFFFFFF);
   // A lit glass is as it was.
-  set_paper(false);
+  paper::inks() = 0;
   look(false);
   assert(hex(PAGE) == 0xE7E7E7 && disc(ha::AMBER) == tint(ha::AMBER, 38) && on_disc(ha::AMBER) == icon(ha::AMBER));
   assert(track(ha::AMBER) == tint(ha::AMBER, 51));

@@ -358,7 +358,7 @@ inline void paint(Card &c, const Lamp &l, bool fresh_card) {
   const lv_color_t track = color == theme::ha::AMBER ? theme::color(theme::AMBER_TRACK) : lv_color_hex(theme::tint(color, 51));
   if (c.icon) {
     lv_label_set_text(c.icon, on ? "\U000F0335" : "\U000F0E4F");
-    lv_obj_set_style_text_color(c.icon, on && !theme::paper ? lv_color_hex(color) : theme::color(on ? theme::INK : theme::MUTED), 0);
+    lv_obj_set_style_text_color(c.icon, on ? lv_color_hex(theme::mark(color)) : theme::color(theme::MUTED), 0);
   }
   // A lamp that only switches: the settings page's switch, in the lamp's colour while it is on like the other lamps' fill.
   if (c.knob) {

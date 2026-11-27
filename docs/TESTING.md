@@ -164,7 +164,9 @@ real Home Assistant or camera adds.
 
 A board whose glass is e-paper is built on paper there, and its pictures come out as the panel's inks: the theme's
 ink table, the still glass and the ink step are the firmware's own. `--only paper` makes a look book of such a board,
-and `tools/render/sheets.py` puts a folder of renders on contact sheets. docs/PAPER.md, "Seeing it without a screen",
+and `tools/render/sheets.py` puts a folder of renders on contact sheets. Every picture of such a board goes through
+the ink audit (`tools/render/ink_audit.py`, docs/GLASS_KINDS.md "The audit"): a glyph or a word that stands on a
+raster or on a picture fails the round and is listed in `ink-audit.txt` beside the pictures. docs/PAPER.md, "Seeing it without a screen",
 has the commands and what each round shows.
 
 ### The plugin host

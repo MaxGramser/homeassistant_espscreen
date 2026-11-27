@@ -161,7 +161,7 @@ static void a_block_is_every_pixel_by_the_rules() {
     for (bool big : {true, false})
       for (int round = 0; round < 40; ++round) {
         uint16_t pixels[rows][stride];
-        uint8_t source[rows * stride * 2], ink[rows * columns * 2];
+        uint8_t source[rows * stride * 2], ink[rows * columns * 2], rastered[rows * columns];
         for (int r = 0; r < rows; ++r)
           for (int c = 0; c < stride; ++c) {
             // Mostly greys, with paper and ink between them, as a page has.
@@ -173,12 +173,15 @@ static void a_block_is_every_pixel_by_the_rules() {
           }
         // The middle rows alone, as a band of a flush is: the rows around them are still read.
         const int first = 2, count = 5;
-        block(source, ink, columns, rows, stride, first, count, at_x, at_y, big, inks);
+        // And it says which pixels it printed as a raster, for the host render's ink audit: those between two inks
+        // that are no edge, and no other.
+        block(source, ink, columns, rows, stride, first, count, at_x, at_y, big, inks, rastered);
         for (int r = first; r < first + count; ++r)
           for (int c = 0; c < columns; ++c) {
             const uint8_t l = luma565(pixels[r][c]);
             const unsigned rest = (l * (inks == 4 ? 3U : 1U)) % 255U;
             uint8_t want;
+            bool raster = false;
             if (l == 255 || rest <= NEAR || rest >= 255U - NEAR) {
               want = level(l, at_x + c, at_y + r, inks);
             } else {
@@ -188,8 +191,10 @@ static void a_block_is_every_pixel_by_the_rules() {
               if (c + 1 < columns) around[n++] = luma565(pixels[r][c + 1]);
               if (r > 0) around[n++] = luma565(pixels[r - 1][c]);
               if (r + 1 < rows) around[n++] = luma565(pixels[r + 1][c]);
-              want = edge(l, around, n) ? nearest(l, inks) : level(l, at_x + c, at_y + r, inks);
+              raster = !edge(l, around, n);
+              want = raster ? level(l, at_x + c, at_y + r, inks) : nearest(l, inks);
             }
+            assert(rastered[(r - first) * columns + c] == (raster ? 1 : 0));
             const uint8_t *o = ink + ((r - first) * columns + c) * 2;
             const uint16_t got = big ? static_cast<uint16_t>((o[0] << 8) | o[1]) : static_cast<uint16_t>((o[1] << 8) | o[0]);
             assert(got == grey565(grey(want, inks)));

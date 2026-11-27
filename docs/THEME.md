@@ -44,6 +44,18 @@ on the same step of the RGB565 panel, so it stays grey on both boards.
   inside a card of any colour), `pressed()` (a card under a finger) and `fill_opacity()` (the area
   under a graph).
 
+## Tones and parts
+
+`theme.h` is the tones: a role as a colour in each look, and as an ink on a glass of e-paper. What a tone cannot
+say, because the two kinds of glass differ there by a form and not by a colour, is a part: a disc that says a state,
+the one chosen among its row, a mark in a state's colour, a part that waits. `theme_parts.h` names each part once,
+and `theme_lit.h` and `theme_ink.h` are the two stylesheets that say what it is on each glass. A card asks for the
+part (`theme::state_disc`, `theme::mark`, `theme::gone`) and never for the glass. docs/GLASS_KINDS.md has the
+vocabulary and the recipe for a new part.
+
+The helpers this document names for a state's colour (`state()`, `foreground()`, `tint()`, `icon()`) are parts too:
+on a lit glass they are the colours they always were.
+
 ## A change of look
 
 `settings_screen::set("dark_mode", ...)` stores the setting in its own preference (`DRK1`), runs

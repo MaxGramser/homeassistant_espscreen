@@ -620,8 +620,8 @@ inline lv_obj_t *key(lv_obj_t *parent, const char *glyph, int x, int y, int w, i
   lv_obj_set_style_bg_color(button, theme::color(theme::SETTING_KEY), 0);
   lv_obj_set_style_bg_color(button, theme::color(theme::SETTING_KEY_PRESSED), LV_STATE_PRESSED);
   lv_obj_set_style_radius(button, LV_RADIUS_CIRCLE, 0);
-  // On paper a faded key is a raster: a key that does nothing now is not shown, and one that does has its rim.
-  lv_obj_set_style_opa(button, theme::paper ? LV_OPA_TRANSP : LV_OPA_40, LV_STATE_DISABLED);
+  // A key that does nothing now is faint where the glass shows that (theme::gone); one that does has its rim.
+  lv_obj_set_style_opa(button, theme::gone(LV_OPA_40), LV_STATE_DISABLED);
   theme::rim(button, true);
   auto *label = text(button, glyph, icon_font ? icon_font : row_font, theme::INK);
   lv_obj_set_width(label, LV_SIZE_CONTENT);
@@ -676,8 +676,8 @@ inline void refresh() {
     if (d.knob) move_knob(d, row);
     // A row whose switch is off (night times, the standby levels) is there but does nothing, and says so.
     bool live = live_row(row);
-    // On paper a faded row is a raster through its words: it keeps its ink, and its keys are gone (key()).
-    const lv_opa_t opa = live || theme::paper ? LV_OPA_COVER : LV_OPA_50;
+    // A row that waits is dimmed where the glass shows that (theme::whole): its words must still be read.
+    const lv_opa_t opa = live ? LV_OPA_COVER : theme::whole(LV_OPA_50);
     if (d.card && lv_obj_get_style_opa(d.card, LV_PART_MAIN) != opa) lv_obj_set_style_opa(d.card, opa, 0);
     if (d.minus && readable(row)) {
       bool off = !live || at_end(row, get(row), -1);

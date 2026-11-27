@@ -40,11 +40,10 @@ inline void saver_clock_draw() {
   if (digits) digit_box(digits, top, digits_h);
   // Black with white digits in both looks (firmware 0.31.0+): a screensaver gives as little light as it can. Before,
   // the clock stood on the page's own colour, a lit white glass in the light look.
-  // On paper it is the page's own tone with everything on it in ink: there is no light to save, and a softer tone
-  // for the date would be a raster through its letters.
-  lv_obj_set_style_bg_color(saver_root, theme::color(theme::paper ? theme::PAGE : theme::CAMERA_PAGE), 0);
-  const uint32_t ink = theme::paper ? theme::hex(theme::INK) : media_ink();
-  const uint32_t soft = theme::paper ? ink : theme::mix(ink, theme::hex(theme::CAMERA_PAGE), 150);
+  // The clock stands on the stage (theme::stage_ground): where there is no light to save, that is the page itself.
+  lv_obj_set_style_bg_color(saver_root, lv_color_hex(theme::stage_ground(theme::hex(theme::CAMERA_PAGE))), 0);
+  const uint32_t ink = theme::stage_ink();
+  const uint32_t soft = theme::soft(ink, theme::hex(theme::CAMERA_PAGE), 150);
   const auto l = saver_view::clock(width, height, digits_h, date.empty() ? 0 : date_h, date.empty() ? 0 : gap);
   const int time_w = digits ? text_width(time, digits) : width;
   const auto row = saver_view::clock_row(width, time_w, ampm_w, space);
@@ -109,10 +108,11 @@ inline void saver_words() {
   }
   for (lv_obj_t **words : {&saver_first, &saver_second, &saver_band}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
   saver_words_due = false;
-  // On paper a picture is no ground for words (docs/PAPER.md): the shade the app paints into its foot is a raster
-  // there, and white words and a key's sign fell away into it. The words and the keys stand on a band of black across
-  // the foot of the glass, from a little above the highest of them, and the picture ends where the band begins.
-  if (theme::paper) {
+  // Where the glass shades nothing a picture is no ground for words (docs/PAPER.md): the shade the app paints into
+  // its foot is a raster there, and white words and a key's sign fell away into it. The words and the keys stand on a
+  // band of black across the foot of the glass, from a little above the highest of them, and the picture ends where
+  // the band begins.
+  if (!theme::shades()) {
     int top = w.first.y;
     for (const auto &r : {keys.plus, keys.minus, keys.play}) if (r.w > 0) top = std::min(top, r.y);
     top = std::max(0, top - margin / 2);
@@ -124,10 +124,10 @@ inline void saver_words() {
     lv_obj_set_style_bg_color(saver_band, theme::color(theme::CAMERA_PAGE), 0);
     lv_obj_set_style_bg_opa(saver_band, LV_OPA_COVER, 0);
   }
-  // The words stand on the screensaver's own dark ground, on paper too: its ink, never the media card's.
+  // The words stand on the picture's own dark ground on every glass: its ink, never the media card's.
   const uint32_t words = theme::hex(theme::CAMERA_INK);
   saver_first = saver_text(camera_root, font, words, w.first, first, LV_TEXT_ALIGN_LEFT);
-  if (second_h) saver_second = saver_text(camera_root, second_font, theme::paper ? words : theme::mix(words, 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
+  if (second_h) saver_second = saver_text(camera_root, second_font, theme::soft(words, 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
   saver_keys_draw();
 }
 // The keys: white rounds over the darkened cover, the play key whole and the two volume keys a haze with a white sign,
@@ -262,20 +262,9 @@ inline void saver_keys_draw() {
     lv_obj_set_pos(o, r.x, r.y);
     lv_obj_set_size(o, r.w, r.h);
     lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(o, theme::rgb(ink), 0);
-    lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 56, 0);
-    lv_obj_set_style_bg_color(o, theme::rgb(primary ? theme::mix(ink, 0, 200) : ink), LV_STATE_PRESSED);
-    lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 110, LV_STATE_PRESSED);
-    // On paper a haze is a raster under the key's sign: a volume key is the band's black in a ring of its ink.
-    if (theme::paper && !primary) {
-      for (lv_style_selector_t s : {(lv_style_selector_t) 0, (lv_style_selector_t) LV_STATE_PRESSED}) {
-        lv_obj_set_style_bg_color(o, theme::color(theme::CAMERA_PAGE), s);
-        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, s);
-      }
-      lv_obj_set_style_border_width(o, theme::PAPER_RIM, 0);
-      lv_obj_set_style_border_color(o, theme::rgb(ink), 0);
-      lv_obj_set_style_border_opa(o, LV_OPA_COVER, 0);
-    }
+    // The play key whole in the picture's ink, a volume key a haze of it (theme::haze).
+    theme::wear(o, primary ? theme::Dress{ink, ink} : theme::haze(ink, 56));
+    theme::wear(o, primary ? theme::Dress{theme::mix(ink, 0, 200), ink} : theme::haze(ink, 110), LV_STATE_PRESSED);
     auto *icon = lv_label_create(o);
     lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
     if (font) lv_obj_set_style_text_font(icon, font, 0);

@@ -122,11 +122,11 @@ inline void weather_key(lv_obj_t *parent,int x,int y,bool hours){
     const bool chosen=side==(hours?1:0);
     auto *k=lv_obj_create(track);lv_obj_remove_style_all(k);lv_obj_remove_flag(k,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_pos(k,side?half:in,in);lv_obj_set_size(k,half-in,h-2*in);lv_obj_set_style_radius(k,LV_RADIUS_CIRCLE,0);
-    // On paper the chosen half is ink with its word left open: two halves of paper said nothing of which is chosen.
-    lv_obj_set_style_bg_color(k,theme::color(chosen?(theme::paper?theme::KEY_ON:theme::CARD):theme::TRACK),0);lv_obj_set_style_bg_opa(k,LV_OPA_COVER,0);
+    const theme::Dress side_look=theme::half(chosen);
+    lv_obj_set_style_bg_color(k,lv_color_hex(side_look.ground),0);lv_obj_set_style_bg_opa(k,LV_OPA_COVER,0);
     lv_obj_set_style_bg_color(k,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
     auto *word=lv_label_create(k);lv_obj_set_style_text_font(word,f,0);lv_label_set_text(word,tr(side?txt::ha_weather_view_hourly:txt::ha_weather_view_daily));
-    lv_obj_set_style_text_color(word,theme::color(chosen?(theme::paper?theme::KEY_ON_ICON:theme::INK):theme::MUTED),0);lv_obj_center(word);lv_obj_remove_flag(word,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_text_color(word,lv_color_hex(side_look.ink),0);lv_obj_center(word);lv_obj_remove_flag(word,LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(k,LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(k,weather_key_event,LV_EVENT_CLICKED,(void*)(intptr_t)side);
   }

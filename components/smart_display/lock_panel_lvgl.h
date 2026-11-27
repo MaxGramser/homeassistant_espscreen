@@ -222,14 +222,12 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   const uint32_t colour=asking&&!waits_open?lock_panel::ORANGE:lock_panel::color(t.state);
   auto *big=detail_button("",cx-d/2,cy-d/2,d,d,LOCK_KEY_FIRST+(int)(primary==lock_panel::NONE?lock_panel::LOCK:primary));
   lv_obj_set_style_radius(big,LV_RADIUS_CIRCLE,0);lv_obj_set_style_border_width(big,0,0);
-  // On paper the key says the state by its shape: locked (and jammed) is a disc of ink with the glyph left open,
-  // everything else the glyph in a ring. A pale disc would be a raster under the glyph.
+  // The key is the disc that says the state (theme::state_disc): shut, locked or jammed, is the one it stands for.
   const bool shut=t.state=="locked"||t.state=="jammed";
-  const uint32_t ground=!available?theme::hex(theme::TRACK):theme::paper?theme::hex(shut?theme::INK:theme::CARD):theme::tint(theme::state(colour),38);
-  // What cannot be reached is grey on a lit glass; on paper a grey glyph is a raster, so it is ink in its ring.
-  const uint32_t face_ink=!available?theme::hex(theme::paper?theme::INK:theme::OFF):theme::paper?theme::hex(shut?theme::CARD:theme::INK):theme::icon(theme::state(colour));
+  const theme::Dress hero=theme::state_disc(colour,available,shut);
+  const uint32_t ground=hero.ground,face_ink=hero.ink;
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),0);
-  theme::rim(big,!available||!shut);
+  theme::rim(big,hero.rim>0);
   lv_obj_set_style_bg_color(big,lv_color_hex(theme::pressed(ground)),LV_STATE_PRESSED);
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),LV_STATE_DISABLED);lv_obj_set_style_bg_opa(big,LV_OPA_COVER,LV_STATE_DISABLED);
   if(icons){

@@ -312,7 +312,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   // The placeholder and the player's icon; the cover comes over them once the app served it. A board that draws no
   // pictures has neither (firmware 0.46.0): the player stands in the middle of the room instead.
   if(l.art.w){
-    w.parts[0]=media_box(w.extra,w.parts[0],at(l.art),theme::paper?theme::hex(theme::CARD):theme::tint(theme::ha::LIGHT_BLUE,51),l.art_radius);
+    w.parts[0]=media_box(w.extra,w.parts[0],at(l.art),theme::field(theme::ha::LIGHT_BLUE,51),l.art_radius);
     theme::rim(w.parts[0],true);
     lv_obj_remove_flag(w.parts[0],LV_OBJ_FLAG_HIDDEN);
     const std::string glyph=icon_for(t);

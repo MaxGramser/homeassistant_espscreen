@@ -276,7 +276,7 @@ void labelled_key(lv_obj_t *root, int cx, int cy, int d, uint32_t fill, const ch
 }
 
 void show_ring() {
-  paper::news(esphome::millis());  // a call comes in: a glass of ink prints it at once
+  glass_moment::news(esphome::millis());  // a call comes in (a glass of ink prints it at once)
   auto *root = new_card();
   who(root, screen_text::tr(with_video ? screen_text::txt::call_video : screen_text::txt::call_audio), true);
   const int d = key_d() * 4 / 3, w = overlay_card::screen_width(), h = overlay_card::screen_height();

@@ -110,13 +110,15 @@ inline constexpr Plain PLAIN2 = plain_of(2), PLAIN4 = plain_of(4);
 // A block of RGB565 pixels as LVGL flushes it: `total_rows` rows of `columns` pixels at `source`, whose rows are
 // `stride` pixels apart, with its first pixel at (x, y) on the glass. The rows from `first` on, `rows` of them, are
 // written tightly into `ink`; the rows around them are read for what lies beside a pixel. Two bytes a pixel, the high
-// byte first when `big_endian`, in and out alike.
+// byte first when `big_endian`, in and out alike. `rastered`, where given, gets a byte for each pixel written: 1 for
+// one printed as a raster (between two inks, in an even stretch of its tone), else 0. The host render's ink audit
+// reads it (tools/render/paper_ink_tool.cpp); a screen passes none.
 //
 // This runs over every pixel LVGL draws, a whole glass at a turn of a page (384 000 on a reTerminal Sticky, where the
 // first version took 280 ms of a turn and this one 93 ms, measured 2026-11-27). So a row is walked with one pointer,
 // and a pixel that is an ink, which most are, costs one look in a table.
 inline void block(const uint8_t *source, uint8_t *ink, int columns, int total_rows, int stride, int first, int rows,
-                  int x, int y, bool big_endian, uint8_t inks) {
+                  int x, int y, bool big_endian, uint8_t inks, uint8_t *rastered = nullptr) {
   const Plain &plain = inks == 4 ? PLAIN4 : PLAIN2;
   const int high = big_endian ? 0 : 1, low = 1 - high;  // where a pixel's high and low byte lie
   const auto luma_of = [high, low](const uint8_t *in) {
@@ -135,6 +137,7 @@ inline void block(const uint8_t *source, uint8_t *ink, int columns, int total_ro
     for (int column = 0; column < columns; ++column, in += 2, ink += 2) {
       const uint8_t l = luma_of(in);
       uint8_t lvl = plain.level[l];
+      bool raster = false;
       if (lvl == BETWEEN) {
         // Between two inks: an edge prints as the nearer ink, an even stretch as its raster.
         uint8_t around[4];
@@ -143,8 +146,10 @@ inline void block(const uint8_t *source, uint8_t *ink, int columns, int total_ro
         if (column + 1 < columns) around[count++] = luma_of(in + 2);
         if (row > 0) around[count++] = luma_of(in - step);
         if (row + 1 < total_rows) around[count++] = luma_of(in + step);
-        lvl = edge(l, around, count) ? nearest(l, inks) : level(l, x + column, y + row, inks);
+        raster = !edge(l, around, count);
+        lvl = raster ? level(l, x + column, y + row, inks) : nearest(l, inks);
       }
+      if (rastered) *rastered++ = raster;
       ink[0] = bytes[lvl][0];
       ink[1] = bytes[lvl][1];
     }
