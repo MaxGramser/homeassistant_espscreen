@@ -1,0 +1,321 @@
+# Home-Assistant-Paket für das Wetter-Display (README.md, Schritt 1).
+#
+# Erstellt sensor.display_wetter. Seine Attribute tragen, was das Display für Vorhersage, Sonne und Warnungen braucht,
+# je ein kurzer Text mit Semikolons (ESPHome überträgt einen Text mit höchstens 255 Zeichen):
+#   tag_0 ... tag_4        "Heute;rainy;11.4;3.6;60;1.2"  Name; Zustand; Höchst; Tiefst (eine Nachkommastelle);
+#                                                      Regen-%; Regen-mm
+#   stunde_0 ... stunde_4  "15;40;0.6"                 Stunde; Regen-%; Regen-mm (die nächsten 10 Stunden in
+#                                                      2-Stunden-Schritten)
+#   sonne                  "1763276520;1763309880"     Aufgang; Untergang als Unix-Zeit. Tagsüber der Aufgang von
+#                                                      heute, nachts die nächsten beiden Ereignisse.
+#   warnung                "3;Orkanböen · Glätte;ORKANBÖEN"
+#                                                      höchste aktuelle Warnstufe (1 bis 4); alle Warnungen zum
+#                                                      Anzeigen, die höchste zuerst (das Display lässt sie als
+#                                                      Lauftext laufen, wenn sie nicht passen); Name der höchsten wie
+#                                                      vom DWD (für das Icon). Leer, wenn keine Warnung gilt.
+#   vorwarnung             "2;Morgen Sturmböen;STURMBÖEN"
+#                                                      wie warnung, aus den Vorwarnungen des DWD; vor dem Namen der
+#                                                      Tag, an dem sie beginnt. Das Display zeigt sie nur ohne Warnung.
+#   regen_satz             "Trocken bis;17 Uhr"        Kopf der Regen-Karte: wann der Regen beginnt oder aufhört
+#                                                      (Zustand Regen/Schnee, ab 60 % oder ab 0,3 mm), in den
+#                                                      nächsten 12 Stunden. Der zweite Teil steht in Gold.
+#   hunderunde             "mix;Trocken raus;14 – 17 Uhr;…"  Easter Egg (Doppeltipp): trockene Zeiten für den Hund
+# Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
+# über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
+#
+# Anpassen: die Zeilen "wetter:", "warnungen:" und "vorwarnungen:" unten (die Wetter-Entität und die beiden
+# Warn-Sensoren stehen außerdem bei den Auslösern oben).
+#   wetter     die Wetter-Entität, z. B. vom DWD (HACS-Integration "DWD Weather") oder Met.no
+#   warnungen  der Sensor "aktuelle Warnstufe" der Integration "Deutscher Wetterdienst (DWD) Weather Warnings";
+#              ohne DWD-Warnungen einfach so lassen, das Display zeigt dann keine Warnung.
+#   vorwarnungen  der Sensor "Vorwarnstufe" derselben Integration
+#
+# Dazu eine Automation für den UV-Index von OpenUV (die DWD-Integration liefert ihn nicht mehr). OpenUV fragt nicht
+# von selbst ab und erlaubt mit dem kostenlosen Schlüssel 50 Abfragen am Tag: Die Automation fragt tagsüber alle
+# 30 Minuten (im Sommer gut 30-mal am Tag). Die Entität unten bei "entity_id" anpassen.
+#
+# Wann das Display nachts oder bei Abwesenheit aus ist, steuert eine eigene Automation für automations.yaml:
+# home-assistant/automation_display_nachtruhe.yaml (Nachtruhe 23–6 Uhr, Anwesenheit, Bewegung im Flur).
+
+template:
+  - triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+      - trigger: time_pattern
+        minutes: "/15"
+      - trigger: state
+        entity_id: sun.sun
+      # sobald der DWD den Zustand ändert (z. B. auf regnerisch), nicht erst nach 15 Minuten
+      - trigger: state
+        entity_id: weather.controlroom_sassenberg
+        to: ~
+      - trigger: state
+        entity_id: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
+      - trigger: state
+        entity_id: sensor.balkon_kreis_warendorf_vorwarnstufe
+    actions:
+      - variables:
+          wetter: weather.controlroom_sassenberg
+          warnungen: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
+          vorwarnungen: sensor.balkon_kreis_warendorf_vorwarnstufe
+      - action: weather.get_forecasts
+        continue_on_error: true
+        target:
+          entity_id: "{{ wetter }}"
+        data:
+          type: daily
+        response_variable: taeglich
+      - action: weather.get_forecasts
+        continue_on_error: true
+        target:
+          entity_id: "{{ wetter }}"
+        data:
+          type: hourly
+        response_variable: stuendlich
+      - variables:
+          tage: >
+            {% set namen = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+            {% set ns = namespace(liste=[]) %}
+            {% set fc = taeglich[wetter].forecast if taeglich is defined and taeglich and wetter in taeglich else [] %}
+            {% for f in fc[:5] %}
+              {% set d = as_local(as_datetime(f.datetime)) %}
+              {% set name = 'Heute' if d.date() == now().date() else namen[d.weekday()] %}
+              {% set hoch = f.get('temperature') %}
+              {% set tief = f.get('templow') %}
+              {% set prozent = f.get('precipitation_probability') %}
+              {% set mm = f.get('precipitation') %}
+              {% set ns.liste = ns.liste + [
+                   name ~ ';' ~ f.condition
+                   ~ ';' ~ ((hoch | round(1)) if hoch is number else '')
+                   ~ ';' ~ ((tief | round(1)) if tief is number else '')
+                   ~ ';' ~ ((prozent | round(0) | int) if prozent is number else '')
+                   ~ ';' ~ ((mm | round(1)) if mm is number else '')] %}
+            {% endfor %}
+            {{ ns.liste }}
+          stunden: >
+            {% set ns = namespace(liste=[]) %}
+            {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
+            {% for f in fc[1:11:2] %}
+              {% set prozent = f.get('precipitation_probability') %}
+              {% set mm = f.get('precipitation') %}
+              {% set ns.liste = ns.liste + [
+                   as_local(as_datetime(f.datetime)).strftime('%H')
+                   ~ ';' ~ ((prozent | round(0) | int) if prozent is number else '')
+                   ~ ';' ~ ((mm | round(1)) if mm is number else '')] %}
+            {% endfor %}
+            {{ ns.liste }}
+          # Tagsüber zeigt das Display den Aufgang von heute ("vor 5 Std"). sun.sun kennt nur den nächsten Aufgang,
+          # darum merkt sich der Sensor den Moment, in dem die Sonne aufgeht. Nach einem Neustart am Tag fehlt
+          # er bis zum nächsten Morgen; bis dahin gilt der nächste Aufgang minus einen Tag (wenige Minuten daneben).
+          sonne: >
+            {% set auf = as_timestamp(state_attr('sun.sun', 'next_rising'), 0) | int %}
+            {% set unter = as_timestamp(state_attr('sun.sun', 'next_setting'), 0) | int %}
+            {% if is_state('sun.sun', 'above_horizon') %}
+              {% set aufgang = trigger.to_state.state if trigger is defined and trigger.platform == 'state'
+                                 and trigger.entity_id == 'sun.sun' and trigger.from_state is not none
+                                 and trigger.from_state.state == 'below_horizon' else '' %}
+              {% set gemerkt = (this.attributes.get('aufgang_heute', 0) | int(0)) if this is defined else 0 %}
+              {% if aufgang %}
+                {% set heute = as_timestamp(now()) | int %}
+              {% elif gemerkt and as_local(as_datetime(gemerkt)).date() == now().date() %}
+                {% set heute = gemerkt %}
+              {% else %}
+                {% set heute = auf - 86400 %}
+              {% endif %}
+              {{ heute }};{{ unter }}
+            {% else %}
+              {{ auf }};{{ unter }}
+            {% endif %}
+          warnung: >
+            {% set ns = namespace(liste=[]) %}
+            {% set n = state_attr(warnungen, 'warning_count') | int(0) %}
+            {% for i in range(1, n + 1) %}
+              {% set stufe = state_attr(warnungen, 'warning_' ~ i ~ '_level') | int(0) %}
+              {% set roh = state_attr(warnungen, 'warning_' ~ i ~ '_name') | string %}
+              {% if stufe > 0 and roh | trim not in ['', 'None', 'none', 'unknown', 'unavailable'] %}
+                {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh}] %}
+              {% endif %}
+            {% endfor %}
+            {% set liste = ns.liste | sort(attribute='stufe', reverse=true) %}
+            {% if liste | count > 0 %}
+              {% set namen = liste | map(attribute='roh') | map('lower') | map('title') | unique | list %}
+              {{ liste[0].stufe }};{{ namen | join(' · ') | truncate(180, true, '…') }};{{ liste[0].roh }}
+            {% endif %}
+          vorwarnung: >
+            {% set tage = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+            {% set ns = namespace(liste=[]) %}
+            {% set n = state_attr(vorwarnungen, 'warning_count') | int(0) %}
+            {% for i in range(1, n + 1) %}
+              {% set stufe = state_attr(vorwarnungen, 'warning_' ~ i ~ '_level') | int(0) %}
+              {% set roh = state_attr(vorwarnungen, 'warning_' ~ i ~ '_name') | string %}
+              {% set start = state_attr(vorwarnungen, 'warning_' ~ i ~ '_start') %}
+              {% set d = as_local(as_datetime(start)).date() if start else now().date() %}
+              {% set tag = 'Heute' if d <= now().date() else 'Morgen' if (d - now().date()).days == 1
+                           else tage[d.weekday()] %}
+              {% if stufe > 0 and roh | trim not in ['', 'None', 'none', 'unknown', 'unavailable'] %}
+                {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh,
+                                               'text': tag ~ ' ' ~ (roh | lower | title)}] %}
+              {% endif %}
+            {% endfor %}
+            {% set liste = ns.liste | sort(attribute='stufe', reverse=true) %}
+            {% if liste | count > 0 %}
+              {% set texte = liste | map(attribute='text') | unique | list %}
+              {{ liste[0].stufe }};{{ texte | join(' · ') | truncate(180, true, '…') }};{{ liste[0].roh }}
+            {% endif %}
+          # Regen in den nächsten 12 Stunden als Satz: Ab wann regnet es, oder bis wann noch?
+          regen_satz: >
+            {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
+            {% set ns = namespace(nass=[], uhr=[]) %}
+            {% set regen = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'snowy', 'hail'] %}
+            {% set jetzt_nass = states(wetter) in regen %}
+            {% for f in fc[:12] %}
+              {% set p = f.get('precipitation_probability') %}
+              {% set mm = f.get('precipitation') %}
+              {% set h = as_local(as_datetime(f.datetime)).hour %}
+              {% set nass = f.get('condition') in regen or (p is number and p >= 60) or (mm is number and mm >= 0.3) %}
+              {# regnet es gerade laut Wetter-Entität, zählt die laufende Stunde als nass #}
+              {% if loop.first and jetzt_nass %}
+                {% if h == now().hour %}{% set nass = true %}
+                {% else %}{% set ns.nass = [true] %}{% set ns.uhr = [now().hour] %}{% endif %}
+              {% endif %}
+              {% set ns.nass = ns.nass + [nass] %}{% set ns.uhr = ns.uhr + [h] %}
+            {% endfor %}
+            {% if ns.nass | count == 0 %}
+              Regen;
+            {% elif ns.nass[0] %}
+              {% set ns.k = -1 %}
+              {% for x in ns.nass %}{% if not x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
+              {% if ns.k < 0 %}Dauerregen;{% else %}Regen bis;{{ ns.uhr[ns.k] }} Uhr{% endif %}
+            {% else %}
+              {% set ns.k = -1 %}
+              {% for x in ns.nass %}{% if x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
+              {% if ns.k < 0 %}Kein Regen;in Sicht{% else %}Trocken bis;{{ ns.uhr[ns.k] }} Uhr{% endif %}
+            {% endif %}
+          # Easter Egg Hunderunde (Doppeltipp am Display): trockene Zeiten zwischen 6 und 22 Uhr, ab 21 Uhr für morgen.
+          # "icon;klein;groß;slots;tipp;plan;jetzt": plan hat je Stunde 6..21 ein Zeichen (t trocken, n nass,
+          # h heiß ab 25 °C, - keine Vorhersage), jetzt ist die Stunde von 6 an gezählt (-1: morgen, kein Strich).
+          hunderunde: >
+            {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
+            {% set morgen = now().hour >= 21 %}
+            {% set tag = (now() + timedelta(days=1)).date() if morgen else now().date() %}
+            {% set jetzt = -1 if morgen else now().hour - 6 %}
+            {% set regen = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'snowy', 'hail'] %}
+            {% set ns = namespace(plan='', tmin=99, tmax=-99, schnee=false, wind=[], temp=[]) %}
+            {% for h in range(6, 22) %}
+              {% set ns.c = '-' %}{% set ns.w = '' %}{% set ns.t = '' %}
+              {% for f in fc %}
+                {% set d = as_local(as_datetime(f.datetime)) %}
+                {% if d.date() == tag and d.hour == h %}
+                  {% set p = f.get('precipitation_probability') %}
+                  {% set mm = f.get('precipitation') %}
+                  {% set t = f.get('temperature') %}
+                  {% set nass = f.get('condition') in regen or (p is number and p >= 60) or (mm is number and mm >= 0.3)
+                                or (d.date() == now().date() and h == now().hour and states(wetter) in regen) %}
+                  {% set ns.c = 'n' if nass else ('h' if t is number and t >= 25 else 't') %}
+                  {% if t is number %}
+                    {% set ns.tmin = [ns.tmin, t] | min %}{% set ns.tmax = [ns.tmax, t] | max %}
+                    {% set ns.t = t | round(0) | int %}
+                  {% endif %}
+                  {% set ns.w = f.get('wind_speed') | round(0) | int if f.get('wind_speed') is number else '' %}
+                  {% if f.condition in ['snowy', 'snowy-rainy'] %}{% set ns.schnee = true %}{% endif %}
+                {% endif %}
+              {% endfor %}
+              {# regnet es gerade laut Wetter-Entität, ist die laufende Stunde nass, auch ohne Vorhersage dafür #}
+              {% if not morgen and h == now().hour and states(wetter) in regen %}{% set ns.c = 'n' %}{% endif %}
+              {% set ns.plan = ns.plan ~ ns.c %}
+              {% set ns.wind = ns.wind + [ns.w] %}{% set ns.temp = ns.temp + [ns.t] %}
+            {% endfor %}
+            {% set ns.slots = [] %}{% set ns.von = -1 %}
+            {% for c in (ns.plan ~ 'x') %}
+              {% set i = loop.index0 %}
+              {% if c == 't' and i >= jetzt and ns.von < 0 %}{% set ns.von = i %}{% endif %}
+              {% if c != 't' and ns.von >= 0 %}
+                {% set ns.slots = ns.slots + [{'von': ns.von, 'bis': i, 'lang': i - ns.von}] %}{% set ns.von = -1 %}
+              {% endif %}
+            {% endfor %}
+            {% set slots = (ns.slots | sort(attribute='lang', reverse=true))[:3] | sort(attribute='von') %}
+            {% set start = [jetzt, 0] | max %}
+            {% set rest = ns.plan[start:] | replace('-', '') %}
+            {% set warn = ((warnung | default('')) ~ (vorwarnung | default(''))) | lower %}
+            {% set frost = ns.tmin <= 1 or ns.schnee or 'glätte' in warn or 'glatteis' in warn or 'frost' in warn %}
+            {% set heiss = 'h' in rest %}
+            {% set i0 = slots[0].von if slots else start %}
+            {% set temp = ns.temp[i0] if ns.temp[i0] != '' else '' %}
+            {% set wind = (' · Wind ' ~ ns.wind[i0] ~ ' km/h') if ns.wind[i0] != '' else '' %}
+            {% macro zeit(s, eng) %}{{ s.von + 6 }}{{ '–' if eng else ' – ' }}{{ s.bis + 6 }}{% endmacro %}
+            {% if rest == '' %}
+              {% set icon, klein, gross, tipp = 'mix', 'Hunderunde', '–', 'Keine stündliche Vorhersage' %}
+            {% elif slots | count == 1 and rest == 't' * (rest | count) %}
+              {% set icon = 'sonne' %}
+              {% set klein = 'Morgen den ganzen Tag' if morgen else ('Den ganzen Tag' if start == 0 else 'Bis zum Abend') %}
+              {% set gross, tipp = 'trocken!', 'Zeit für die große Runde · ' ~ temp ~ '°' %}
+            {% elif slots | count == 0 %}
+              {% set icon = 'sonne' if heiss else 'schirm' %}
+              {% set klein = ('Morgen zu heiß' if morgen else 'Heute zu heiß') if heiss and 'n' not in rest else (('Morgen' if morgen else 'Heute') ~ " gibt's keine Lücke") %}
+              {% set gross = 'Kurz raus!' if heiss and 'n' not in rest else 'Schirm mit!' %}
+              {% set tipp = '…und das Hundehandtuch an die Tür legen' %}
+            {% else %}
+              {% set icon = 'sonne' if heiss else 'mix' %}
+              {% set klein = ('Morgen mittags zu heiß' if morgen else 'Mittags zu heiß') if heiss else ('Morgen trocken raus' if morgen else 'Trocken raus') %}
+              {% set ns.g = [] %}
+              {% for s in slots %}{% set ns.g = ns.g + [zeit(s, slots | count > 1)] %}{% endfor %}
+              {% set gross = ns.g | join(' · ') ~ ' Uhr' %}
+              {% if slots | count == 1 %}
+                {% set tipp = ('Danach Regen · ' if 'n' in ns.plan[slots[0].bis:] else '') ~ temp ~ '°' ~ wind %}
+              {% elif slots | count == 2 and slots[0].lang != slots[1].lang %}
+                {% set l = (slots | sort(attribute='lang', reverse=true))[0] %}
+                {% set tipp = 'Längste Lücke ' ~ zeit(l, false) ~ ' Uhr · ' ~ temp ~ '°' %}
+              {% else %}
+                {% set tipp = 'Wechselhaft · ' ~ temp ~ '°' ~ wind %}
+              {% endif %}
+            {% endif %}
+            {% if heiss %}
+              {% set tipp = (ns.tmax | round(0) | int) ~ '° · Asphalt-Test: 5 Sek. Handrücken · Wasser mit' %}
+            {% elif frost %}
+              {% set icon = 'frost' if icon != 'schirm' else icon %}
+              {% set tipp = (ns.tmin | round(0) | int) ~ '° · Pfoten nach der Runde abspülen (Streusalz)' %}
+            {% endif %}
+            {{ icon }};{{ klein }};{{ gross }};{{ slots | count }};{{ tipp }};{{ ns.plan }};{{ jetzt }}
+    sensor:
+      - name: Display Wetter
+        unique_id: display_wetter_vorhersage
+        icon: mdi:weather-partly-cloudy
+        state: "{{ tage | count }}"
+        attributes:
+          tag_0: "{{ tage[0] if tage | count > 0 else '' }}"
+          tag_1: "{{ tage[1] if tage | count > 1 else '' }}"
+          tag_2: "{{ tage[2] if tage | count > 2 else '' }}"
+          tag_3: "{{ tage[3] if tage | count > 3 else '' }}"
+          tag_4: "{{ tage[4] if tage | count > 4 else '' }}"
+          stunde_0: "{{ stunden[0] if stunden | count > 0 else '' }}"
+          stunde_1: "{{ stunden[1] if stunden | count > 1 else '' }}"
+          stunde_2: "{{ stunden[2] if stunden | count > 2 else '' }}"
+          stunde_3: "{{ stunden[3] if stunden | count > 3 else '' }}"
+          stunde_4: "{{ stunden[4] if stunden | count > 4 else '' }}"
+          sonne: "{{ sonne | trim }}"
+          aufgang_heute: "{{ (sonne | trim).split(';')[0] if is_state('sun.sun', 'above_horizon') else 0 }}"
+          warnung: "{{ warnung | trim }}"
+          vorwarnung: "{{ vorwarnung | trim }}"
+          regen_satz: "{{ regen_satz | trim }}"
+          hunderunde: "{{ hunderunde | trim }}"
+
+automation:
+  - id: wetter_display_openuv
+    alias: "Wetter-Display: OpenUV aktualisieren"
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        minutes: "/30"
+      - trigger: state
+        entity_id: sun.sun
+        to: above_horizon
+    conditions:
+      - condition: state
+        entity_id: sun.sun
+        state: above_horizon
+    actions:
+      - action: homeassistant.update_entity
+        target:
+          entity_id: sensor.controlroom_openuv_aktueller_uv_index
