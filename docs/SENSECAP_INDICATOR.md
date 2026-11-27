@@ -1,27 +1,27 @@
-# Seeed SenseCAP Indicator D1 series, GX panel, experimental
+# Seeed SenseCAP Indicator D1 series, GX panel
 
 The **SenseCAP Indicator** from Seeed is a 3.95-inch 480 x 480 touch screen with two chips inside: an ESP32-S3 with
 8 MB flash and 8 MB octal PSRAM that drives the display, and an RP2040 beside it. It comes as four models: the **D1**,
 the **D1S** with CO2 and air quality sensors, the **D1L** with a LoRa radio, and the **D1Pro** with both. Tessera runs on
 the ESP32-S3 and uses the display, the FT6336U capacitive touch and the dimmable backlight.
 
-A community member ran this board file on a D1L with the GX panel (see "Who tried what" below). The project has not
-tried it on an Indicator, so the board is **experimental**.
+A community member first ran this board file on a D1L with the GX panel (see "Who tried what" below). The project has
+since tested it on Indicators of its own, buzzer included, so the board is **stable** and one of the recommended boards.
 
 ## Which board
 
 - **The four models share one board file.** The display, the touch panel, the PCA9535 expander and the backlight are
   wired the same on all four, as ESPHome's device page for the Indicator and Seeed's own firmware describe them; what
-  tells the models apart is on the RP2040 (the sensors) or unused here (the LoRa radio of the D1L and the D1Pro). Only
-  the D1L has been tried.
+  tells the models apart is on the RP2040 (the sensors) or unused here (the LoRa radio of the D1L and the D1Pro). The D1
+  and the D1L have been tried.
 - **The GX panel only.** Seeed fits the Indicator with a GX or a DX panel, and its own firmware asks which one at build
   time. This board file drives the GX panel, through ESPHome's `SEEED-INDICATOR-D1` model. A DX panel is not covered:
   if the screen stays dark or shows wrong colours after a successful flash, it may have the DX panel.
 
 ## Install
 
-Update Tessera Screen Manager and choose **SenseCAP · 4 inch, Indicator D1, D1S, D1L, D1Pro (GX)** (marked
-Experimental) in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
+Update Tessera Screen Manager and choose **SenseCAP · 4 inch, Indicator D1, D1S, D1L, D1Pro (GX)** among the
+recommended boards in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
 references and unique API/OTA keys.
 
 The Indicator shows two USB serial devices through its one USB-C port: a CH340 for the ESP32-S3, and the RP2040's own,
