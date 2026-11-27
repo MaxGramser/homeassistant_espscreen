@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.109 (firmware 0.68.0)
 
 - **The SenseCAP Indicator is stable and recommended.** Seeed's SenseCAP Indicator D1 (the GX panel) joins the recommended boards at the top of New screen, with its buzzer as the screen's speaker.
 
