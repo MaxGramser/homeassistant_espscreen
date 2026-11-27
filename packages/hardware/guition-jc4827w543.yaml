@@ -1,0 +1,105 @@
+# ESP Screens - the Guition JC4827W543 apart from its glass, for a board file that includes this one.
+#
+# The board behind the glass: an ESP32-S3 with 4 MB of flash and 8 MB of octal PSRAM, its panel on a four-line (QSPI)
+# bus, a GT911 touch panel on the board's only I2C bus, and the backlight's PWM line. The panel is ESPHome's own
+# mipi_spi `model: JC4827W543` (the NV3041A's init table, its size, its colour order, chip select GPIO45 and its data
+# rate of 20 MHz), which needs the PSRAM the frame is drawn in. The touch and the rest of the pins are the community
+# configuration for the JC4827W543C (devices.esphome.io): data GPIO8, clock GPIO4 (the 3.5-inch has them the other
+# way round), the touch's interrupt on GPIO3 and its reset on GPIO38, and the backlight on GPIO1.
+#
+# A 4 MB board like the CYD: it builds on ESPHome 2026.9.0, past the slot of ESPHome's own table for 4 MB, and its
+# board file takes the wide table with it (packages/hardware/flash-4mb.yaml).
+#
+# Only this board includes the file for now. The same panel sits behind the same bus on the Sunton 4827S043; when a
+# board of that wiring arrives it joins here, and the file stops being this board's own.
+packages:
+  # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
+  build: !include esp-idf.yaml
+
+esphome:
+  # The 4 MB boards build on ESPHome 2026.9.0, the add-on's (docs/UPDATING_4MB_SCREENS.md): on 2026.6.2 the same
+  # firmware is 65 KB larger, past the 97 % of the slot the flash budget never ships (docs/RELEASING.md). A board
+  # file's min_version wins over the core's; whoever builds with an older ESPHome elsewhere updates it first.
+  min_version: 2026.9.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 4MB
+  cpu_frequency: 240MHz
+  framework:
+    # The firmware at its smallest: -Os instead of -O3. The first builds measured 2,162,559 bytes
+    # (4 MB slot overflow 131 KB) and, with the icon fonts at 2 bpp and the bedside digits on the
+    # display step, still 2,035,099 bytes (3.6 KB over) - this closes the rest (sdkconfig_options
+    # sits directly under framework:, next to advanced:, as hardware/esp32s3-rgb.yaml has it).
+    sdkconfig_options:
+      CONFIG_COMPILER_OPTIMIZATION_SIZE: "y"
+
+# ESPHome's JC4827W543 model requires PSRAM: the panel is driven from a frame in it.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: four data lines, the same ones the 3.5-inch Guition uses. Chip select (GPIO45) and the data rate
+# (20 MHz) come with ESPHome's model.
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO47
+  data_pins: [GPIO21, GPIO48, GPIO40, GPIO39]
+
+# The touch panel, a GT911 on its own wires: data on GPIO8, clock on GPIO4.
+i2c:
+  id: touch_bus
+  sda: GPIO8
+  scl: GPIO4
+  frequency: 400kHz
+
+# GPIO1 switches the backlight's LED driver; its level is a PWM. 1000 Hz is what the community configurations for
+# this board dim with.
+output:
+  - platform: ledc
+    pin: GPIO1
+    id: gpio_backlight_pwm
+    frequency: 1000Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+# The touch chip reports on its own: it has an interrupt line (GPIO3, a strapping pin, hence the warning switch) and
+# a reset line (GPIO38), so no polling interval.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin:
+      number: GPIO3
+      ignore_strapping_warning: true
+    reset_pin: GPIO38
+    # The GT911 reports pixels, 0 to 479 by 0 to 271. Without this range ESPHome reads it from the chip's own
+    # configuration, and some panels ship a generic 1024 x 600 there, which squeezes every touch towards the top
+    # left corner (GitHub #78).
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 272
+
+# The panel: upright lying down at rotation zero, like the touch. The model carries the init sequence, the size, the
+# colour order, chip select and the data rate (20 MHz).
+#
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: JC4827W543
+    spi_id: lcd
+    update_interval: never
+    auto_clear_enabled: false
+    # The GT911 on this board reads its glass turned around: measured on the glass, the chip's axes run a half turn
+    # against the panel's own scan, and the touchscreen-level transform did not reach the build. The display-level
+    # transform turns the picture the same half turn, so the two cancel: the board ships mounted a half turn from
+    # the panel's native direction (2026-11-10, page taps on the glass).
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: true

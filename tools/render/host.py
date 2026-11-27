@@ -356,8 +356,9 @@ touchscreen:
 '''
     # Read as often as the board reads its own touch panel: LVGL's swipe counts movement between reads, so a panel
     # read more slowly than the real one would make a finger look like it stops.
-    if chain.touch_interval:
-        text += f'    update_interval: {chain.touch_interval}\n'
+    # A board whose touch chip has an interrupt line (the JC4827W543's GT911) states no interval; the SDL panel has no
+    # interrupt, so it is read every 20 ms, as the boards that poll read theirs.
+    text += f'    update_interval: {chain.touch_interval or "20ms"}\n'
     outputs = list(dict.fromkeys(chain.outputs))
     if outputs:
         # min_power keeps ESPHome's power scaling in the build (2026.9: set_min_power() needs it), which a board's own

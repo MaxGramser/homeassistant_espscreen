@@ -1,0 +1,50 @@
+# ESP Screens - Guition JC4827W543 board: a 4.3-inch 480 x 272 panel (NV3041A over QSPI, ESPHome's mipi_spi model
+# JC4827W543) with GT911 capacitive touch, on an ESP32-S3 with 4MB flash and 8MB octal PSRAM.
+#
+# The panel is born lying down (480 x 272), so no LVGL angle has to lay it out. Its hardware is
+# hardware/guition-jc4827w543.yaml; what is this file's own is the glass and its grid. There is no camera, so no
+# camera or snapshot package. A 4MB board like the CYD: the wide partition table below, and the UI tier runs lite
+# (components/smart_display/modules.py), what the flash holds.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/jc4827w543.yaml (a build on this computer) and
+# packages/jc4827w543.yaml (the package a screen builds from over GitHub).
+packages:
+  # The board apart from its glass: the chip, the panel's QSPI bus, the GT911 and the backlight line.
+  hardware: !include ../hardware/guition-jc4827w543.yaml
+  # Wide update slots for 4 MB of flash, and the way a screen that is out there gets them.
+  flash: !include ../hardware/flash-4mb.yaml
+  # The compact look (as the CYD and the Hosyond 4-inch): the standard look's glyph set put this 4 MB
+  # board's firmware at 2,035,099 bytes, 3.6 KB over the 2,031,616-byte slot; the compact look's
+  # smaller glyph bitmaps bring it under the line.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc4827w543"
+  DEVICE_NAME: "jc4827w543-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 4.3"
+
+  # The glass: the panel's own pixels and its density, 552 diagonal pixels over 4.3 inches.
+  PANEL_W: "480"
+  PANEL_H: "272"
+  DISPLAY_DPI: "128.305"
+  # The tile grid: columns and rows of cells lying down, and standing up. With the compact look the
+  # cells come out 30 x 10 mm lying down (three columns, four rows) and 25 x 10 mm standing up
+  # (two columns, eight rows), per tools/propose_grid.py for this glass at 128 dpi.
+  GRID_COLS: "3"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "8"
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and
+  # the extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # the glass is as wide as the 3.5 one, so the same bar
+
