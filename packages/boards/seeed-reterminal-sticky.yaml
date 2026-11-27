@@ -49,6 +49,11 @@ substitutions:
   # LVGL draws the whole glass into one buffer in PSRAM: a refresh of the panel is one picture, never a row of strips.
   LVGL_BUFFER_SIZE: "100%"
 
+  # The touch panel counts its x along the panel's short side and its y along the long one: swapped against the
+  # panel's pixels, without a mirror. Measured with a tap in each corner (2026-11-27): the corner at the panel's
+  # (800, 0) read (11, 788) in the touch chip's own numbers.
+  TOUCH_SWAP_XY: "true"
+
   # The three keys, each low while pressed (features/page-keys.yaml), and the buzzer (features/buzzer.yaml).
   PAGE_KEY_PREVIOUS_PIN: GPIO5
   PAGE_KEY_NEXT_PIN: GPIO6

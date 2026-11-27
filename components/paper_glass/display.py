@@ -37,9 +37,9 @@ EPaperBase = cg.esphome_ns.namespace("epaper_spi").class_("EPaperBase", cg.Polli
 
 def _describe(config):
     """What ESPHome's LVGL reads of a display before it exists: its size, that nothing but LVGL draws on it, and that
-    it does not turn itself. LVGL then turns the picture and the touch together, as it does on every board here. The
-    e-paper driver's own turn of a panel that is mirrored (the Sticky's) came out half a turn away from the touch
-    panel's (2026-11-27), so the panel is left as it lies."""
+    it does not turn itself. LVGL then turns the picture and the touch together in software, as it does on every board
+    here, and the e-paper driver is left as it lies: one way of turning for every glass, whatever a driver's own turn
+    does with a panel that is mirrored."""
     size = config[CONF_DIMENSIONS]
     display.add_metadata(config[CONF_ID], size[CONF_WIDTH], size[CONF_HEIGHT], has_hardware_rotation=False,
                          byte_order=cv.UNDEFINED, has_writer=False, rotation=0, draw_rounding=0)
