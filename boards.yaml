@@ -297,3 +297,11 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+es3c28p:
+  file: es3c28p.yaml
+  name: Hosyond
+  model: ES3C28P
+  status: experimental
+  # The speaker and the microphone (features/audio.yaml) under Extras: the volume, the microphone, and a call's own.
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching]

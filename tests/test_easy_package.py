@@ -168,7 +168,8 @@ class PackageTests(unittest.TestCase):
             # docs/CHIP_REVISIONS.md). And how a board reaches its standby key (a pin of
             # the chip, or of an expander through STANDBY_KEY, features/standby-key.yaml, docs/ADDING_A_BOARD.md).
             # And the pins of the serial line to a board's second chip (features/chip-speaker.yaml, docs/SECOND_CHIP.md).
-            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$|CHIP_REVISION$|DSI_PLATFORM$|P4_EV_BOARD$|STANDBY_KEY(?:_PIN|_INVERTED|_PULLUP)?$|CHIP_LINK_[TR]X_PIN$)', n) for n in own), f'{board}: {sorted(own)}')
+            # And the pin of a board's WS2812 LED with the order of its colours (parts/ws2812.yaml).
+            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$|CHIP_REVISION$|DSI_PLATFORM$|P4_EV_BOARD$|STANDBY_KEY(?:_PIN|_INVERTED|_PULLUP)?$|CHIP_LINK_[TR]X_PIN$|LED_PIN$|LED_RGB_ORDER$)', n) for n in own), f'{board}: {sorted(own)}')
 
 
 class BoardRules(unittest.TestCase):
