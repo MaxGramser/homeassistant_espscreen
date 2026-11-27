@@ -2,6 +2,34 @@
 
 - **Choose the icon and text layout for a tile.** Plain single-cell entity and Go to page tiles can keep the automatic layout, put the icon beside the text, or put it above the name and second line. The screen must support the new option.
 
+- **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
+- **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
+
+## 0.4.109 (firmware 0.68.0)
+
+- **The SenseCAP Indicator is stable and recommended.** Seeed's SenseCAP Indicator D1 (the GX panel) joins the recommended boards at the top of New screen, with its buzzer as the screen's speaker.
+
+## 0.4.108 (firmware 0.68.0)
+
+- **A thermostat's tile says more under its name, and you choose what.** A thermostat or airco that was on showed only the temperature it is set to. It now says its mode, that temperature and the room's temperature, such as "Cool · 19° · Now 22.5°". In the tile's settings, under Second line with Automatic chosen, chips switch each part on or off: Mode, Action (what it is doing right now), Set to and Now. A tile whose own − and + already show the set temperature leaves it out of the line. Screens show it after their update.
+- **Home Assistant's logbook says which screen operated something.** When you change something on a screen, the entity's logbook in Home Assistant gets a line such as "operated on Hall screen, page Living room, tile Thermostat", next to the change itself. Until now such a change stood there without a person or a device, because Home Assistant does not record which ESPHome device sent an action. Several changes to the same entity within a few seconds, like dragging a slider, give one line. It needs nothing set up, and it comes with the screen's next update.
+
+## 0.4.107 (firmware 0.67.0)
+
+- **A thermostat's power key and temperature follow what the device can do.** A device with no temperature to set, such as a fan coil, no longer shows an empty box with - and + on its card: the line under its name says what it does and the temperature it measures, and its modes and fan row take the room. The power key is there only while it can do something: it turns the device off through its "off" mode where Home Assistant offers no turn off, and it is left out where the device cannot be switched that way. An ordinary thermostat or air conditioner looks and works as before.
+
+- **A humidifier's modes, a vacuum's suction speeds and a remote's activities show only when Home Assistant shows them.** As with the thermostat's fan and swing rows in 0.4.106: an integration that keeps listing choices for a feature the device lacks, or that is switched off in Home Assistant, no longer gets them on its tile or card. Each list now needs its feature in Home Assistant (`supported_features`) besides something in the list.
+
+## 0.4.106 (firmware 0.66.0)
+
+- **The thermostat's card shows a fan or swing row only when Home Assistant does.** A device whose integration lists swing modes while it has no louvres, or with the swing feature switched off in Home Assistant, still got a swing row on its card that did nothing useful. The fan row and the swing row now each need their feature in Home Assistant (`supported_features`) besides a list of choices, exactly as Home Assistant's own thermostat card decides it.
+
+## 0.4.105 (firmware 0.65.0)
+
+- **A new screen no longer waits minutes for Home Assistant after it joined the Wi-Fi.** When Home Assistant did not discover a freshly installed screen by itself, Tessera asked for it by name only now and then, counted from the moment the installation started: after a long build the next try could be five minutes away, while the screen already said "Waiting for Home Assistant" and the page still said it was joining the Wi-Fi. Tessera now asks every five seconds from the moment the software is on the screen.
+
+- **New screen says in red what must not be missed.** While a screen is installed from this computer, a red card says to keep the page open: the page itself puts the software on the screen once it is built, and closing it writes nothing. And where "In this computer" would only make a file, a red card says why: the page is not in Chrome or Edge, or it was opened over plain http. For a Home Assistant on a local http address it gives Chrome's setting that treats that one address as secure, with the setting's address and your Home Assistant's own to copy.
+
 - **The SenseCAP Indicator's buzzer plays sounds.** The Indicator has a second chip that drives its buzzer. New screen now ends with a step for it: two clicks put Tessera's firmware on that chip over the same USB cable, and from then on the buzzer plays the doorbell's chime, the sounds of your alerts and a plugin's sounds, at a Volume of its own under Extras. A buzzer only carries a narrow band of high notes, so the built-in sounds come to it in a version made for that band. A SenseCAP you already have gets the step as a card above the screen after its next update. Seeed's own firmware on that chip is replaced and can be put back.
 
 - **The SenseCAP Indicator shows pictures.** Camera tiles, the snapshot with an alert and a player's artwork now work on it, as on the other boards with the memory for them.

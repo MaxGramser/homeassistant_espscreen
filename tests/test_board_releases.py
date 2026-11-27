@@ -112,6 +112,90 @@ class WhatAChangeReaches(unittest.TestCase):
         with mock.patch.object(affected_boards, 'git', return_value=screen_too):
             self.assertEqual(reach(name)[name], EVERY)
 
+    def test_an_app_and_editor_change_has_no_firmware_source(self):
+        """The gate of the short release route (docs/RELEASING.md, "An app and editor release"): the add-on, the editor
+        and its bundle, docs, tests and tools are no firmware source, and neither is what the preview's build writes."""
+        paths = ('screen_manager/app/core.py', 'screen_manager/app/static/index.html', 'screen_manager/config.yaml',
+                 'screen_manager/CHANGELOG.md', 'web/src/stores/document.ts', 'web/package.json', 'docs/RELEASING.md',
+                 'AGENTS.md', 'tools/release.py', 'tools/check.sh', 'tests/test_release_tool.py', 'boards.yaml',
+                 'screen_manager/app/boards.json', 'web/wasm/generated/firmware_renderer_manifest.h')
+        self.assertEqual(affected_boards.firmware_sources(reach(*paths)), [])
+        text = affected_boards.plan(reach(*paths))
+        self.assertIn('App and editor only', text)
+        self.assertIn('tools/check.sh --app', text)
+        self.assertIn(f'(firmware {FIRMWARE_VERSION})', text)
+        self.assertNotIn('--firmware', text)
+        for check in affected_boards.APP_CHECKS:
+            self.assertIn(check, text)
+
+    def test_a_firmware_source_is_never_app_and_editor_only(self):
+        """Whatever a screen's firmware or its preview is built from, among any number of app files, also when it reaches
+        no screen that exists: a comment in a package, a new board, the ESPHome the app builds with, the preview's code."""
+        app = ('screen_manager/app/core.py', 'web/src/stores/document.ts')
+        for name in ('packages/core.yaml', 'components/smart_display/theme.h', 'fonts/Roboto-400.ttf', 'checkout/cyd.yaml',
+                     str(profiles.BOARDS['cyd'].relative_to(ROOT)), 'packages/features/not-included-yet.yaml',
+                     'screen_manager/Dockerfile', 'web/wasm/firmware_preview.cpp', 'web/wasm/build.sh'):
+            self.assertEqual(affected_boards.firmware_sources(reach(*app, name)), [name], name)
+        # Comments alone reach no board, and the firmware number stays, but it is the full route: the file is a source.
+        name = str(profiles.BOARDS['waveshare4b'].relative_to(ROOT))
+        with mock.patch.object(affected_boards, 'only_comments', return_value=True):
+            comments = affected_boards.sort([name, *app], 'HEAD')
+        self.assertEqual(comments[name], set())
+        self.assertEqual(affected_boards.firmware_sources(comments), [name])
+        text = affected_boards.plan(comments)
+        self.assertIn('No firmware change for a screen that exists', text)
+        self.assertIn(f'a firmware source changed ({name})', text)
+        self.assertNotIn('App and editor only', text)
+        self.assertNotIn('check.sh --app', text)
+
+    def test_a_translation_is_a_firmware_source_by_its_section(self):
+        """Most editor releases change a text: one under `editor` or `addon` keeps the short route, one under `screen`
+        is firmware for every board. The section decides, in every language file, never the file."""
+        for path in sorted((ROOT / 'screen_manager/translations').glob('*.json')):
+            name = str(path.relative_to(ROOT))
+            now = json.loads(path.read_text())
+            for section in ('editor', 'addon'):
+                before = json.dumps({**now, section: {**now.get(section, {}), 'made_up': 'x'}})
+                with mock.patch.object(affected_boards, 'git', return_value=before):
+                    found = reach(name, 'web/src/App.vue')
+                self.assertEqual(affected_boards.firmware_sources(found), [], f'{name} {section}')
+                self.assertIn('App and editor only', affected_boards.plan(found))
+            before = json.dumps({**now, 'screen': {**now.get('screen', {}), 'made_up': 'x'}})
+            with mock.patch.object(affected_boards, 'git', return_value=before):
+                found = reach(name, 'web/src/App.vue')
+            self.assertEqual(affected_boards.firmware_sources(found), [name], name)
+            self.assertEqual(found[name], EVERY, name)
+        # The order of the keys, or the layout of the file, is no change of a screen's texts.
+        name = 'screen_manager/translations/en.json'
+        now = json.loads((ROOT / name).read_text())
+        shuffled = json.dumps({key: now[key] for key in reversed(list(now))}, indent=1)
+        with mock.patch.object(affected_boards, 'git', return_value=shuffled):
+            self.assertEqual(affected_boards.firmware_sources(reach(name)), [])
+        # A file that does not read as JSON reads as changed: never the short route on a guess.
+        with mock.patch.object(affected_boards, 'git', return_value='{not json'):
+            self.assertEqual(affected_boards.firmware_sources(reach(name)), [name])
+
+    def test_the_command_says_which_it_is(self):
+        """tools/affected_boards.py --app-only, the first check of tools/check.sh --app: 0 for the short route, 1 with the
+        files when a firmware source changed, and 1 when there is nothing to compare with."""
+        import contextlib, io
+
+        def run(paths, known=True):
+            out = io.StringIO()
+            with mock.patch.object(affected_boards, 'changed_paths', return_value=list(paths)), \
+                    mock.patch.object(affected_boards, 'known', return_value=known), \
+                    mock.patch.object(affected_boards, 'only_comments', return_value=False), \
+                    contextlib.redirect_stdout(out):
+                return affected_boards.run(['--app-only', '--base', 'HEAD']), out.getvalue()
+        self.assertEqual(run(['web/src/App.vue', 'screen_manager/app/core.py'])[0], 0)
+        status, said = run(['web/src/App.vue', 'packages/core.yaml'])
+        self.assertEqual(status, 1)
+        self.assertIn('  packages/core.yaml', said)
+        self.assertNotIn('App.vue', said)
+        self.assertEqual(run(['web/src/App.vue'], known=False)[0], 1)
+        script = (ROOT / 'tools/check.sh').read_text()
+        self.assertIn('tools/affected_boards.py --app-only', script)
+
     def test_a_new_language_reaches_no_screen(self):
         """No screen speaks a language the base has no file for; one set to it is offered an update for its language."""
         name = 'screen_manager/translations/nl.json'
@@ -169,7 +253,7 @@ class TheReleasePlan(unittest.TestCase):
 
     def test_no_firmware_is_an_app_release(self):
         text = affected_boards.plan(reach('screen_manager/app/core.py'))
-        self.assertIn('No firmware change for a screen that exists', text)
+        self.assertIn('App and editor only', text)
         self.assertIn(f'(firmware {FIRMWARE_VERSION})', text)
         self.assertNotIn('--firmware --board', text)
 

@@ -21,7 +21,7 @@ export { EVENT_PARTS as eventKinds, type EventPart as EventKind } from "../model
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };
 // What was copied, each with its own sentences so every language can say it its own way.
-export type Copied = "api_key" | "log" | "layout_json" | "action_name" | "yaml" | "icon_name" | "empty_color" | "color_name" | "screen_name";
+export type Copied = "api_key" | "log" | "layout_json" | "action_name" | "yaml" | "icon_name" | "empty_color" | "color_name" | "screen_name" | "address";
 
 export const useUiStore = defineStore("ui", () => {
   // ---- Toasts ----

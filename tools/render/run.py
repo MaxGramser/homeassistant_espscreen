@@ -3457,6 +3457,119 @@ class Run:
         await show('humidifier-full', [e('humidifier.bedroom', size='full', controls='setpoint_mode')])
         return 1
 
+    async def climate_panel(self, grid):
+        """A thermostat's card with and without its swing row (`--only climate`): a ducted air conditioner whose
+        integration lists swing modes while the feature is off in supported_features shows its fan row alone, as Home
+        Assistant's own card does; the same unit with the feature on shows both rows. The ducted one in Dark mode too."""
+        from core import extras, state_message
+        def unit(name, features, swing=True):
+            attributes = {'friendly_name': name, 'current_temperature': 21.5, 'temperature': 20, 'min_temp': 16,
+                          'max_temp': 32, 'target_temp_step': 0.5, 'hvac_action': 'cooling',
+                          'hvac_modes': ['off', 'cool', 'heat', 'dry', 'fan_only'],
+                          'fan_modes': ['Auto', 'Quiet', 'Low', 'Medium'], 'fan_mode': 'Low',
+                          'supported_features': features}
+            if swing:
+                attributes.update(swing_modes=['Highest', 'Middle', 'Normal', 'Lowest', 'Swing'], swing_mode='Swing')
+            return {'state': 'cool', 'attributes': attributes, 'last_changed': MOMENT.isoformat()}
+        # 393: a temperature, a fan, off and on. 425: the same with swing. 8: a fan coil with a fan alone, no temperature
+        # to set and no turn_off or turn_on, so its card has no setpoint card and its power key sets the mode "off".
+        states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425),
+                  'climate.fan_coil': unit('Fan coil', 8, swing=False)}
+        states['climate.fan_coil']['attributes'].pop('temperature')
+        # A thermostat that keeps a range: the longest line a tile writes ("Heat/Cool · 18 - 22° · Now 21.5°"), which a
+        # narrow tile shortens in turn (tile_controls::climate_tile_shorter).
+        states['climate.range'] = unit('Range', 386 | 8, swing=False)
+        states['climate.range']['state'] = 'heat_cool'
+        states['climate.range']['attributes'].update(hvac_modes=['off', 'heat_cool', 'cool', 'heat'], target_temp_low=18, target_temp_high=22)
+        states['climate.range']['attributes'].pop('temperature')
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=state['attributes']['friendly_name'], options={}, slot=slot)
+                    for slot, (entity, state) in enumerate(states.items())]
+        record = send_layout.migrate_legacy(dict(title='Climate', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await asyncio.sleep(1.0)
+        await self.render('climate-tiles')
+        for name, entity, dark in (('climate-card-no-swing', 'climate.ducted', True), ('climate-card-swing', 'climate.split', False),
+                                   ('climate-card-no-setpoint', 'climate.fan_coil', True)):
+            spots = await self.slots()
+            if entity not in spots:
+                self.warnings.append(f'climate: {entity} is not on the glass')
+                continue
+            await self.hold(*spots[entity])
+            opened = await self.alarm_until(lambda c: c['open'], f'holding {entity} never opened its card')
+            await asyncio.sleep(0.8)
+            await self.render(name)
+            if opened['faults']:
+                self.warnings.append(f'climate card {entity}: {opened["faults"]}')
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await asyncio.sleep(1.5)
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            await self.tap(*opened['back'][:2])
+            await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
+        return 1
+
+    async def marquee_round(self, grid):
+        """A long name and a long second line rolling by (`--only marquee`, Tile::name_scroll and sub_scroll), frame by
+        frame: an airco in fan-only mode whose line does not fit, a lamp whose name does not fit, and the same two with
+        their roll off, ended in dots or a shorter wording as before. Snapshots one after another (render() waits for two
+        equal ones, which a moving line never gives), each kept as marquee-NN.png with its time since the first in
+        marquee.txt, and marquee-sheet.png with them all. The rolling ones must move and the still ones must not."""
+        from core import extras, state_message
+        airco = {'state': 'fan_only', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Airco', 'current_temperature': 22.5, 'temperature': 20, 'min_temp': 16, 'max_temp': 32,
+            'target_temp_step': 0.5, 'hvac_modes': ['off', 'heat_cool', 'cool', 'heat', 'fan_only', 'dry'],
+            'fan_modes': ['auto'], 'fan_mode': 'auto', 'supported_features': 393}}
+        lamp = {'state': 'on', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Lampen in de hal bij de voordeur', 'brightness': 180, 'color_mode': 'brightness',
+            'supported_color_modes': ['brightness']}}
+        states = {'climate.airco': airco, 'light.hall': lamp, 'climate.airco_still': airco, 'light.hall_still': lamp}
+        names = {'climate.airco': 'Airco', 'light.hall': 'Lampen in de hal bij de voordeur',
+                 'climate.airco_still': 'Airco (off)', 'light.hall_still': 'Lampen in de hal bij de voordeur (off)'}
+        still = {'climate.airco_still': {'sub_scroll': 'off'}, 'light.hall_still': {'name_scroll': 'off'}}
+        region = dict(keepalive=120, clock_24h=True, numbers='comma', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=names[entity], options=still.get(entity, {}), slot=slot)
+                    for slot, entity in enumerate(states)]
+        record = send_layout.migrate_legacy(dict(title='Marquee', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        frames, first, times = [], None, []
+        count, every = int(os.environ.get('MARQUEE_FRAMES', '24')), float(os.environ.get('MARQUEE_EVERY', '0.25'))
+        for n in range(count):
+            image = await self.snapshot(self.out / 'marquee.ppm')
+            now = time.monotonic()
+            first = first if first is not None else now
+            times.append(now - first)
+            image.save(self.out / f'marquee-{n:02d}.png')
+            frames.append(image)
+            await asyncio.sleep(every)
+        (self.out / 'marquee.ppm').unlink(missing_ok=True)
+        (self.out / 'marquee.txt').write_text(''.join(f'marquee-{n:02d}.png {t:6.2f} s\n' for n, t in enumerate(times)))
+        w, h = frames[0].size
+        across = 4
+        sheet = Image.new('RGB', (across * (w + 8), ((count + across - 1) // across) * (h + 24)), 'white')
+        draw = ImageDraw.Draw(sheet)
+        for n, (image, t) in enumerate(zip(frames, times)):
+            x, y = (n % across) * (w + 8), (n // across) * (h + 24)
+            draw.text((x + 4, y + 4), f'{n:02d}  {t:5.2f} s', fill=(0, 0, 0))
+            sheet.paste(image, (x, y + 20))
+        sheet.save(self.out / 'marquee-sheet.png')
+        changed = sum(a.tobytes() != b.tobytes() for a, b in zip(frames, frames[1:]))
+        if not changed:
+            self.warnings.append('marquee: no frame differs from the one before: nothing rolled')
+        return 1
+
     async def remote_panel(self, grid):
         """A remote (firmware 0.22.0, GitHub #117) the way it is used: a tap opens its card, as Home Assistant's tile card
         opens its dialog, with the power key in the top bar and the activities where the remote has them; the tap option
@@ -4713,7 +4826,7 @@ class Run:
         if self.only != 'plugin':
             await self.render('starting')
         # Each step of it as the screen says it (firmware 0.38.0), from Wi-Fi to an update, then back as it was.
-        if 'render_boot' in self.services and self.only not in ('plugin', 'dock'):  # the Dock's round needs no boot screens
+        if 'render_boot' in self.services and self.only not in ('plugin', 'dock', 'climate'):  # the Dock's round needs no boot screens
             for name, given in BOOT_STATES:
                 await self.call('render_boot', **{**BOOT_DEFAULTS, **given})
                 await self.render(name)
@@ -4750,6 +4863,8 @@ class Run:
             return 1, await self.lock_panel(grid)
         if self.only == 'automation':
             return 1, await self.automation_panel(grid)
+        if self.only == 'marquee':
+            return 1, await self.marquee_round(grid)
         if self.only == 'remote':
             return 1, await self.remote_panel(grid)
         if self.only == 'bedside':
@@ -4762,6 +4877,8 @@ class Run:
             return 1, await self.saver_panel()
         if self.only == 'doorbell':
             return 1, await self.doorbell_round()
+        if self.only == 'climate':
+            return 1, await self.climate_panel(grid)
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
         if self.only == 'vacuum':
@@ -4881,7 +4998,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'marquee', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')

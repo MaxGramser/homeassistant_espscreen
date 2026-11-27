@@ -265,6 +265,28 @@ board's number (`ALERT_BLINKS`: 4, and 0 where the backlight must never go dark)
 The standby and the alert each keep their waits on one script through `one_timer.h`: a module stores the moment of
 each wait and asks its timer for the soonest.
 
+### 15. An action's line in the logbook
+
+Home Assistant runs an action that comes from an ESPHome device without a sender. Its ESPHome integration calls the
+action with no user and no device, so the changed entity's own row in the logbook can only name the domain of the
+action: nothing a device sends along changes that, and no setting does. A screen therefore writes a line of its own.
+Next to every action that goes out for a finger it calls `logbook.log` on the same entity, and the entity's logbook
+reads, for example, "operated on Hall screen, page Living room, tile Thermostat".
+
+`action_log.h` holds the two rules: repeats on one entity within five seconds fold into one line (a slider's steps, a
+volume key held down, a remote's keys), and the message names the screen, the page on the glass and the tile of the
+entity on that page, or the screen and the page alone when no tile there shows the entity (a card's key that acts on
+another entity, a plugin). It is free of ESPHome and the model, and `tests/test_action_log.cpp` runs it.
+`runtime_tiles::log_action` hands it the names and sends the call, from `send_action` and `step_action`, the two doors
+every action of a tile, a card and a plugin leaves through. The line's words are two screen texts (`status.logbook_tile`,
+`status.logbook_page`), in the screen's language.
+
+The line costs one small message per action and asks for no answer, so it takes none of the four places a tap's
+answer waits in. It needs what the action itself needs: that the screen may perform actions in Home Assistant. A Home
+Assistant without the logbook integration writes an error in its own log for the call and the action still runs. The
+app has no part in it, so the line is there while the app is stopped, and an older app needs nothing new. Requests the
+screen makes of the app (events such as `esphome.screen_history`) are no actions and leave no line.
+
 ## The hard rules, and the measurement behind each
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are

@@ -13,6 +13,9 @@ changed path:
   reaches all of them;
 - anything else (the add-on, the editor, docs, tests, tools) is no firmware at all.
 
+When no changed path is one a firmware or the editor's preview of it is built from (firmware_sources), the release is
+one of the app and the editor alone, with a short route of its own (docs/RELEASING.md, "An app and editor release").
+
 A board whose board file is not in the base yet is new: no screen runs it, so it needs no firmware number of its own and
 its release is one of the app (the catalog grows); only the boards that already exist decide the firmware release.
 
@@ -23,6 +26,9 @@ its release is one of the app (the catalog grows); only the boards that already 
     tools/affected_boards.py --older-sample  what a change that reaches every board builds on the min_version ESPHome:
                                           the CYD, plus a board for each changed file the CYD does not build
     tools/affected_boards.py --verify     whether every board it reaches builds a higher firmware number
+    tools/affected_boards.py --app-only   exit 0 when nothing a screen's firmware or the editor's preview of it is built
+                                          from changed (an app and editor release, docs/RELEASING.md); else exit 1 and
+                                          name the files that did
     tools/affected_boards.py --base REF   compare with REF instead
 
 Any error exits non-zero with nothing on stdout, so a caller never reads a crash as "no boards".
@@ -47,6 +53,12 @@ ROOT = profiles.ROOT
 # Everything a build of every board reads, whichever board file names it.
 SHARED_TREES = ('components/', 'fonts/')
 TRANSLATIONS = 'screen_manager/translations/'
+# What a screen's firmware, and the editor's preview of it, is built from, besides a translation's `screen` texts: a
+# change under one of these is never an app and editor release (firmware_sources), also when it reaches no screen that
+# exists (a new board, a comment). The Dockerfile names the ESPHome the app builds every screen with; web/wasm/ is the
+# preview's own code, and what its build writes there (generated/) follows from the rest.
+FIRMWARE_SOURCES = ('packages/', 'components/', 'fonts/', 'checkout/', 'web/wasm/', 'screen_manager/Dockerfile')
+PREVIEW_OUTPUT = 'web/wasm/generated/'
 
 
 def git(*args):
@@ -169,6 +181,23 @@ def sort(paths, base):
     return reach
 
 
+def firmware_sources(reach):
+    """The changed paths a screen's firmware or its preview is built from, in order: every path that reaches a board
+    (a translation's `screen` texts among them, never its `editor` or `addon` texts) and every path under
+    FIRMWARE_SOURCES. Empty for an app and editor release (docs/RELEASING.md, "An app and editor release"): the
+    add-on, the editor and its bundle, the other texts, docs, tests and tools."""
+    return sorted(path for path, boards in reach.items()
+                  if boards or (path.startswith(FIRMWARE_SOURCES) and not path.startswith(PREVIEW_OUTPUT)))
+
+
+# The checks of an app and editor release, in the words tools/check.sh --app prints them.
+APP_CHECKS = ('the Python tests (tests/test_release_lint.py among them)',
+              'the generated files of the app and the editor (board shapes, entries, issue templates, icons, catalogue)',
+              "tools/i18n.py check (every language against English)",
+              "the editor: npm ci, npm test, lint, both vue-tsc passes, its sizes against the firmware's, npm run build",
+              'the bundle in screen_manager/app/static is that build, and the firmware preview in Git is current')
+
+
 dotted = firmware_count.dotted
 
 
@@ -265,10 +294,22 @@ def plan(reach, new=frozenset(), read_base=read_now):
                   '  tools/render/run.py <board> (with <board>-portrait for glass that is not square).']
         lines += oldest(f'--firmware --board {" --board ".join(added)}') + ['']
     if release['kind'] == 'app':
-        lines += ['No firmware change for a screen that exists: an app release (or a docs push, docs/RELEASING.md).',
-                  '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the shared firmware it ships with:',
-                  f'  "## <app> (firmware {profiles.substitutions_of(profiles.CORE)["SCREEN_FIRMWARE_VERSION"].strip(chr(34))})".',
-                  '- Run tools/check.sh (no --firmware: no screen gets anything new).']
+        number = profiles.substitutions_of(profiles.CORE)["SCREEN_FIRMWARE_VERSION"].strip(chr(34))
+        sources = firmware_sources(reach)
+        if not sources:
+            lines += ['App and editor only: nothing a screen\'s firmware is built from changed, so the firmware number stays',
+                      f'{number} and no screen is offered an update (docs/RELEASING.md, "An app and editor release").',
+                      '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the firmware main already has:',
+                      f'  "## <app> (firmware {number})".',
+                      '- Run tools/check.sh --app. No firmware builds, no preview rebuild, no CI on every board, no upgrade',
+                      '  test. It checks:']
+            lines += [f'  - {check}' for check in APP_CHECKS]
+        else:
+            lines += ['No firmware change for a screen that exists: an app release (or a docs push, docs/RELEASING.md).',
+                      '- Bump screen_manager/config.yaml and write the CHANGELOG entry with the shared firmware it ships with:',
+                      f'  "## <app> (firmware {number})".',
+                      '- Run tools/check.sh (no --firmware: no screen gets anything new). The full route, not the app and',
+                      f'  editor one: a firmware source changed ({named(sources)}).']
     elif release['kind'] == 'shared':
         done = all(built_now[key] == shared for key in existing)
         lines += [f'Shared firmware: every board. The core goes up, so the number is {shared_next}'
@@ -297,6 +338,11 @@ def plan(reach, new=frozenset(), read_base=read_now):
                   f' (or --affected).']
         lines += oldest(f'--firmware --board {" --board ".join(sorted(boards))}')
     return '\n'.join(lines)
+
+
+def named(paths, most=3):
+    """A few of `paths` by name and the rest as a count, for one line of a message."""
+    return ', '.join(paths[:most]) + (f' and {len(paths) - most} more' if len(paths) > most else '')
 
 
 def version_in(text):
@@ -392,6 +438,9 @@ def run(argv=None):
                         help='exit 1 when a board the change reaches builds no higher firmware number than the base and '
                              'this is a release (or --strict); exit 3 when it is not a release yet, a warning')
     parser.add_argument('--strict', action='store_true', help='with --verify: fail whether or not it is a release (CI)')
+    parser.add_argument('--app-only', action='store_true',
+                        help="exit 0 when nothing a screen's firmware or its preview is built from changed (an app and "
+                             'editor release), else exit 1 and name the files that did')
     args = parser.parse_args(argv)
     base = args.base or default_base()
     if not known(base):
@@ -399,6 +448,10 @@ def run(argv=None):
         if args.older_sample:
             print(' '.join(profiles.MIN_VERSION_SAMPLE))
             return 0
+        if args.app_only:
+            # Nothing to compare with: the short route is for a change that is known to leave the firmware alone.
+            print(f'No base to compare with ({base[:12] or "none"}): not known to be app and editor only')
+            return 1
         if args.keys or args.build_keys:
             # Nothing to compare with: build every board rather than none.
             print(' '.join(profiles.BOARDS))
@@ -408,6 +461,15 @@ def run(argv=None):
     paths = changed_paths(base)
     reach = sort(paths, base)
     new = new_boards(base)
+    if args.app_only:
+        sources = firmware_sources(reach)
+        if sources:
+            print(f'Not app and editor only: {len(sources)} file{"s" if len(sources) != 1 else ""} a screen\'s firmware '
+                  f'or its preview is built from changed since {base[:12]}:')
+            print('\n'.join(f'  {path}' for path in sources))
+            return 1
+        print(f'App and editor only: nothing a screen\'s firmware is built from changed since {base[:12]}')
+        return 0
     if args.build_keys:
         print(' '.join(build_keys(reach, paths)))
         return 0

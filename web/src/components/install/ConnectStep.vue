@@ -10,6 +10,7 @@ import { injectInstaller } from "../../composables/useInstaller";
 import { t } from "../../i18n";
 import BrowserFlash from "../BrowserFlash.vue";
 import CableArt from "./CableArt.vue";
+import NoUsbCard from "./NoUsbCard.vue";
 import Icon from "../ui/Icon.vue";
 
 const install = injectInstaller();
@@ -36,7 +37,10 @@ const title = computed(() => {
         </ol>
         <BrowserFlash :state="install.flash.state" />
       </template>
-      <p v-else class="ob-lead" id="target-hint">{{ t("editor.installer.flow.file_lead") }}</p>
+      <template v-else>
+        <p class="ob-lead" id="target-hint">{{ t("editor.installer.flow.file_lead") }}</p>
+        <NoUsbCard :support="install.support" />
+      </template>
       <!-- The board on the cable is a screen Home Assistant already has (same MAC, app 0.4.96): install that one again,
            or replace it with the screen being made. Nothing is built until one is chosen. -->
       <div v-if="install.installer.known" class="ob-ask" id="known-board" role="group" :aria-label="t('editor.installer.known.title', { name: install.installer.known.name })">

@@ -245,7 +245,7 @@ describe("TileCard", () => {
   it("writes a thermostat set to a range as Home Assistant does, with the chip for its end between - and + (firmware 0.19.0)", () => {
     useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };
     useEntitiesStore().liveStates['climate.r'] = { state: 'heat_cool', word: 'Heat/Cool', a: { supported_features: 442, current_temperature: 73, target_temp_low: 70, target_temp_high: 75, target_temp_step: 1 } };
-    expect(placed({ entity: 'climate.r', name: 'Range', slot: 0 }).find('.st').text()).toBe('Heat/Cool · 73°');
+    expect(placed({ entity: 'climate.r', name: 'Range', slot: 0 }).find('.st').text()).toBe('Heat/Cool · 70 - 75° · Now 73°');
     // The wide tile's -/+ with the chip between them: the low end, heat, first.
     const wide = placed({ entity: 'climate.r', name: 'Range', slot: 0, options: { size: 'wide', controls: 'setpoint' } });
     expect(wide.find('.stp .range-chip b').text()).toBe('70°');
@@ -259,11 +259,11 @@ describe("TileCard", () => {
     expect(single.find('.glass-tall .number').text()).toBe('20.0°');
     // One set to a single temperature says it as Home Assistant sends it: 68°, 21.5°, never 68.0°.
     useEntitiesStore().liveStates['climate.s'] = { state: 'heat', word: 'Heat', a: { supported_features: 385, temperature: 68, current_temperature: 77 } };
-    expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('68°');
+    expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('Heat · 68° · Now 77°');
     useEntitiesStore().liveStates['climate.s'].a.temperature = 21.5;
-    expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('21.5°');
+    expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('Heat · 21.5° · Now 77°');
     useEntitiesStore().liveStates['climate.d'] = { state: 'dry', word: 'Dry', a: { supported_features: 1, current_temperature: 21.5 } };
-    expect(placed({ entity: 'climate.d', name: 'Dry', slot: 0 }).find('.st').text()).toBe('Dry · 21.5°');
+    expect(placed({ entity: 'climate.d', name: 'Dry', slot: 0 }).find('.st').text()).toBe('Dry · Now 21.5°');
   });
   it("draws a range thermostat without its -/+ for a screen before firmware 0.19.0, as that screen gets it", () => {
     useInventoryStore().inventory.controls!.climate = { default: 'setpoint', choices: [] };

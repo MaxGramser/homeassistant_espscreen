@@ -46,6 +46,28 @@ add-on and `bits('cover', 'SET_TILT_POSITION')` from `model/catalogue.ts` in the
 fails where shared code compares `supported_features` with a number or defines a feature constant as one. A bit the
 catalogue lacks comes from Home Assistant's source through `catalogue/_ha.json`, never from a constant of our own.
 
+A choice that comes with a list needs both, as Home Assistant's own cards ask: the flag and a list with something in
+it. An integration may keep sending a list for a feature the device lacks or that is switched off (a ducted air
+conditioner without louvres that still lists `swing_modes`), and a list alone then draws a control Home Assistant does
+not show. The thermostat's card follows this for its fan row (`FAN_MODE` and `fan_modes`) and its swing row
+(`SWING_MODE` and `swing_modes`), in `tile_controls::climate_rows`; its mode keys follow `hvac_modes` alone, which has
+no flag in Home Assistant. `tests/test_tile_controls.cpp` holds the case.
+
+Three other lists go with a flag the same way, and the screen keeps such a list only with its flag
+(`tile_controls::list_supported`, asked where the attributes arrive in `page_receiver.cpp`), so no tile, row or card
+offers it: a humidifier's `available_modes` with `MODES`, a vacuum's `fan_speed_list` with `FAN_SPEED` (the add-on's
+suction row in `vacuum_extras` asks the same flag) and a remote's `activity_list` with `ACTIVITY`. A list without a
+flag of its own, such as a select's `options`, is always kept.
+
+The thermostat's card follows the flags for its two other parts as well. Its power key (in the card's top bar, and the
+circle of its tile) exists only while it can do something, decided once in `tile_controls::climate_power`: while the
+device runs it calls `climate.turn_off` with `TURN_OFF`, else sets the mode `off` where `hvac_modes` lists it; while it
+is off it calls `climate.turn_on`, which needs `TURN_ON`. Home Assistant refuses both actions without their flag (its
+service registration names them as required features). The card's box with the temperature between - and + is there
+only with `TARGET_TEMPERATURE` or `TARGET_TEMPERATURE_RANGE` (`tile_controls::climate_setpoint`); without either the
+line under the name says what the device does and the temperature it measures, and the modes and rows close up
+(`climate_card::layout` without its box). A humidifier's on and off and its humidity have no flag.
+
 ## The files are the list of types
 
 A type exists in the add-on, the editor and the firmware only when it has a file in `catalogue/`. Home Assistant has

@@ -3,6 +3,7 @@
 // and the name above the number in the largest face that fits, or in a low cell the name small in the corner and the
 // number under it, each part where the glass puts it.
 import { glyph } from "../../model/topbar";
+import MarqueeText from "../MarqueeText.vue";
 import type { TileCardView } from "../../composables/useTileCard";
 
 const props = defineProps<{ card: TileCardView }>();
@@ -13,7 +14,7 @@ const card = props.card;
 <template>
   <span v-if="card.watchFace && card.watchStyle" class="watch" :class="{ stacked: card.watchFace.stacked }">
     <span v-if="card.watchFace.stacked" class="ic mdi" :class="{ lit: card.lit }" :style="card.watchStyle.circle">{{ glyph(card.icon) }}</span>
-    <span class="nm" :style="card.watchStyle.title">{{ card.texts.name }}</span>
+    <span class="nm" :style="card.watchStyle.title"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span>
     <template v-if="card.watchFace.stacked">
       <span class="big" :style="card.watchStyle.value">{{ card.texts.value }}</span>
       <span v-if="card.watchStyle.unit" class="unit" :style="card.watchStyle.unit">{{ card.texts.unit }}</span>

@@ -132,7 +132,9 @@
       "update_failed": "Bijwerken mislukt",
       "hint_key": "Een verbinding van {address} is geweigerd: de sleutel hoort niet bij dit scherm. Vul de sleutel van dit scherm in bij de ESPHome-integratie van Home Assistant.",
       "no_answer_title": "Geen antwoord van Home Assistant",
-      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren."
+      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren.",
+      "logbook_tile": "bediend op {screen}, pagina {page}, tegel {tile}",
+      "logbook_page": "bediend op {screen}, pagina {page}"
     },
     "preparing": {
       "default": "Je tegels schikken",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Log gekopieerd.",
         "selected": "Log is geselecteerd. Kopieer met Ctrl+C of Command+C."
+      },
+      "address": {
+        "copied": "Adres gekopieerd.",
+        "selected": "Adres is geselecteerd. Kopieer met Ctrl+C of Command+C."
       }
     },
     "sidebar": {
@@ -2382,7 +2388,19 @@
         "hint_auto": "Wat het scherm zelf uitrekent: een helderheid, een temperatuur, wanneer een script voor het laatst liep.",
         "hint_none": "De tegel toont zijn naam en niets eronder.",
         "hint_attr": "Een waarde van deze entiteit, met de naam en de schrijfwijze van Home Assistant.",
-        "hint_text": "Dezelfde woorden, wat de entiteit ook doet."
+        "hint_text": "Dezelfde woorden, wat de entiteit ook doet.",
+        "parts_aria": "Wat de regel van de thermostaat zegt",
+        "part_mode": "Modus",
+        "part_action": "Actie",
+        "part_target": "Ingesteld",
+        "part_now": "Nu",
+        "hint_parts": "Kies wat de regel zegt. Staat de ingestelde temperatuur al tussen de − en + van de tegel, dan laat de regel die weg."
+      },
+      "scroll": {
+        "name": "Lange naam laten rollen",
+        "name_hint": "Een naam die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes.",
+        "line": "Lange tweede regel laten rollen",
+        "line_hint": "Een tweede regel die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes of een kortere tekst."
       },
       "slider": {
         "label": "Kleine slider op de tegel",
@@ -3472,7 +3490,7 @@
         "here_click": "Klik hieronder op Installeren.",
         "here_pick": "Je browser vraagt welk apparaat: kies het scherm en klik op Verbinden.",
         "file_title": "Je krijgt een bestand om erop te zetten",
-        "file_lead": "Deze browser kan zelf niet naar een scherm schrijven. Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
+        "file_lead": "Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
         "ha_title": "Steek de kabel in je Home Assistant",
         "ha_lead": "Niet in deze computer, maar in het apparaat waar Home Assistant op draait. We zien vanzelf wanneer hij er is.",
         "ha_which": "Welke is het scherm?",
@@ -3510,7 +3528,8 @@
           "ha": "Toevoegen aan Home Assistant"
         },
         "may_close": "je mag dit venster sluiten",
-        "keep_open": "laat deze pagina open tot hij op het scherm staat",
+        "keep_open_title": "Laat deze pagina open",
+        "keep_open": "Deze pagina zet de software zelf op het scherm, zodra die gebouwd is. Sluit je dit tabblad, verlaat je de pagina of gaat de computer in slaap, dan wordt er niets geschreven. Laat ook de USB-kabel erin.",
         "show_log": "Wat er precies gebeurt",
         "to_pages": "Pagina's maken",
         "another": "Nog een scherm toevoegen",
@@ -3520,6 +3539,28 @@
           "ha": "In Home Assistant",
           "actions": "Mag je huis bedienen"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Deze pagina staat niet op een veilig adres en kan daardoor niet bij USB",
+        "insecure": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een pagina met een veilig adres (https). Deze pagina is geopend over gewoon http, en daar verbergt een browser zijn USB-poorten.",
+        "browser_title": "Deze browser kan niet bij USB",
+        "browser": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een computer. Open Home Assistant daar en begin Nieuw scherm opnieuw.",
+        "fix": "Twee manieren om het te laten werken:",
+        "https": "Open Home Assistant over https in Chrome of Edge, bijvoorbeeld via je Home Assistant Cloud-adres.",
+        "flag": "Of laat Chrome het adres van deze Home Assistant als veilig behandelen:",
+        "flag_open": "Kopieer dit naar de adresbalk van Chrome en druk op Enter. Een pagina kan dit niet voor je openen.",
+        "flag_add": "Zet dit adres in het vak onder \"Insecure origins treated as secure\" en zet het op Enabled.",
+        "flag_relaunch": "Klik op Relaunch, open Home Assistant opnieuw en begin Nieuw scherm.",
+        "else": "Tot die tijd maakt Tessera hier een bestand dat je zelf op het scherm zet."
+      },
+      "shops": {
+        "title": "Een aanbevolen scherm kopen?",
+        "lead": "Koop er een via Tessera en een klein deel van de verkoop gaat naar de ontwikkeling van Tessera.",
+        "buy": "Kopen",
+        "buy_discount": "Kopen · {discount}",
+        "note": "Affiliatelinks: je betaalt hetzelfde of minder.",
+        "code": "Koop je op een andere manier bij {shop}? Gebruik code {code}.",
+        "off": "{n}% korting"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Kies de schijf {drive}",
           "wrong_drive": "Dat is niet de schijf {drive}. Kies de schijf zelf, bovenaan de lijst, niet een map op deze computer.",
+          "no_window": "De browser opende zijn venster voor de schijf niet. Misschien staat er nog ergens een ander bestandsvenster open: sluit dat, of herlaad deze pagina, en klik opnieuw.",
           "drive_there": "De schijf {drive} is er al",
           "done": "Firmware {version} staat op de chip, en het scherm heeft hem gevonden.",
           "try": "Geluid afspelen",

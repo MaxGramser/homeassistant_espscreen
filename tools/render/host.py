@@ -31,10 +31,11 @@ import profiles  # noqa: E402
 
 # Top-level blocks that are ESP32 hardware wherever they live (board file or hardware package).
 HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554', 'waveshare_io_ch32v003', 'esp_ldo',
-                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'xl9535', 'motion')
+                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'xl9535', 'motion',
+                   'pi4ioe5v6408')
 # An item anywhere that stands on a chip of the I2C bus the host leaves out (a clock, a motion sensor, an expander's pin)
 # goes with it, and so does an item that names one of those (a clock's write).
-ON_I2C = re.compile(r'(?m)^    i2c_id: |\bxl9535: |^    (lsm6ds|motion)_id: |\bpcf8563\b')
+ON_I2C = re.compile(r'(?m)^    i2c_id: |\b(xl9535|pi4ioe5v6408): |^    (lsm6ds|motion)_id: |\bpcf8563\b')
 # The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
 # has not. The host build leaves the audio packages out whole (features/audio*.yaml and a board's audio hardware under
 # hardware/, with the settings rows and the boot steps they bring), and these blocks wherever else they live (a board
@@ -44,7 +45,10 @@ AUDIO_BLOCKS = ('speaker', 'microphone', 'media_player', 'media_source', 'audio_
 
 def audio_package(rel):
     """Whether a package, by its path under packages/, is the screen's audio, which the host build leaves out."""
-    return 'audio' in rel.as_posix()
+    # The echo canceller and a codec's transport through it are audio by another name (hardware/parts/echo-cancel.yaml,
+    # es7210/aec.yaml and split-aec.yaml: esp_aec and esp_audio_stack, which the host has not).
+    return 'audio' in rel.as_posix() or rel.name == 'echo-cancel.yaml' or rel.name.endswith('aec.yaml') \
+        or rel.name == 'amplifier.yaml'   # the speaker's amplifier: its pin may be an expander's
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
 
@@ -254,6 +258,10 @@ def host_file(text, chain, rel):
             chain.notes.append(f'{rel}: dropped esphome.on_boot (expander)')
             break
     text = re.sub(r'(?m)^  hardware_uart: \w+\n', '', text)
+    # A standby key on a pin of an IO expander (features/standby-key.yaml) is a plain pin here: the expander is gone.
+    text, n = re.subn(r'(?m)^  STANDBY_KEY: \{[^\n]*\}[^\n]*\n', '', text)
+    if n:
+        chain.notes.append(f'{rel}: the standby key on an expander stands as a plain pin')
     return host_common(text)
 
 
@@ -311,6 +319,11 @@ def walk(tree, source, mirror, chain):
             chain.notes.append(f'{rel}: left out {include} (audio)')
             continue
         walk(tree, target, mirror, chain)
+    # A file whose only packages were audio keeps no empty `packages:`, which ESPHome refuses.
+    for _, start, end in blocks_of(text, 'packages'):
+        if not re.search(r'(?m)^[ \t]+[a-z_0-9]+:', text[start:end]):
+            text = text[:start] + text[end:]
+            break
     host = host_file(text, chain, rel)
     if not top_blocks(host):
         host += '\n# Nothing of this file runs on the host.\n{}\n'

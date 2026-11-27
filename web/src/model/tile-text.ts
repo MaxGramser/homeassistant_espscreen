@@ -94,16 +94,41 @@ export function haWord(domain: string, live: Live, words: ScreenWords) {
 }
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, " ");
 
-/** A thermostat's line as the screen writes it: with a control on the tile, what it is doing and the room's temperature
- * (tile_controls::status_text); without one the temperature it is set to, and otherwise Home Assistant's own tile line,
- * its state and the room's temperature (runtime_tiles' value line). */
-export function climateLine(live: Live, word: string, controlled: boolean, words: ScreenWords) {
-  const a = live.a || {};
-  const now = a.current_temperature != null ? ` · ${temperatureText(Number(a.current_temperature), words)}` : "";
-  const doing = has(`screen.ha.hvac_action.${a.hvac_action}`) ? screenText(words, `screen.ha.hvac_action.${a.hvac_action}`) : "";
-  if (controlled) return `${doing || word}${now}`;
-  if (live.state !== "off" && a.temperature != null) return temperatureText(Number(a.temperature), words);
-  return `${word}${now}`;
+/** The parts a thermostat tile's own line may say, in the order it says them, and the ones it says without a choice
+ * (tile_controls::climate_parts, firmware 0.68.0; CLIMATE_LINE_PARTS in the add-on). A tile keeps its choice in its
+ * second line, "show:mode,now"; a screen before 0.68.0 reads that as Automatic. */
+export const CLIMATE_PARTS = ["mode", "action", "target", "now"] as const;
+export const CLIMATE_PARTS_DEFAULT: readonly string[] = ["mode", "target", "now"];
+export const climateParts = (sub: string | undefined): string[] =>
+  sub?.startsWith("show:") ? CLIMATE_PARTS.filter((part) => sub.slice(5).split(",").includes(part)) : [...CLIMATE_PARTS_DEFAULT];
+/** The second line that keeps these parts: Automatic for the ones a thermostat says without a choice. */
+export function climatePartsChoice(parts: string[]) {
+  const kept = CLIMATE_PARTS.filter((part) => parts.includes(part));
+  return kept.join() === CLIMATE_PARTS_DEFAULT.join() ? "auto" : `show:${kept.join(",")}`;
+}
+/** The temperature a thermostat is set to, as its tile line writes it: one number, or a range (18 - 22.5°), decided as
+ * tile_controls::climate_range decides it. */
+function climateTarget(a: Record<string, any>, words: ScreenWords) {
+  const f = Number(a.supported_features || 0), single = a.temperature != null && Number.isFinite(Number(a.temperature));
+  if (!(f & bits("climate", "TARGET_TEMPERATURE") && single) && f & bits("climate", "TARGET_TEMPERATURE_RANGE") && a.target_temp_low != null && a.target_temp_high != null)
+    return `${temperatureText(Number(a.target_temp_low), words).slice(0, -1)} - ${temperatureText(Number(a.target_temp_high), words)}`;
+  return single ? temperatureText(Number(a.temperature), words) : "";
+}
+/** A thermostat's line as the screen writes it (tile_controls::climate_tile_line, firmware 0.68.0): the parts its tile
+ * chose joined by " · ", its mode, what it is doing, the temperature it is set to and the room's ("Now 22.5°"). Off, it
+ * says Off and, when chosen, the room's temperature. `stepper`: the tile's own -/+ shows the target, so the line leaves
+ * it out. */
+export function climateLine(live: Live, word: string, parts: string[], stepper: boolean, words: ScreenWords) {
+  const a = live.a || {}, line: string[] = [];
+  if (live.state === "off") line.push(word);
+  else {
+    if (parts.includes("mode")) line.push(word);
+    if (parts.includes("action") && has(`screen.ha.hvac_action.${a.hvac_action}`)) line.push(screenText(words, `screen.ha.hvac_action.${a.hvac_action}`));
+    if (parts.includes("target") && !stepper) line.push(climateTarget(a, words));
+  }
+  if (parts.includes("now") && a.current_temperature != null && Number.isFinite(Number(a.current_temperature)))
+    line.push(screenText(words, "screen.climate.now", { value: temperatureText(Number(a.current_temperature), words) }));
+  return line.filter(Boolean).join(" · ");
 }
 /** A humidifier's line as the screen writes it (tile_controls::climate_card_status, brief): Home Assistant's word for
  * what it is doing (Off while it is off), else On or Off, and the humidity it measures. Home Assistant's tile line. */
@@ -132,6 +157,10 @@ export type StateTextOptions = {
   /** A control on the card, a wide one or one more than a row high (runtime_tiles with_panel): a thermostat then says what
    * it is doing, a blind its position and a player what it plays (tile_controls::status_text). */
   controlled?: boolean;
+  /** The tile's second line as it is kept: a thermostat reads the parts of its own line from it ("show:mode,now"). */
+  sub?: string;
+  /** A thermostat's -/+ stands on the card (its controls are the temperature, alone or with its modes). */
+  stepper?: boolean;
 };
 /** A number Home Assistant writes in words of its own, as the add-on sends them: a duration in hours and minutes
  * ("1h 30m", durations.py). Its units are in its words. */
@@ -152,7 +181,7 @@ export function stateText(entity: string, live: Live | null | undefined, options
   if (gone) return screenText(words, live.state === "unknown" ? "editor.mockup.unknown" : "screen.ha.unavailable");
   const a = live.a || {};
   const word = live.word || haWord(domain, live, words) || capital(live.state);
-  if (domain === "climate") return climateLine(live, word, Boolean(options.controlled), words);
+  if (domain === "climate") return climateLine(live, word, climateParts(options.sub), Boolean(options.controlled && options.stepper), words);
   if (domain === "humidifier") return humidifierLine(live, words);
   // A weather card's line is the temperature it reports, one decimal and its unit (runtime_tiles render); without one its
   // condition in the screen's words.

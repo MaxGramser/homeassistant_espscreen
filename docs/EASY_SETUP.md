@@ -39,7 +39,7 @@ on those, and say how it goes.
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
-| SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
+| SenseCAP, 4 inch | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
 | Freenove, 4 inch (experimental) | FNK0104S (not the 2.8 or 3.5-inch boards of the series), 480×320, ST7796 and FT6336 ([details](FREENOVEFNK0104S.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
@@ -90,7 +90,10 @@ Use the GitHub version for updates; a local test add-on is a separate app.
    your screen needs:
    - **Which screen do you have?** The recommended boards come first, drawn large. **I have another screen** opens
      every board in one list: type its brand, size or what is printed on it, or narrow the list by size. A board
-     that is new or not tested yet on its hardware says so in the list.
+     that is new or not tested yet on its hardware says so in the list. Under them, **Buy a recommended screen?**
+     lists the recommended screens the Tessera website has a shop link for, with a photo and any discount. These are
+     affiliate links: a small part of a sale goes to Tessera's development. The app asks the website for the list
+     (`screen_manager/app/shops.py`) and passes the photos on itself; without the website the panel stays away.
    - **Which version do you have?** Only for a screen sold in more than one version, or with a part that differs
      between boards (a CYD's display controller). The back of the board says which one you have; the most common
      one is chosen to begin with.
@@ -210,7 +213,9 @@ in Tessera's sidebar, ready for its tiles; until then it waits there under its n
 Tessera keeps at it until that holds. It answers Home Assistant's discovery of the screen, finds the screen by its name
 on the network when Home Assistant didn't discover it (or the discovery was dismissed or ignored), gives Home Assistant
 the new key when **New screen** made new ones for a screen it already had, and turns the actions back on when Home
-Assistant ignored a tap. Should it still not work out, the screen's card in the sidebar says so.
+Assistant ignored a tap. Should it still not work out, the screen's card in the sidebar says so. A screen whose firmware went on a moment ago is asked for by name every five seconds for the
+first three minutes, so it is in Home Assistant within seconds of joining the Wi-Fi, also when Home Assistant does not
+discover it by itself; a profile that only waits for its firmware is asked for less and less often.
 
 Tessera adds a screen by itself when it knows the screen's key: when the screen's YAML is in the ESPHome folder Tessera
 reads. That is every screen made with **New screen**, and a screen of your own whose YAML sits in Home Assistant's

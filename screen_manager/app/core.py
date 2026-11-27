@@ -86,6 +86,8 @@ NIGHTSTAND_KEYS = 3
 KEY_HOLDERS = {NIGHTSTAND: NIGHTSTAND_KEYS}
 # A key's name under its circle can be hidden (`overlay`: "none", firmware 0.17.0+), as a picture's name on it can.
 KEY_OPTIONS = ('icon', 'tap', 'action', 'guard', 'overlay')
+# A tile's name and its second line roll by when they are too wide for their room (firmware dev); "off" ends them in dots.
+SCROLL_OPTIONS = ('name_scroll', 'sub_scroll')
 KEY_DOMAINS = catalogue.key_domains()
 
 def is_key(tile):
@@ -176,7 +178,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.64.0'
+FIRMWARE_VERSION = '0.68.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -856,6 +858,10 @@ def tile_limit(version, grid=DEFAULT_GRID):
     return grid.legacy_pages * grid.slots if version >= FULL_PAGE_MIN_FIRMWARE else LEGACY_MAX_TILES if version >= TWENTY_TILES_MIN_FIRMWARE else FIRST_MAX_TILES
 
 CLIMATE_RANGE_MIN_FIRMWARE = (0, 19, 0)
+# The parts a thermostat tile's own line may say, in the order it says them, and the ones it says without a choice
+# (firmware 0.68.0, tile_controls::climate_tile_line; web/src/model/tile-text.ts CLIMATE_PARTS).
+CLIMATE_LINE_PARTS = ('mode', 'action', 'target', 'now')
+CLIMATE_LINE_DEFAULT = 'show:mode,target,now'
 
 def tile_cost(tile, memory):
     """What one tile takes inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md), by the tile catalogue's
@@ -1388,6 +1394,8 @@ TILE_RESULT_EVENT = 'esp_screens_tile_result'
 TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'display', 'icon': 'icon',
                       'color': 'background', 'background': 'background', 'tap': 'tap', 'inline': 'inline',
                       'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay',
+                      # Whether a name or a second line too wide for its room rolls by: "off" ends it in dots.
+                      'name_scroll': 'name_scroll', 'sub_scroll': 'sub_scroll',
                       # Where a cover's slats stand open: 100 (Home Assistant's rule) or 50.
                       'tilt_open': 'tilt_open',
                       # A light's presets: a list of at most four, each {"b": 1-100} with "k" kelvin or "h" and "s".
@@ -1987,7 +1995,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', 'orientation', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'sub_scroll', 'name_scroll', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', 'orientation', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             if 'orientation' in options:
                 if options['orientation'] not in ('auto', 'horizontal', 'vertical'):
@@ -2026,7 +2034,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             domain = tile['entity'].split('.')[0]
             # The bedside clock is the whole page, always, and the only tile with keys.
             if tile['entity'] == NIGHTSTAND:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 options['size'] = 'full'
             # A key takes what a tile of its own takes, but no size, face or control: its clock decides its shape.
             if is_key(tile) and set(options) - set(KEY_OPTIONS):
@@ -2035,10 +2043,10 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             # The map tile (app 0.4.36) is a map and nothing else, and has no slider or controls of its own.
             if tile['entity'] == MAP_TILE:
                 displays = ('map',)
-                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub')}, 'display': 'map'}
+                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}, 'display': 'map'}
             # The energy card draws its diagram on every size it takes, with no face, slider or second line of its own.
             if tile['entity'] == ENERGY_TILE:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 if 'flow' in options and options['flow'] not in ENERGY_FLOWS:
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='flow'))
                 if options.get('flow') == ENERGY_FLOWS[0]:
@@ -2052,7 +2060,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     template = text_tile.validate(options.get(text_tile.OPTION))
                 except ValueError:
                     raise ValueError(t('addon.errors.layout.text_template')) from None
-                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')},
+                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')},
                            text_tile.OPTION: template}
                 if options.get('tap') not in (None, 'none'):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
@@ -2106,10 +2114,27 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     words = sub[5:].strip()
                     sub = f'text:{words}' if words else 'none'
                     options = {**options, 'sub': sub}
-                if sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
+                # A thermostat's own line names the parts it says (firmware 0.68.0, tile_controls::climate_tile_line),
+                # kept in one order; its mode, target and the room's temperature are the line it says without a choice.
+                if sub.startswith('show:') and domain == 'climate':
+                    parts = sub[5:].split(',') if sub[5:] else []
+                    if any(part not in CLIMATE_LINE_PARTS for part in parts):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
+                    sub = 'show:' + ','.join(part for part in CLIMATE_LINE_PARTS if part in parts)
+                    sub = 'auto' if sub == CLIMATE_LINE_DEFAULT else sub
+                    options = {**options, 'sub': sub}
+                elif sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
                 if sub == 'auto':
                     options = {k: v for k, v in options.items() if k != 'sub'}
+            # Whether a name or a second line too wide for its room rolls by (firmware dev, Tile::name_scroll and
+            # sub_scroll): on unless "off", so only "off" is kept. Older firmware reads neither and ends them in dots.
+            for key in SCROLL_OPTIONS:
+                if key in options:
+                    if options[key] not in ('on', 'off'):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
+                    if options[key] == 'on':
+                        options = {k: v for k, v in options.items() if k != key}
             # The five-day strip and the sun path only fit a double-width card (or the whole page).
             if options.get('display') in WIDE_ONLY and options.get('size') not in ('wide', 'square', 'full') and size_columns(options.get('size')) < 2:
                 options = {**options, 'size': 'wide'}
@@ -2360,6 +2385,10 @@ VACUUM_ROLES = {'vacuum': 'v', 'sweeping': 'v', 'mop': 'm', 'mopping': 'm', 'cus
 MODE_COVERED = frozenset(('off', 'off_raise_main_brush', 'custom', 'custom_water_flow', 'smart_mode', 'vac_followed_by_mop'))
 VACUUM_CHOICES = 6
 
+# VacuumEntityFeature.FAN_SPEED, from Home Assistant's source through the tile catalogue (catalogue/_ha.json).
+VACUUM_FAN_SPEED = catalogue.bits('vacuum', 'FAN_SPEED')
+
+
 def vacuum_label(value):
     key = VACUUM_LABELS.get(value)
     return short(screen_t(key) if key else str(value).replace('_', ' ').capitalize(), 24)
@@ -2440,7 +2469,10 @@ def vacuum_extras(tile, states, device):
     water = select(related['water'], lambda o, current: o not in covered) if 'water' in related else None
     if water:
         result['water'] = water
-    speeds = attrs.get('fan_speed_list')
+    # The suction speeds only with the vacuum's FAN_SPEED flag, as Home Assistant's card: an integration may list
+    # speeds for a feature that is off.
+    features = attrs.get('supported_features')
+    speeds = attrs.get('fan_speed_list') if isinstance(features, int) and features & VACUUM_FAN_SPEED else None
     fan = row([s for s in speeds if isinstance(s, str) and s not in covered]) if isinstance(speeds, list) else None
     if fan:
         result['fan'] = fan

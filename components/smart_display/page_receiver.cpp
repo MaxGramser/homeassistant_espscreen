@@ -976,6 +976,9 @@ std::string receive(const std::string &payload) {
                        orientation == "horizontal" ? card_orientation::Choice::horizontal : card_orientation::Choice::automatic;
     // What the second line says (firmware 0.2.90+); "auto" is the line the screen works out itself, as before.
     tile.subtitle = string(options["sub"], 96); if (tile.subtitle.empty()) tile.subtitle="auto";
+    // Whether a name and a second line too wide for their room roll by (dev): anything but "off", a missing key too, rolls.
+    tile.name_scroll = string(options["name_scroll"], 4) != "off";
+    tile.sub_scroll = string(options["sub_scroll"], 4) != "off";
     // Direct controls (0.2.19+): the manager sends only the set a wide card really shows.
     tile.controls = string(options["controls"], 24);  // the longest, brightness_presets, is 18
     // Geometry belongs to initialization and never changes in a live value packet.
@@ -1080,7 +1083,8 @@ std::string receive(const std::string &payload) {
       if(next.options.size()==16)break;next.options.push_back(string(option,48)); }
     // A remote's activities and the one it runs (firmware 0.22.0+): Home Assistant names them only where the remote
     // supports ACTIVITY, and the card lists them as a select's options.
-    if (a["activity_list"].is<JsonArray>()) for(JsonVariant option:a["activity_list"].as<JsonArray>()) {
+    const uint32_t listed_features = a["supported_features"].as<uint32_t>();
+    if (tile_controls::list_supported("activity_list", listed_features) && a["activity_list"].is<JsonArray>()) for(JsonVariant option:a["activity_list"].as<JsonArray>()) {
       if(next.options.size()==16)break;next.options.push_back(string(option,48)); }
     next.activity=string(a["current_activity"],48);
     // A remote's keypad (firmware 0.22.0+): eleven commands, an empty one for a key the remote lacks.
@@ -1189,7 +1193,9 @@ std::string receive(const std::string &payload) {
       tile.current = number(a["current_humidity"]); tile.target = number(a["humidity"]); tile.humidity = NAN;
       tile.minimum = number(a["min_humidity"], 0); tile.maximum = number(a["max_humidity"], 100);
       tile.step = std::max(1.0f, number(a["target_humidity_step"], 1));
-      next.hvac_modes = list(a["available_modes"]); next.hvac_action = string(a["action"], 24);
+      // Its modes only with the flag for them, as Home Assistant's card (tile_controls::list_supported).
+      next.hvac_modes = tile_controls::list_supported("available_modes", listed_features) ? list(a["available_modes"]) : std::string();
+      next.hvac_action = string(a["action"], 24);
       next.humidifier_mode = string(a["mode"], 48);
     }
     float hue = number(a["hs_color"][0]);
@@ -1203,7 +1209,7 @@ std::string receive(const std::string &payload) {
     tile.min_kelvin = std::clamp(number(a["min_color_temp_kelvin"], 0), 0.0f, 15000.0f);
     tile.max_kelvin = std::clamp(number(a["max_color_temp_kelvin"], 0), 0.0f, 15000.0f);
     next.fan_speed = string(a["fan_speed"], 48);
-    if (a["fan_speed_list"].is<JsonArray>()) for (JsonVariant speed : a["fan_speed_list"].as<JsonArray>()) {
+    if (tile_controls::list_supported("fan_speed_list", listed_features) && a["fan_speed_list"].is<JsonArray>()) for (JsonVariant speed : a["fan_speed_list"].as<JsonArray>()) {
       if (next.fan_speeds.size() == 4) break;
       next.fan_speeds.push_back(string(speed, 48));
     }

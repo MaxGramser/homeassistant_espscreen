@@ -30,6 +30,10 @@ Work on dev is proven at level 4, on the screens a change concerns; a release ru
 
 ## 1. The fast checks: `tools/check.sh`
 
+`tools/check.sh --app` is the short list of a release that changes only the app and the editor (docs/RELEASING.md,
+"An app and editor release"): the checks below that read no firmware, after a first one that stops when a firmware
+source changed.
+
 One command, the same on a laptop and in CI (`.github/workflows/ci.yml` runs it on every push to main, every pull
 request, each night and on a release's commit). On a development machine run it with `PYTHON=.venv-portal/bin/python`. It needs aiohttp, PyYAML, Pillow,
 fontTools and jinja2, and stops when one is missing, because a skipped test proves nothing. In order:

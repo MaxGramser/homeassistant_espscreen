@@ -21,8 +21,8 @@ const ESP = "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AA-if00"
 const ZIGBEE = "/dev/serial/by-id/usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_9c2a-if00-port0";
 const flush = async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); await new Promise((done) => setTimeout(done, 0)); };
 
-type Addon = { ports?: string[]; wifi?: any; job?: any; suggested?: any[]; taken?: any };
-function addon({ ports = [ESP], wifi = { state: "ready", missing: [] }, job = null, suggested = [], taken = { nodes: [], prefixes: [] } }: Addon = {}) {
+type Addon = { ports?: string[]; wifi?: any; job?: any; suggested?: any[]; taken?: any; shops?: any[] };
+function addon({ ports = [ESP], wifi = { state: "ready", missing: [] }, job = null, suggested = [], taken = { nodes: [], prefixes: [] }, shops = [] }: Addon = {}) {
   const calls: { url: string; method: string; body?: any }[] = [];
   const pending = { file: "hall.yaml", friendly: "Hall", node: "hall", installed: true, seen: false };
   vi.stubGlobal("fetch", vi.fn((url: string, options: any = {}) => {
@@ -32,6 +32,7 @@ function addon({ ports = [ESP], wifi = { state: "ready", missing: [] }, job = nu
     if (path.endsWith("api/firmware")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ available: true, ports, profiles: [], logs: [], wifi, boards: BOARD_CHOICES, taken, job: asked ? job : null }) });
     if (/firmware\/builds\/\d+\/log$/.test(path)) return Promise.resolve({ ok: true, json: () => Promise.resolve({ build: job, logs: [] }) });
     if (path.includes("inventory")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...useInventoryStore().inventory, line: asked && job ? [job] : [] }) });
+    if (path.endsWith("api/shops")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ shops }) });
     if (path.endsWith("plugins/suggested")) return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify({ plugins: suggested })), json: () => Promise.resolve({ plugins: suggested }) });
     const answer = path.endsWith("firmware/profiles") ? { file: "hall.yaml", api_key: "k", build: job } : path.endsWith("firmware/jobs") ? job : { state: "ready" };
     return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify(answer)), json: () => Promise.resolve(answer) });
@@ -82,10 +83,27 @@ describe("New screen, one question a step", () => {
     expect(view.find("#setup-next").exists()).toBe(false);
   });
 
+  it("offers the screens the website has a shop link for under the recommended boards, and nothing without one", async () => {
+    const shop = { board: "reterminald1001", name: "reTerminal D1001", shop: "Seeed Studio", url: "https://shop.example/d1001?ref=t", discount: "5% off", code: "CODE5", photo: true };
+    const { view } = await open({ shops: [shop] });
+    const panel = view.find(".ob-shops");
+    expect(panel.find("h2").text()).toBe(t("editor.installer.shops.title"));
+    expect(panel.find(".ob-shop-words b").text()).toBe("reTerminal D1001 · 8 inch");
+    const buy = panel.find(".ob-shop-buy");
+    expect(buy.attributes("href")).toBe(shop.url);
+    expect(buy.attributes("rel")).toContain("sponsored");
+    expect(buy.text()).toBe(t("editor.installer.shops.buy_discount", { discount: t("editor.installer.shops.off", { n: "5" }) }));
+    expect(panel.find("img").attributes("src")).toBe("api/shops/reterminald1001/photo");
+    expect(panel.find(".ob-shops-note").text()).toContain("CODE5");
+    view.unmount();
+    const { view: plain } = await open();
+    expect(plain.find(".ob-shops").exists()).toBe(false);
+  });
+
   it("shows the recommended boards large, and every board in a list to search behind another screen", async () => {
     const { view } = await open();
     const recommended = view.findAll('input[name="board"]').map((input) => input.attributes("value"));
-    expect(recommended).toEqual(["guition", "jc8012p4a1v3", "reterminald1001", "waveshare101v3"]);
+    expect(recommended).toEqual(["guition", "jc8012p4a1v3", "reterminald1001", "sensecapd1", "waveshare101v3"]);
     expect(view.find(".ob-soon").text()).toBe("More to come soon.");
     expect((view.find('input[value="guition"]').element as HTMLInputElement).checked).toBe(true);
     await view.find("#board-other").trigger("click");
@@ -228,7 +246,11 @@ describe("New screen, where the cable is", () => {
     expect(view.find('[data-cable="ha"] .ca-mark').exists()).toBe(true);
     // In this computer, where this browser cannot write a screen: a file instead, said before the way.
     await view.find('input[name="cable"][value="here"]').setValue();
-    expect(view.find("#cable-browser").exists()).toBe(true);
+    // In red, with the reason (this page is on plain http) and Chrome's setting for it, so nobody takes the file for how
+    // it always goes.
+    expect(view.find("#no-usb").attributes("data-support")).toBe("insecure");
+    expect(view.find("#no-usb h2").text()).toContain(t("editor.installer.no_usb.insecure_title"));
+    expect(view.find("#no-usb-flag-link").text()).toBe("chrome://flags/#unsafely-treat-insecure-origin-as-secure");
     await next(view);
     expect(at(view)).toBe("connect-here");
     expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_download"));

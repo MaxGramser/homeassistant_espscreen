@@ -132,7 +132,9 @@
       "update_failed": "La actualización falló",
       "hint_key": "Se rechazó una conexión desde {address}: su clave no es la de esta pantalla. Introduce la clave de esta pantalla en la integración ESPHome de Home Assistant.",
       "no_answer_title": "Sin respuesta de Home Assistant",
-      "no_answer_text": "A menudo esta pantalla aún no puede realizar acciones. Actívalo en Home Assistant: ESPHome > esta pantalla > Configurar."
+      "no_answer_text": "A menudo esta pantalla aún no puede realizar acciones. Actívalo en Home Assistant: ESPHome > esta pantalla > Configurar.",
+      "logbook_tile": "controlado en {screen}, página {page}, tarjeta {tile}",
+      "logbook_page": "controlado en {screen}, página {page}"
     },
     "preparing": {
       "default": "Ordenando tus mosaicos",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Registro copiado.",
         "selected": "El registro está seleccionado. Copia con Ctrl+C o Comando+C."
+      },
+      "address": {
+        "copied": "Dirección copiada.",
+        "selected": "La dirección está seleccionada. Cópiala con Ctrl+C o Comando+C."
       }
     },
     "sidebar": {
@@ -2873,7 +2879,19 @@
         "hint_auto": "Lo que la pantalla calcula por sí misma: un brillo, una temperatura, cuándo se ejecutó un script por última vez.",
         "hint_none": "El mosaico muestra su nombre y nada debajo.",
         "hint_attr": "Un valor de esta entidad, con el nombre y el formato de Home Assistant.",
-        "hint_text": "Las mismas palabras, haga lo que haga la entidad."
+        "hint_text": "Las mismas palabras, haga lo que haga la entidad.",
+        "parts_aria": "Qué dice la línea del termostato",
+        "part_mode": "Modo",
+        "part_action": "Acción",
+        "part_target": "Ajustada",
+        "part_now": "Ahora",
+        "hint_parts": "Elige qué dice la línea. Donde el − y el + del mosaico ya muestran la temperatura ajustada, la línea la omite."
+      },
+      "scroll": {
+        "name": "Desplazar un nombre largo",
+        "name_hint": "Un nombre demasiado ancho para el mosaico se desplaza en bucle y se detiene cuando cabe. Desactivado, termina en puntos.",
+        "line": "Desplazar una segunda línea larga",
+        "line_hint": "Una segunda línea demasiado ancha para el mosaico se desplaza en bucle y se detiene cuando cabe. Desactivado, termina en puntos o en una forma más corta."
       },
       "slider": {
         "label": "Control deslizante pequeño en el mosaico",
@@ -3963,7 +3981,7 @@
         "here_click": "Haz clic abajo en Instalar.",
         "here_pick": "Tu navegador pregunta qué dispositivo: elige la pantalla y haz clic en Conectar.",
         "file_title": "Recibirás un archivo para ponerle",
-        "file_lead": "Este navegador no puede escribir en una pantalla por sí mismo. Tessera crea un archivo, y tú lo pones en la pantalla con ESPHome Web en Chrome o Edge.",
+        "file_lead": "Tessera crea un archivo, y tú lo pones en la pantalla con ESPHome Web en Chrome o Edge.",
         "ha_title": "Enchufa el cable a tu Home Assistant",
         "ha_lead": "No a este ordenador, sino al equipo en el que funciona Home Assistant. Lo vemos en cuanto está conectado.",
         "ha_which": "¿Cuál es la pantalla?",
@@ -4001,7 +4019,8 @@
           "ha": "Añadiéndola a Home Assistant"
         },
         "may_close": "puedes cerrar esta ventana",
-        "keep_open": "deja esta página abierta hasta que esté en la pantalla",
+        "keep_open_title": "Deja esta página abierta",
+        "keep_open": "Esta página pone el software en la pantalla ella misma, en cuanto está compilado. Si cierras esta pestaña, sales de la página o el ordenador entra en reposo, no se escribe nada. Deja también el cable USB conectado.",
         "show_log": "Qué ocurre exactamente",
         "to_pages": "Crear sus páginas",
         "another": "Añadir otra pantalla",
@@ -4011,6 +4030,28 @@
           "ha": "En Home Assistant",
           "actions": "Puede controlar tu casa"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Esta página no está en una dirección segura, así que no puede llegar al USB",
+        "insecure": "Instalar desde este ordenador son dos clics, sin ningún archivo, pero solo en Chrome o Edge y en una página con dirección segura (https). Esta página se abrió por http simple, donde el navegador oculta sus puertos USB.",
+        "browser_title": "Este navegador no puede llegar al USB",
+        "browser": "Instalar desde este ordenador son dos clics, sin ningún archivo, pero solo en Chrome o Edge en un ordenador. Abre Home Assistant allí y empieza Nueva pantalla otra vez.",
+        "fix": "Dos formas de hacerlo funcionar:",
+        "https": "Abre Home Assistant por https en Chrome o Edge, por ejemplo con tu dirección de Home Assistant Cloud.",
+        "flag": "O dile a Chrome que trate la dirección de este Home Assistant como segura:",
+        "flag_open": "Copia esto en la barra de direcciones de Chrome y pulsa Intro. Una página no puede abrirlo por ti.",
+        "flag_add": "En el cuadro bajo \"Insecure origins treated as secure\", pon esta dirección y ponlo en Enabled.",
+        "flag_relaunch": "Haz clic en Relaunch, abre Home Assistant de nuevo y empieza Nueva pantalla.",
+        "else": "Hasta entonces Tessera crea aquí un archivo que pones tú en la pantalla."
+      },
+      "shops": {
+        "title": "¿Comprar una pantalla recomendada?",
+        "lead": "Compra una a través de Tessera y una pequeña parte de la venta va al desarrollo de Tessera.",
+        "buy": "Comprar",
+        "buy_discount": "Comprar · {discount}",
+        "note": "Enlaces de afiliado: pagas lo mismo o menos.",
+        "code": "¿Compras en {shop} de otra forma? Usa el código {code}.",
+        "off": "{n} % de descuento"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Elegir la unidad {drive}",
           "wrong_drive": "Esa no es la unidad {drive}. Elige la unidad en sí, arriba en la lista, no una carpeta de este ordenador.",
+          "no_window": "El navegador no abrió su ventana para la unidad. Puede que otra ventana de archivos siga abierta en algún sitio: ciérrala, o recarga esta página, y haz clic de nuevo.",
           "drive_there": "La unidad {drive} ya está ahí",
           "done": "El firmware {version} está en el chip y la pantalla lo ha encontrado.",
           "try": "Reproducir un sonido",

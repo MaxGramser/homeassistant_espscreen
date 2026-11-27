@@ -119,7 +119,7 @@ class WordsBeyondTiles(unittest.TestCase):
     def test_vacuum_chips_take_home_assistants_word_where_the_screen_has_no_label(self):
         device = [{'entity_id': 'vacuum.s8', 'platform': 'roborock', 'translation_key': 'roborock'},
                   {'entity_id': 'select.s8_mop_intensity', 'platform': 'roborock', 'translation_key': 'mop_intensity'}]
-        states = {'vacuum.s8': {'state': 'docked', 'attributes': {'fan_speed_list': ['quiet', 'balanced', 'off_raise_main_brush']}},
+        states = {'vacuum.s8': {'state': 'docked', 'attributes': {'supported_features': 32, 'fan_speed_list': ['quiet', 'balanced', 'off_raise_main_brush']}},
                   'select.s8_mop_intensity': {'state': 'mild', 'attributes': {'options': ['mild', 'vac_followed_by_mop']}}}
         extra = vacuum_extras({'entity': 'vacuum.s8'}, states, device)
         self.assertEqual((extra['fan']['l'], extra['water']['l']), (['Quiet', 'Normal', 'Off raise main brush'], ['Mild', 'Vac followed by mop']))
@@ -155,7 +155,7 @@ class TileMessages(unittest.IsolatedAsyncioTestCase):
             ha = fake_ha()
             ha.state_words = WORDS
             ha.states['select.s8_mode'] = {'state': 'vac_and_mop', 'attributes': {'options': ['vacuum', 'vac_and_mop']}}
-            ha.states['vacuum.s8'] = {'state': 'docked', 'attributes': {'fan_speed_list': ['balanced', 'off_raise_main_brush']}}
+            ha.states['vacuum.s8'] = {'state': 'docked', 'attributes': {'supported_features': 32, 'fan_speed_list': ['balanced', 'off_raise_main_brush']}}
             # The mode select sits on another device here: with one on the robot's device, suction off belongs to Mop.
             ha.registry += [{'entity_id': 'select.s8_mode', 'device_id': 'hall', **CLEANING},
                             {'entity_id': 'vacuum.s8', 'device_id': 's8', 'platform': 'roborock', 'translation_key': 'roborock'}]

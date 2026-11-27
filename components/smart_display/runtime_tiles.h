@@ -9,6 +9,7 @@
 #include <string_view>
 #include "runtime_model.h"
 #include "redraw_log.h"
+#include "action_log.h"
 #include "loop_stack.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
@@ -1083,6 +1084,37 @@ inline void expire_calls(uint32_t now) {
   }
 }
 #endif
+// The line in Home Assistant's logbook for an action that went out (action_log.h; docs/ARCHITECTURE.md, "An action's
+// line in the logbook"): `logbook.log` on the entity, with this screen's name, the page on the glass and the tile of
+// the entity on it. It asks for no answer and takes none of the four watched places; a Home Assistant without the
+// logbook only writes a line in its own log. The host has no name and writes nothing.
+inline std::string screen_name();
+inline const std::string &media_entity(const Tile &t);
+inline action_log::Recent logged_actions;
+inline void log_action(const std::string &entity) {
+  const std::string screen = screen_name();
+  if (screen.empty() || !logged_actions.due(entity, esphome::millis())) return;
+  const int page = shown_page ? *shown_page : 0;
+  // The tile on this page that shows the entity, or plays on it (a card's media keys act on the speaker it follows).
+  std::array<Placement, TILES_MAX> places;
+  place(model, places);
+  std::string tile;
+  for (size_t i = 0; i < model.count && i < grid.max_tiles() && tile.empty(); ++i)
+    if (places[i].page == page && (model.tiles[i].entity == entity || media_entity(model.tiles[i]) == entity)) tile = model.tiles[i].name;
+  const std::string message = action_log::message(tr(txt::status_logbook_tile), tr(txt::status_logbook_page), screen, model.title_of(page), tile);
+  esphome::api::HomeassistantActionRequest request;
+  request.service = api_text::of("logbook.log");
+  request.data.init(3);
+  const std::string *const values[] = {&screen, &message, &entity};
+  const char *const keys[] = {"name", "message", "entity_id"};
+  for (int i = 0; i < 3; ++i) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(*values[i]);
+    request.data.push_back(entry);
+  }
+  esphome::api::global_api_server->send_homeassistant_action(request);
+}
 // Marks every tile of the entity busy and sends; `watch` asks Home Assistant for an answer (a tap).
 // `busy`: the tiles of the entity wait for the answer (the busy sheet, greyed keys); a wish (docs/OPTIMISTIC.md) shows
 // its value instead and waits for nothing.
@@ -1097,6 +1129,7 @@ inline bool send_action(esphome::api::HomeassistantActionRequest &request, const
   if (watch) watched = watch_call(request, entity);
 #endif
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   return watched;
 }
 // `key2` and `value2`: a second field, for a thermostat's range (both ends in one call, firmware 0.19.0).
@@ -1154,6 +1187,7 @@ inline void step_action(const std::string &service, const std::string &entity, c
   target.key = api_text::of("entity_id"); target.value = api_text::of(entity); request.data.push_back(target);
   if (!key.empty()) { field.key = api_text::of(key); field.value = api_text::of(value); request.data.push_back(field); }
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   ESP_LOGI("runtime_action", "Sent %s%s%s to %s", service.c_str(), value.empty() ? "" : " ", value.c_str(), entity.c_str());
 }
 // A remote's key (firmware 0.22.0+): remote.send_command with one command, sent as a remote sends it. It changes no state,
@@ -2004,6 +2038,10 @@ inline void render_slot(size_t slot) {
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
   if(w.loading&&!(t.live()||t.is_map()||t.favorite()))lv_obj_add_flag(w.loading,LV_OBJ_FLAG_HIDDEN);
+  // A name wider than its room rolls by and stands still when it fits (dev, Tile::name_scroll), as the second line
+  // does below; with the scroll off it ends in dots. The mode goes before the words, which LVGL's dots write into.
+  if(t.name_scroll)marquee(w.title,true);
+  else if(lv_label_get_long_mode(w.title)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.title,LV_LABEL_LONG_DOT);
   label(w.title, t.name.empty() ? t.entity : t.name);
   label(w.icon, icon_for(t));
   bool watch=t.display=="watch";
@@ -2030,14 +2068,9 @@ inline void render_slot(size_t slot) {
   else if (tile_controls::text_value(t)) value = tile_controls::text_shown(t);
   else if (d == "light" && t.state == "on" && tile_controls::effect_running(t.extra().effect)) value = t.extra().effect;
   else if (d == "light" && t.state == "on" && std::isfinite(t.brightness)) value = screen_text::percent(static_cast<int>(std::lround(std::clamp(t.brightness, 0.0f, 255.0f) * 100 / 255)));
-  // An airco that is off says so, with the room's temperature when it knows it, as Home Assistant's tile does
-  // (firmware 0.2.71+); while it runs, the tile shows the temperature it is set to, written as Home Assistant writes
-  // it: 68°, 21.5° (firmware 0.19.0; before, always one decimal).
-  else if (d == "climate" && t.state == "off") { value = tile_controls::climate_mode_text(t.state); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
-  else if (d == "climate" && std::isfinite(t.target)) value = tile_controls::temperature_text(t.target);
-  // Without one temperature to reach (a range, dry, fan only) the line is Home Assistant's own tile line for a
-  // thermostat, its state and the room's temperature (state-display: climate ["state", "current_temperature"]).
-  else if (d == "climate") { value = tile_controls::climate_mode_text(tile_controls::lower_case(t.state)); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
+  // A thermostat says the parts its tile chose, its mode, the temperature it is set to and the room's by default:
+  // "Cool · 19° · Now 22.5°", or Off and the room's temperature (firmware 0.68.0, tile_controls::climate_tile_line).
+  else if (d == "climate") value = tile_controls::climate_tile_line(t, tile_controls::climate_parts(t.subtitle), false);
   // A humidifier says what it is doing (or On, Off) and the humidity it measures: Home Assistant's tile line for it,
   // state and current_humidity, with its action in the state's place, as its dialog writes it (firmware 0.42.0+).
   else if (d == "humidifier") value = tile_controls::climate_card_status(t, true);
@@ -2078,6 +2111,11 @@ inline void render_slot(size_t slot) {
   if(t.runs() && !t.running && t.state=="on")value_short=last_run_text(t.last_run,true);
   // A lock-only tile's word where the whole of it does not fit.
   if(d=="lock"&&lock_noting(t))value_short=tr(txt::lock_lock_only_short);
+  // A thermostat's line without the room's temperature, then without its mode as well, where the whole has no room.
+  if(d=="climate"&&fresh()&&t.available()&&!refused&&!set_by_hand){
+    const unsigned parts=tile_controls::climate_parts(t.subtitle);
+    value_short=tile_controls::climate_tile_shorter(t,parts,false);
+  }
   // A vacuum's status ends on its battery; the unavailable and refused words and a line chosen by hand do not (#293).
   if(fresh() && t.available() && !refused){value_tail=tile_controls::vacuum_tail(t);value+=value_tail;}
   // A humidifier's humidity stays readable when its action word does not fit ("Humidif… · 38%").
@@ -2101,13 +2139,27 @@ inline void render_slot(size_t slot) {
     if(content_width(w)<panel_need+pm.text_gap+ui::px(lt?54:36)+ui::px(60))with_panel=false;
   }
   // A wide card with a panel says what its control is doing, unless the second line was set by hand.
-  if(with_panel && !set_by_hand){std::string status=tile_controls::status_text(t);if(!status.empty()){value=status;value_short.clear();value_tail.clear();}}
+  // A thermostat's is its own line with what its -/+ already shows left out (tile_controls::climate_tile_line).
+  if(with_panel && !set_by_hand){
+    std::string status=d=="climate"?tile_controls::climate_tile_line(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):tile_controls::status_text(t);
+    if(!status.empty()){
+      value=status;value_tail.clear();
+      value_short=d=="climate"?tile_controls::climate_tile_shorter(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):std::string();
+    }
+  }
   // A wish Home Assistant takes long to square says so where the state stands (docs/OPTIMISTIC.md).
   if(!t.builtin() && wish_slow(t.entity,esphome::millis())){value=tr(txt::tile_updating);value_short.clear();value_tail.clear();}
+  // A second line wider than its room rolls by and stands still when it fits (dev, Tile::sub_scroll); with the scroll
+  // off it ends in dots, as before. A big number never rolls: it takes a smaller face instead (the watch block below).
+  // The mode goes first: LVGL's dots write themselves into the text, the roll keeps it whole.
+  const bool roll=t.sub_scroll&&!watch;
+  if(roll)marquee(w.value,true);
+  else if(lv_label_get_long_mode(w.value)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.value,LV_LABEL_LONG_DOT);
   label(w.value, value);
   // Only a thermostat with controls takes a tap on its circle (climate_circle_event); every other card's circle is
   // part of the card and the card's own tap.
-  if((d=="climate"||d=="humidifier")&&with_panel)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
+  // And only while its power key can do something (tile_controls::climate_power).
+  if((d=="climate"||d=="humidifier")&&with_panel&&tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
   bool mini=t.inline_control=="slider" && !watch && t.available() && !with_panel;
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.
@@ -2266,7 +2318,7 @@ inline void render_slot(size_t slot) {
     set_text_align(w.title,LV_TEXT_ALIGN_CENTER);set_text_align(w.value,LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(w.title,0,top+circle+gap);lv_obj_set_width(w.title,content_w);
     lv_obj_set_pos(w.value,0,top+circle+gap+title_height+line_gap);lv_obj_set_width(w.value,content_w);
-    fit_value(w.value,value,value_short,value_tail,content_w);
+    fit_value(w.value,value,value_short,value_tail,content_w,roll);
     lap(swipe_profile::CUSTOM);
   }else if(custom){
     lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);
@@ -2350,14 +2402,14 @@ inline void render_slot(size_t slot) {
   lv_obj_set_width(w.title,std::max(1,text_room-text_x));
   int value_room=std::max(1,text_room-text_x);
   lv_obj_set_width(w.value,value_room);
-  fit_value(w.value,value,value_short,value_tail,value_room);
+  fit_value(w.value,value,value_short,value_tail,value_room,roll);
   if(one_line){
     lv_point_t need;lv_text_get_size(&need,lv_label_get_text(w.value),value_face,0,0,LV_COORD_MAX,LV_TEXT_FLAG_EXPAND);
     const int line_w=std::max(1,text_room-text_x),value_w=std::max(1,std::min((int)need.x+2,line_w*55/100));
     set_text_align(w.value,LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(w.value,text_room-value_w,text_y+title_height-value_height);lv_obj_set_width(w.value,value_w);
     lv_obj_set_width(w.title,std::max(1,line_w-value_w-(ui::px(large_tile?6:3))));
-    fit_value(w.value,value,value_short,value_tail,value_w);
+    fit_value(w.value,value,value_short,value_tail,value_w,roll);
   }
   if(watch){
     int gap=ui::px(large_tile?6:2),header=std::max(circle_size,title_height);

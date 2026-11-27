@@ -34,6 +34,7 @@ import camera_source
 import live_stream
 import talk_bridge
 import calls
+import shops
 import sounds
 import board_steps
 import screen_files
@@ -1842,8 +1843,11 @@ class Manager:
     async def pair_screens(self):
         """One look of pairing_loop: the screens this app made (their profiles with the key New screen wrote), against
         what Home Assistant has and has found."""
-        ours = {meta['node']: {'api_key': meta['api_key'], 'friendly': meta.get('friendly') or meta['node']}
-                for meta in self.firmware.profile_names().values()
+        # `installed`: its firmware went on in this run of the app (by the app or from the browser), which is when a
+        # look for it is worth the most.
+        installed = getattr(self.firmware, 'installed', set())
+        ours = {meta['node']: {'api_key': meta['api_key'], 'friendly': meta.get('friendly') or meta['node'], 'installed': file in installed}
+                for file, meta in self.firmware.profile_names().items()
                 if meta.get('screen') and meta.get('node') and ha_pairing.usable_key(meta.get('api_key'))}
         await self.pairing.run(self.ha, ours, self.screens())
 
@@ -4799,7 +4803,12 @@ class Manager:
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         with contextlib.suppress(Exception):
-            await self.ping(inbox, screen)
+            if self.sent.get(inbox):
+                await self.ping(inbox, screen)
+            elif self.answers(inbox, screen):
+                # A screen that has no layout yet (it was installed a minute ago, which is when New screen asks) has
+                # no session to ping in: it is asked with a hello, which no delivery is using.
+                await self.page_sender(inbox, screen).probe(empty=inbox not in self.layouts)
         return self.steps_of_screen(screen)
 
     def answer_step(self, inbox, step, said):
@@ -6473,6 +6482,21 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
     app.router.add_get('/api/firmware/profiles/{file}/files', firmware_files)
     app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
+    # Where to buy a recommended screen (shops.py): New screen's "No screen yet?", the photos through the app.
+    shop_list = shops.Shops()
+    async def shops_view(request):
+        return web.json_response({'shops': await shop_list.list()})
+    async def shop_photo(request):
+        found = await shop_list.photo(request.match_info['board'])
+        if found is None:
+            raise web.HTTPNotFound()
+        body, kind = found
+        return web.Response(body=body, content_type=kind, headers={'Cache-Control': 'private, max-age=86400'})
+    async def shops_close(app):
+        await shop_list.close()
+    app.on_cleanup.append(shops_close)
+    app.router.add_get('/api/shops', shops_view)
+    app.router.add_get('/api/shops/{board}/photo', shop_photo)
     app.router.add_get('/api/boards/known', board_known)
     app.router.add_post('/api/boards/replace', board_replace)
     app.router.add_delete('/api/firmware/profiles/{file}', firmware_forget)

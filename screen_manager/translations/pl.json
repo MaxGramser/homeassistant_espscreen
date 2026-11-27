@@ -132,7 +132,9 @@
       "update_failed": "Aktualizacja nie powiodła się",
       "hint_key": "Odrzucono połączenie z {address}: jego klucz nie pasuje do tego ekranu. Wpisz klucz tego ekranu w integracji ESPHome w Home Assistant.",
       "no_answer_title": "Brak odpowiedzi z Home Assistant",
-      "no_answer_text": "Często ten ekran nie może jeszcze wykonywać akcji. Włącz to w Home Assistant: ESPHome > ten ekran > Konfiguruj."
+      "no_answer_text": "Często ten ekran nie może jeszcze wykonywać akcji. Włącz to w Home Assistant: ESPHome > ten ekran > Konfiguruj.",
+      "logbook_tile": "obsłużono na {screen}, strona {page}, kafelek {tile}",
+      "logbook_page": "obsłużono na {screen}, strona {page}"
     },
     "preparing": {
       "default": "Układanie kafelków",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Dziennik skopiowany.",
         "selected": "Dziennik jest zaznaczony. Skopiuj Ctrl+C lub Command+C."
+      },
+      "address": {
+        "copied": "Adres skopiowany.",
+        "selected": "Adres jest zaznaczony. Skopiuj go klawiszami Ctrl+C lub Command+C."
       }
     },
     "sidebar": {
@@ -2873,7 +2879,19 @@
         "hint_auto": "To, co ekran wyliczy sam: jasność, temperatura, kiedy ostatnio uruchomiono skrypt.",
         "hint_none": "Kafelek pokazuje swoją nazwę i nic pod nią.",
         "hint_attr": "Wartość tej encji, nazwana i zapisana tak jak w Home Assistant.",
-        "hint_text": "Te same słowa, cokolwiek robi encja."
+        "hint_text": "Te same słowa, cokolwiek robi encja.",
+        "parts_aria": "Co mówi wiersz termostatu",
+        "part_mode": "Tryb",
+        "part_action": "Działanie",
+        "part_target": "Ustawiona",
+        "part_now": "Teraz",
+        "hint_parts": "Wybierz, co mówi wiersz. Tam, gdzie − i + kafelka pokazują już ustawioną temperaturę, wiersz ją pomija."
+      },
+      "scroll": {
+        "name": "Przewijaj długą nazwę",
+        "name_hint": "Nazwa za szeroka na kafelek przewija się w kółko i stoi, gdy się mieści. Wyłączone: kończy się kropkami.",
+        "line": "Przewijaj długi drugi wiersz",
+        "line_hint": "Drugi wiersz za szeroki na kafelek przewija się w kółko i stoi, gdy się mieści. Wyłączone: kończy się kropkami lub krótszą wersją."
       },
       "slider": {
         "label": "Mały suwak na kafelku",
@@ -3963,7 +3981,7 @@
         "here_click": "Kliknij poniżej Zainstaluj.",
         "here_pick": "Przeglądarka zapyta o urządzenie: wybierz ekran i kliknij Połącz.",
         "file_title": "Dostaniesz plik do wgrania na ekran",
-        "file_lead": "Ta przeglądarka nie potrafi sama zapisać danych na ekranie. Tessera tworzy plik, który wgrywasz na ekran przez ESPHome Web w Chrome lub Edge.",
+        "file_lead": "Tessera tworzy plik, który wgrywasz na ekran przez ESPHome Web w Chrome lub Edge.",
         "ha_title": "Podłącz kabel do swojego Home Assistant",
         "ha_lead": "Nie do tego komputera, tylko do urządzenia, na którym działa Home Assistant. Zobaczymy to od razu, gdy będzie podłączony.",
         "ha_which": "Które to ekran?",
@@ -4001,7 +4019,8 @@
           "ha": "Dodawanie do Home Assistant"
         },
         "may_close": "możesz zamknąć to okno",
-        "keep_open": "nie zamykaj tej strony, dopóki nie trafi na ekran",
+        "keep_open_title": "Nie zamykaj tej strony",
+        "keep_open": "Ta strona sama wgrywa oprogramowanie na ekran, gdy tylko zostanie zbudowane. Jeśli zamkniesz tę kartę, opuścisz stronę albo komputer przejdzie w stan uśpienia, nic nie zostanie zapisane. Zostaw też podłączony kabel USB.",
         "show_log": "Co dokładnie się dzieje",
         "to_pages": "Stwórz jego strony",
         "another": "Dodaj kolejny ekran",
@@ -4011,6 +4030,28 @@
           "ha": "W Home Assistant",
           "actions": "Może sterować Twoim domem"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Ta strona nie działa pod bezpiecznym adresem, więc nie ma dostępu do USB",
+        "insecure": "Instalacja z tego komputera to dwa kliknięcia, bez żadnego pliku, ale tylko w Chrome lub Edge na stronie z bezpiecznym adresem (https). Ta strona została otwarta przez zwykłe http, a tam przeglądarka ukrywa swoje porty USB.",
+        "browser_title": "Ta przeglądarka nie ma dostępu do USB",
+        "browser": "Instalacja z tego komputera to dwa kliknięcia, bez żadnego pliku, ale tylko w Chrome lub Edge na komputerze. Otwórz tam Home Assistant i zacznij Nowy ekran jeszcze raz.",
+        "fix": "Dwa sposoby, żeby to zadziałało:",
+        "https": "Otwórz Home Assistant przez https w Chrome lub Edge, na przykład pod swoim adresem Home Assistant Cloud.",
+        "flag": "Albo każ Chrome traktować adres tego Home Assistant jako bezpieczny:",
+        "flag_open": "Skopiuj to do paska adresu Chrome i naciśnij Enter. Strona nie może otworzyć tego za ciebie.",
+        "flag_add": "W polu pod \"Insecure origins treated as secure\" wpisz ten adres i ustaw Enabled.",
+        "flag_relaunch": "Kliknij Relaunch, otwórz Home Assistant ponownie i zacznij Nowy ekran.",
+        "else": "Do tego czasu Tessera tworzy tutaj plik, który wgrywasz na ekran samodzielnie."
+      },
+      "shops": {
+        "title": "Kupić polecany ekran?",
+        "lead": "Kup jeden z nich przez Tessera, a niewielka część sprzedaży trafi na rozwój Tessera.",
+        "buy": "Kup",
+        "buy_discount": "Kup · {discount}",
+        "note": "Linki partnerskie: płacisz tyle samo lub mniej.",
+        "code": "Kupujesz w {shop} inaczej? Użyj kodu {code}.",
+        "off": "{n}% zniżki"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Wybierz dysk {drive}",
           "wrong_drive": "To nie jest dysk {drive}. Wybierz sam dysk, na górze listy, a nie folder na tym komputerze.",
+          "no_window": "Przeglądarka nie otworzyła okna dysku. Być może gdzieś jest jeszcze otwarte inne okno plików: zamknij je albo odśwież tę stronę i kliknij ponownie.",
           "drive_there": "Dysk {drive} już jest",
           "done": "Firmware {version} jest na układzie, a ekran go znalazł.",
           "try": "Odtwórz dźwięk",

@@ -132,7 +132,9 @@
       "update_failed": "Aktualisierung fehlgeschlagen",
       "hint_key": "Eine Verbindung von {address} wurde abgewiesen: ihr Schlüssel gehört nicht zu diesem Bildschirm. Gib den Schlüssel dieses Bildschirms in der ESPHome-Integration von Home Assistant ein.",
       "no_answer_title": "Keine Antwort von Home Assistant",
-      "no_answer_text": "Oft darf dieser Bildschirm noch keine Aktionen ausführen. Erlaube es in Home Assistant: ESPHome > dieser Bildschirm > Konfigurieren."
+      "no_answer_text": "Oft darf dieser Bildschirm noch keine Aktionen ausführen. Erlaube es in Home Assistant: ESPHome > dieser Bildschirm > Konfigurieren.",
+      "logbook_tile": "bedient auf {screen}, Seite {page}, Kachel {tile}",
+      "logbook_page": "bedient auf {screen}, Seite {page}"
     },
     "preparing": {
       "default": "Kacheln werden sortiert",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Protokoll kopiert.",
         "selected": "Protokoll ist ausgewählt. Kopiere mit Strg+C oder Befehl+C."
+      },
+      "address": {
+        "copied": "Adresse kopiert.",
+        "selected": "Adresse ist markiert. Kopiere sie mit Strg+C oder Befehl+C."
       }
     },
     "sidebar": {
@@ -2873,7 +2879,19 @@
         "hint_auto": "Was der Bildschirm selbst ermittelt: eine Helligkeit, eine Temperatur, wann ein Skript zuletzt lief.",
         "hint_none": "Die Kachel zeigt ihren Namen und nichts darunter.",
         "hint_attr": "Ein Wert dieser Entität, benannt und geschrieben wie in Home Assistant.",
-        "hint_text": "Immer dieselben Worte, was die Entität auch tut."
+        "hint_text": "Immer dieselben Worte, was die Entität auch tut.",
+        "parts_aria": "Was die Zeile des Thermostats sagt",
+        "part_mode": "Modus",
+        "part_action": "Aktion",
+        "part_target": "Eingestellt",
+        "part_now": "Jetzt",
+        "hint_parts": "Wähle, was die Zeile sagt. Wo − und + der Kachel die eingestellte Temperatur zeigen, lässt die Zeile sie weg."
+      },
+      "scroll": {
+        "name": "Langen Namen laufen lassen",
+        "name_hint": "Ein Name, der zu breit für die Kachel ist, läuft im Kreis und steht still, wenn er passt. Aus endet er mit Punkten.",
+        "line": "Lange zweite Zeile laufen lassen",
+        "line_hint": "Eine zweite Zeile, die zu breit für die Kachel ist, läuft im Kreis und steht still, wenn sie passt. Aus endet sie mit Punkten oder einer kürzeren Fassung."
       },
       "slider": {
         "label": "Kleiner Schieberegler auf der Kachel",
@@ -3963,7 +3981,7 @@
         "here_click": "Klicke unten auf Installieren.",
         "here_pick": "Dein Browser fragt nach dem Gerät: Wähle den Bildschirm und klicke auf Verbinden.",
         "file_title": "Du bekommst eine Datei zum Aufspielen",
-        "file_lead": "Dieser Browser kann nicht selbst auf einen Bildschirm schreiben. Tessera erstellt eine Datei, und die spielst du mit ESPHome Web in Chrome oder Edge auf den Bildschirm.",
+        "file_lead": "Tessera erstellt eine Datei, und die spielst du mit ESPHome Web in Chrome oder Edge auf den Bildschirm.",
         "ha_title": "Stecke das Kabel in deinen Home Assistant",
         "ha_lead": "Nicht in diesen Computer, sondern in das Gerät, auf dem Home Assistant läuft. Wir sehen automatisch, sobald es angeschlossen ist.",
         "ha_which": "Welches ist der Bildschirm?",
@@ -4001,7 +4019,8 @@
           "ha": "Zu Home Assistant hinzufügen"
         },
         "may_close": "du kannst dieses Fenster schließen",
-        "keep_open": "lass diese Seite offen, bis sie auf dem Bildschirm ist",
+        "keep_open_title": "Lass diese Seite offen",
+        "keep_open": "Diese Seite spielt die Software selbst auf den Bildschirm, sobald sie gebaut ist. Wenn du diesen Tab schließt, die Seite verlässt oder der Computer in den Ruhezustand geht, wird nichts geschrieben. Lass auch das USB-Kabel stecken.",
         "show_log": "Was genau passiert",
         "to_pages": "Seiten erstellen",
         "another": "Noch einen Bildschirm hinzufügen",
@@ -4011,6 +4030,28 @@
           "ha": "In Home Assistant",
           "actions": "Darf dein Zuhause steuern"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Diese Seite hat keine sichere Adresse und kommt deshalb nicht an USB",
+        "insecure": "Von diesem Computer aus installierst du mit zwei Klicks, ganz ohne Datei, aber nur in Chrome oder Edge auf einer Seite mit sicherer Adresse (https). Diese Seite wurde über einfaches http geöffnet, und dort versteckt ein Browser seine USB-Anschlüsse.",
+        "browser_title": "Dieser Browser kommt nicht an USB",
+        "browser": "Von diesem Computer aus installierst du mit zwei Klicks, ganz ohne Datei, aber nur in Chrome oder Edge auf einem Computer. Öffne Home Assistant dort und starte Neuer Bildschirm noch einmal.",
+        "fix": "Zwei Wege, wie es klappt:",
+        "https": "Öffne Home Assistant über https in Chrome oder Edge, zum Beispiel über deine Home Assistant Cloud-Adresse.",
+        "flag": "Oder sag Chrome, dass es die Adresse dieses Home Assistant als sicher behandeln soll:",
+        "flag_open": "Kopiere das in die Adressleiste von Chrome und drücke Enter. Eine Seite kann das nicht für dich öffnen.",
+        "flag_add": "Trage diese Adresse in das Feld unter \"Insecure origins treated as secure\" ein und stelle es auf Enabled.",
+        "flag_relaunch": "Klicke auf Relaunch, öffne Home Assistant wieder und starte Neuer Bildschirm.",
+        "else": "Bis dahin erstellt Tessera hier eine Datei, die du selbst auf den Bildschirm spielst."
+      },
+      "shops": {
+        "title": "Einen empfohlenen Bildschirm kaufen?",
+        "lead": "Kaufe einen davon über Tessera, und ein kleiner Teil des Verkaufs fließt in die Entwicklung von Tessera.",
+        "buy": "Kaufen",
+        "buy_discount": "Kaufen · {discount}",
+        "note": "Affiliate-Links: Du zahlst gleich viel oder weniger.",
+        "code": "Kaufst du anders bei {shop}? Nutze den Code {code}.",
+        "off": "{n} % Rabatt"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Laufwerk {drive} wählen",
           "wrong_drive": "Das ist nicht das Laufwerk {drive}. Wähle das Laufwerk selbst, oben in der Liste, nicht einen Ordner auf diesem Computer.",
+          "no_window": "Der Browser hat sein Fenster für das Laufwerk nicht geöffnet. Vielleicht ist irgendwo noch ein anderes Dateifenster offen: schließe es oder lade diese Seite neu und klicke noch einmal.",
           "drive_there": "Das Laufwerk {drive} ist schon da",
           "done": "Firmware {version} ist auf dem Chip, und der Bildschirm hat ihn gefunden.",
           "try": "Ton abspielen",

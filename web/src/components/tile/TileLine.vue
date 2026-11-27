@@ -6,6 +6,7 @@
 // under it on a card of one cell, where they fit.
 import { glyph } from "../../model/topbar";
 import { textEms } from "../../model/ui-scale";
+import MarqueeText from "../MarqueeText.vue";
 import type { TileCardView } from "../../composables/useTileCard";
 import CoverTilePreview from "../CoverTilePreview.vue";
 import CoverCell from "./CoverCell.vue";
@@ -26,14 +27,14 @@ const card = props.card;
        system): the card's words light on it and the icon in a dark circle, as on a taller card. -->
   <img v-if="card.artwork" :key="card.artwork" class="line-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
   <template v-if="card.face.kind === 'graph'">
-    <span class="head"><span class="ic mdi">{{ glyph(card.icon) }}</span><span class="tx"><span class="nm">{{ card.texts.name }}</span><span class="st">{{ card.texts.line }}</span></span></span>
+    <span class="head"><span class="ic mdi">{{ glyph(card.icon) }}</span><span class="tx"><span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span><span class="st"><MarqueeText :text="card.texts.line" :still="!card.rollLine" /></span></span></span>
     <SensorHistory class="graph" :style="{ '--graph-side': `${GRAPH_SIDE}%` }" :entity="card.tile.entity" :hours="Number(card.tile.options?.history_hours || 24)" />
   </template>
   <!-- A card over the whole page as the glass lays it out (render_full): one big button, or a player's media card. -->
   <span v-else-if="card.fullStyle" class="glass-head glass-full" :class="card.fullStyle.kind" :style="card.fullStyle.box">
     <span class="ic mdi" :class="{ lit: card.lit }" :style="card.fullStyle.circle">{{ glyph(card.icon) }}</span>
-    <span class="nm" :style="card.fullStyle.title">{{ card.fullStyle.name }}</span>
-    <span v-if="card.fullStyle.value && card.fullStyle.line" class="st" :class="{ off: card.gone }" :style="card.fullStyle.value">{{ card.fullStyle.line }}</span>
+    <span class="nm" :style="card.fullStyle.title"><MarqueeText :text="card.fullStyle.name" :still="!card.rollName" /></span>
+    <span v-if="card.fullStyle.value && card.fullStyle.line" class="st" :class="{ off: card.gone }" :style="card.fullStyle.value"><MarqueeText :text="card.fullStyle.line" :still="!card.rollLine" /></span>
     <template v-if="card.fullStyle.kind === 'media'">
       <span v-if="card.fullStyle.art" class="art mdi" :style="card.fullStyle.art"><img v-if="card.fullStyle.cover" :src="card.fullStyle.cover" alt="" /><template v-else>{{ glyph(card.icon) }}</template></span>
       <span class="track" :style="card.fullStyle.track.style">{{ card.fullStyle.track.text }}</span>
@@ -54,10 +55,10 @@ const card = props.card;
   <template v-else-if="card.face.kind === 'full'">
     <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
     <span class="lead">
-      <span class="nm">{{ card.texts.name }}</span>
+      <span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span>
       <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>
       <span v-else-if="card.face.display === 'watch'" class="big">{{ card.texts.value }}<small v-if="card.texts.unit && !card.gone">{{ card.texts.unit }}</small></span>
-      <span v-else-if="card.texts.line" class="st" :class="{ off: card.gone }">{{ card.texts.line }}</span>
+      <span v-else-if="card.texts.line" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.line" :still="!card.rollLine" /></span>
     </span>
     <span v-if="card.tile.options?.inline === 'slider'" class="mini-slider" :style="card.sliderStyle"></span>
     <span v-if="card.face.controls" class="ctl">
@@ -73,16 +74,16 @@ const card = props.card;
   <template v-else-if="card.face.kind === 'wide'">
     <span v-if="card.glassStyle.head" class="glass-head" :style="card.glassStyle.head.box">
       <span class="ic mdi" :class="{ lit: card.lit }" :style="card.glassStyle.head.circle">{{ glyph(card.icon) }}</span>
-      <span class="nm" :style="card.glassStyle.head.title">{{ card.glassStyle.name }}</span>
-      <span v-if="card.glassStyle.head.value" class="st" :class="{ off: card.gone }" :style="card.glassStyle.head.value">{{ card.glassStyle.line }}</span>
+      <span class="nm" :style="card.glassStyle.head.title"><MarqueeText :text="card.glassStyle.name" :still="!card.rollName" /></span>
+      <span v-if="card.glassStyle.head.value" class="st" :class="{ off: card.gone }" :style="card.glassStyle.head.value"><MarqueeText :text="card.glassStyle.line" :still="!card.rollLine" /></span>
     </span>
     <span v-else class="lead">
       <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
       <span class="tx">
-        <span class="nm">{{ card.texts.name }}</span>
+        <span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span>
         <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>
         <span v-else-if="card.face.display === 'watch'" class="big">{{ card.texts.value }}<small v-if="card.texts.unit && !card.gone">{{ card.texts.unit }}</small></span>
-        <span v-else-if="card.texts.line" class="st" :class="{ off: card.gone }">{{ card.texts.line }}</span>
+        <span v-else-if="card.texts.line" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.line" :still="!card.rollLine" /></span>
       </span>
     </span>
     <span v-if="card.tile.options?.inline === 'slider'" class="mini-slider" :style="card.sliderStyle"></span>
@@ -114,8 +115,8 @@ const card = props.card;
   <span v-else-if="card.glassStyle.head" class="glass-head" :style="card.glassStyle.head.box">
     <!-- As the glass lays it out (runtime_tiles head_row): the circle at the left, the name and its line beside it. -->
     <span class="ic mdi" :class="{ lit: card.lit }" :style="card.glassStyle.head.circle">{{ glyph(card.icon) }}</span>
-    <span class="nm" :style="card.glassStyle.head.title">{{ card.glassStyle.name }}</span>
-    <span v-if="card.glassStyle.head.value" class="st" :class="{ off: card.gone }" :style="card.glassStyle.head.value">{{ card.glassStyle.line }}</span>
+    <span class="nm" :style="card.glassStyle.head.title"><MarqueeText :text="card.glassStyle.name" :still="!card.rollName" /></span>
+    <span v-if="card.glassStyle.head.value" class="st" :class="{ off: card.gone }" :style="card.glassStyle.head.value"><MarqueeText :text="card.glassStyle.line" :still="!card.rollLine" /></span>
   </span>
   <template v-else>
     <!-- As the screen draws it: the icon on the left, the name and the value beside it. A watch
@@ -123,9 +124,9 @@ const card = props.card;
     <span class="head" :class="{ top: card.face.display === 'watch' }">
       <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
       <span class="tx">
-        <span class="nm">{{ card.texts.name }}</span>
+        <span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span>
         <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>
-        <span v-else-if="card.face.display !== 'watch' && card.texts.line" class="st" :class="{ off: card.gone }">{{ card.texts.line }}</span>
+        <span v-else-if="card.face.display !== 'watch' && card.texts.line" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.line" :still="!card.rollLine" /></span>
       </span>
     </span>
     <span v-if="card.face.display === 'watch'" class="big">{{ card.texts.value }}<small v-if="card.texts.unit && !card.gone">{{ card.texts.unit }}</small></span>

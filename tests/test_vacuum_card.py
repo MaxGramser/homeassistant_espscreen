@@ -71,9 +71,15 @@ class VacuumExtras(unittest.TestCase):
         self.assertEqual(extra['fan']['o'], ['quiet', 'balanced', 'turbo', 'max', 'max_plus', 'off'], 'suction off is the only way to mop only')
 
     def test_a_plain_vacuum_gets_only_its_labelled_speeds(self):
-        states = {'vacuum.old': {'state': 'docked', 'attributes': {'battery_level': 64, 'fan_speed_list': ['silent', 'standard', 'strong']}}}
+        # 32 is FAN_SPEED, with 8192 (START) beside it.
+        states = {'vacuum.old': {'state': 'docked', 'attributes': {'battery_level': 64, 'supported_features': 8224,
+                                                                   'fan_speed_list': ['silent', 'standard', 'strong']}}}
         self.assertEqual(extras({'entity': 'vacuum.old'}, states), {'fan': {'o': ['silent', 'standard', 'strong'], 'l': ['Silent', 'Standard', 'Strong']}},
                          'no device, no rows; a battery attribute needs no sensor')
+        # The speeds need the vacuum's FAN_SPEED flag, as Home Assistant's card: a list alone is no row.
+        states['vacuum.old']['attributes']['supported_features'] = 8192
+        self.assertIsNone(extras({'entity': 'vacuum.old'}, states), 'a list of speeds without the flag')
+        states['vacuum.old']['attributes']['supported_features'] = 8224
         states['vacuum.old']['attributes'].pop('fan_speed_list')
         self.assertIsNone(extras({'entity': 'vacuum.old'}, states))
 

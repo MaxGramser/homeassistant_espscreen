@@ -52,7 +52,7 @@ function offersOf(tile: Tile): Map<string, Offer> {
     if (lookShown && tile.entity !== "screen.settings" && tile.entity !== "screen.map" && !energy)
       add("display", { section: "look", kind: "choice", label: t("editor.tile.display.label"), icon: "eye-outline", choices: displayChoices(tile, panel), value: display, write: set("display") });
     if (!bedside && display !== "map" && !energy && !(display === "meter" && domain === "sensor")) {
-      const sub = String(option("sub", "auto")), kind = sub.startsWith("attr:") ? "attr" : sub.startsWith("text:") ? "text" : sub;
+      const sub = String(option("sub", "auto")), kind = sub.startsWith("attr:") ? "attr" : sub.startsWith("text:") ? "text" : sub.startsWith("show:") ? "auto" : sub;
       const all = subChoices(tile, panel, kind, (entities.subtitleValues[tile.entity] ?? []).length, sub.startsWith("attr:") ? sub.slice(5) : "");
       // A value of the entity and words of one's own are one tile's: shared are the screen's own line and none.
       const value = kind === "attr" || kind === "text" ? sub : kind;

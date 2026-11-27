@@ -132,7 +132,9 @@
       "update_failed": "A atualização falhou",
       "hint_key": "Uma ligação de {address} foi recusada: a chave não é a deste ecrã. Introduza a chave deste ecrã na integração ESPHome do Home Assistant.",
       "no_answer_title": "Sem resposta do Home Assistant",
-      "no_answer_text": "Muitas vezes este ecrã ainda não pode executar ações. Ative-o no Home Assistant: ESPHome > este ecrã > Configurar."
+      "no_answer_text": "Muitas vezes este ecrã ainda não pode executar ações. Ative-o no Home Assistant: ESPHome > este ecrã > Configurar.",
+      "logbook_tile": "controlado em {screen}, página {page}, cartão {tile}",
+      "logbook_page": "controlado em {screen}, página {page}"
     },
     "preparing": {
       "default": "A arrumar os mosaicos",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Registo copiado.",
         "selected": "O registo está selecionado. Copie com Ctrl+C ou Comando+C."
+      },
+      "address": {
+        "copied": "Endereço copiado.",
+        "selected": "O endereço está selecionado. Copie com Ctrl+C ou Comando+C."
       }
     },
     "sidebar": {
@@ -2873,7 +2879,19 @@
         "hint_auto": "O que o ecrã calcula sozinho: um brilho, uma temperatura, quando um script foi executado pela última vez.",
         "hint_none": "O mosaico mostra o seu nome e nada abaixo.",
         "hint_attr": "Um valor desta entidade, com o nome e a forma do Home Assistant.",
-        "hint_text": "As mesmas palavras, faça a entidade o que fizer."
+        "hint_text": "As mesmas palavras, faça a entidade o que fizer.",
+        "parts_aria": "O que diz a linha do termóstato",
+        "part_mode": "Modo",
+        "part_action": "Ação",
+        "part_target": "Definida",
+        "part_now": "Agora",
+        "hint_parts": "Escolha o que a linha diz. Onde o − e o + do mosaico já mostram a temperatura definida, a linha omite-a."
+      },
+      "scroll": {
+        "name": "Deslizar um nome longo",
+        "name_hint": "Um nome largo demais para o bloco desliza em ciclo e fica parado quando cabe. Desligado, termina em reticências.",
+        "line": "Deslizar uma segunda linha longa",
+        "line_hint": "Uma segunda linha larga demais para o bloco desliza em ciclo e fica parada quando cabe. Desligado, termina em reticências ou numa forma mais curta."
       },
       "slider": {
         "label": "Controlo deslizante pequeno no mosaico",
@@ -3963,7 +3981,7 @@
         "here_click": "Clique em Instalar, em baixo.",
         "here_pick": "O navegador pergunta qual é o dispositivo: escolha o ecrã e clique em Ligar.",
         "file_title": "Vai receber um ficheiro para pôr nele",
-        "file_lead": "Este navegador não consegue escrever num ecrã por si só. O Tessera cria um ficheiro, que você põe no ecrã com o ESPHome Web no Chrome ou no Edge.",
+        "file_lead": "O Tessera cria um ficheiro, que você põe no ecrã com o ESPHome Web no Chrome ou no Edge.",
         "ha_title": "Ligue o cabo ao seu Home Assistant",
         "ha_lead": "Não a este computador, mas ao equipamento em que o Home Assistant funciona. Vemos assim que estiver ligado.",
         "ha_which": "Qual é o ecrã?",
@@ -4001,7 +4019,8 @@
           "ha": "A adicionar ao Home Assistant"
         },
         "may_close": "pode fechar esta janela",
-        "keep_open": "mantém esta página aberta até estar no ecrã",
+        "keep_open_title": "Mantenha esta página aberta",
+        "keep_open": "É esta página que põe o software no ecrã, assim que estiver compilado. Se fechar este separador, sair da página ou deixar o computador entrar em suspensão, nada é escrito. Deixe também o cabo USB ligado.",
         "show_log": "O que acontece exatamente",
         "to_pages": "Criar as suas páginas",
         "another": "Adicionar outro ecrã",
@@ -4011,6 +4030,28 @@
           "ha": "No Home Assistant",
           "actions": "Pode controlar a sua casa"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Esta página não está num endereço seguro, por isso não chega ao USB",
+        "insecure": "Instalar a partir deste computador são dois cliques, sem qualquer ficheiro, mas só no Chrome ou no Edge, numa página com endereço seguro (https). Esta página foi aberta em http simples, onde o navegador esconde as suas portas USB.",
+        "browser_title": "Este navegador não chega ao USB",
+        "browser": "Instalar a partir deste computador são dois cliques, sem qualquer ficheiro, mas só no Chrome ou no Edge num computador. Abra o Home Assistant aí e comece Novo ecrã outra vez.",
+        "fix": "Duas formas de o pôr a funcionar:",
+        "https": "Abra o Home Assistant por https no Chrome ou no Edge, por exemplo através do seu endereço do Home Assistant Cloud.",
+        "flag": "Ou diga ao Chrome para tratar o endereço deste Home Assistant como seguro:",
+        "flag_open": "Copie isto para a barra de endereço do Chrome e prima Enter. Uma página não o pode abrir por si.",
+        "flag_add": "Na caixa por baixo de \"Insecure origins treated as secure\", ponha este endereço e defina Enabled.",
+        "flag_relaunch": "Clique em Relaunch, abra o Home Assistant de novo e comece Novo ecrã.",
+        "else": "Até lá, o Tessera cria aqui um ficheiro que você mesmo põe no ecrã."
+      },
+      "shops": {
+        "title": "Comprar um ecrã recomendado?",
+        "lead": "Compre um através da Tessera e uma pequena parte da venda vai para o desenvolvimento da Tessera.",
+        "buy": "Comprar",
+        "buy_discount": "Comprar · {discount}",
+        "note": "Links de afiliado: paga o mesmo ou menos.",
+        "code": "Vai comprar na {shop} de outra forma? Use o código {code}.",
+        "off": "{n}% de desconto"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Escolher a unidade {drive}",
           "wrong_drive": "Essa não é a unidade {drive}. Escolha a própria unidade, no topo da lista, e não uma pasta deste computador.",
+          "no_window": "O navegador não abriu a janela da unidade. Talvez outra janela de ficheiros ainda esteja aberta algures: fecha-a, ou recarrega esta página, e clica de novo.",
           "drive_there": "A unidade {drive} já lá está",
           "done": "O firmware {version} está no chip e o ecrã encontrou-o.",
           "try": "Tocar um som",

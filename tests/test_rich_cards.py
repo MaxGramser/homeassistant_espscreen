@@ -203,6 +203,21 @@ class SecondLine(unittest.TestCase):
         # and what Home Assistant does not name (a token) never leaves the app.
         self.assertEqual(lines, {'current_humidity': '61.6%', 'hvac_action': 'heating', 'aux': 'On'})
 
+    def test_a_long_name_and_line_roll_unless_turned_off(self):
+        # A name and a second line too wide for the tile roll by on the screen (Tile::name_scroll, sub_scroll); only
+        # "off" is stored, and the page document carries both under the appearance.
+        import page_layout
+        def options(**chosen):
+            layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'script.morning', 'options': chosen}]})
+            return layout['tiles'][0].get('options', {})
+        self.assertEqual(options(name_scroll='on', sub_scroll='on'), {})
+        self.assertEqual(options(name_scroll='off', sub_scroll='off'), {'name_scroll': 'off', 'sub_scroll': 'off'})
+        for bad in ('no', True, 'auto'):
+            for key in ('name_scroll', 'sub_scroll'):
+                with self.assertRaises(ValueError, msg=(key, bad)):
+                    options(**{key: bad})
+        self.assertEqual((page_layout.APPEARANCE['labelScroll'], page_layout.APPEARANCE['subtitleScroll']), ('name_scroll', 'sub_scroll'))
+
     def test_the_layout_keeps_the_choice_and_refuses_a_shape_it_cannot_read(self):
         def options(sub):
             layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'script.morning', 'options': {'sub': sub}}]})
@@ -219,6 +234,20 @@ class SecondLine(unittest.TestCase):
         for bad in ('attr:Bad Name', 'weird', 'attr:', 3, 'text:' + 'x' * 96):
             with self.assertRaises(ValueError, msg=bad):
                 options(bad)
+        # A thermostat's own line names its parts (firmware 0.68.0), kept in the order the screen says them; the
+        # parts it says without a choice are stored as nothing at all, and no other type has parts.
+        def climate(sub):
+            layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'climate.airco', 'options': {'sub': sub}}]})
+            return layout['tiles'][0].get('options')
+        self.assertEqual(climate('show:now,mode'), {'sub': 'show:mode,now'})
+        self.assertEqual(climate('show:action'), {'sub': 'show:action'})
+        self.assertEqual(climate('show:'), {'sub': 'show:'})
+        self.assertEqual(climate('show:now,target,mode'), {})
+        for bad in ('show:mode,humidity', 'show:mode,'):
+            with self.assertRaises(ValueError, msg=bad):
+                climate(bad)
+        with self.assertRaises(ValueError):
+            options('show:mode')
         # A Go to page tile keeps it: not saying "Page 3" is the reason this exists.
         page = validate_layout({'title': 'Home', 'tiles': [{'entity': 'screen.page_2', 'options': {'sub': 'none'}}]})
         self.assertEqual(page['tiles'][0]['options'], {'sub': 'none'})

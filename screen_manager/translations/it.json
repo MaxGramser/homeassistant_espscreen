@@ -132,7 +132,9 @@
       "update_failed": "Aggiornamento non riuscito",
       "hint_key": "Una connessione da {address} è stata rifiutata: la sua chiave non è quella di questo schermo. Inserisci la chiave di questo schermo nell'integrazione ESPHome di Home Assistant.",
       "no_answer_title": "Nessuna risposta da Home Assistant",
-      "no_answer_text": "Spesso questo schermo non può ancora eseguire azioni. Attivalo in Home Assistant: ESPHome > questo schermo > Configura."
+      "no_answer_text": "Spesso questo schermo non può ancora eseguire azioni. Attivalo in Home Assistant: ESPHome > questo schermo > Configura.",
+      "logbook_tile": "comandato su {screen}, pagina {page}, tessera {tile}",
+      "logbook_page": "comandato su {screen}, pagina {page}"
     },
     "preparing": {
       "default": "Sistemando i riquadri",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Log copiato.",
         "selected": "Il log è selezionato. Copia con Ctrl+C o Comando+C."
+      },
+      "address": {
+        "copied": "Indirizzo copiato.",
+        "selected": "L'indirizzo è selezionato. Copialo con Ctrl+C o Comando+C."
       }
     },
     "sidebar": {
@@ -2873,7 +2879,19 @@
         "hint_auto": "Quello che lo schermo calcola da sé: una luminosità, una temperatura, quando è stato eseguito uno script.",
         "hint_none": "Il riquadro mostra il suo nome e niente sotto.",
         "hint_attr": "Un valore di questa entità, con il nome e la forma di Home Assistant.",
-        "hint_text": "Le stesse parole, qualunque cosa faccia l'entità."
+        "hint_text": "Le stesse parole, qualunque cosa faccia l'entità.",
+        "parts_aria": "Cosa dice la riga del termostato",
+        "part_mode": "Modalità",
+        "part_action": "Azione",
+        "part_target": "Impostata",
+        "part_now": "Ora",
+        "hint_parts": "Scegli cosa dice la riga. Dove il − e il + del riquadro mostrano già la temperatura impostata, la riga la omette."
+      },
+      "scroll": {
+        "name": "Scorri un nome lungo",
+        "name_hint": "Un nome troppo largo per il riquadro scorre in tondo e si ferma quando entra. Disattivato, finisce con dei puntini.",
+        "line": "Scorri una seconda riga lunga",
+        "line_hint": "Una seconda riga troppo larga per il riquadro scorre in tondo e si ferma quando entra. Disattivato, finisce con dei puntini o una forma più corta."
       },
       "slider": {
         "label": "Piccolo cursore sul riquadro",
@@ -3963,7 +3981,7 @@
         "here_click": "Clicca qui sotto su Installa.",
         "here_pick": "Il browser chiede quale dispositivo: scegli lo schermo e clicca su Connetti.",
         "file_title": "Riceverai un file da mettergli sopra",
-        "file_lead": "Questo browser non può scrivere da solo su uno schermo. Tessera crea un file, che metti sullo schermo con ESPHome Web in Chrome o Edge.",
+        "file_lead": "Tessera crea un file, che metti sullo schermo con ESPHome Web in Chrome o Edge.",
         "ha_title": "Collega il cavo al tuo Home Assistant",
         "ha_lead": "Non a questo computer, ma al dispositivo su cui gira Home Assistant. Lo vediamo appena è collegato.",
         "ha_which": "Qual è lo schermo?",
@@ -4001,7 +4019,8 @@
           "ha": "Aggiunta a Home Assistant"
         },
         "may_close": "puoi chiudere questa finestra",
-        "keep_open": "lascia aperta questa pagina finché non è sullo schermo",
+        "keep_open_title": "Lascia aperta questa pagina",
+        "keep_open": "È questa pagina a mettere il software sullo schermo, appena è pronto. Se chiudi questa scheda, lasci la pagina o il computer va in sospensione, non viene scritto nulla. Lascia collegato anche il cavo USB.",
         "show_log": "Cosa succede esattamente",
         "to_pages": "Crea le sue pagine",
         "another": "Aggiungi un altro schermo",
@@ -4011,6 +4030,28 @@
           "ha": "In Home Assistant",
           "actions": "Può controllare la tua casa"
         }
+      },
+      "no_usb": {
+        "insecure_title": "Questa pagina non è su un indirizzo sicuro, quindi non può raggiungere l'USB",
+        "insecure": "Installare da questo computer richiede due clic, senza alcun file, ma solo in Chrome o Edge su una pagina con indirizzo sicuro (https). Questa pagina è stata aperta in semplice http, dove il browser nasconde le sue porte USB.",
+        "browser_title": "Questo browser non può raggiungere l'USB",
+        "browser": "Installare da questo computer richiede due clic, senza alcun file, ma solo in Chrome o Edge su un computer. Apri Home Assistant lì e avvia di nuovo Nuovo schermo.",
+        "fix": "Due modi per farlo funzionare:",
+        "https": "Apri Home Assistant in https con Chrome o Edge, per esempio dal tuo indirizzo Home Assistant Cloud.",
+        "flag": "Oppure di' a Chrome di considerare sicuro l'indirizzo di questo Home Assistant:",
+        "flag_open": "Copia questo nella barra degli indirizzi di Chrome e premi Invio. Una pagina non può aprirlo al posto tuo.",
+        "flag_add": "Nel campo sotto \"Insecure origins treated as secure\" inserisci questo indirizzo e impostalo su Enabled.",
+        "flag_relaunch": "Clicca su Relaunch, riapri Home Assistant e avvia Nuovo schermo.",
+        "else": "Fino ad allora Tessera crea qui un file che metti tu sullo schermo."
+      },
+      "shops": {
+        "title": "Acquistare uno schermo consigliato?",
+        "lead": "Acquistane uno tramite Tessera e una piccola parte della vendita va allo sviluppo di Tessera.",
+        "buy": "Acquista",
+        "buy_discount": "Acquista · {discount}",
+        "note": "Link di affiliazione: paghi lo stesso o meno.",
+        "code": "Acquisti da {shop} in un altro modo? Usa il codice {code}.",
+        "off": "{n}% di sconto"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Scegli l'unità {drive}",
           "wrong_drive": "Quella non è l'unità {drive}. Scegli l'unità stessa, in cima all'elenco, non una cartella di questo computer.",
+          "no_window": "Il browser non ha aperto la finestra per l'unità. Forse un'altra finestra dei file è ancora aperta da qualche parte: chiudila, o ricarica questa pagina, e clicca di nuovo.",
           "drive_there": "L'unità {drive} c'è già",
           "done": "Il firmware {version} è sul chip e lo schermo l'ha trovato.",
           "try": "Riproduci un suono",

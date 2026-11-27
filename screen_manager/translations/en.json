@@ -132,7 +132,9 @@
       "update_failed": "Update failed",
       "hint_key": "A connection from {address} was turned away: its key is not this screen's. Enter this screen's key in Home Assistant's ESPHome integration.",
       "no_answer_title": "No answer from Home Assistant",
-      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure."
+      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure.",
+      "logbook_tile": "operated on {screen}, page {page}, tile {tile}",
+      "logbook_page": "operated on {screen}, page {page}"
     },
     "preparing": {
       "default": "Arranging your tiles",
@@ -1767,6 +1769,10 @@
       "log": {
         "copied": "Log copied.",
         "selected": "Log is selected. Copy with Ctrl+C or Command+C."
+      },
+      "address": {
+        "copied": "Address copied.",
+        "selected": "Address is selected. Copy with Ctrl+C or Command+C."
       }
     },
     "sidebar": {
@@ -2382,7 +2388,19 @@
         "hint_auto": "What the screen works out itself: a brightness, a temperature, when a script last ran.",
         "hint_none": "The tile shows its name and nothing under it.",
         "hint_attr": "A value of this entity, named and written the way Home Assistant does.",
-        "hint_text": "The same words, whatever the entity does."
+        "hint_text": "The same words, whatever the entity does.",
+        "parts_aria": "What the thermostat's line says",
+        "part_mode": "Mode",
+        "part_action": "Action",
+        "part_target": "Set to",
+        "part_now": "Now",
+        "hint_parts": "Choose what the line says. Where the tile's own − and + show the temperature it is set to, the line leaves it out."
+      },
+      "scroll": {
+        "name": "Roll a long name",
+        "name_hint": "A name too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots.",
+        "line": "Roll a long second line",
+        "line_hint": "A second line too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots or a shorter wording."
       },
       "slider": {
         "label": "Small slider on the tile",
@@ -3472,7 +3490,7 @@
         "here_click": "Click Install below.",
         "here_pick": "Your browser asks which device: choose the screen and click Connect.",
         "file_title": "You'll get a file to put on it",
-        "file_lead": "This browser cannot write to a screen itself. Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
+        "file_lead": "Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
         "ha_title": "Plug the cable into your Home Assistant",
         "ha_lead": "Not into this computer, but into the machine Home Assistant runs on. We see it as soon as it is there.",
         "ha_which": "Which one is the screen?",
@@ -3510,7 +3528,8 @@
           "ha": "Adding it to Home Assistant"
         },
         "may_close": "you can close this window",
-        "keep_open": "keep this page open until it is on the screen",
+        "keep_open_title": "Keep this page open",
+        "keep_open": "This page puts the software on the screen itself, as soon as it is built. Close this tab, leave the page or let the computer sleep, and nothing is written. Leave the USB cable in too.",
         "show_log": "What happens exactly",
         "to_pages": "Make its pages",
         "another": "Add another screen",
@@ -3520,6 +3539,28 @@
           "ha": "In Home Assistant",
           "actions": "Allowed to control your home"
         }
+      },
+      "no_usb": {
+        "insecure_title": "This page is not on a secure address, so it cannot reach USB",
+        "insecure": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a page with a secure address (https). This page was opened over plain http, where a browser hides its USB ports.",
+        "browser_title": "This browser cannot reach USB",
+        "browser": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a computer. Open Home Assistant there and start New screen again.",
+        "fix": "Two ways to make it work:",
+        "https": "Open Home Assistant over https in Chrome or Edge, for example through your Home Assistant Cloud address.",
+        "flag": "Or tell Chrome to treat this Home Assistant's address as secure:",
+        "flag_open": "Copy this into Chrome's address bar and press Enter. A page cannot open it for you.",
+        "flag_add": "In the box under \"Insecure origins treated as secure\", put this address, and set it to Enabled.",
+        "flag_relaunch": "Click Relaunch, open Home Assistant again and start New screen.",
+        "else": "Until then Tessera makes a file here that you put on the screen yourself."
+      },
+      "shops": {
+        "title": "Buy a recommended screen?",
+        "lead": "Buy one of these through Tessera and a small part of the sale goes to Tessera's development.",
+        "buy": "Buy",
+        "buy_discount": "Buy · {discount}",
+        "note": "Affiliate links: you pay the same or less.",
+        "code": "Shopping at {shop} another way? Use code {code}.",
+        "off": "{n}% off"
       }
     },
     "alerts": {
@@ -5354,6 +5395,7 @@
           },
           "choose_drive": "Choose the drive {drive}",
           "wrong_drive": "That is not the drive {drive}. Choose the drive itself, at the top of the list, not a folder on this computer.",
+          "no_window": "The browser did not open its window for the drive. Another of its file windows may still be open somewhere: close it, or reload this page, and click again.",
           "drive_there": "The drive {drive} is there already",
           "done": "Firmware {version} is on the chip, and the screen found it.",
           "try": "Play a sound",
