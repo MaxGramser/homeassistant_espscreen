@@ -2879,6 +2879,12 @@
         "part_now": "Teraz",
         "hint_parts": "Wybierz, co mówi wiersz. Tam, gdzie − i + kafelka pokazują już ustawioną temperaturę, wiersz ją pomija."
       },
+      "scroll": {
+        "name": "Przewijaj długą nazwę",
+        "name_hint": "Nazwa za szeroka na kafelek przewija się w kółko i stoi, gdy się mieści. Wyłączone: kończy się kropkami.",
+        "line": "Przewijaj długi drugi wiersz",
+        "line_hint": "Drugi wiersz za szeroki na kafelek przewija się w kółko i stoi, gdy się mieści. Wyłączone: kończy się kropkami lub krótszą wersją."
+      },
       "slider": {
         "label": "Mały suwak na kafelku",
         "nothing": "Home Assistant nie ma dla tej encji niczego, co suwak mógłby zmieniać. Wybierz „Nie”."

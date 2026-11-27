@@ -542,6 +542,10 @@ struct Tile {
   // entity that Home Assistant itself names. Only the last one needs an answer from the app: the other three
   // are decided here, so they keep working while Home Assistant is away.
   std::string subtitle = "auto";
+  // A name and a second line wider than their room roll by, round and round, and stand still when they fit (dev,
+  // "name_scroll" and "sub_scroll"; "off" ends them in dots as before). LVGL's own circular scroll with a reading
+  // pause, as a player's title (marquee()).
+  bool name_scroll = true, sub_scroll = true;
   // A camera tile's live picture (firmware 0.2.77+): "display": "live" puts a small picture of the camera in the
   // icon's place, loaded again every `refresh` seconds.
   uint16_t refresh = 15;

@@ -9,6 +9,7 @@ import { glyph } from "../../model/topbar";
 import { coverLayout } from "../../model/cover-tile";
 import { lineOf, tallKeys, textWidth, uiScale } from "../../model/ui-scale";
 import { controlKeys, coverTiltKeys, coverTiltKind } from "../../model/tall-controls";
+import MarqueeText from "../MarqueeText.vue";
 import type { TileCardView } from "../../composables/useTileCard";
 import { useCanvasStore } from "../../stores/canvas";
 import { useDocumentStore } from "../../stores/document";
@@ -46,7 +47,7 @@ const beside = computed(() => {
   <span ref="root" class="cover-cell" :class="{ beside }">
     <span class="head">
       <span class="ic mdi" :class="{ lit: card.lit }">{{ glyph(card.icon) }}</span>
-      <span class="tx"><span class="nm">{{ card.texts.name }}</span><span v-if="card.texts.line" class="st" :class="{ off: card.gone }">{{ card.texts.line }}</span></span>
+      <span class="tx"><span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span><span v-if="card.texts.line" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.line" :still="!card.rollLine" /></span></span>
     </span>
     <CoverTilePreview :standing="false" :at-half="card.tile.options?.tilt_open === '50'" :tilt="/tilt/.test(String(card.tile.options?.controls || ''))" :primary="card.face.coverPrimary"
       :entity-state="card.current?.state || ''" :attributes="card.current?.a || {}" />

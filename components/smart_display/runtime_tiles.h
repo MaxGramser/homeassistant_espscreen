@@ -2038,6 +2038,10 @@ inline void render_slot(size_t slot) {
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
   if(w.loading&&!(t.live()||t.is_map()||t.favorite()))lv_obj_add_flag(w.loading,LV_OBJ_FLAG_HIDDEN);
+  // A name wider than its room rolls by and stands still when it fits (dev, Tile::name_scroll), as the second line
+  // does below; with the scroll off it ends in dots. The mode goes before the words, which LVGL's dots write into.
+  if(t.name_scroll)marquee(w.title,true);
+  else if(lv_label_get_long_mode(w.title)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.title,LV_LABEL_LONG_DOT);
   label(w.title, t.name.empty() ? t.entity : t.name);
   label(w.icon, icon_for(t));
   bool watch=t.display=="watch";
@@ -2145,6 +2149,12 @@ inline void render_slot(size_t slot) {
   }
   // A wish Home Assistant takes long to square says so where the state stands (docs/OPTIMISTIC.md).
   if(!t.builtin() && wish_slow(t.entity,esphome::millis())){value=tr(txt::tile_updating);value_short.clear();value_tail.clear();}
+  // A second line wider than its room rolls by and stands still when it fits (dev, Tile::sub_scroll); with the scroll
+  // off it ends in dots, as before. A big number never rolls: it takes a smaller face instead (the watch block below).
+  // The mode goes first: LVGL's dots write themselves into the text, the roll keeps it whole.
+  const bool roll=t.sub_scroll&&!watch;
+  if(roll)marquee(w.value,true);
+  else if(lv_label_get_long_mode(w.value)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.value,LV_LABEL_LONG_DOT);
   label(w.value, value);
   // Only a thermostat with controls takes a tap on its circle (climate_circle_event); every other card's circle is
   // part of the card and the card's own tap.
@@ -2300,7 +2310,7 @@ inline void render_slot(size_t slot) {
     set_text_align(w.title,LV_TEXT_ALIGN_CENTER);set_text_align(w.value,LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(w.title,0,top+circle+gap);lv_obj_set_width(w.title,content_w);
     lv_obj_set_pos(w.value,0,top+circle+gap+title_height+line_gap);lv_obj_set_width(w.value,content_w);
-    fit_value(w.value,value,value_short,value_tail,content_w);
+    fit_value(w.value,value,value_short,value_tail,content_w,roll);
     lap(swipe_profile::CUSTOM);
   }else if(custom){
     lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);
@@ -2384,14 +2394,14 @@ inline void render_slot(size_t slot) {
   lv_obj_set_width(w.title,std::max(1,text_room-text_x));
   int value_room=std::max(1,text_room-text_x);
   lv_obj_set_width(w.value,value_room);
-  fit_value(w.value,value,value_short,value_tail,value_room);
+  fit_value(w.value,value,value_short,value_tail,value_room,roll);
   if(one_line){
     lv_point_t need;lv_text_get_size(&need,lv_label_get_text(w.value),value_face,0,0,LV_COORD_MAX,LV_TEXT_FLAG_EXPAND);
     const int line_w=std::max(1,text_room-text_x),value_w=std::max(1,std::min((int)need.x+2,line_w*55/100));
     set_text_align(w.value,LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(w.value,text_room-value_w,text_y+title_height-value_height);lv_obj_set_width(w.value,value_w);
     lv_obj_set_width(w.title,std::max(1,line_w-value_w-(ui::px(large_tile?6:3))));
-    fit_value(w.value,value,value_short,value_tail,value_w);
+    fit_value(w.value,value,value_short,value_tail,value_w,roll);
   }
   if(watch){
     int gap=ui::px(large_tile?6:2),header=std::max(circle_size,title_height);

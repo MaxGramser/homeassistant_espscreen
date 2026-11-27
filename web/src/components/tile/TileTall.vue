@@ -32,8 +32,8 @@ const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card
   <img v-if="card.tallStyle && card.artwork" :key="card.artwork" class="tall-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
   <span v-if="card.tallStyle" class="glass-head glass-tall" :style="card.tallStyle.box">
     <span v-if="card.tallStyle.circle" class="ic mdi" :class="{ lit: card.lit }" :style="card.tallStyle.circle">{{ glyph(card.icon) }}</span>
-    <span v-if="card.tallStyle.title" class="nm" :style="card.tallStyle.title.style">{{ card.tallStyle.title.text }}</span>
-    <span v-if="card.tallStyle.value" class="st" :class="{ off: card.gone }" :style="card.tallStyle.value.style">{{ card.tallStyle.value.text }}</span>
+    <span v-if="card.tallStyle.title" class="nm" :style="card.tallStyle.title.style"><MarqueeText :text="card.tallStyle.title.text" :still="!card.rollName" /></span>
+    <span v-if="card.tallStyle.value" class="st" :class="{ off: card.gone }" :style="card.tallStyle.value.style"><MarqueeText :text="card.tallStyle.value.text" :still="!card.rollLine" /></span>
     <span v-for="(line, i) in card.tallStyle.body" :key="i" class="words" :class="{ muted: line.muted, 'track-title': line.marquee }" :style="line.style">{{ line.text }}</span>
     <template v-if="card.tallStyle.climate">
       <span v-if="card.tallStyle.climate.stepper" class="pill" :style="card.tallStyle.climate.stepper"></span>
@@ -69,14 +69,14 @@ const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card
   </span>
   <template v-else-if="card.face.kind === 'big-key'">
     <span class="ic mdi" :class="{ lit: card.lit }">{{ glyph(card.icon) }}</span>
-    <span class="nm">{{ card.texts.name }}</span>
-    <span v-if="card.texts.bigKeyLine" class="st" :class="{ off: card.gone }">{{ card.texts.bigKeyLine }}</span>
+    <span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span>
+    <span v-if="card.texts.bigKeyLine" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.bigKeyLine" :still="!card.rollLine" /></span>
   </template>
   <template v-else>
     <img v-if="card.artwork" :key="card.artwork" class="tall-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
     <span class="head">
       <span class="ic mdi">{{ glyph(card.icon) }}</span>
-      <span class="tx"><span class="nm">{{ card.texts.name }}</span><span v-if="card.texts.headLine" class="st" :class="{ off: card.gone }">{{ card.texts.headLine }}</span></span>
+      <span class="tx"><span class="nm"><MarqueeText :text="card.texts.name" :still="!card.rollName" /></span><span v-if="card.texts.headLine" class="st" :class="{ off: card.gone }"><MarqueeText :text="card.texts.headLine" :still="!card.rollLine" /></span></span>
     </span>
     <CoverTilePreview v-if="card.face.coverExtended" :at-half="card.tile.options?.tilt_open === '50'" :primary="card.face.tallControls" :entity-state="card.current?.state || ''" :attributes="card.current?.a || {}">
       <template #fallback>
