@@ -1,8 +1,11 @@
 <script setup lang="ts">
 // New screen's first question, which screen (app 0.4.103): the recommended boards large, each drawn as it hangs, and
 // behind "I have another screen" every board in one list to search, by brand, size or what is printed on it, with how
-// far each has been tried (model/installer.ts familyTiers). A double click on a board goes on.
-import { computed } from "vue";
+// far each has been tried (model/installer.ts familyTiers). A double click on a board goes on. Under them, "No screen
+// yet?": the recommended screens the Tessera website has a shop link for (screen_manager/app/shops.py, app 0.4.110),
+// with the photo through the app; nothing shows when the website can't be asked.
+import { computed, onMounted, ref } from "vue";
+import { getJson } from "../../api";
 import { boardTitle } from "../../model/boards";
 import { boardArt, boardFamilies, boardsMatching, familyLead, familyStatus, familyTiers, SIZES, type BoardRow } from "../../model/installer";
 import { injectInstaller } from "../../composables/useInstaller";
@@ -25,6 +28,27 @@ const line = (board: BoardRow) => {
 };
 // The line under a board in the list: what is printed on it, or how many versions there are.
 const listLine = (family: BoardRow[]) => (family.length > 1 ? t("editor.installer.flow.versions", family.length) : family[0].model);
+
+type Shop = { board: string; name: string | null; shop: string; url: string; discount: string | null; code: string | null; photo: boolean };
+const shops = ref<Shop[]>([]);
+onMounted(async () => {
+  try {
+    const answer = await getJson<{ shops?: Shop[] }>("shops");
+    shops.value = Array.isArray(answer?.shops) ? answer.shops : [];
+  } catch { shops.value = []; }
+});
+// A shop's screen named the way the cards above name it, when New screen knows the board.
+const shopTitle = (shop: Shop) => {
+  const board = install.boardRows.find((row) => row.key === shop.board);
+  return board ? boardTitle(board) : shop.name || shop.board;
+};
+// The website writes a discount as "5% off"; a percentage is said in the editor's language, anything else as written.
+const discount = (shop: Shop) => {
+  const percent = /^(\d{1,2})\s*% off$/i.exec(shop.discount || "");
+  return percent ? t("editor.installer.shops.off", { n: percent[1] }) : shop.discount;
+};
+// One line per shop and code, for whoever shops there without the link.
+const codes = computed(() => [...new Map(shops.value.filter((shop) => shop.code).map((shop) => [`${shop.shop} ${shop.code}`, shop])).values()]);
 </script>
 
 <template>
@@ -42,6 +66,21 @@ const listLine = (family: BoardRow[]) => (family.length > 1 ? t("editor.installe
     </fieldset>
     <p class="ob-soon">{{ t("editor.installer.flow.more_soon") }}</p>
     <button type="button" class="ob-more" id="board-other" @click="install.browse = true">{{ t("editor.installer.flow.other_screen") }}<Icon name="chevron-right" /></button>
+    <section v-if="shops.length" class="ob-shops" aria-labelledby="ob-shops-title">
+      <h2 id="ob-shops-title">{{ t("editor.installer.shops.title") }}</h2>
+      <p class="ob-shops-lead">{{ t("editor.installer.shops.lead") }}</p>
+      <div class="ob-shop-list">
+        <div v-for="shop in shops" :key="shop.board" class="ob-shop">
+          <img v-if="shop.photo" :src="`api/shops/${shop.board}/photo`" alt="" loading="lazy" />
+          <div class="ob-shop-words">
+            <b>{{ shopTitle(shop) }}</b>
+            <small>{{ shop.shop }}</small>
+            <a class="ob-shop-buy" :href="shop.url" target="_blank" rel="sponsored noopener">{{ shop.discount ? t("editor.installer.shops.buy_discount", { discount: discount(shop) }) : t("editor.installer.shops.buy") }}</a>
+          </div>
+        </div>
+      </div>
+      <p class="ob-shops-note">{{ [t("editor.installer.shops.note"), ...codes.map((shop) => t("editor.installer.shops.code", { shop: shop.shop, code: shop.code }))].join(" ") }}</p>
+    </section>
   </section>
 
   <section v-else class="ob-step browse" data-step="board-list">

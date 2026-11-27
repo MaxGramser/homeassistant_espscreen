@@ -90,7 +90,10 @@ Use the GitHub version for updates; a local test add-on is a separate app.
    your screen needs:
    - **Which screen do you have?** The recommended boards come first, drawn large. **I have another screen** opens
      every board in one list: type its brand, size or what is printed on it, or narrow the list by size. A board
-     that is new or not tested yet on its hardware says so in the list.
+     that is new or not tested yet on its hardware says so in the list. Under them, **Buy a recommended screen?**
+     lists the recommended screens the Tessera website has a shop link for, with a photo and any discount. These are
+     affiliate links: a small part of a sale goes to Tessera's development. The app asks the website for the list
+     (`screen_manager/app/shops.py`) and passes the photos on itself; without the website the panel stays away.
    - **Which version do you have?** Only for a screen sold in more than one version, or with a part that differs
      between boards (a CYD's display controller). The back of the board says which one you have; the most common
      one is chosen to begin with.

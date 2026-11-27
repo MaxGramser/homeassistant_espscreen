@@ -4029,6 +4029,15 @@
         "flag_add": "Nel campo sotto \"Insecure origins treated as secure\" inserisci questo indirizzo e impostalo su Enabled.",
         "flag_relaunch": "Clicca su Relaunch, riapri Home Assistant e avvia Nuovo schermo.",
         "else": "Fino ad allora Tessera crea qui un file che metti tu sullo schermo."
+      },
+      "shops": {
+        "title": "Acquistare uno schermo consigliato?",
+        "lead": "Acquistane uno tramite Tessera e una piccola parte della vendita va allo sviluppo di Tessera.",
+        "buy": "Acquista",
+        "buy_discount": "Acquista · {discount}",
+        "note": "Link di affiliazione: paghi lo stesso o meno.",
+        "code": "Acquisti da {shop} in un altro modo? Usa il codice {code}.",
+        "off": "{n}% di sconto"
       }
     },
     "alerts": {

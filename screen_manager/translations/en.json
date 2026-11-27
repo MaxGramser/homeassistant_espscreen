@@ -3538,6 +3538,15 @@
         "flag_add": "In the box under \"Insecure origins treated as secure\", put this address, and set it to Enabled.",
         "flag_relaunch": "Click Relaunch, open Home Assistant again and start New screen.",
         "else": "Until then Tessera makes a file here that you put on the screen yourself."
+      },
+      "shops": {
+        "title": "Buy a recommended screen?",
+        "lead": "Buy one of these through Tessera and a small part of the sale goes to Tessera's development.",
+        "buy": "Buy",
+        "buy_discount": "Buy · {discount}",
+        "note": "Affiliate links: you pay the same or less.",
+        "code": "Shopping at {shop} another way? Use code {code}.",
+        "off": "{n}% off"
       }
     },
     "alerts": {

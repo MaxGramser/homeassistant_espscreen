@@ -4029,6 +4029,15 @@
         "flag_add": "W polu pod \"Insecure origins treated as secure\" wpisz ten adres i ustaw Enabled.",
         "flag_relaunch": "Kliknij Relaunch, otwórz Home Assistant ponownie i zacznij Nowy ekran.",
         "else": "Do tego czasu Tessera tworzy tutaj plik, który wgrywasz na ekran samodzielnie."
+      },
+      "shops": {
+        "title": "Kupić polecany ekran?",
+        "lead": "Kup jeden z nich przez Tessera, a niewielka część sprzedaży trafi na rozwój Tessera.",
+        "buy": "Kup",
+        "buy_discount": "Kup · {discount}",
+        "note": "Linki partnerskie: płacisz tyle samo lub mniej.",
+        "code": "Kupujesz w {shop} inaczej? Użyj kodu {code}.",
+        "off": "{n}% zniżki"
       }
     },
     "alerts": {

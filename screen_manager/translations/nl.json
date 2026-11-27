@@ -3538,6 +3538,15 @@
         "flag_add": "Zet dit adres in het vak onder \"Insecure origins treated as secure\" en zet het op Enabled.",
         "flag_relaunch": "Klik op Relaunch, open Home Assistant opnieuw en begin Nieuw scherm.",
         "else": "Tot die tijd maakt Tessera hier een bestand dat je zelf op het scherm zet."
+      },
+      "shops": {
+        "title": "Een aanbevolen scherm kopen?",
+        "lead": "Koop er een via Tessera en een klein deel van de verkoop gaat naar de ontwikkeling van Tessera.",
+        "buy": "Kopen",
+        "buy_discount": "Kopen · {discount}",
+        "note": "Affiliatelinks: je betaalt hetzelfde of minder.",
+        "code": "Koop je op een andere manier bij {shop}? Gebruik code {code}.",
+        "off": "{n}% korting"
       }
     },
     "alerts": {

@@ -4029,6 +4029,15 @@
         "flag_add": "A(z) \"Insecure origins treated as secure\" alatti mezőbe írd be ezt a címet, és állítsd Enabled értékre.",
         "flag_relaunch": "Kattints a Relaunch gombra, nyisd meg újra a Home Assistantot, és indítsd el az Új kijelzőt.",
         "else": "Addig a Tessera itt készít egy fájlt, amit te magad töltesz fel a kijelzőre."
+      },
+      "shops": {
+        "title": "Veszel egy ajánlott kijelzőt?",
+        "lead": "Vásárolj egyet a Tesserán keresztül, és az eladás egy kis része a Tessera fejlesztésére megy.",
+        "buy": "Vásárlás",
+        "buy_discount": "Vásárlás · {discount}",
+        "note": "Partnerlinkek: ugyanannyit vagy kevesebbet fizetsz.",
+        "code": "Máshogy vásárolsz a(z) {shop} oldalán? Használd a(z) {code} kódot.",
+        "off": "{n}% kedvezmény"
       }
     },
     "alerts": {

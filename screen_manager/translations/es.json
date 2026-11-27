@@ -4029,6 +4029,15 @@
         "flag_add": "En el cuadro bajo \"Insecure origins treated as secure\", pon esta dirección y ponlo en Enabled.",
         "flag_relaunch": "Haz clic en Relaunch, abre Home Assistant de nuevo y empieza Nueva pantalla.",
         "else": "Hasta entonces Tessera crea aquí un archivo que pones tú en la pantalla."
+      },
+      "shops": {
+        "title": "¿Comprar una pantalla recomendada?",
+        "lead": "Compra una a través de Tessera y una pequeña parte de la venta va al desarrollo de Tessera.",
+        "buy": "Comprar",
+        "buy_discount": "Comprar · {discount}",
+        "note": "Enlaces de afiliado: pagas lo mismo o menos.",
+        "code": "¿Compras en {shop} de otra forma? Usa el código {code}.",
+        "off": "{n} % de descuento"
       }
     },
     "alerts": {

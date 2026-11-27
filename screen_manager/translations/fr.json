@@ -4029,6 +4029,15 @@
         "flag_add": "Dans le champ sous \"Insecure origins treated as secure\", saisissez cette adresse, puis choisissez Enabled.",
         "flag_relaunch": "Cliquez sur Relaunch, rouvrez Home Assistant et lancez Nouvel écran.",
         "else": "En attendant, Tessera crée ici un fichier que vous installez vous-même sur l'écran."
+      },
+      "shops": {
+        "title": "Acheter un écran recommandé ?",
+        "lead": "Achetez-en un via Tessera : une petite part de la vente finance le développement de Tessera.",
+        "buy": "Acheter",
+        "buy_discount": "Acheter · {discount}",
+        "note": "Liens affiliés : vous payez autant ou moins.",
+        "code": "Vous achetez autrement chez {shop} ? Utilisez le code {code}.",
+        "off": "{n} % de remise"
       }
     },
     "alerts": {
