@@ -10,8 +10,12 @@ every output id the chain named, so `back_light` and the backlight scripts still
 tools/render/run.py drive and photograph it.
 
 A board whose glass is paper (features/paper.yaml) has two displays, the paper glass LVGL draws on and the panel of
-e-paper under it. The SDL display stands for the glass and the panel goes with the hardware, so such a board is drawn
-here as LVGL draws it, in colour: no ink step and no printer (docs/PAPER.md, "What is not built yet").
+e-paper under it. The SDL display stands for the glass and the panel goes with the hardware. The program is on paper
+all the same: it gets the paper glass as a key of its own (components/paper_glass/__init__.py: paper.h and the
+panel's inks, without the display that needs the e-paper driver), so the theme's ink table, the still glass and the
+standby's rest are the firmware's own. The ink step, which on a screen runs at every flush, runs over each picture
+tools/render/run.py takes (tools/render/paper_ink_tool.cpp, the same paper_ink.h), so a render shows what the glass
+prints. The printer has no panel here and prints nothing: when a refresh comes is not what a picture shows.
 
 A variant is a board of the catalog (boards.yaml) the way it hangs: `guition`, or `waveshare43-portrait` for a board
 whose glass is not square, built with the angle ESP Screens writes into a screen standing up (boards.json).
@@ -936,7 +940,7 @@ SKIP_CALIBRATION = '''    - action: render_skip_calibration
 class Build:
     """The host build of one variant of one tree, under `work` (the tree's own .esphome/render/ by default)."""
 
-    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None, defines=()):
+    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None, defines=(), grid=None):
         self.variant, self.tree = item, Path(tree).resolve()
         # Defines the program is built with on top of the board's, as a board's hardware would bring them: HW_SPEAKER and
         # HW_MICROPHONE give the host the audio caps (hw.h) of a board that plays and hears, whose parts it leaves out.
@@ -946,6 +950,10 @@ class Build:
         # A plugin folder (docs/PLUGINS.md) built into the program, the way a screen's plugins file adds one: its
         # plugin.yaml as a package and its components as a local external component.
         self.plugin = Path(plugin).resolve() if plugin else None
+        self.inks = 0  # the inks of a board on paper, known once package() has read its chain
+        # Another grid than the board file's own, (columns, rows), as New screen builds a screen with one of its choice:
+        # the substitutions the app writes into such a screen's YAML, for the way this variant hangs.
+        self.grid = tuple(grid) if grid else None
 
     @property
     def program(self):
@@ -954,12 +962,16 @@ class Build:
 
     def components(self):
         """This tree's smart_display component as links, so ESPHome builds the C++ of the tree being rendered."""
-        target = self.work / 'components' / 'smart_display'
         shutil.rmtree(self.work / 'components', ignore_errors=True)
-        target.mkdir(parents=True)
-        for source in (self.tree / 'components' / 'smart_display').iterdir():
-            if source.name != '__pycache__':
-                (target / source.name).symlink_to(source)
+        # The paper glass goes along where the tree has it: a board on paper names it (package()).
+        for name in ('smart_display', 'paper_glass'):
+            if not (self.tree / 'components' / name).is_dir():
+                continue
+            target = self.work / 'components' / name
+            target.mkdir(parents=True)
+            for source in (self.tree / 'components' / name).iterdir():
+                if source.name != '__pycache__':
+                    (target / source.name).symlink_to(source)
 
     def package(self):
         """Write the host mirror of this variant's chain; returns the host package's text."""
@@ -987,8 +999,16 @@ class Build:
         (mirror_root / 'host-hw.yaml').write_text(host_hw(board.read_text(), chain))
         (mirror_root / 'chain.txt').write_text('\n'.join([str(f) for f in chain.files] + [''] + chain.notes) + '\n')
         chain_text = ''.join((mirror / f).read_text() for f in chain.files)
+        # A board on paper (a display that wraps a panel): the program is told its inks, as the paper glass tells a screen.
+        inks = re.search(r'(?m)^  PAPER_INKS: "?(\d)"?', chain_text) if chain.panels else None
+        self.inks = int(inks[1]) if inks else 0
+        paper = f'\npaper_glass:\n  inks: {self.inks}\n' if self.inks else ''
+        paper_component = ', paper_glass' if self.inks else ''
         actions = ACTIONS + PROBES + ALARM_PROBE + MEDIA_PROBE + SAVER_PROBE + VACUUM_PROBE + TALK_PROBE + (SKIP_CALIBRATION if 'screen_calibration::' in chain_text else '')
         turned = f'\n  LVGL_ROTATION: "{item.rotation}"' if item.rotation else ''
+        if self.grid:
+            way = '_PORTRAIT' if item.rotation else ''
+            turned += f'\n  GRID_COLS{way}: "{self.grid[0]}"\n  GRID_ROWS{way}: "{self.grid[1]}"'
         rel = f'host/{item.key}'
         plugin_package = plugin_component = ''
         if self.plugin:
@@ -1012,8 +1032,8 @@ external_components:
   - source:
       type: local
       path: components
-    components: [smart_display]{plugin_component}
-
+    components: [smart_display{paper_component}]{plugin_component}
+{paper}
 globals:
   - id: render_offline_verified
     type: bool

@@ -4,12 +4,16 @@
 // glass, before each round of drawing, gives every widget of a kind its still form, wherever it was made: a tile, a
 // card, the settings, a plugin's card. Nobody who makes a slider asks which glass it is on.
 //
-// - A slider is a level (level_bar.h): blocks filled up to its value and, where it is thick enough for a finger, a key
-//   at each end. It stays the lv_slider it was, with its range, its value and every listener it had; only what it
+// - A slider is a level (level_bar.h): one shape that fills in steps up to its value and, where it is thick enough for
+//   a finger, a key at each end. It stays the lv_slider it was, with its range, its value and every listener it had; only what it
 //   draws and what a finger's place means are replaced. A tap on a block sets that level, a key takes one step, and
 //   listeners hear the value the level has, never one between two blocks.
 // - A spinner stands still: an arc that turns would be a refresh every frame.
 // - A label that would roll its words is cut with dots.
+// - A dark ground that lets what is under it through (a scrim behind a card, a key over a picture) is solid black.
+//   Mixed with what lies under it, it is a grey, and a grey prints as a raster in which a word or a glyph is lost
+//   (the owner at the first paper screen, 2026-11-27). A pale wash and anything as small as a dot keep their raster:
+//   the first is how a tile says it waits, the second how a row of dots says which page this is.
 //
 // watch() starts it, once, on a glass of ink (packages/core.yaml); on every other screen it is an empty call, and a
 // build without a paper glass does not carry the rest of this file.
@@ -109,35 +113,71 @@ inline void level_draw(lv_event_t *e) {
   const auto l = layout_of(s);
   const int low = low_of(s), high = high_of(s);
   const int filled = level_bar::level_of(lv_slider_get_value(s), low, high, l.count);
+  // One shape that fills in steps, as the slider of a lit glass fills: a rimmed room, ink from its start up to the
+  // level, and a short mark where each step ends, of paper on the ink and of ink on the paper.
+  const int thick = l.upright ? lv_obj_get_width(s) : lv_obj_get_height(s);
+  const int round = std::max(3, std::min(thick / 4, ui::px(16)));
   lv_draw_rect_dsc_t box;
   lv_draw_rect_dsc_init(&box);
   box.border_color = ink;
   box.border_width = theme::PAPER_RIM;
   box.border_opa = LV_OPA_COVER;
   box.bg_opa = LV_OPA_COVER;
-  box.radius = std::max(2, ui::px(4));
-  for (int n = 1; n <= l.count; ++n) {
-    box.bg_color = n <= filled ? ink : sheet;
-    const lv_area_t a = on_glass(s, l.block(n));
-    lv_draw_rect(layer, &box, &a);
+  box.bg_color = sheet;
+  box.radius = round;
+  const lv_area_t room = on_glass(s, l.blocks);
+  lv_draw_rect(layer, &box, &room);
+  lv_draw_rect_dsc_t solid;
+  lv_draw_rect_dsc_init(&solid);
+  solid.bg_opa = LV_OPA_COVER;
+  solid.bg_color = ink;
+  if (filled > 0) {
+    solid.radius = round;
+    const lv_area_t f = on_glass(s, l.filled(filled));
+    lv_draw_rect(layer, &solid, &f);
+    if (filled < l.count) {
+      // Its end inside the room is straight: only the room's own ends are round.
+      solid.radius = 0;
+      lv_area_t end = f;
+      if (l.upright) {
+        if (f.y1 > room.y1) end.y2 = std::min<int32_t>(f.y2, f.y1 + round);
+        else end.y1 = std::max<int32_t>(f.y1, f.y2 - round);
+      } else {
+        if (f.x2 < room.x2) end.x1 = std::max<int32_t>(f.x1, f.x2 - round);
+        else end.x2 = std::min<int32_t>(f.x2, f.x1 + round);
+      }
+      lv_draw_rect(layer, &solid, &end);
+    }
+  }
+  if (thick >= ui::px(14)) {
+    solid.radius = 0;
+    const int reach = std::max(4, thick / 8), away = std::max(3, thick / 14), line = thick >= ui::mm(4) ? 2 : 1;
+    for (int n = 1; n < l.count; ++n) {
+      if (n == filled) continue;  // the level's own edge says it
+      const int along = l.mark(n);
+      const level_bar::Box mark = l.upright
+          ? level_bar::Box{l.blocks.x + l.blocks.w - away - reach, l.blocks.y + l.blocks.h - along - line / 2, reach, line}
+          : level_bar::Box{l.blocks.x + along - line / 2, l.blocks.y + l.blocks.h - away - reach, line, reach};
+      solid.bg_color = n < filled ? sheet : ink;
+      const lv_area_t a = on_glass(s, mark);
+      lv_draw_rect(layer, &solid, &a);
+    }
   }
   if (!l.keys) return;
-  // The keys: a ring with a minus or a plus of ink, drawn as bars so they need no font.
+  // The keys: the room's own corners and rim, with a minus or a plus of ink drawn as bars, so they need no font.
   const auto key = [&](const level_bar::Box &where, bool plus) {
     const lv_area_t a = on_glass(s, where);
-    box.bg_color = sheet;
-    box.radius = LV_RADIUS_CIRCLE;
     lv_draw_rect(layer, &box, &a);
     lv_draw_rect_dsc_t bar;
     lv_draw_rect_dsc_init(&bar);
     bar.bg_color = ink;
     bar.bg_opa = LV_OPA_COVER;
-    const int side = lv_area_get_width(&a), arm = side * 2 / 10, thick = std::max(3, side / 14);
+    const int side = std::min(lv_area_get_width(&a), lv_area_get_height(&a)), arm = side * 2 / 10, wide = std::max(3, side / 14);
     const int cx = (a.x1 + a.x2 + 1) / 2, cy = (a.y1 + a.y2 + 1) / 2;
-    const lv_area_t across = {cx - arm, cy - thick / 2, cx + arm - 1, cy - thick / 2 + thick - 1};
+    const lv_area_t across = {cx - arm, cy - wide / 2, cx + arm - 1, cy - wide / 2 + wide - 1};
     lv_draw_rect(layer, &bar, &across);
     if (!plus) return;
-    const lv_area_t down = {cx - thick / 2, cy - arm, cx - thick / 2 + thick - 1, cy + arm - 1};
+    const lv_area_t down = {cx - wide / 2, cy - arm, cx - wide / 2 + wide - 1, cy + arm - 1};
     lv_draw_rect(layer, &bar, &down);
   };
   key(l.minus, false);
@@ -159,6 +199,15 @@ inline void dress_level(lv_obj_t *s) {
 // ---- the pass ----
 inline void dress(lv_obj_t *o) {
   if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;  // dressed when it shows
+  // A dark see-through ground of some size, in its own state at rest: solid black.
+  if (lv_obj_get_state(o) == LV_STATE_DEFAULT && !lv_obj_check_type(o, &lv_slider_class)) {
+    const lv_opa_t opa = lv_obj_get_style_bg_opa(o, LV_PART_MAIN);
+    if (opa >= LV_OPA_30 && opa < LV_OPA_COVER && lv_obj_get_width(o) >= ui::mm(4) && lv_obj_get_height(o) >= ui::mm(4) &&
+        lv_color_brightness(lv_obj_get_style_bg_color(o, LV_PART_MAIN)) < 128) {
+      lv_obj_set_style_bg_color(o, lv_color_black(), 0);
+      lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+    }
+  }
   // A list that is let go stops where the finger left it: gliding on and springing back are a row of prints.
   if (lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLL_MOMENTUM) || lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLL_ELASTIC))
     lv_obj_remove_flag(o, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC));

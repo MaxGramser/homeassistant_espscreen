@@ -248,6 +248,12 @@ static void traces_are_tidied_as_the_screen_comes_to_rest() {
   assert(trail.size() == 6);
   // The screen comes to rest (its standby): the glass is made clean, once.
   p.rest(true, now_ms);
+  // It waits the short quiet for the page's calm look, which is drawn right after: the two are one print.
+  run(100);
+  p.drawn(600, now_ms);
+  run(349);
+  assert(trail.size() == 6);
+  run(1);
   assert(trail.size() == 7 && trail[6] == "whole" && p.worn() == 0);
   panel_done(2000);
   p.rest(true, now_ms);  // said again every second: nothing more
@@ -329,6 +335,9 @@ static void a_whole_one_on_request() {
   fresh();
   // With nothing drawn: a key that asks for a clean glass.
   p.whole_next(now_ms);
+  run(349);
+  assert(trail.empty());
+  run(1);
   assert(trail.size() == 1 && trail[0] == "whole");
   panel_done(2000);
   // With something drawn: that print is the whole one.

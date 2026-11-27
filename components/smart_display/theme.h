@@ -304,7 +304,7 @@ inline constexpr InkOf INKS[] = {
   {BUTTON, Ink::PAPER}, {SETTING_KEY, Ink::PAPER}, {SETTING_KEY_PRESSED, Ink::PAPER}, {RAISED, Ink::PAPER},
   {CARD, Ink::PAPER}, {CARD_PRESSED, Ink::PAPER}, {PAGE, Ink::PAPER}, {PAGE_SOFT, Ink::PAPER}, {PAGE_PRESSED, Ink::PAPER},
   // Lines and arcs with nothing on them: the lighter tone, which reads as a shade.
-  {GRID, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {HISTORY_OFF, Ink::SOFT},
+  {SUN_PATH, Ink::INK}, {GRID, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {HISTORY_OFF, Ink::SOFT},
   // Not there: the darker tone, a glyph or a mark that still shows but does not read as ink.
   {OFF, Ink::FIRM}, {TICK, Ink::FIRM},
 };
@@ -693,6 +693,14 @@ inline void rim(lv_obj_t *o, bool on, lv_style_selector_t selector = 0) {
 inline void ground(lv_obj_t *o, Role role, lv_style_selector_t selector = 0) {
   lv_obj_set_style_bg_color(o, lv_color_hex(hex(role)), selector);
   rim(o, rimmed(role), selector);
+}
+// A switch drawn as a pill and its knob (the settings page, a lamp of a group): `on_colour` while it is on, the tone
+// of an empty toggle while it is off. On paper an empty toggle is paper, so it gets its rim and a knob of ink: a
+// pill of paper with a knob of paper was no switch at all (the settings of a reTerminal Sticky, 2026-11-27).
+inline void toggle(lv_obj_t *track, lv_obj_t *knob, bool on, uint32_t on_colour) {
+  lv_obj_set_style_bg_color(track, lv_color_hex(on ? on_colour : hex(TOGGLE_OFF)), 0);
+  rim(track, !on);
+  if (knob) lv_obj_set_style_bg_color(knob, lv_color_hex(paper && !on ? hex(INK) : hex(KNOB)), 0);
 }
 inline lv_color_t rgb(uint32_t value) { return lv_color_hex(value); }
 // The colour an object draws with, as the 24-bit value the table speaks in (what the media card names as the colour

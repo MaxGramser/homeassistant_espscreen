@@ -364,7 +364,7 @@ inline void paint(Card &c, const Lamp &l, bool fresh_card) {
   if (c.knob) {
     auto *track = lv_obj_get_parent(c.knob);
     const int w = lv_obj_get_style_width(track, LV_PART_MAIN), h = lv_obj_get_style_height(track, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(track, on ? lv_color_hex(color) : theme::color(theme::TOGGLE_OFF), 0);
+    theme::toggle(track, c.knob, on, color);
     lv_obj_set_x(c.knob, settings_screen::knob_x(w, h, on));
   }
   if (c.slider && (fresh_card || (!c.dirty && !lv_obj_has_state(c.slider, LV_STATE_PRESSED)))) {

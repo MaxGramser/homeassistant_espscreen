@@ -163,16 +163,27 @@ inline void media_progress(const Tile &t,lv_obj_t *fill,lv_obj_t *elapsed,int ba
 // (theme::MEDIA_GROUND). One flat colour (firmware 0.52.0): the card ran from one colour at the top to another at the
 // bottom before, and the app has sent the same colour for both ends since GitHub #135.
 inline uint32_t media_ground(const Tile &t){
+  // On paper the card is the page's own tone, whatever its cover: a colour read from a cover is a raster over the
+  // whole glass with every word and key in it (a reTerminal Sticky's render, 2026-11-27).
+  if(theme::paper)return theme::hex(theme::PAGE);
   const auto &x=t.extra();
   return x.has_ground?x.ground:theme::hex(theme::MEDIA_GROUND);
 }
-inline uint32_t media_ink(){return theme::hex(theme::CAMERA_INK);}
+inline uint32_t media_ink(){return theme::hex(theme::paper?theme::INK:theme::CAMERA_INK);}
 // The second line, the times and what is faded: the ink, a quarter of the way into the ground.
-inline uint32_t media_soft(uint32_t ground){return theme::mix(media_ink(),ground,190);}
+inline uint32_t media_soft(uint32_t ground){return theme::paper?media_ink():theme::mix(media_ink(),ground,190);}
 // A key on the ground: a white key for the main one with the ground's own colour in it, a faint white circle for the
 // others, none at all for a bare one (mute, shuffle, repeat), white icons.
 inline void media_dark_key(lv_obj_t *key,bool primary,bool bare,uint32_t ground,uint32_t icon_color=0){
   if(!key)return;
+  if(theme::paper){
+    // On paper: the main key a disc of ink, the others paper with a rim, a bare one its glyph alone, all glyphs ink.
+    theme::ground(key,primary?theme::KEY_ON:theme::KEY);
+    if(bare)theme::rim(key,false);
+    set_number(key,LV_STYLE_BG_OPA,bare?LV_OPA_TRANSP:LV_OPA_COVER);
+    if(auto *icon=lv_obj_get_child(key,0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::color(primary?theme::KEY_ON_ICON:theme::INK));
+    return;
+  }
   set_color(key,LV_STYLE_BG_COLOR,theme::rgb(media_ink()));
   set_color(key,LV_STYLE_BG_COLOR,theme::rgb(primary?theme::mix(media_ink(),ground,200):media_ink()),LV_STATE_PRESSED);
   set_number(key,LV_STYLE_BG_OPA,primary?LV_OPA_COVER:bare?LV_OPA_TRANSP:40);
@@ -485,7 +496,7 @@ inline void media_frame_paint(lv_obj_t *frame,const Tile &,const CardPart &){
 // The player's icon in the square (`value`: the library's, for a player at rest): the big icon where the square holds
 // it, the tile's icon in a small one.
 inline void media_placeholder_paint(lv_obj_t *icon,const Tile &t,const CardPart &part){
-  set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(theme::mix(media_ink(),media_face.ground,120)));
+  set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(theme::paper?media_ink():theme::mix(media_ink(),media_face.ground,120)));
   const std::string glyph=part.value.empty()?std::string(icon_for(t)):part.value;
   if(glyph==lv_label_get_text(icon))return;
   set_font(icon,big_icon_font&&font_has(big_icon_font,glyph)&&lv_font_get_line_height(big_icon_font)<=media_art_rect.h?big_icon_font:tile_icon_font());
@@ -562,6 +573,8 @@ inline void media_bar_paint(lv_obj_t *,const Tile &t,const CardPart &){
   if(!media_seeking)media_bar_now(t);
 }
 inline void media_bar_track_paint(lv_obj_t *track,const Tile &,const CardPart &){
+  // On paper the track is a rail of paper with a rim, and the part played fills it with ink.
+  if(theme::paper){theme::ground(track,theme::TRACK);return;}
   set_color(track,LV_STYLE_BG_COLOR,theme::rgb(theme::mix(media_ink(),media_face.ground,70)));
 }
 // What decides the media card's parts: whether the player can be used, is at rest or off, the keys it has, the room the

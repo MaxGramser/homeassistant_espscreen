@@ -222,8 +222,13 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   const uint32_t colour=asking&&!waits_open?lock_panel::ORANGE:lock_panel::color(t.state);
   auto *big=detail_button("",cx-d/2,cy-d/2,d,d,LOCK_KEY_FIRST+(int)(primary==lock_panel::NONE?lock_panel::LOCK:primary));
   lv_obj_set_style_radius(big,LV_RADIUS_CIRCLE,0);lv_obj_set_style_border_width(big,0,0);
-  const uint32_t ground=available?theme::tint(theme::state(colour),38):theme::hex(theme::TRACK);
+  // On paper the key says the state by its shape: locked (and jammed) is a disc of ink with the glyph left open,
+  // everything else the glyph in a ring. A pale disc would be a raster under the glyph.
+  const bool shut=t.state=="locked"||t.state=="jammed";
+  const uint32_t ground=!available?theme::hex(theme::TRACK):theme::paper?theme::hex(shut?theme::INK:theme::CARD):theme::tint(theme::state(colour),38);
+  const uint32_t face_ink=!available?theme::hex(theme::OFF):theme::paper?theme::hex(shut?theme::CARD:theme::INK):theme::icon(theme::state(colour));
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),0);
+  theme::rim(big,!available||!shut);
   lv_obj_set_style_bg_color(big,lv_color_hex(theme::pressed(ground)),LV_STATE_PRESSED);
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),LV_STATE_DISABLED);lv_obj_set_style_bg_opa(big,LV_OPA_COVER,LV_STATE_DISABLED);
   if(icons){
@@ -232,8 +237,8 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
     // The large icon face where the key has room for it and it carries the glyph.
     const lv_font_t *face_font=big_icon_font&&font_has(big_icon_font,glyph)&&lv_font_get_line_height(big_icon_font)<=d*3/5?big_icon_font:icons;
     lv_obj_set_style_text_font(face,face_font,0);lv_label_set_text(face,glyph);
-    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),0);
-    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),LV_STATE_DISABLED);
+    lv_obj_set_style_text_color(face,lv_color_hex(face_ink),0);
+    lv_obj_set_style_text_color(face,lv_color_hex(face_ink),LV_STATE_DISABLED);
     lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
   }
   if(primary==lock_panel::NONE||!lock_panel::can(lock,primary,guard))lv_obj_add_state(big,LV_STATE_DISABLED);

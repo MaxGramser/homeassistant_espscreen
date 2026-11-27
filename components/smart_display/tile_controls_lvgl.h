@@ -222,6 +222,9 @@ inline void control_event(lv_event_t *e) {
 // The one spinner of the firmware: a busy card, the starting screen and a camera that loads (firmware 0.2.73+). The
 // ring in the spinner paint, the arc in Home Assistant's blue. Null where the board builds no spinner.
 inline lv_obj_t *spinner_create(lv_obj_t *parent, int size, int arc) {
+  // None on a still glass: a spinner says "busy" by turning, and one that stands is a grey ring that says nothing. The
+  // words beside it say what the screen waits for.
+  if (screen_motion::still()) return nullptr;
 #if LV_USE_SPINNER
   auto *spinner = lv_spinner_create(parent);
   lv_spinner_set_anim_params(spinner, 900, 200);

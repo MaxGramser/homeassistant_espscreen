@@ -90,6 +90,8 @@ inline lv_obj_t *button_words(lv_obj_t *button,const lv_font_t *font,uint32_t co
 // so a segmented row on a short panel is still hittable (overlay_card::touchable).
 // A segment's look, chosen or not.
 inline void segment_paint(lv_obj_t *segment,bool selected){
+  // A segment is a part of its row: on paper the row has the rim, and a segment that is not chosen is its word alone.
+  theme::rim(segment,false);
   set_number(segment,LV_STYLE_BG_OPA,selected?LV_OPA_COVER:LV_OPA_TRANSP);
   set_color(segment,LV_STYLE_BG_COLOR,theme::color(selected?theme::ACCENT:theme::ACCENT_TINT),LV_STATE_PRESSED);
   if(auto *words=lv_obj_get_child(segment,0))set_color(words,LV_STYLE_TEXT_COLOR,theme::color(selected?theme::ON_ACCENT:theme::INK));

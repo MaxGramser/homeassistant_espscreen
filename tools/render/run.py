@@ -278,6 +278,10 @@ def placed(question, place, **said):
     return picture_service.Service._painted(None, question, place, picture_sources.Resolved(**said))
 
 
+# The inks of the board being rendered, 0 for a glass that is lit: set as its run begins (Run).
+PAPER_INKS = [0]
+
+
 def painted(question, raws, said=None):
     """(bytes, question) of a screen's question painted as the add-on paints it (picture_service.Service.answer and
     picture): within the screen's cap, each place as its source says (`said`, a dict per place for placed()), from one raw
@@ -289,7 +293,8 @@ def painted(question, raws, said=None):
     question = dataclasses.replace(question, places=tuple(placed(question, place, **(said[n] if said else {}))
                                                           for n, place in enumerate(question.places)))
     raws = [raw(place.w, place.h) if callable(raw) else raw for raw, place in zip(raws, question.places)]
-    return picture_paint.paint(question, raws), question
+    # For a board whose glass is e-paper the app paints in the panel's inks (picture_service, core.inks_of).
+    return picture_paint.paint(question, raws, inks=PAPER_INKS[0]), question
 
 
 def too_old(esphome):
@@ -320,6 +325,7 @@ class Run:
     def __init__(self, build, out, pictures, camera, only=None):
         self.build, self.item, self.out, self.pictures, self.camera = build, build.variant, out, pictures, camera
         self.only = only
+        PAPER_INKS[0] = build.inks
         self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
         self.alert_title_h = None  # the first alert's title, one line high: every alert's title is as high
@@ -396,8 +402,24 @@ class Run:
             await asyncio.sleep(0.05)
         raise RuntimeError(f'no snapshot at {path}')
 
+    def inked(self, image):
+        """`image` as this board's glass of ink prints it: through the paper glass's own ink step (paper_ink_tool.cpp).
+        A board whose glass is lit gets its picture back as it is."""
+        if not self.build.inks:
+            return image
+        tool = self.build.work / 'paper_ink_tool'
+        source = HERE / 'paper_ink_tool.cpp'
+        rules = REPO / 'components' / 'paper_glass' / 'paper_ink.h'
+        if not tool.exists() or tool.stat().st_mtime < max(source.stat().st_mtime, rules.stat().st_mtime):
+            subprocess.run([os.environ.get('CXX', 'c++'), '-std=c++17', '-O2', f'-I{REPO}', str(source), '-o', str(tool)], check=True)
+        raw = io.BytesIO()
+        image.convert('RGB').save(raw, 'PPM')
+        done = subprocess.run([str(tool), str(self.build.inks)], input=raw.getvalue(), capture_output=True, check=True)
+        return Image.open(io.BytesIO(done.stdout)).convert('RGB')
+
     async def render(self, name, keep=True, timeout=25):
-        """Snapshots until two in a row match (at least 0.4 s apart); the last is kept as <name>.png."""
+        """Snapshots until two in a row match (at least 0.4 s apart); the last is kept as <name>.png. On a board whose
+        glass is e-paper the picture kept and handed back is the panel's inks (inked)."""
         start, previous = time.monotonic(), None
         while True:
             image = await self.snapshot(self.out / f'{name}.ppm')
@@ -409,6 +431,7 @@ class Run:
             previous = image
             await asyncio.sleep(0.4)
         (self.out / f'{name}.ppm').unlink(missing_ok=True)
+        image = self.inked(image)
         if keep:
             image.save(self.out / f'{name}.png')
         return image
@@ -1865,6 +1888,82 @@ class Run:
         return {'open': m[1] == '1', 'pad': m[2] == '1', 'back': tuple(int(n) for n in m[3].split(',')) if m[3] else None,
                 'title': m[4], 'status': m[5], 'line': m[6], 'modes': points(m[7]), 'keys': points(m[8]), 'faults': m[9],
                 'locked': int(m[10])}
+
+    async def look_book(self, pages):
+        """A look book of this board, to leaf through: every page of the demo layout, the card a hold opens on every
+        tile, the colour card's example, the alerts, the settings pages, and the screen at rest with its page and
+        with each clock face. One picture each and no checks. Made for a board whose glass is e-paper, where every
+        picture is the panel's inks (inked) and a design is judged by eye before it goes to a real glass
+        (docs/PAPER.md, "Seeing it without a screen"); it runs on any board.
+
+            python3 tools/render/run.py reterminalsticky-portrait --only paper
+        """
+        made = 0
+
+        async def keep(name, settle=0.6):
+            nonlocal made
+            await asyncio.sleep(settle)
+            await self.render(name)
+            made += 1
+
+        async def home(page=0):
+            await self.call('render_close_cards')
+            await self.call('render_page', page=page)
+            await self.page_done(page)
+
+        for page in range(pages):
+            await home(page)
+            await keep(f'page-{page + 1}', 1.0)
+            for n, (entity, (x, y)) in enumerate((await self.slots()).items()):
+                await self.hold(x, y)
+                await keep(f'page-{page + 1}-card-{n + 1}-{entity.replace(".", "-")}')
+                await home(page)
+                await asyncio.sleep(0.3)
+        # The colour card as the screen's own example shows it: a lamp with a colour, a white shade and a brightness.
+        await home()
+        if 'light_controls_preview' in self.services:
+            await self.call('light_controls_preview')
+            await keep('colour-card', 1.0)
+            await self.call('render_close_cards')
+        # The alerts, each over page 1.
+        for name, given in ALERTS:
+            await home()
+            args = dict(title='', subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+            choice = any(field in given for field in CHOICE_FIELDS)
+            if choice:
+                args.update({field: '' for field in CHOICE_FIELDS})
+            args.update(given)
+            await self.call('show_alert_choice' if choice else 'show_alert', **args)
+            await keep(name, 1.0)
+            await self.call('dismiss_alert')
+            await asyncio.sleep(0.5)
+        # The settings: its first page and each page behind it.
+        if 'open_settings' in self.services:
+            for page in range(8):
+                await home()
+                start = len(self.lines)
+                await self.call('open_settings', page=page)
+                await asyncio.sleep(0.8)
+                if any('settings' in line.lower() and 'no page' in line.lower() for line in self.lines[start:]):
+                    break
+                await keep(f'settings-{page}')
+            await home()
+        # At rest: the page in its calm look, then each face of the clock as the screensaver.
+        await home()
+        await self.call('render_standby', enter=1)
+        await keep('rest-page', 1.5)
+        faces = [('saver-clock', {'k': 'clock'})]
+        if 'clock_faces' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board].get('modules', ()):
+            faces += [(f'saver-{face}-{look}', {'k': 'clock', 'cf': {'f': face, 'n': 4, 's': 1, 'l': look}})
+                      for face in ('glass', 'classic', 'bauhaus') for look in ('light', 'dark')]
+        for name, message in faces:
+            await self.send({'v': 1, 'op': 'saver', **message})
+            await keep(name, 1.5)
+        await self.call('render_standby', enter=0)
+        await asyncio.sleep(0.6)
+        await home()
+        await keep('awake-again')
+        return made
 
     async def standby_state(self):
         """What ui_state says of standby and pages: the standby clock (idle), the page clock (use), dimmed and the page."""
@@ -4774,14 +4873,14 @@ class Run:
         if self.only != 'plugin':
             await self.render('starting')
         # Each step of it as the screen says it (firmware 0.38.0), from Wi-Fi to an update, then back as it was.
-        if 'render_boot' in self.services and self.only not in ('plugin', 'dock', 'climate'):  # the Dock's round needs no boot screens
+        if 'render_boot' in self.services and self.only not in ('plugin', 'dock', 'climate', 'paper'):  # the Dock's round needs no boot screens
             for name, given in BOOT_STATES:
                 await self.call('render_boot', **{**BOOT_DEFAULTS, **given})
                 await self.render(name)
             await self.call('render_boot', **{**BOOT_DEFAULTS, 'ha': -1})
         side = json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board]['orientations']
         side = side['portrait' if self.item.rotation else 'landscape']
-        grid = send_layout.Grid(side['columns'], side['rows'])
+        grid = send_layout.Grid(*(self.build.grid or (side['columns'], side['rows'])))
         many = self.only == 'dock'  # every page the screen holds, to see the dock full
         record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=DOCK_TITLES if many else PAGE_TITLES,
                                                                  pages=len(DOCK_TITLES) if many else None)
@@ -4847,6 +4946,8 @@ class Run:
             return 1, await self.plugin_round(grid)
         if self.only == 'standby':
             return 1, await self.standby_round()
+        if self.only == 'paper':
+            return pages, await self.look_book(pages)
         if self.only == 'alertlife':
             return 1, await self.alert_life_round()
         checks = await self.self_test()
@@ -4944,9 +5045,11 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby', 'paper'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
+    parser.add_argument('--grid', help='another grid than the board\'s own, COLUMNSxROWS (2x4), as New screen builds a screen '
+                        'with one of its choice: the cells of a page for the way each variant hangs')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
     args = parser.parse_args()
     # The programs write their pictures from their own folder, so every path they get is absolute.
@@ -4983,7 +5086,8 @@ def main():
                 results[item.key] = {'status': 'SKIP', 'summary': f'asks for ESPHome {wants}, this is {has}'}
                 print(f'{item.key}: SKIP (asks for ESPHome {wants}, this is {has})', flush=True)
             continue
-        build = host.Build(item, tree=tree, work=args.work, esphome=esphome, plugin=args.plugin)
+        build = host.Build(item, tree=tree, work=args.work, esphome=esphome, plugin=args.plugin,
+                           grid=[int(n) for n in args.grid.split('x')] if args.grid else None)
         started = time.monotonic()
         ok, output = build.compile()
         if not ok:

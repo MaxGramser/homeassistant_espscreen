@@ -142,6 +142,10 @@ using screen_text::plural;
 using screen_text::tr;
 namespace txt = screen_text::txt;
 inline bool enabled = false;
+// The calm look of a page at rest on a glass that keeps its picture (docs/PAPER.md, "Standby is rest"; calm() below
+// sets it): a tile shows what it tells and nothing a finger works, and the page bar is gone. The top bar stays as it
+// is: a page without it sat out of balance (the owner at the first paper screen, 2026-11-27).
+inline bool calm_look = false;
 // Swiping, rotation and going back to page 1 live in settings_screen, next to the other settings the
 // screen can change itself; these names stay as the way the rest of the firmware reaches them.
 using settings_screen::swipe_pages;
@@ -2128,8 +2132,9 @@ inline void render_slot(size_t slot) {
   // control of a wide card stands and where the editor's mockup draws it. A single card keeps the strip under
   // its head (mini below), and so does a wide card too narrow for a panel.
   const bool taller=t.row_span()>1 && !w.full;
-  const bool inline_panel=(w.wide||taller) && !w.full && t.inline_control=="slider" && !tile_controls::inline_kind(d).empty();
-  bool with_panel=(w.wide||taller||preset_cell(w,t)) && !t.builtin() && !watch && fresh() && t.available() &&
+  // A page at rest (calm_look) has no panel and no slider: nothing there is worked until the screen wakes.
+  const bool inline_panel=!calm_look && (w.wide||taller) && !w.full && t.inline_control=="slider" && !tile_controls::inline_kind(d).empty();
+  bool with_panel=!calm_look && (w.wide||taller||preset_cell(w,t)) && !t.builtin() && !watch && fresh() && t.available() &&
                   (inline_panel || (!t.controls.empty() && t.inline_control!="slider"));
   // A panel needs its own width plus the icon and some name; a narrow wide card stays a plain card. What it
   // needs is what it takes: the cells its controls fill (layout_panel), or the toggle and the run key their own
@@ -2157,7 +2162,7 @@ inline void render_slot(size_t slot) {
   // part of the card and the card's own tap.
   // And only while its power key can do something (tile_controls::climate_power).
   if((d=="climate"||d=="humidifier")&&with_panel&&tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
-  bool mini=t.inline_control=="slider" && !watch && t.available() && !with_panel;
+  bool mini=!calm_look && t.inline_control=="slider" && !watch && t.available() && !with_panel;
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.
   bool large_tile=ui::large();
@@ -2286,7 +2291,7 @@ inline void render_slot(size_t slot) {
     label(w.value,value);
     lap(swipe_profile::GEOMETRY);
   }else if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t)))||
-            (!w.full&&t.row_span()==1&&t.inline_control!="slider"&&(cover_row_card(t)||preset_cell(w,t))))&&!custom&&!watch&&!graph&&
+            (!calm_look&&!w.full&&t.row_span()==1&&t.inline_control!="slider"&&(cover_row_card(t)||preset_cell(w,t))))&&!custom&&!watch&&!graph&&
      render_tall(w,t,with_panel,content_w,content_h)){
     lap(swipe_profile::GEOMETRY);
   }else if(w.full && !bedside){
@@ -2522,9 +2527,12 @@ inline void render_slot(size_t slot) {
   auto color=lv_color_hex(theme::state(state_color));
   // A key is its circle and carries the tile's words on it, so it keeps the pale share; a tile's disc and its glyph
   // say on and off as a pair (theme::disc, on_disc: by colour on a lit glass, by shape on paper).
-  auto circle_color=lv_color_hex(!available?theme::hex(theme::TRACK):w.key?theme::tint(state_color,38):theme::disc(state_color));
+  // On paper a key says it by shape too: on is a disc of ink with what stands on it left open, off a ring. Its pale
+  // share would be a raster under its glyph and its words (a bedside clock's keys on a reTerminal Sticky, 2026-11-27).
+  const bool key_ink=theme::paper&&w.key&&available&&state_color!=theme::STATE_OFF;
+  auto circle_color=lv_color_hex(!available?theme::hex(theme::TRACK):w.key?(theme::paper?theme::hex(key_ink?theme::INK:theme::CARD):theme::tint(state_color,38)):theme::disc(state_color));
   // Very pale bulbs still need a visible icon: a touch darker on a light card, a touch lighter on a dark one.
-  auto icon_color=lv_color_hex(!available?theme::hex(theme::OFF):w.key?theme::icon(state_color):theme::on_disc(state_color));
+  auto icon_color=lv_color_hex(!available?theme::hex(theme::OFF):w.key?(theme::paper?theme::hex(key_ink?theme::CARD:theme::INK):theme::icon(state_color)):theme::on_disc(state_color));
   // Off: a grey track without fill or handle, as in Home Assistant.
   const uint32_t fill=slider_on?accent:theme::STATE_OFF;
   auto fill_color=lv_color_hex(theme::state(fill));
@@ -2561,9 +2569,10 @@ inline void render_slot(size_t slot) {
     set_color(w.tile,LV_STYLE_BG_COLOR,circle_color);
     set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(available?theme::tint(state_color,38):theme::hex(theme::TRACK))),LV_STATE_PRESSED);
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
+    theme::rim(w.tile,!key_ink);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? theme::INK : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
+  auto value_color=theme::color(w.key ? (key_ink ? theme::CARD : theme::INK) : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -2662,6 +2671,11 @@ inline lv_obj_t *boot_brand_create(lv_obj_t *parent) {
   if (brand_mark) {
     image = lv_image_create(box);
     lv_image_set_src(image, brand_mark);
+    // On paper the mark's four colours would be four rasters: its shape in ink, as the top bar's.
+    if (theme::paper) {
+      lv_obj_set_style_image_recolor(image, theme::color(theme::INK), 0);
+      lv_obj_set_style_image_recolor_opa(image, LV_OPA_COVER, 0);
+    }
     lv_obj_remove_flag(image, LV_OBJ_FLAG_CLICKABLE);
     mark = static_cast<const lv_image_dsc_t *>(brand_mark)->header.w;
     width = mark;
@@ -2735,7 +2749,7 @@ inline lv_obj_t *steps_create(lv_obj_t *parent, const std::vector<std::string> &
     lv_obj_set_size(mark, tile, tile);
     lv_obj_set_style_radius(mark, tile * 26 / 100, 0);
     lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(mark, theme::color(marks[i % 4]), 0);
+    lv_obj_set_style_bg_color(mark, theme::color(theme::paper ? theme::INK : marks[i % 4]), 0);
     // On the middle of the first line.
     lv_obj_set_pos(mark, 0, y + (line - tile) / 2);
     auto *words = lv_label_create(box);
@@ -3073,7 +3087,8 @@ inline BootView boot_view(uint32_t now) {
       break;
   }
   // The time a step takes, once it takes long enough to wonder about (a normal start passes each step in a second).
-  if (waited >= 3000) status += (status.empty() ? "" : " \u00B7 ") + elapsed_text(waited);
+  // Not on a still glass: a clock that counts seconds would be a print for each of them.
+  if (waited >= 3000 && !screen_motion::still()) status += (status.empty() ? "" : " \u00B7 ") + elapsed_text(waited);
   if (!status.empty()) lines.push_back(status);
   for (const auto &line : lines) if (!line.empty()) view.facts += (view.facts.empty() ? "" : "\n") + line;
   return view;
@@ -3651,11 +3666,12 @@ inline int place_page(int page, bool kept = false) {
     }
     else{lv_obj_add_flag(w.tile,LV_OBJ_FLAG_HIDDEN);hide_extra(w);hide_panel(w);}
   }
-  set_hidden(nav_prev,!(sequential || detail));
-  for(auto *control:{nav_next,nav_number})set_hidden(control,!sequential);
+  // A page at rest has no page bar: its room stays, so no tile moves when the screen wakes.
+  set_hidden(nav_prev,calm_look || !(sequential || detail));
+  for(auto *control:{nav_next,nav_number})set_hidden(control,calm_look || !sequential);
   if(nav_back_label){
-    set_hidden(nav_back_label,!detail);
-    if(detail){
+    set_hidden(nav_back_label,calm_look || !detail);
+    if(detail && !calm_look){
       label(nav_back_label,tr(txt::navigation_back));
       set_color(nav_back_label,LV_STYLE_TEXT_COLOR,theme::color(theme::INK));
       if(header_text_font)set_font(nav_back_label,header_text_font);
@@ -4378,6 +4394,18 @@ inline void restyle() {
   if (room_label) { mark_all(redraw_log::Why::look_changed); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
+}
+// The page at rest, or awake again (screen_standby.h, Glass::calm; docs/PAPER.md, "Standby is rest"). Every card and
+// the page bar are drawn again in the other look, as one change of the whole page.
+inline void calm(bool on) {
+  if (calm_look == on) return;
+  calm_look = on;
+  each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
+  if (room_label) {
+    if (applied_page >= 0 && navigation_ready()) place_page(applied_page, true);
+    mark_all(redraw_log::Why::look_changed);
+    render(room_label);
+  }
 }
 }
 

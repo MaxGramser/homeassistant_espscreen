@@ -182,7 +182,8 @@ inline void render_light_detail(Tile &t,bool large,int width,int height,int colu
   }
   // The entity's icon rides on the foot of the slider, or in the middle of the round field, where the fill is
   // and a finger is not, as it did on the overlay before it and as Home Assistant draws it.
-  if(!l.icon.empty()&&icons&&lv_font_get_line_height(icons)<=l.icon.h+ui::px(4)){
+  // Not on a level's foot: on a still glass the slider is a level, and its minus key stands there.
+  if(!l.icon.empty()&&icons&&lv_font_get_line_height(icons)<=l.icon.h+ui::px(4)&&!(dims&&screen_motion::still())){
     const uint32_t ink=dims?(raw>0?theme::hex(theme::ON_ACCENT):theme::hex(theme::ICON_OFF))
                            :(on?accent:theme::hex(theme::ICON_OFF));
     auto *glyph=detail_text(detail_root,icon_for(t),l.icon.x,l.icon.y,l.icon.w,icons,LV_TEXT_ALIGN_CENTER,ink);

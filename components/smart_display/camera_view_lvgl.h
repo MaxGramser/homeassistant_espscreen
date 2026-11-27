@@ -78,7 +78,8 @@ inline bool alert_two_buttons = false;
 // A button in a key colour of its own (theme::KEY_SWATCHES), or back to its paint for 0.
 inline void alert_key(lv_obj_t *button, lv_obj_t *label, uint32_t key) {
   if (!button) return;
-  if (!key) {
+  // On paper a key colour would be a raster under its word: the keys keep their own paints, the first of ink.
+  if (!key || theme::paper) {
     lv_obj_remove_local_style_prop(button, LV_STYLE_BG_COLOR, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_remove_local_style_prop(button, LV_STYLE_BG_COLOR, LV_PART_MAIN | LV_STATE_PRESSED);
     if (label) lv_obj_remove_local_style_prop(label, LV_STYLE_TEXT_COLOR, LV_PART_MAIN | LV_STATE_DEFAULT);

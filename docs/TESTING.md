@@ -162,6 +162,11 @@ is today's, the firmware the older one. The `hello_again` round was shown failin
 What it cannot show: colours and timing of a real panel, a real finger on real glass, memory and heat, and anything a
 real Home Assistant or camera adds.
 
+A board whose glass is e-paper is built on paper there, and its pictures come out as the panel's inks: the theme's
+ink table, the still glass and the ink step are the firmware's own. `--only paper` makes a look book of such a board,
+and `tools/render/sheets.py` puts a folder of renders on contact sheets. docs/PAPER.md, "Seeing it without a screen",
+has the commands and what each round shows.
+
 ### The plugin host
 
 ```sh

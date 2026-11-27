@@ -483,7 +483,7 @@ constexpr uint8_t BOARD_PAGE = 250;  // beside the numbered pages: the plugins' 
 
 inline constexpr Row menu_rows[] = {
   page_row(screen_text::txt::settings_brightness, "\U000F0599", 1),
-  page_row(screen_text::txt::settings_night, "\U000F0594", 2, [] { return can_standby; }),
+  page_row(screen_text::txt::settings_night, "\U000F0594", 2, [] { return can_standby && lit; }),
   page_row(screen_text::txt::settings_screen, "\U000F0379", 3),
   page_row(screen_text::txt::settings_this_screen, "\U000F02FD", 4),
   page_row(screen_text::txt::settings_extras, "\U000F0493", BOARD_PAGE, has_board_rows),
@@ -615,13 +615,12 @@ inline lv_obj_t *key(lv_obj_t *parent, const char *glyph, int x, int y, int w, i
 inline lv_obj_t *pill(lv_obj_t *parent, int x, int y, int w, int h, bool on) {
   auto *track = plain(parent, x, y, w, h);
   lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(track, theme::color(on ? theme::ACCENT : theme::TOGGLE_OFF), 0);
   lv_obj_set_style_radius(track, LV_RADIUS_CIRCLE, 0);
   int inset = std::max(2, h / 10), size = h - 2 * inset;
   auto *knob = plain(track, knob_x(w, h, on), inset, size, size);
   lv_obj_set_style_bg_opa(knob, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(knob, theme::color(theme::KNOB), 0);
   lv_obj_set_style_radius(knob, LV_RADIUS_CIRCLE, 0);
+  theme::toggle(track, knob, on, theme::hex(theme::ACCENT));
   return knob;
 }
 inline void move_knob(Drawn &d, const Row &row) {
@@ -630,7 +629,7 @@ inline void move_knob(Drawn &d, const Row &row) {
   bool on = get(row) != 0;
   // Setting a style always repaints, so only a real change sets it; lv_obj_set_x checks by itself.
   const lv_color_t color = theme::color(on ? theme::ACCENT : theme::TOGGLE_OFF);
-  if (!lv_color_eq(lv_obj_get_style_bg_color(track, LV_PART_MAIN), color)) lv_obj_set_style_bg_color(track, color, 0);
+  if (!lv_color_eq(lv_obj_get_style_bg_color(track, LV_PART_MAIN), color)) theme::toggle(track, d.knob, on, theme::hex(theme::ACCENT));
   // The size pill() gave the track, not its coordinates: draw() ends in refresh() before LVGL has laid the
   // new page out, when every width still reads 0 and a switch that is on would show its knob at the left.
   lv_obj_set_x(d.knob, knob_x(lv_obj_get_style_width(track, LV_PART_MAIN), lv_obj_get_style_height(track, LV_PART_MAIN), on));

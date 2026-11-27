@@ -25,11 +25,11 @@
 // page 1 is built one pass of the loop later, where the loop task's stack has the room (docs/ARCHITECTURE.md, "The
 // loop's stack"); a screensaver that opened before it was closed by it again (GitHub #457).
 //
-// A glass that keeps its picture without a light (paper, docs/PAPER.md) has no dark: its standby is rest. With a
-// screensaver set it shows that one, and a finger or a key wakes it as on any screen. Without one the page stays where
-// it is, readable, and nothing lies over it: a finger or a key on it is used at once and ends the rest by the way
-// (resting(), act()), because a first tap that only "wakes" a page nobody saw change would read as a tap not heard.
-// The saving of a screen at rest is the same either way (screen_power.h).
+// A glass that keeps its picture without a light (paper, docs/PAPER.md) has no dark: its standby is rest. It shows the
+// screensaver where one is set, and else its page in a calm look (Glass::calm): what tells something stays, what a
+// finger works is gone with the page bar, so the standby is seen. A finger or a key wakes it as on every screen: that
+// first press brings the page back and does nothing more. The saving of a screen at rest is the same either way
+// (screen_power.h).
 //
 // Two clocks. The standby time counts from the last touch, wake, alert that ended or Auto standby turned on
 // (since_touch). Back to page 1 counts from the last touch or page Home Assistant opened (since_use), so a wake on every
@@ -81,10 +81,10 @@ struct Glass {
   int (*standby_level)() = []() { return 0; };        // the backlight's level in standby now (night or day)
 
   bool (*keeps)() = []() { return false; };           // the glass shows its picture without a light (paper)
-  bool (*saver_up)() = []() { return false; };        // a screensaver is on the glass now
 
   void (*light)(int, int) = [](int, int) {};          // the backlight to a level (percent), over so many ms
   void (*overlay)(bool) = [](bool) {};                // the sheet over a screen in standby that takes the waking tap
+  void (*calm)(bool) = [](bool) {};                   // the page's calm look: at rest on a glass that keeps its picture
   void (*saver)(bool) = [](bool) {};                  // the screensaver follows: in standby with the backlight lit
   bool (*saver_wake)() = []() { return false; };      // the screensaver goes; true when one was up
   void (*close_settings)() = []() {};                 // the settings page closes
@@ -111,23 +111,19 @@ class Standby {
   // A finger on the glass, or one that just left: both clocks start again.
   void touch(uint32_t now) { last_touch_ = last_use_ = now; }
   void contact(bool down, uint32_t now) {
-    if (resting()) lit(now);  // a paper page at rest is used at once: nothing lay over it to take the tap
     touch(now);
     finger_ = down;
   }
   // In standby with nothing to light: the backlight at 0, or a glass that keeps its picture. What the power saving
   // of screen_power.h asks before it starts (its `dark`).
   bool at_rest() const { return dimmed_ && (glass.keeps() || glass.standby_level() == 0); }
-  // In standby with the page itself on the glass: a glass that keeps its picture, and no screensaver over it.
-  bool resting() const { return dimmed_ && glass.keeps() && !glass.saver_up(); }
   // Something that is no finger is about to act on the page (a board's page key). True: it may, and the screen counts
-  // as touched. False: the screen was in standby under a screensaver or in the dark, and that press woke it instead.
+  // as touched. False: the screen was in standby, and that press woke it instead.
   bool act(uint32_t now) {
-    if (dimmed_ && !resting()) {
+    if (dimmed_) {
       wake_from("a key of the board", Wake::KEY, now);
       return false;
     }
-    if (dimmed_) lit(now);
     touch(now);
     return true;
   }
@@ -154,14 +150,10 @@ class Standby {
       stop(POWER);
       screen_power::leave();
     }
-    if (keeps) {
-      // The screensaver first, where one is set; the sheet that takes the waking tap only over it.
-      glass.saver(dimmed_);
-      glass.overlay(dimmed_ && glass.saver_up());
-      return;
-    }
+    // A glass that keeps its picture shows its page calm while it rests, under the screensaver where one is set.
+    if (keeps) glass.calm(dimmed_);
     glass.overlay(dimmed_);
-    glass.saver(dimmed_ && level > 0);
+    glass.saver(dimmed_ && (level > 0 || keeps));
   }
 
   // ---- out of standby ----
@@ -181,6 +173,7 @@ class Standby {
   // heard, and the page comes in sight under that light. From the dark it fades in.
   void wake(uint32_t now) {
     lit(now);
+    if (glass.keeps()) glass.calm(false);
     const bool from_saver = glass.saver_wake();
     glass.light(static_cast<int>(screen_settings::current.brightness), from_saver ? 0 : FADE_IN_MS);
     glass.overlay(false);

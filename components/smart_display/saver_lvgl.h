@@ -40,8 +40,11 @@ inline void saver_clock_draw() {
   if (digits) digit_box(digits, top, digits_h);
   // Black with white digits in both looks (firmware 0.31.0+): a screensaver gives as little light as it can. Before,
   // the clock stood on the page's own colour, a lit white glass in the light look.
-  lv_obj_set_style_bg_color(saver_root, theme::color(theme::CAMERA_PAGE), 0);
-  const uint32_t ink = media_ink(), soft = theme::mix(ink, theme::hex(theme::CAMERA_PAGE), 150);
+  // On paper it is the page's own tone with everything on it in ink: there is no light to save, and a softer tone
+  // for the date would be a raster through its letters.
+  lv_obj_set_style_bg_color(saver_root, theme::color(theme::paper ? theme::PAGE : theme::CAMERA_PAGE), 0);
+  const uint32_t ink = theme::paper ? theme::hex(theme::INK) : media_ink();
+  const uint32_t soft = theme::paper ? ink : theme::mix(ink, theme::hex(theme::CAMERA_PAGE), 150);
   const auto l = saver_view::clock(width, height, digits_h, date.empty() ? 0 : date_h, date.empty() ? 0 : gap);
   const int time_w = digits ? text_width(time, digits) : width;
   const auto row = saver_view::clock_row(width, time_w, ampm_w, space);
@@ -106,8 +109,10 @@ inline void saver_words() {
   }
   for (lv_obj_t **words : {&saver_first, &saver_second}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
   saver_words_due = false;
-  saver_first = saver_text(camera_root, font, media_ink(), w.first, first, LV_TEXT_ALIGN_LEFT);
-  if (second_h) saver_second = saver_text(camera_root, second_font, theme::mix(media_ink(), 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
+  // The words stand on the screensaver's own dark ground, on paper too: its ink, never the media card's.
+  const uint32_t words = theme::hex(theme::CAMERA_INK);
+  saver_first = saver_text(camera_root, font, words, w.first, first, LV_TEXT_ALIGN_LEFT);
+  if (second_h) saver_second = saver_text(camera_root, second_font, theme::paper ? words : theme::mix(words, 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
   saver_keys_draw();
 }
 // The keys: white rounds over the darkened cover, the play key whole and the two volume keys a haze with a white sign,
@@ -230,7 +235,7 @@ inline void saver_keys_draw() {
   for (lv_obj_t *&key : saver_keys) if (key) { lv_obj_delete(key); key = nullptr; }
   if (!camera_root || !saver_camera || saver_bare || saver_now.kind != "media") return;
   const auto l = saver_key_layout();
-  const uint32_t ink = media_ink();
+  const uint32_t ink = theme::hex(theme::CAMERA_INK);  // on the screensaver's own dark ground
   const lv_font_t *small = mini_icon_font ? mini_icon_font : detail_font;
   auto key = [&](int n, const media_card::Rect &r, const char *glyph, const lv_font_t *font, bool primary) {
     if (r.w <= 0) return;

@@ -2,6 +2,8 @@
 // Every pixel LVGL draws passes through this file, a whole glass at a turn of a page, so it is built for speed where
 // the rest of a firmware is built for size (the ink step took 280 ms of a turn at -Os, 2026-11-27).
 #pragma GCC optimize("O3")
+#include "esphome/core/defines.h"
+#ifdef USE_PAPER_GLASS
 #include "paper_glass.h"
 
 #include <algorithm>
@@ -113,3 +115,4 @@ void HOT PaperGlass::draw_pixels_internal(int x_start, int y_start, int w, int h
 }
 
 }  // namespace esphome::paper_glass
+#endif  // USE_PAPER_GLASS

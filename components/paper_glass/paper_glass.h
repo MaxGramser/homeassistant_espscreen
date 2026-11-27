@@ -13,6 +13,11 @@
 // models, its partial refresh, its busy pin.
 //
 // Nothing here knows a board, a card or Home Assistant. The firmware reaches the printer through paper.h.
+//
+// The display is built where the platform is used (USE_PAPER_GLASS, display.py). A program that is on paper without a
+// panel (the key paper_glass, __init__.py: the host render) has paper.h and its rules, and nothing of this file.
+#include "esphome/core/defines.h"
+#ifdef USE_PAPER_GLASS
 #include "esphome/components/display/display.h"
 #include "esphome/components/epaper_spi/epaper_spi.h"
 #include "esphome/core/component.h"
@@ -60,3 +65,4 @@ class PaperGlass : public display::Display {
 };
 
 }  // namespace esphome::paper_glass
+#endif  // USE_PAPER_GLASS

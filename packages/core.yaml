@@ -305,7 +305,12 @@ esphome:
             glass.home_after = []() -> uint32_t { return runtime_tiles::auto_home ? (uint32_t) runtime_tiles::auto_home_seconds : 0; };
             glass.standby_level = []() { return runtime_tiles::standby_level(); };
             glass.keeps = []() { return paper::is(); };
-            glass.saver_up = []() { return runtime_tiles::saver_on(); };
+            // One print either way on a glass of ink: whole as the screen comes to rest, at once as it wakes.
+            glass.calm = [](bool on) {
+              paper::rest(on, millis());
+              if (!on) paper::news(millis());
+              runtime_tiles::calm(on);
+            };
             // One owner for the backlight's level, the board's script set_backlight (features/backlight.yaml); a glass
             // without a light of its own has nothing here (features/paper.yaml).
             glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };

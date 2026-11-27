@@ -497,7 +497,7 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
   hp.line(cx, cy, cx + std::sin(hour_angle(now)) * R * 0.48f, cy - std::cos(hour_angle(now)) * R * 0.48f, w, hand);
   hp.line(cx, cy, cx + std::sin(minute_angle(now)) * R * 0.72f, cy - std::cos(minute_angle(now)) * R * 0.72f, w * 2 / 3, hand);
   hp.dot(cx, cy, w * 0.75f, red);
-  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, red, red, false, f.seconds};
+  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, red, red, false, f.seconds && !screen_motion::still()};
   if (h.seconds) second_marks(hp, h, now.second);
   keep_hands(layer, hp, h, now);
 }

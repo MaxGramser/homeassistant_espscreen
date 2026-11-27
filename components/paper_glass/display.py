@@ -68,5 +68,5 @@ async def to_code(config):
     cg.add(var.set_panel(await cg.get_variable(config[CONF_PANEL])))
     cg.add(var.set_inks(config[CONF_INKS]))
     cg.add(var.set_partial(config[CONF_PARTIAL]))
-    # The firmware around it reads paper.h under this define (components/smart_display/hw.cpp and the binder).
+    # The display itself is built under this define (paper_glass.h): a program on paper without a panel has none.
     cg.add_define("USE_PAPER_GLASS")

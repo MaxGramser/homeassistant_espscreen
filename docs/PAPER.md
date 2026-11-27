@@ -366,6 +366,57 @@ paper traded, and so do Standby and its time. The screen says so with the word `
 app reads that word or the board's `inks` in `boards.json` (`core.is_paper`), and Screen settings in the editor leaves
 the same rows out (`PAPER_KEYS`; `tests/test_settings_screen.cpp`, `tests/test_screen_owned_settings.py`).
 
+## Seeing it without a screen
+
+A design for paper is judged by eye, and a glass on a desk shows one page at a time, a part of a second after each
+tap. So the host render (docs/TESTING.md, "3. Every board on this computer") builds a paper board on paper, and every
+picture it takes is the panel's inks at the panel's own size. Look at the renders first, and at the glass for what
+only a glass shows.
+
+How it is the real thing:
+
+- The program is the firmware's own C++ and LVGL with an SDL display in place of the panel. A paper board gets the
+  paper glass as a key of its own (`paper_glass: {inks: 2}`, `components/paper_glass/__init__.py`): `paper.h` and the
+  panel's inks, without the display that needs the e-paper driver. So the theme's ink table, the still glass's pass,
+  the levels, the named colours, the calm page and the clock faces are what a screen runs, not a copy.
+- The ink step, which on a screen runs at every flush, runs over each picture the render takes:
+  `tools/render/paper_ink_tool.cpp` is `paper_ink.h` itself, compiled once into the render's work folder, and
+  `Run.inked()` in `tools/render/run.py` pipes every picture through it. Pictures a screen asks for (a camera, a
+  cover) are painted in the panel's inks, as the app paints them for such a screen.
+- Fonts are the board's own, without soft edges, because the host build reads the same substitutions.
+
+Run it with the ESPHome the board asks for (2026.11.0 for the reTerminal Sticky) and Pillow; uv brings both:
+
+```
+ESPHOME="uvx --python 3.13 --from esphome==2026.11.0 esphome" \
+  uv run --no-project --python 3.13 --with esphome==2026.11.0 --with pillow \
+  python tools/render/run.py reterminalsticky-portrait --only paper --grid 2x4 --out .esphome/render/paper/paper
+
+uv run --no-project --python 3.13 --with pillow \
+  python tools/render/sheets.py .esphome/render/paper/paper/reterminalsticky-portrait .esphome/render/paper/sheets
+```
+
+- **The variants** are `reterminalsticky` (lying down, two columns of two cells) and `reterminalsticky-portrait`
+  (standing up, one column of four).
+- **`--grid 2x4`** builds the screen with another grid than the board file's own, as New screen does when someone
+  chooses one. Most rounds bring a layout that needs two columns, so on this board standing up, whose own grid is one
+  column, they stop with "Invalid tile position" without it.
+- **`--only paper` is the look book**: every page of the demo layout, the card a hold opens on every tile, the colour
+  card's example, the alerts, the settings pages, the page at rest, and every clock face as the screensaver, in both
+  looks. One picture each and no checks (`Run.look_book`). The first build takes about a minute, the next ones a few
+  seconds, and the look book itself a minute and a half.
+- **Every other round renders in ink too**: `--only climate`, `media`, `mediatiles`, `alarm`, `lock`, `remote`,
+  `bedside`, `humidifier`, `weather`, `calendar`, `todo`, `text`, `vacuum`, `vacuumtile`, `saver`, `bars`, `dock`,
+  `automation`, `doorbell`. Each brings a layout of its own for one kind of card and takes its pictures on the way.
+  Their checks were written for a glass that is lit (a colour read back from a card, a slider dragged), so a FAIL
+  there is no verdict on paper: look at the pictures.
+- **`tools/render/sheets.py`** puts a folder of renders on contact sheets, six to a sheet at two thirds of their size
+  or four at full size, each with its name under it.
+
+What a render cannot show: when a refresh comes and how long it takes (the printer has no panel there and prints
+nothing), the traces partial refreshes leave, how a raster reads at arm's length on real ink, and a finger on real
+glass. Those are the glass's to show.
+
 ## What a board states
 
 A board whose glass is e-paper includes `features/paper.yaml` in place of `features/backlight.yaml`, and its board
@@ -415,9 +466,9 @@ The platform's own options are in `components/paper_glass/display.py`: `panel`, 
 
 - **A picture in ink is as large as a picture in colour.** The app sends it in the format the screen asks for, three
   bytes or one a pixel; a glass of two inks needs one bit.
-- **The editor and the host render show such a board in colour.** `paper_ink.h` and the theme's ink table are free of
-  LVGL and ESPHome so that the firmware preview and `tools/render` can run them over their own pixels; neither does
-  yet.
+- **The editor shows such a board in colour.** `paper_ink.h` and the theme's ink table are free of LVGL and ESPHome
+  so that the firmware preview can run them over its own pixels, as the host render does ("Seeing it without a
+  screen"); it does not yet.
 - **A lamp of a group** (the group's page of a colour card) still has a hue and a white shade as sliders, which a
   still glass draws as levels of ten steps.
 - **The entities of a light that is not there.** A paper screen still has Home Assistant's entities for a brightness

@@ -59,6 +59,8 @@ substitutions:
   PAGE_KEY_NEXT_PIN: GPIO6
   HOME_KEY_PIN: GPIO4
   BUZZER_PIN: GPIO48
+  # A screen you pick up: it wakes in your hand unless someone turns that off (features/wake-when-moved.yaml).
+  WAKE_WHEN_MOVED_AT_FIRST: RESTORE_DEFAULT_ON
 
   # The board's own settings page (docs/SETTINGS.md, "A board's own settings").
   BOOT_BOARD_SETTINGS: |-

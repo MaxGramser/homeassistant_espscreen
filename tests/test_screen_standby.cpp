@@ -69,7 +69,7 @@ static void fresh() {
   s.glass.overlay = [](bool on) { told(on ? "overlay on" : "overlay off"); };
   s.glass.saver = [](bool on) { saver_up = on && saver_set; told(on ? "saver on" : "saver off"); };
   s.glass.keeps = []() { return keeps_picture; };
-  s.glass.saver_up = []() { return saver_up; };
+  s.glass.calm = [](bool on) { told(on ? "calm on" : "calm off"); };
   s.glass.saver_wake = []() { const bool was = saver_up; saver_up = false; return was; };
   s.glass.close_settings = []() { told("close settings"); };
   s.glass.close_cards = []() { told("close cards"); };
@@ -188,52 +188,39 @@ static void a_dark_standby_saves_power() {
 }
 
 static void a_glass_that_keeps_its_picture_rests() {
-  // Paper with no screensaver set: the page stays on the glass and nothing lies over it. The saving starts as on a
-  // dark screen, whatever level a light would have had.
+  // Paper with no screensaver set: the page stays on the glass in its calm look, with the sheet over it that takes the
+  // waking tap, as on every screen. The saving starts as on a dark screen, whatever level a light would have had.
   fresh();
   keeps_picture = true;
   saver_set = false;
   s.standby_by_time(now_ms);
-  assert(s.in_standby() && s.resting());
-  assert(has("overlay off") && !has("overlay on"));
+  assert(s.in_standby() && s.at_rest());
+  assert(has("calm on") && has("overlay on") && place("calm on") < place("overlay on"));
   after(screen_power::REST_MS);
   assert(screen_power::saving);
-  // A finger on the page is used at once: the rest ends, no card is closed and nothing "wakes".
-  trail.clear();
-  s.contact(true, now_ms);
-  assert(!s.in_standby() && !screen_power::saving);
-  assert(!has("close cards") && !has("overlay off") && !has("light 100 in 200"));
-  s.contact(false, now_ms);
-
-  // A page key the same: it may act, and the screen counts as touched.
-  fresh();
-  keeps_picture = true;
-  saver_set = false;
-  s.standby_by_time(now_ms);
-  after(5000);
-  trail.clear();
-  assert(s.act(now_ms));
-  assert(!s.in_standby() && touch_at() == now_ms && !has("close cards"));
-
-  // With a screensaver set it is a standby as on any screen: the screensaver shows, the sheet takes the waking tap,
-  // and a key's first press only wakes.
-  fresh();
-  keeps_picture = true;
-  s.standby_by_time(now_ms);
-  assert(s.in_standby() && !s.resting());
-  assert(place("saver on") >= 0 && place("saver on") < place("overlay on"));
+  // A page key only wakes it: the page comes back, and the key does nothing more.
   trail.clear();
   assert(!s.act(now_ms));
-  assert(!s.in_standby() && has("close cards") && has("overlay off"));
+  assert(!s.in_standby() && !screen_power::saving);
+  assert(has("calm off") && has("overlay off") && has("close cards"));
 
-  // A lit screen's key press acts, as it always did.
+  // With a screensaver set the same standby shows that one over the calm page, and a key's first press only wakes.
+  fresh();
+  keeps_picture = true;
+  s.standby_by_time(now_ms);
+  assert(s.in_standby() && has("calm on"));
+  assert(place("overlay on") >= 0 && place("overlay on") < place("saver on"));
+  trail.clear();
+  assert(!s.act(now_ms));
+  assert(!s.in_standby() && has("close cards") && has("overlay off") && has("calm off"));
+
+  // A lit screen's key press acts, as it always did, and a lit glass has no calm look.
   fresh();
   assert(s.act(now_ms) && !s.in_standby());
-  // And a lit glass in the dark is woken by a key, never used through the dark.
   fresh();
   level = 0;
   s.standby_by_time(now_ms);
-  assert(!s.resting() && !s.act(now_ms) && !s.in_standby());
+  assert(!has("calm on") && !s.act(now_ms) && !s.in_standby());
 }
 
 static void by_hand_holds_and_closes_an_alert() {

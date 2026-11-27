@@ -93,13 +93,17 @@ class Printer {
   // The screen came to rest (its standby began) or left it. Coming to rest, a glass with traces is made clean once:
   // it will stand for a long time, and nobody has touched it for the whole standby time.
   void rest(bool on, uint32_t now) {
-    if (on && !resting_ && rules.partial && parts_ > 0) whole_next_ = true;
+    if (on && !resting_ && rules.partial && parts_ > 0) {
+      whole_next_ = true;
+      asked_at_ = now;
+    }
     resting_ = on;
     tick(now);
   }
   // The next print is a whole one: a key asked for it, the look of the whole glass changed.
   void whole_next(uint32_t now) {
     whole_next_ = true;
+    asked_at_ = now;
     tick(now);
   }
   // The panel finished the refresh print() started.
@@ -138,7 +142,9 @@ class Printer {
       const int32_t let_go = static_cast<int32_t>(hold_at_ + rules.hold_most_ms - now);
       if (let_go > 0) return let_go;
     }
-    if (!dirty_) return 0;  // a whole refresh that was asked for, with nothing new drawn
+    // A whole refresh that was asked for, with nothing drawn yet: it waits the short quiet for what comes with it
+    // (the page in its calm look as the screen comes to rest, the other look), so the two are one print.
+    if (!dirty_) return static_cast<int32_t>(asked_at_ + rules.quiet_ms - now);
     if (down_) {
       const int32_t stays = static_cast<int32_t>(down_at_ + rules.down_most_ms - now);
       if (stays > 0) return stays;
@@ -189,6 +195,7 @@ class Printer {
   uint32_t down_at_ = 0;
   uint32_t first_at_ = 0, last_at_ = 0, finger_at_ = 0, hold_at_ = 0;
   uint32_t printed_at_ = 0;    // when the last print ended
+  uint32_t asked_at_ = 0;      // when a whole refresh was last asked for
   bool printed_once_ = false;  // one has ended since the start
   bool resting_ = false;       // the screen is at rest (its standby)
   uint16_t area_ = 0;   // per mille of the glass drawn and not printed yet

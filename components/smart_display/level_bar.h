@@ -1,9 +1,11 @@
 #pragma once
 // A level on a still glass (docs/PAPER.md, "A level"): what a slider is on a glass that cannot follow a finger. A
 // refresh of e-paper takes longer than a drag, so a knob that slides shows nothing while the finger moves and jumps
-// when it lifts. There a level is a row of blocks, filled up to the value, with a key at each end: a tap on a block
-// sets that level, the keys take one step down and up, and each tap is one refresh. The same thing e-readers and
-// watches do with a value on a slow glass: fixed steps, set by a tap, a key at each side for one step.
+// when it lifts. There a level is one shape that fills in steps, with a mark for each step and a key at each end: a
+// tap on a step sets that level, the keys take one step down and up, and each tap is one refresh. The same thing
+// e-readers and watches do with a value on a slow glass: fixed steps, set by a tap, a key at each side for one step.
+// It fills as the slider of a lit glass fills, so the two are one control to the eye (the owner chose it from four
+// drawn side by side, 2026-11-27: loose blocks between round keys stood apart from each other).
 //
 // This file is the rules, free of LVGL: where the keys and the blocks lie in a control's own rectangle, what a point
 // in it picks, and how a value and a count of blocks turn into each other. still_glass_lvgl.h draws it on every
@@ -39,9 +41,12 @@ struct Box {
 };
 
 // Where everything lies in a control of w x h, its own top left at (0, 0). A control thick enough for a finger has a
-// key at each end, as long as it is thick: minus at the left and plus at the right of one lying down, minus at the
-// bottom and plus at the top of one standing up. A thin one (the slider under a tile's name) is blocks alone.
-// `key_least` is the least side of a key a finger hits, in pixels.
+// key at each end: minus at the left and plus at the right of one lying down, minus at the bottom and plus at the top
+// of one standing up. A key is as thick as the control, so keys and blocks stand in one line, and a sixth of the
+// control's length, never less than a finger needs or more than the control is thick: as long as a wide control is
+// thick, the two keys of a lamp's card left its ten blocks the room of ten lines, and as round keys narrower than the
+// blocks they stood loose from them (a reTerminal Sticky's renders, 2026-11-27). A thin control (the slider under a
+// tile's name) is blocks alone. `key_least` is the least side of a key a finger hits, in pixels.
 struct Layout {
   bool upright = false;  // the blocks stand on each other, the first at the bottom
   bool keys = false;
@@ -49,6 +54,15 @@ struct Layout {
   Box blocks;            // the room of all blocks
   int count = MOST;
   int gap = 0;
+  // The part of the room the first `level` steps fill: from the bottom of one standing up, from the start of one lying.
+  constexpr Box filled(int level) const {
+    const int along = upright ? blocks.h : blocks.w;
+    const int part = level <= 0 ? 0 : level >= count ? along : along * level / count;
+    if (upright) return {blocks.x, blocks.y + blocks.h - part, blocks.w, part};
+    return {blocks.x, blocks.y, part, blocks.h};
+  }
+  // Where step `n` ends along the room, counted from its start: where its mark stands.
+  constexpr int mark(int n) const { return (upright ? blocks.h : blocks.w) * n / count; }
   // Block `n` of count, the first is 1.
   constexpr Box block(int n) const {
     const int along = upright ? blocks.h : blocks.w;
@@ -63,17 +77,20 @@ constexpr Layout layout(int w, int h, int count, int key_least, int gap) {
   l.gap = gap;
   l.upright = h > w;
   const int thick = l.upright ? w : h, along = l.upright ? h : w;
-  l.keys = thick >= key_least && along >= thick * 2 + l.count * (gap + 4);
+  int key = along / 6;
+  if (key < key_least) key = key_least;
+  if (key > thick) key = thick;
+  l.keys = thick >= key_least && along >= key * 2 + l.count * (gap + 4) + gap * 4;
   if (!l.keys) {
     l.blocks = {0, 0, w, h};
   } else if (l.upright) {
-    l.plus = {0, 0, w, w};
-    l.minus = {0, h - w, w, w};
-    l.blocks = {0, w + gap * 2, w, h - 2 * w - gap * 4};
+    l.plus = {0, 0, w, key};
+    l.minus = {0, h - key, w, key};
+    l.blocks = {0, key + gap * 2, w, h - 2 * key - gap * 4};
   } else {
-    l.minus = {0, 0, h, h};
-    l.plus = {w - h, 0, h, h};
-    l.blocks = {h + gap * 2, 0, w - 2 * h - gap * 4, h};
+    l.minus = {0, 0, key, h};
+    l.plus = {w - key, 0, key, h};
+    l.blocks = {key + gap * 2, 0, w - 2 * key - gap * 4, h};
   }
   return l;
 }

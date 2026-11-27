@@ -86,7 +86,8 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   // The head: the circle in the condition's colour with its icon, as on every other card.
   const int disc_y=low?(height-std::min(circle,height))/2:0;
   auto *disc=show(part_dot(w,0,0,disc_y,std::min(circle,height)));
-  set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+  set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(theme::paper?theme::hex(theme::CARD):t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+  theme::rim(disc,true);
   const int gh=line_of(w.icon_font);
   words(1,w.icon_font,0,disc_y+(std::min(circle,height)-gh)/2,std::min(circle,height),LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595",t.available()?theme::icon(sky):theme::hex(theme::OFF));
   const int th=line_of(bold),nh=line_of(text),hy=(circle-th-nh)/2;
@@ -182,7 +183,8 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
   const uint32_t sky=t.available()?weather_color_raw(t.state):theme::STATE_OFF;
   if(!l.circle.empty()){
     auto *disc=show(part_dot(w,0,l.circle.x,l.circle.y,l.circle.w));
-    set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+    set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(theme::paper?theme::hex(theme::CARD):t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+  theme::rim(disc,true);
     const lv_font_t *glyph=l.circle.w>=m.circle||!mini_icon_font?w.icon_font:mini_icon_font;
     const int gh=lv_font_get_line_height(glyph);
     paint(show(part_label(w,1,glyph,l.circle.x,l.circle.y+(l.circle.h-gh)/2,l.circle.w,LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595")),
@@ -285,12 +287,15 @@ inline void render_sunpath(Widgets &w,const Tile &t,bool large,int width,int hei
   lv_point_precise_t sun={(lv_value_precise_t)(x0+(x1-x0)*fraction),(lv_value_precise_t)(day?horizon-sinf(sa)*amplitude:horizon+sinf(sa)*amplitude)};
   travelled[filled+1]=sun;
   line[0]={(lv_value_precise_t)0,(lv_value_precise_t)horizon};line[1]={(lv_value_precise_t)(width-1),(lv_value_precise_t)horizon};
-  const uint32_t path=theme::hex(theme::SUN_PATH), accent=day?theme::ha::ORANGE:theme::foreground(theme::ha::NIGHT_SKY), disc=day?theme::ha::SUNNY:theme::hex(theme::MOON);
+  const uint32_t path=theme::hex(theme::SUN_PATH), accent=theme::paper?theme::hex(theme::INK):day?theme::ha::ORANGE:theme::foreground(theme::ha::NIGHT_SKY), disc=day?theme::ha::SUNNY:theme::hex(theme::MOON);
   lv_obj_set_style_line_color(part_line(w,3,line,2,2),lv_color_hex(path),0);
   lv_obj_set_style_line_color(part_line(w,4,arc,segments+1,ui::px(large?2:1)),lv_color_hex(path),0);
   lv_obj_set_style_line_color(part_line(w,5,travelled,filled+2,ui::px(large?4:3)),lv_color_hex(accent),0);
-  auto *halo=part_dot(w,6,int(sun.x)-glow/2,int(sun.y)-glow/2,glow);lv_obj_set_style_bg_color(halo,lv_color_hex(disc),0);lv_obj_set_style_bg_opa(halo,LV_OPA_30,0);
-  lv_obj_set_style_bg_color(part_dot(w,7,int(sun.x)-size/2,int(sun.y)-size/2,size),lv_color_hex(disc),0);
+  // On paper the sun is a disc of ink and the moon a ring, with no glow: a pale glow is a raster around it.
+  auto *halo=part_dot(w,6,int(sun.x)-glow/2,int(sun.y)-glow/2,glow);lv_obj_set_style_bg_color(halo,lv_color_hex(disc),0);lv_obj_set_style_bg_opa(halo,theme::paper?LV_OPA_TRANSP:LV_OPA_30,0);
+  auto *body=part_dot(w,7,int(sun.x)-size/2,int(sun.y)-size/2,size);
+  lv_obj_set_style_bg_color(body,lv_color_hex(theme::paper?theme::hex(day?theme::INK:theme::CARD):disc),0);
+  theme::rim(body,!day);
   if(day){w.fill_points=travelled;w.fill_count=filled+2;w.fill_x=0;w.fill_y=0;w.fill_base=horizon;w.fill_color=lv_color_hex(theme::ha::SUNNY);w.fill_opa=theme::fill_opacity();}
 }
 }  // namespace runtime_tiles

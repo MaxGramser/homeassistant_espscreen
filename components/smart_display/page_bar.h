@@ -185,8 +185,10 @@ inline void dots(lv_obj_t *row, int current, int total) {
     lv_obj_remove_flag(d, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_size(d, dot, dot);
     lv_obj_align(d, LV_ALIGN_CENTER, at * (dot + gap) + dot / 2 - width / 2, 0);
-    lv_obj_set_style_bg_color(d, theme::color(at == current ? theme::INK : theme::SUBTLE), 0);
-    lv_obj_set_style_bg_opa(d, at == current ? LV_OPA_COVER : LV_OPA_40, 0);
+    // On paper a pale dot is three pixels of raster: the page on the glass is a dot of ink, the others are rings.
+    lv_obj_set_style_bg_color(d, theme::color(at == current ? theme::INK : theme::paper ? theme::CARD : theme::SUBTLE), 0);
+    lv_obj_set_style_bg_opa(d, at == current || theme::paper ? LV_OPA_COVER : LV_OPA_40, 0);
+    theme::rim(d, at != current);
   }
 }
 

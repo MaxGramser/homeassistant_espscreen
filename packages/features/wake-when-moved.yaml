@@ -10,15 +10,20 @@
 # A wake from here is sensed: after a standby by hand it waits until the board lay still for a while (screen_standby.h,
 # the core's script wake_from), so putting the board down after pressing its key does not light it again.
 
+# Off at first; a board that is held in a hand states WAKE_WHEN_MOVED_AT_FIRST: RESTORE_DEFAULT_ON, so picking it
+# up wakes it without anyone having to find the switch (the reTerminal Sticky).
+substitutions:
+  WAKE_WHEN_MOVED_AT_FIRST: RESTORE_DEFAULT_OFF
+
 switch:
-  # Off at first, kept over a restart; the same switch in Home Assistant, in the app and on the screen's settings page.
+  # Kept over a restart; the same switch in Home Assistant, in the app and on the screen's settings page.
   - platform: template
     id: board_wake_when_moved
     name: "Wake when moved"
     icon: "mdi:gesture-swipe"
     entity_category: config
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ${WAKE_WHEN_MOVED_AT_FIRST}
 
 # Every reading of every axis goes to the detector; none of them is ever published.
 sensor:

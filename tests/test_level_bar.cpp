@@ -28,11 +28,17 @@ static void a_range_and_its_real_ends() {
 }
 
 static void a_card_has_keys_and_a_tile_has_not() {
-  // A card's level, 600 x 72 on a glass whose finger needs 64: a key at each end as wide as it is high, ten blocks between.
+  // A card's level, 600 x 72 on a glass whose finger needs 64: a key at each end as thick as the control, a sixth of
+  // the length and no longer than the control is thick, with ten blocks between.
   const Layout card = layout(600, 72, 10, 64, 6);
   assert(card.keys && !card.upright);
   assert(card.minus.w == 72 && card.minus.h == 72 && card.minus.x == 0 && card.plus.x == 600 - 72);
   assert(card.blocks.x == 72 + 12 && card.blocks.x + card.blocks.w == 600 - 72 - 12);
+  const Layout low = layout(600, 80, 10, 64, 6);
+  assert(low.keys && low.minus.w == 80 && low.minus.h == 80 && low.minus.y == 0);
+  // A thick one: its keys are as thick as it is, and no longer than a finger needs.
+  const Layout thick = layout(360, 120, 10, 64, 6);
+  assert(thick.keys && thick.minus.w == 64 && thick.minus.h == 120 && thick.minus.y == 0 && thick.plus.x == 360 - 64);
   // The blocks fill their room: the first starts where it starts, the last ends where it ends, none touch.
   assert(card.block(1).x == card.blocks.x);
   assert(card.block(10).x + card.block(10).w == card.blocks.x + card.blocks.w);
@@ -47,14 +53,28 @@ static void a_card_has_keys_and_a_tile_has_not() {
   const Layout tall = layout(60, 300, 10, 64, 6);
   assert(tall.upright && !tall.keys);
   assert(tall.block(1).y + tall.block(1).h == 300 && tall.block(10).y == 0);
-  // A card's level standing up (a lamp's brightness), 120 x 420: plus at the top, minus at the bottom.
+  // A card's level standing up (a lamp's brightness), 120 x 420: plus at the top, minus at the bottom, each a sixth
+  // of the height and as wide as the blocks, which keep most of the control.
   const Layout lamp = layout(120, 420, 10, 64, 6);
-  assert(lamp.upright && lamp.keys && lamp.plus.y == 0 && lamp.minus.y == 420 - 120 && lamp.plus.h == 120);
-  assert(lamp.block(1).y + lamp.block(1).h == 420 - 120 - 12 && lamp.block(10).y == 120 + 12);
+  assert(lamp.upright && lamp.keys && lamp.plus.y == 0 && lamp.minus.y == 420 - 70 && lamp.plus.h == 70 && lamp.plus.x == 0 && lamp.plus.w == 120);
+  assert(lamp.block(1).y + lamp.block(1).h == 420 - 70 - 12 && lamp.block(10).y == 70 + 12 && lamp.block(1).w == 120);
+  assert(lamp.blocks.h > 420 / 2);
   assert(pick(lamp, 60, 30).kind == Pick::PLUS && pick(lamp, 60, 400).kind == Pick::MINUS);
   assert(pick(lamp, 60, lamp.block(4).y + 3).level == 4);
   // Too narrow for two keys and ten blocks: blocks alone.
   assert(!layout(180, 72, 10, 64, 6).keys);
+}
+
+static void it_fills_in_steps() {
+  // Standing up: from the bottom, a tenth of the room a step. Nothing is no height, all of them the whole room.
+  const Layout lamp = layout(120, 420, 10, 64, 6);
+  assert(lamp.filled(0).h == 0 && lamp.filled(10).h == lamp.blocks.h && lamp.filled(10).y == lamp.blocks.y);
+  assert(lamp.filled(7).y + lamp.filled(7).h == lamp.blocks.y + lamp.blocks.h && lamp.filled(7).h == lamp.blocks.h * 7 / 10);
+  assert(lamp.mark(5) == lamp.blocks.h / 2 && lamp.mark(10) == lamp.blocks.h);
+  // Lying down: from the left. A tap in the filled part picks a step that is filled, one past it a step that is not.
+  const Layout card = layout(600, 72, 10, 64, 6);
+  assert(card.filled(3).x == card.blocks.x && card.filled(3).w == card.blocks.w * 3 / 10 && card.filled(3).h == 72);
+  assert(pick(card, card.blocks.x + card.filled(3).w - 2, 36).level == 3 && pick(card, card.blocks.x + card.filled(3).w + 2, 36).level == 4);
 }
 
 static void a_tap_picks() {
@@ -106,6 +126,7 @@ int main() {
   the_blocks_of_a_range();
   a_range_and_its_real_ends();
   a_card_has_keys_and_a_tile_has_not();
+  it_fills_in_steps();
   a_tap_picks();
   a_value_and_its_blocks();
   a_key_takes_one_step();
