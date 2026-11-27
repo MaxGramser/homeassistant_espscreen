@@ -162,6 +162,7 @@
       "media_player": "Volume",
       "volume": "Volume",
       "wake_when_moved": "Réveil au mouvement",
+      "tap_sound": "Son au toucher",
       "backlight_pwm": "PWM du rétroéclairage",
       "dimmest_level": "Niveau le plus bas",
       "dark_mode": "Mode sombre",
@@ -238,7 +239,18 @@
       "color_temperature": "Température de couleur",
       "brightness": "Luminosité",
       "waiting": "Attente...",
-      "presets": "Préréglages"
+      "presets": "Préréglages",
+      "shade_warm": "Chaud",
+      "shade_neutral": "Neutre",
+      "shade_cool": "Froid",
+      "color_red": "Rouge",
+      "color_orange": "Orange",
+      "color_yellow": "Jaune",
+      "color_green": "Vert",
+      "color_cyan": "Cyan",
+      "color_blue": "Bleu",
+      "color_purple": "Violet",
+      "color_pink": "Rose"
     },
     "effects": {
       "effect": "Effet",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Réveil au mouvement",
           "hint": "L’écran sort de veille quand quelqu’un le prend, le déplace ou le heurte. Il sent l’écran lui-même, pas quelqu’un qui passe."
+        },
+        "tap_sound": {
+          "label": "Son au toucher",
+          "hint": "Un court tic dès que l'écran perçoit un appui ou une touche, avant que le papier électronique ait imprimé la réponse."
         },
         "backlight_pwm": {
           "label": "PWM du rétroéclairage",

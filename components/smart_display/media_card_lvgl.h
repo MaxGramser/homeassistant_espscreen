@@ -130,7 +130,8 @@ inline lv_obj_t *media_picture_show(lv_obj_t *parent,lv_obj_t *existing,const me
 // LVGL's own circular scroll, at its own pace, where the dots of LV_LABEL_LONG_DOT cut a long title short.
 inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
   if(!label)return;
-  if(!ready){
+  // A line that rolls is motion: on a still glass it is cut with dots.
+  if(!ready||screen_motion::still()){
     if(lv_label_get_long_mode(label)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(label,LV_LABEL_LONG_DOT);
     return;
   }

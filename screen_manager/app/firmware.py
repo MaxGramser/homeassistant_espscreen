@@ -122,6 +122,18 @@ def _board_choice(shape):
 
 BOARD_CHOICES = {board: _board_choice(SHAPES[board]) for board in BOARD_KEYS}
 
+def _version(text):
+    return tuple(int(part) for part in re.findall(r'\d+', text or '')[:3])
+
+def offered(running=None):
+    """The boards New screen offers: every board of the catalog this app's own ESPHome can build. A board states the
+    oldest ESPHome that builds it (boards.json `esphome`, its files' `min_version`), and one that asks for a newer
+    ESPHome than this app runs is left out, since its build would only end in ESPHome's refusal. `running` is this
+    app's ESPHome ("2026.9.0"); when nobody can say which it is, every board is offered."""
+    have = _version(build_cache.esphome_version() if running is None else running)
+    return {board: choice for board, choice in BOARD_CHOICES.items()
+            if not have or have >= _version(SHAPES[board].get('esphome'))}
+
 # A terminal's colour and line codes (ninja's "erase to the end of the line", GCC's colours), which a log has no use for.
 ANSI = re.compile(r'\x1b\[[0-9;?]*[A-Za-z]')
 
@@ -317,7 +329,7 @@ class Firmware:
                     for entry in self.profiles()]
         return {'available': bool(shutil.which('esphome')), 'profiles': profiles,
                 'ports': self.ports(), 'job': self.job, 'logs': list(self.logs), 'wifi': self.wifi_status(),
-                'downloads': sorted(self.images), 'boards': BOARD_CHOICES}
+                'downloads': sorted(self.images), 'boards': offered()}
 
     def store_wifi(self, data):
         """Put wifi_ssid/wifi_password in secrets.yaml when they are missing. Existing values and

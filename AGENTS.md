@@ -53,6 +53,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change the alarm panel's card, the keypad for a code, or what the screens do when it goes off | docs/ALARM_PANEL.md | `alarm_panel.h`, `alarm_panel_lvgl.h`, `screen_manager/app/alarm_screens.py` |
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
+| give a board a glass of e-paper, or change how one prints, its inks or a slider on it | docs/PAPER.md | `components/paper_glass/`, `still_glass_lvgl.h`, `level_bar.h`, the ink table in `theme.h` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
 | change how a plugin's own tile is shown in the editor, or how its code reaches the preview | docs/EMULATOR_ARCHITECTURE.md, "Plugins" | `web/wasm/build_plugin.py`, `web/wasm/toolchain.py`, `screen_manager/app/plugin_module.py`, `web/src/components/GlassFaces.vue` |
@@ -122,6 +123,12 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   buffer past LVGL is a live picture in its own room and the veil, and never without the glass knowing.
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
+- **A still glass** (docs/PAPER.md): a glass of ink shows no state by colour alone and runs nothing by itself. On paper
+  a role is a tone of the theme's ink table and a state is a shape (a disc of ink, a ring, a rim), and a change is a
+  print the printer times, never a frame. A control is made as on any screen and takes its still form from the pass
+  (`still_glass_lvgl.h`: a slider is a level, a spinner stands, a rolling label is cut), never from a check of the
+  board. An animation starts through `screen_motion::start()`, and what draws by itself asks `screen_motion::still()`
+  and counts time in the steps of `still_glass.h`.
 - **Memory.** Never walk the PSRAM heap (`heap_caps_get_largest_free_block`, `heap_caps_get_info`) while an RGB panel
   is lit: it shifts a frame. Pictures share one budget worked out from the board's PSRAM. The firmware check gates the
   flash use of every 4 MB board.

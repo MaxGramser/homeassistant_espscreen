@@ -162,6 +162,7 @@
       "media_player": "Głośność",
       "volume": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
+      "tap_sound": "Dźwięk dotyku",
       "backlight_pwm": "PWM podświetlenia",
       "dimmest_level": "Najniższy poziom",
       "dark_mode": "Tryb ciemny",
@@ -238,7 +239,18 @@
       "color_temperature": "Temperatura barwy",
       "brightness": "Jasność",
       "waiting": "Czekam...",
-      "presets": "Ustawienia"
+      "presets": "Ustawienia",
+      "shade_warm": "Ciepły",
+      "shade_neutral": "Neutralny",
+      "shade_cool": "Zimny",
+      "color_red": "Czerwony",
+      "color_orange": "Pomarańczowy",
+      "color_yellow": "Żółty",
+      "color_green": "Zielony",
+      "color_cyan": "Cyjan",
+      "color_blue": "Niebieski",
+      "color_purple": "Fioletowy",
+      "color_pink": "Różowy"
     },
     "effects": {
       "effect": "Efekt",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Wybudź przy ruchu",
           "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
+        },
+        "tap_sound": {
+          "label": "Dźwięk dotyku",
+          "hint": "Krótkie tyknięcie, gdy ekran wykryje dotyk lub przycisk, zanim e-papier wydrukuje odpowiedź."
         },
         "backlight_pwm": {
           "label": "PWM podświetlenia",

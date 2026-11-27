@@ -20,7 +20,9 @@
 #include <cstdint>
 
 #include "level_bar.h"
+#include "still_glass.h"
 #include "lvgl.h"
+#include "screen_input.h"
 #include "theme.h"
 #include "ui_scale.h"
 
@@ -36,8 +38,11 @@ struct Level {
 };
 
 inline bool runs_back(lv_obj_t *s) { return lv_slider_get_min_value(s) > lv_slider_get_max_value(s); }
+// The ends the level counts between: the slider's own, without the stub its range keeps past them (level_bar.h).
+inline int low_of(lv_obj_t *s) { return level_bar::real_end(lv_slider_get_min_value(s), lv_slider_get_max_value(s)); }
+inline int high_of(lv_obj_t *s) { return level_bar::real_end(lv_slider_get_max_value(s), lv_slider_get_min_value(s)); }
 inline level_bar::Layout layout_of(lv_obj_t *s) {
-  const int count = level_bar::steps_for(lv_slider_get_min_value(s), lv_slider_get_max_value(s));
+  const int count = level_bar::steps_for(low_of(s), high_of(s));
   // A key a finger hits is 5 mm at least; the gap between two blocks reads at arm's length from about half a millimetre.
   return level_bar::layout(lv_obj_get_width(s), lv_obj_get_height(s), count, ui::mm(5), std::max(3, ui::px(5)));
 }
@@ -76,7 +81,7 @@ inline void level_changed(lv_event_t *e) {
   auto *s = static_cast<lv_obj_t *>(lv_event_get_target(e));
   auto *level = static_cast<Level *>(lv_event_get_user_data(e));
   if (!lv_indev_active()) return;  // set by the firmware, not by a finger
-  const int low = lv_slider_get_min_value(s), high = lv_slider_get_max_value(s);
+  const int low = low_of(s), high = high_of(s);
   const int count = level_bar::steps_for(low, high);
   const auto pick = picked(s);
   int32_t value = level->start;
@@ -102,7 +107,7 @@ inline void level_draw(lv_event_t *e) {
   const theme::LookOf look(s);
   const auto ink = lv_color_hex(theme::hex(theme::INK)), sheet = lv_color_hex(theme::hex(theme::CARD));
   const auto l = layout_of(s);
-  const int low = lv_slider_get_min_value(s), high = lv_slider_get_max_value(s);
+  const int low = low_of(s), high = high_of(s);
   const int filled = level_bar::level_of(lv_slider_get_value(s), low, high, l.count);
   lv_draw_rect_dsc_t box;
   lv_draw_rect_dsc_init(&box);
@@ -154,6 +159,9 @@ inline void dress_level(lv_obj_t *s) {
 // ---- the pass ----
 inline void dress(lv_obj_t *o) {
   if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;  // dressed when it shows
+  // A list that is let go stops where the finger left it: gliding on and springing back are a row of prints.
+  if (lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLL_MOMENTUM) || lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLL_ELASTIC))
+    lv_obj_remove_flag(o, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_ELASTIC));
   if (lv_obj_check_type(o, &lv_slider_class)) {
     if (!lv_obj_has_flag(o, DRESSED)) {
       lv_obj_add_flag(o, DRESSED);
@@ -182,6 +190,10 @@ inline void watch() {
   static bool watching = false;
   if (watching || !paper::is()) return;
   watching = true;
+  // A slider on a lit glass takes a finger let go near the glass's edge for its end, because a drag cannot reach it
+  // (screen_input::edge_snap). A level is not dragged, and its end near the edge is a key: with that rule a tap on
+  // minus or plus was the lowest or the highest (a reTerminal Sticky, 2026-11-27). So a still glass has no such band.
+  screen_input::edge_snap_band = 0;
   lv_display_add_event_cb(lv_display_get_default(), pass, LV_EVENT_REFR_START, nullptr);
 }
 

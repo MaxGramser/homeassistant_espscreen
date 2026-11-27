@@ -62,7 +62,10 @@ class ShowPage(unittest.TestCase):
         self.assertIn('open a page', claude_skill.DESCRIPTION)
         # claude.ai takes at most 200 characters, and the boards are the catalog's.
         self.assertLessEqual(len(claude_skill.DESCRIPTION), 200)
-        self.assertIn('CYD, Guition, Waveshare, Hosyond, Sunton, M5Stack Tab5, reTerminal D1001, CrowPanel, SenseCAP, Freenove and WT32', claude_skill.DESCRIPTION)
+        # A line of boards is named once: reTerminal for the D1001 and the Sticky (claude_skill._lines).
+        self.assertIn('CYD, Guition, Waveshare, Hosyond, Sunton, M5Stack Tab5, reTerminal, CrowPanel, SenseCAP, Freenove and WT32', claude_skill.DESCRIPTION)
+        self.assertEqual(claude_skill._lines(['CYD', 'reTerminal D1001', 'M5Stack Tab5', 'reTerminal Sticky']),
+                         ['CYD', 'reTerminal', 'M5Stack Tab5'])
         guide = (ROOT / 'README_EXTENDED.md').read_text(encoding='utf-8')
         self.assertIn('## Open a page from an automation', guide)
         self.assertIn(f'esphome.<screen>_show_page`** (firmware {SHOW_PAGE_MIN_FIRMWARE}+)', guide)

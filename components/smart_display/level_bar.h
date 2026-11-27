@@ -20,6 +20,19 @@ constexpr int steps_for(int low, int high) {
   return span >= 1 && span <= 12 ? span : MOST;
 }
 
+// A slider's range often reaches a little past its real ends: below nothing, so that the least fill is still a stub
+// to hold (-40 to 1000, or 1 less a few to 100), or past both ends of a blind. A level has no stub to draw, so it
+// counts between the real ends: nothing, and a hundred or a thousand. A short range (a fan's speeds from 1) is left
+// as it is.
+constexpr int real_end(int end, int other) {
+  const int span = end > other ? end - other : other - end;
+  if (span <= 12) return end;
+  if (end <= 1 && end > -(span / 4)) return 0;
+  if (end > 100 && end - 100 < span / 4 && other < 100) return 100;
+  if (end > 1000 && end - 1000 < span / 4 && other < 1000) return 1000;
+  return end;
+}
+
 struct Box {
   int x = 0, y = 0, w = 0, h = 0;
   constexpr bool has(int px, int py) const { return px >= x && px < x + w && py >= y && py < y + h; }

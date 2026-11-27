@@ -144,6 +144,13 @@ class Profiles(unittest.TestCase):
     def test_the_backlight_belongs_to_the_firmware(self):
         for name, text in self.profiles.items():
             light = item(section(text, 'light'), 'id', 'back_light')
+            # A glass of paper has no light of its own (packages/features/paper.yaml, in place of features/backlight.yaml):
+            # nothing for Home Assistant to fight over, and no output that would drive a backlight either.
+            if any(path.name == 'paper.yaml' for path in profiles.chain(profiles.BOARDS[name])):
+                self.assertEqual(light, '', f'{name}: a paper glass has no back_light')
+                code = '\n'.join(line for line in text.split('\n') if not line.lstrip().startswith('#'))
+                self.assertNotIn('gpio_backlight_pwm', code, f'{name}: a paper glass drives no backlight')
+                continue
             self.assertIn('internal: true', light, f'{name}: keep back_light internal, or Home Assistant fights standby over it')
 
 

@@ -90,37 +90,63 @@ constexpr uint16_t ink565(uint16_t pixel, int x, int y, uint8_t inks) {
   return grey565(grey(level(luma565(pixel), x, y, inks), inks));
 }
 
+// What a luma prints as wherever it stands, or BETWEEN for one that lies between two inks and so depends on its place
+// and on what is around it. Most of a page is paper and ink, so block() reads this once a pixel and looks no further.
+constexpr uint8_t BETWEEN = 0xFF;
+struct Plain {
+  uint8_t level[256];
+};
+constexpr Plain plain_of(uint8_t inks) {
+  Plain p{};
+  const unsigned steps = inks == 4 ? 3U : 1U;
+  for (unsigned l = 0; l < 256; ++l) {
+    const unsigned rest = (l * steps) % 255U;
+    p.level[l] = (l == 255 || rest <= NEAR || rest >= 255U - NEAR) ? level(static_cast<uint8_t>(l), 0, 0, inks) : BETWEEN;
+  }
+  return p;
+}
+inline constexpr Plain PLAIN2 = plain_of(2), PLAIN4 = plain_of(4);
+
 // A block of RGB565 pixels as LVGL flushes it: `total_rows` rows of `columns` pixels at `source`, whose rows are
 // `stride` pixels apart, with its first pixel at (x, y) on the glass. The rows from `first` on, `rows` of them, are
 // written tightly into `ink`; the rows around them are read for what lies beside a pixel. Two bytes a pixel, the high
 // byte first when `big_endian`, in and out alike.
+//
+// This runs over every pixel LVGL draws, a whole glass at a turn of a page (384 000 on a reTerminal Sticky, where the
+// first version took 280 ms of a turn and this one 93 ms, measured 2026-11-27). So a row is walked with one pointer,
+// and a pixel that is an ink, which most are, costs one look in a table.
 inline void block(const uint8_t *source, uint8_t *ink, int columns, int total_rows, int stride, int first, int rows,
                   int x, int y, bool big_endian, uint8_t inks) {
-  const auto luma_at = [&](int row, int column) {
-    const uint8_t *in = source + (static_cast<long>(row) * stride + column) * 2;
-    return luma565(big_endian ? static_cast<uint16_t>((in[0] << 8) | in[1]) : static_cast<uint16_t>((in[1] << 8) | in[0]));
+  const Plain &plain = inks == 4 ? PLAIN4 : PLAIN2;
+  const int high = big_endian ? 0 : 1, low = 1 - high;  // where a pixel's high and low byte lie
+  const auto luma_of = [high, low](const uint8_t *in) {
+    return luma565(static_cast<uint16_t>((in[high] << 8) | in[low]));
   };
-  const unsigned steps = inks == 4 ? 3U : 1U;
+  // Each level as the two bytes it is written as.
+  uint8_t bytes[4][2] = {};
+  for (uint8_t lvl = 0; lvl < (inks == 4 ? 4 : 2); ++lvl) {
+    const uint16_t out = grey565(grey(lvl, inks));
+    bytes[lvl][high] = static_cast<uint8_t>(out >> 8);
+    bytes[lvl][low] = static_cast<uint8_t>(out & 0xFF);
+  }
+  const long step = static_cast<long>(stride) * 2;
   for (int row = first; row < first + rows; ++row) {
-    for (int column = 0; column < columns; ++column, ink += 2) {
-      const uint8_t l = luma_at(row, column);
-      // How far from the ink under it, as level() counts: a pixel that is an ink needs no look around it.
-      const unsigned rest = (l * steps) % 255U;
-      uint8_t lvl;
-      if (l == 255 || rest <= NEAR || rest >= 255U - NEAR) {
-        lvl = level(l, x + column, y + row, inks);
-      } else {
+    const uint8_t *in = source + row * step;
+    for (int column = 0; column < columns; ++column, in += 2, ink += 2) {
+      const uint8_t l = luma_of(in);
+      uint8_t lvl = plain.level[l];
+      if (lvl == BETWEEN) {
+        // Between two inks: an edge prints as the nearer ink, an even stretch as its raster.
         uint8_t around[4];
         int count = 0;
-        if (column > 0) around[count++] = luma_at(row, column - 1);
-        if (column + 1 < columns) around[count++] = luma_at(row, column + 1);
-        if (row > 0) around[count++] = luma_at(row - 1, column);
-        if (row + 1 < total_rows) around[count++] = luma_at(row + 1, column);
+        if (column > 0) around[count++] = luma_of(in - 2);
+        if (column + 1 < columns) around[count++] = luma_of(in + 2);
+        if (row > 0) around[count++] = luma_of(in - step);
+        if (row + 1 < total_rows) around[count++] = luma_of(in + step);
         lvl = edge(l, around, count) ? nearest(l, inks) : level(l, x + column, y + row, inks);
       }
-      const uint16_t out = grey565(grey(lvl, inks));
-      ink[0] = static_cast<uint8_t>(big_endian ? out >> 8 : out & 0xFF);
-      ink[1] = static_cast<uint8_t>(big_endian ? out & 0xFF : out >> 8);
+      ink[0] = bytes[lvl][0];
+      ink[1] = bytes[lvl][1];
     }
   }
 }

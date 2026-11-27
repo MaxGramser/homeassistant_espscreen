@@ -54,6 +54,8 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "cover_paint.h"
 #include "alert_overlay.h"
 #include "screen_motion.h"
+#include "still_glass.h"
+#include "paper_screen.h"
 #include "theme.h"
 #include "tile_icon.h"
 #include "screen_settings.h"
@@ -456,6 +458,10 @@ inline const char *weather_icon(const std::string &condition);
 inline const char *weather_text(const std::string &condition);
 inline std::string timer_text(const Tile &t);
 inline std::string countdown(uint32_t seconds);
+// The seconds left of something, as this glass shows them: each one, or in the steps of a still glass (still_glass.h).
+inline uint32_t shown_left(uint32_t seconds) { return screen_motion::still() ? still_glass::counted(seconds) : seconds; }
+// How often a picture that is fetched again and again is fetched on this glass.
+inline uint32_t picture_pace(uint32_t every) { return every && screen_motion::still() ? still_glass::picture_every(every) : every; }
 // The alarm panel (firmware 0.3.3+), further down beside the other cards.
 inline void alarm_refused(const std::string &entity);
 inline void alarm_state_arrived(unsigned index, const std::string &before);
@@ -676,6 +682,7 @@ struct Widgets {
   // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
   // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
   uint8_t alarm_look=0; uint32_t alarm_mark=0;
+  uint32_t counted=0;  // what a still glass last showed of a time that counts down here (still_glass.h)
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -4071,6 +4078,9 @@ inline uint32_t prepare_built_at = 0, last_freshen = 0;
 inline void prepare_done() {
   const bool shown = preparing.foreground;
   preparing.active = preparing.foreground = false;
+  // A glass of ink printed nothing of the pages being built (prepare_start): the first page is one whole print.
+  paper::whole_next(esphome::millis());
+  paper::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);  // from now on: kept pages up to date, when idle
   ESP_LOGI("kept", "pages prepared: %u of %u, PSRAM free %u B", preparing.done, preparing.total, (unsigned) psram_free());
   // The render takes the "Preparing pages" screen away; the header alone, as nothing on the cards changed.
@@ -4115,6 +4125,8 @@ inline void prepare_start() {
   if (!room_label || applied_page < 0 || pages < 2 || !kept_capacity()) return;
   preparing.active = true;
   preparing.foreground = true;
+  // A glass of ink waits with printing until the pages stand (paper_print.h: a hold ends by itself after a while).
+  paper::hold(true, esphome::millis());
   preparing.done = 0;
   preparing.total = pages - 1;
   prepare_built_at = 0;
@@ -4127,6 +4139,7 @@ inline void prepare_start() {
 // Another layout is on its way: its pages are built once it is complete (prepare_start).
 inline void prepare_cancel() {
   preparing.active = preparing.foreground = false;
+  paper::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);
 }
 // The Page buttons setting changed (firmware 0.2.69+): the same page again, with the bar and the cards in their new places.
@@ -4244,7 +4257,7 @@ inline void tick() {
   // "This screen" on the settings page tells its network and links again every two seconds while it is open.
   if(settings_screen::root && settings_screen::current_page==4){
     static uint32_t told=0;
-    if(esphome::millis()-told>2000){told=esphome::millis();settings_screen::refresh();}
+    if(esphome::millis()-told>(screen_motion::still()?30000u:2000u)){told=esphome::millis();settings_screen::refresh();}
   }
   // The Wi-Fi item follows the signal (firmware 0.38.0) and the battery item its level and charging (firmware 0.41.0):
   // looked at every five seconds, drawn when what one of them says changes.
@@ -4302,14 +4315,24 @@ inline void tick() {
   uint32_t second=esphome::millis()/1000;
   if(second!=last_live_second){
     last_live_second=second;
+    // A still glass (docs/PAPER.md): what runs each second here runs each minute there, and a time that counts down
+    // is drawn when its step changes (still_glass.h), so a print keeps up with it.
+    const bool still=screen_motion::still();
+    const bool beat=!still||second%60==0;
+    const auto counts=[still](Widgets &w,uint32_t left){
+      if(!still)return true;
+      const uint32_t step=still_glass::counted(left);
+      if(step==w.counted)return false;
+      w.counted=step;return true;
+    };
     // Every plugin card on the glass counts on its own clock (docs/PLUGINS.md).
-    plugin_host::tick_cards(now_epoch());
+    if(beat)plugin_host::tick_cards(now_epoch());
     // The media card's bar runs on while the track plays (firmware 0.2.64+). A wait of its face that ran out paints the
     // card again (media_face_follow): a cover that waited for its colour long enough is asked for without it, and an old
     // cover whose next one did not come goes.
     if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_index<model.count && model.tiles[detail_index].domain()=="media_player"){
       if(media_face.recheck && static_cast<int32_t>(esphome::millis()-media_face.recheck)>=0){media_face.recheck=0;refresh_detail(detail_index);}
-      if(media_progress_fill && !media_seeking)media_bar_now(model.tiles[detail_index]);
+      if(media_progress_fill && !media_seeking && beat)media_bar_now(model.tiles[detail_index]);
     }
     auto now=now_time?now_time():esphome::ESPTime{};
     int minute=now.is_valid()?now.day_of_year*1440+now.hour*60+now.minute:-1;
@@ -4318,14 +4341,14 @@ inline void tick() {
     for(size_t slot=0;slot<grid.slots();++slot){
       auto &w=widgets[slot];if(!w.tile || w.index>=model.count || lv_obj_has_flag(w.tile,LV_OBJ_FLAG_HIDDEN))continue;
       const auto &t=model.tiles[w.index];
-      if(((t.is_clock() || t.is_bedside() || t.domain()=="calendar") && new_minute) || (t.domain()=="timer" && t.state=="active") || (t.domain()=="sun" && second%60==0))card(w.index);
+      if(((t.is_clock() || t.is_bedside() || t.domain()=="calendar") && new_minute) || (t.domain()=="timer" && t.state=="active" && counts(w,timer_left(t.extra().timer_end,now_epoch(),t.extra().duration))) || (t.domain()=="sun" && second%60==0))card(w.index);
       // An alarm's delay counts down on its tile; its heartbeat stops while the screen sleeps and starts when it wakes.
-      if(t.domain()=="alarm_control_panel"){if(alarm_left(t))card(w.index);alarm_tile_look(slot,&t);}
+      if(t.domain()=="alarm_control_panel"){if(const uint32_t left=alarm_left(t);left&&counts(w,left))card(w.index);alarm_tile_look(slot,&t);}
       if(t.domain()=="lock")alarm_tile_look(slot,&t);
       // A favourite whose start never came stops saying it starts (firmware 0.24.0+).
       if(t.favorite()&&w.index<TILES_MAX&&favorite_started_at[w.index]&&!favorite_starting(w.index,t))card(w.index);
       // A media tile over the whole page: its bar runs on while the track plays (firmware 0.2.64+).
-      if(w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN) && media_card::has_track(t.state))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
+      if(beat && w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN) && media_card::has_track(t.state))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
       // A cover kept while the next one was on its way, whose wait ran out: the card draws itself again without it. A
       // stream that just became one (media_live) draws it again with "Live".
       if(w.extra_mode=="media" && ((w.cover_hold && static_cast<int32_t>(esphome::millis()-w.cover_hold)>=0) || media_live(t)!=w.media_live))refresh_tile(w.index, redraw_log::TileWhy::picture);
@@ -4334,7 +4357,7 @@ inline void tick() {
       // belong to the card drawn before (a forecast's hour labels take part 18 too), until the fill draws the dial.
       // A single dial is drawn as "calendar", a wide or full one as "analog"; firmware 0.2.62-0.2.64 moved only the
       // latter, so the hand of a single clock stood still (0.2.65). Part 18 must be the hand's own line either way.
-      else if(w.parts[18] && lv_obj_check_type(w.parts[18],&lv_line_class) && w.points &&
+      else if(!still && w.parts[18] && lv_obj_check_type(w.parts[18],&lv_line_class) && w.points &&
               (((w.extra_mode=="analog" || w.extra_mode=="calendar") && t.display=="analog") || (w.extra_mode=="calm" && t.display=="dial")) && t.is_clock())second_hand(w,now);
     }
   }
@@ -4343,6 +4366,8 @@ inline void tick() {
 // A change of look (Dark mode). The paints follow by themselves (theme::set_dark); what the tiles, the top bar and an
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
+  // On a glass of ink the whole look changed: one whole print, which leaves no trace of the other look.
+  paper::whole_next(esphome::millis());
   each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
@@ -4398,7 +4423,7 @@ inline int glow_peak() { return theme::dark ? 150 : 255; }
 // slow enough on the way out to read as the page coming in rather than a blink.
 constexpr int GLOW_HOLD_MS = 90, GLOW_MS = 420;
 inline void swipe_glow(Edge edge) {
-  if (!room_label) return;
+  if (!room_label || screen_motion::still()) return;
   auto *page = lv_obj_get_parent(room_label);
   // The page's own glass, the way the top bar measures it, not the display: a screen that was turned, or built
   // standing up, then lights the edge the finger really came from.

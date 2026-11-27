@@ -162,6 +162,7 @@
       "media_player": "Volumen",
       "volume": "Volumen",
       "wake_when_moved": "Despertar al moverlo",
+      "tap_sound": "Sonido al tocar",
       "backlight_pwm": "PWM de retroiluminación",
       "dimmest_level": "Nivel mínimo",
       "dark_mode": "Modo oscuro",
@@ -238,7 +239,18 @@
       "color_temperature": "Temperatura del color",
       "brightness": "Brillo",
       "waiting": "Esperando...",
-      "presets": "Ajustes"
+      "presets": "Ajustes",
+      "shade_warm": "Cálido",
+      "shade_neutral": "Neutro",
+      "shade_cool": "Frío",
+      "color_red": "Rojo",
+      "color_orange": "Naranja",
+      "color_yellow": "Amarillo",
+      "color_green": "Verde",
+      "color_cyan": "Cian",
+      "color_blue": "Azul",
+      "color_purple": "Morado",
+      "color_pink": "Rosa"
     },
     "effects": {
       "effect": "Efecto",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Despertar al moverlo",
           "hint": "La pantalla sale del modo de espera cuando alguien la coge, la mueve o la golpea. Siente la propia pantalla, no a alguien que pasa."
+        },
+        "tap_sound": {
+          "label": "Sonido al tocar",
+          "hint": "Un breve tic en cuanto la pantalla detecta un toque o una tecla, antes de que el papel electrónico haya impreso la respuesta."
         },
         "backlight_pwm": {
           "label": "PWM de retroiluminación",

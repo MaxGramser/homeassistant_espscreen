@@ -52,8 +52,16 @@ def _grids():
     return '; '.join(f'{columns} × {rows} on {_and(boards)}' for (columns, rows), boards in grids.items())
 
 NAMES = list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS))
-# The words after the boards are few, so the catalog's names have the room: each maker a new board brings adds its name.
-DESCRIPTION = f'ESP Screens ({_and(NAMES)}) in Home Assistant: order tiles, show alerts, open a page, keep awake.'
+
+def _lines(names):
+    """The names with a maker's line of boards said once, by the word their names start with: 'reTerminal' for the
+    reTerminal D1001 and the reTerminal Sticky. A name that starts like no other stays whole (M5Stack Tab5)."""
+    first = [name.split()[0] for name in names]
+    return list(dict.fromkeys(name if first.count(name.split()[0]) == 1 else name.split()[0] for name in names))
+
+# The words after the boards are few, so the catalog's names have the room: each maker a new board brings adds its name,
+# and a second board of a line it already names adds nothing (_lines).
+DESCRIPTION = f'ESP Screens ({_and(_lines(NAMES))}) in Home Assistant: order tiles, show alerts, open a page, keep awake.'
 TYPES = {'string': 'text', 'int': 'number', 'bool': 'on/off'}
 
 def skill_dir(config=None):

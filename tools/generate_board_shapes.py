@@ -59,6 +59,13 @@ def orientations(values):
                          'min': list(least), 'max': [int(values['GRID_MAX_COLUMNS_PORTRAIT']), int(values['GRID_MAX_ROWS_PORTRAIT'])]}}
 
 
+def esphome_floor(paths):
+    """The newest `esphome: min_version` the files of a board state, as "2026.11.0"."""
+    found = [tuple(map(int, match.groups())) for path in paths
+             for match in re.finditer(r'(?m)^  min_version: (\d+)\.(\d+)\.(\d+)', path.read_text())]
+    return '.'.join(map(str, max(found))) if found else ''
+
+
 def section_metrics(values):
     """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
     its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
@@ -219,6 +226,12 @@ def shapes():
                  # board out when it switches on again, so that board has no standby and no night, and the settings
                  # panel leaves those out as the screen itself does.
                  'can_standby': values.get('CAN_STANDBY', 'true').strip('"') != 'false',
+                 # The inks of a glass that prints (docs/PAPER.md): 0 for a glass that is lit, 2 for black and
+                 # white, 4 for four greys. A glass of ink has no light, so no brightness, dark look or night.
+                 'inks': int(str(values.get('PAPER_INKS', '0')).strip('"') or 0),
+                 # The oldest ESPHome that builds it: the newest `min_version` of its files and the core's. New screen
+                 # leaves out a board the app's own ESPHome is too old for (firmware.offered).
+                 'esphome': esphome_floor([*profiles.chain(profiles.BOARDS[board]), profiles.CORE]),
                  # The alert card's two line heights (firmware 0.2.103+): with the canvas, the density and the look they
                  # are what screen_alert::layout needs to size an alert's picture (picture_question.alert_box).
                  'alert': alert_lines(values),

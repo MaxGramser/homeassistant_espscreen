@@ -2,7 +2,8 @@
 #
 # A glass of e-paper shows a tap a part of a second later, so the board says at once that it was heard: a short tick
 # the moment a finger lands on something that takes it, or a key is pressed (touch_feedback.h says when, as it does for
-# a plugin). The switch Tap sound turns it off, in Home Assistant and under the screen's Extras.
+# a plugin). The switch Tap sound turns it off, in Home Assistant and, where the board lists `tap_sound` in its
+# boards.yaml `settings` and pushes its row (docs/SETTINGS.md, "A board's own settings"), under the screen's Extras.
 #
 # The board file names the pin: BUZZER_PIN.
 #

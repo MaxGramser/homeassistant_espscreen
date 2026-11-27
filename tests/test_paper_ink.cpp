@@ -151,6 +151,52 @@ static void an_edge_is_not_rastered() {
   assert(levels[1] == 1);
 }
 
+// The block walks its rows with a pointer and reads a table for a pixel that is an ink. Whatever it does to be quick,
+// each pixel prints as the rules say: an ink stays it, an edge is the nearer ink, an even stretch its raster.
+static void a_block_is_every_pixel_by_the_rules() {
+  const int columns = 13, rows = 9, stride = 17, at_x = 5, at_y = 3;
+  uint32_t seed = 12345;
+  const auto next = [&seed]() { seed = seed * 1664525u + 1013904223u; return seed >> 8; };
+  for (uint8_t inks : {uint8_t(2), uint8_t(4)})
+    for (bool big : {true, false})
+      for (int round = 0; round < 40; ++round) {
+        uint16_t pixels[rows][stride];
+        uint8_t source[rows * stride * 2], ink[rows * columns * 2];
+        for (int r = 0; r < rows; ++r)
+          for (int c = 0; c < stride; ++c) {
+            // Mostly greys, with paper and ink between them, as a page has.
+            const uint32_t pick = next();
+            const uint8_t g = pick % 5 == 0 ? 0 : pick % 5 == 1 ? 255 : static_cast<uint8_t>(next());
+            pixels[r][c] = grey565(g);
+            source[(r * stride + c) * 2] = static_cast<uint8_t>(big ? pixels[r][c] >> 8 : pixels[r][c] & 0xFF);
+            source[(r * stride + c) * 2 + 1] = static_cast<uint8_t>(big ? pixels[r][c] & 0xFF : pixels[r][c] >> 8);
+          }
+        // The middle rows alone, as a band of a flush is: the rows around them are still read.
+        const int first = 2, count = 5;
+        block(source, ink, columns, rows, stride, first, count, at_x, at_y, big, inks);
+        for (int r = first; r < first + count; ++r)
+          for (int c = 0; c < columns; ++c) {
+            const uint8_t l = luma565(pixels[r][c]);
+            const unsigned rest = (l * (inks == 4 ? 3U : 1U)) % 255U;
+            uint8_t want;
+            if (l == 255 || rest <= NEAR || rest >= 255U - NEAR) {
+              want = level(l, at_x + c, at_y + r, inks);
+            } else {
+              uint8_t around[4];
+              int n = 0;
+              if (c > 0) around[n++] = luma565(pixels[r][c - 1]);
+              if (c + 1 < columns) around[n++] = luma565(pixels[r][c + 1]);
+              if (r > 0) around[n++] = luma565(pixels[r - 1][c]);
+              if (r + 1 < rows) around[n++] = luma565(pixels[r + 1][c]);
+              want = edge(l, around, n) ? nearest(l, inks) : level(l, at_x + c, at_y + r, inks);
+            }
+            const uint8_t *o = ink + ((r - first) * columns + c) * 2;
+            const uint16_t got = big ? static_cast<uint16_t>((o[0] << 8) | o[1]) : static_cast<uint16_t>((o[1] << 8) | o[0]);
+            assert(got == grey565(grey(want, inks)));
+          }
+      }
+}
+
 int main() {
   an_ink_stays_an_ink();
   a_grey_is_its_share_of_dots();
@@ -158,6 +204,7 @@ int main() {
   the_driver_reads_the_same_ink();
   a_block_as_lvgl_flushes_it();
   an_edge_is_not_rastered();
+  a_block_is_every_pixel_by_the_rules();
   std::puts("paper_ink: ok");
   return 0;
 }

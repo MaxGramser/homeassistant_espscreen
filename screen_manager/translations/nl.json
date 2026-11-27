@@ -162,6 +162,7 @@
       "media_player": "Volume",
       "volume": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "tap_sound": "Tikgeluid",
       "backlight_pwm": "Achtergrondlicht-PWM",
       "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
@@ -238,7 +239,18 @@
       "color_temperature": "Kleurtemperatuur",
       "brightness": "Helderheid",
       "waiting": "Wachten...",
-      "presets": "Presets"
+      "presets": "Presets",
+      "shade_warm": "Warm",
+      "shade_neutral": "Neutraal",
+      "shade_cool": "Koel",
+      "color_red": "Rood",
+      "color_orange": "Oranje",
+      "color_yellow": "Geel",
+      "color_green": "Groen",
+      "color_cyan": "Cyaan",
+      "color_blue": "Blauw",
+      "color_purple": "Paars",
+      "color_pink": "Roze"
     },
     "effects": {
       "effect": "Effect",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
+        },
+        "tap_sound": {
+          "label": "Tikgeluid",
+          "hint": "Een korte tik zodra het scherm een aanraking of toets hoort, nog voor het e-paper het antwoord heeft gedrukt."
         },
         "backlight_pwm": {
           "label": "Achtergrondlicht-PWM",

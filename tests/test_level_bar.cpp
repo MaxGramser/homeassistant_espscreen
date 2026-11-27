@@ -15,6 +15,18 @@ static void the_blocks_of_a_range() {
   assert(steps_for(5, 5) == 10);
 }
 
+static void a_range_and_its_real_ends() {
+  // A tile's slider keeps a stub below nothing; a level counts from nothing, in whole tenths.
+  assert(real_end(-40, 1000) == 0 && real_end(1000, -40) == 1000);
+  assert(real_end(-7, 100) == 0 && real_end(1, 100) == 0 && real_end(100, 1) == 100);
+  // A blind's reaches past both ends, and may count down.
+  assert(real_end(-30, 1030) == 0 && real_end(1030, -30) == 1000);
+  // A range that means what it says stays: a white shade in kelvin, a hue, a fan's four speeds from 1.
+  assert(real_end(2000, 6500) == 2000 && real_end(6500, 2000) == 6500 && real_end(360, 0) == 360);
+  assert(real_end(1, 4) == 1 && real_end(1, 13) == 1 && real_end(0, 255) == 0 && real_end(255, 0) == 255);
+  assert(value_of(4, real_end(-40, 1000), real_end(1000, -40), 10) == 400);
+}
+
 static void a_card_has_keys_and_a_tile_has_not() {
   // A card's level, 600 x 72 on a glass whose finger needs 64: a key at each end as wide as it is high, ten blocks between.
   const Layout card = layout(600, 72, 10, 64, 6);
@@ -92,6 +104,7 @@ static void a_key_takes_one_step() {
 
 int main() {
   the_blocks_of_a_range();
+  a_range_and_its_real_ends();
   a_card_has_keys_and_a_tile_has_not();
   a_tap_picks();
   a_value_and_its_blocks();

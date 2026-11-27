@@ -53,6 +53,7 @@ class PaperGlass : public display::Display {
   uint8_t *band_{};          // a few rows of ink, between LVGL's pixels and the driver
   size_t band_pixels_{};     // how many pixels the band holds
   uint32_t drawn_pixels_{};  // pixels flushed since the last update()
+  uint32_t ink_us_{}, driver_us_{};  // what they took: as ink, and into the driver's buffer
   uint8_t inks_{2};
   bool partial_{true};
   bool printing_{};

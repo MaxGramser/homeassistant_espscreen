@@ -2182,7 +2182,7 @@ void slide_pictures(int dx, uint32_t ms) {
     lv_anim_set_duration(&a, ms);
     lv_anim_set_exec_cb(&a, slide_exec);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_start(&a);
+    screen_motion::start(&a);
   }
 }
 
@@ -2275,7 +2275,7 @@ void animate(lv_obj_t *part, Motion motion, uint32_t period_ms, uint32_t delay_m
       lv_obj_set_style_opa(part, LV_OPA_TRANSP, 0);
       break;
   }
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 
 void set_picture(lv_obj_t *place, const std::string &url, Fit fit, Turn turn, bool mirror) {

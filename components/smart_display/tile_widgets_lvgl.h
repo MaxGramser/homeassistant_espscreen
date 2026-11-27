@@ -155,7 +155,8 @@ inline PressStyles &press_styles() {
   static bool ready = false;
   if (!ready) {
     static const lv_style_prop_t props[] = {LV_STYLE_BG_COLOR, LV_STYLE_BG_OPA, LV_STYLE_PROP_INV};
-    lv_style_transition_dsc_init(&s.release, props, lv_anim_path_ease_out, PRESS_FADE_MS, 0, nullptr);
+    // A still glass has no fade: the card is its own colour again at once, and that is one print.
+    lv_style_transition_dsc_init(&s.release, props, lv_anim_path_ease_out, screen_motion::still() ? 0 : PRESS_FADE_MS, 0, nullptr);
     lv_style_transition_dsc_init(&s.at_once, props, lv_anim_path_linear, 0, 0, nullptr);
     lv_style_init(&s.fade);
     lv_style_set_transition(&s.fade, &s.release);

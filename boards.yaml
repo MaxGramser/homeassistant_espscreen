@@ -244,7 +244,7 @@ reterminalsticky:
   # project on its own unit with the SSD1677 panel; Seeed also ships the board with an SSD2677, which ESPHome does not
   # drive yet.
   # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
-  settings: [wake_when_moved]
+  settings: [wake_when_moved, tap_sound]
 
 freenovefnk0104s:
   file: freenove-fnk0104s.yaml

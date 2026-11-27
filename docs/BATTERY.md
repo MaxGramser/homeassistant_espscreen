@@ -45,6 +45,41 @@ Power chips such as the AXP2101 of the M5Stack Core2 v1.1 and CoreS3 come as com
 charging flag of their own: give the level `device_class: battery` and, when the charging flag is a binary sensor,
 `device_class: battery_charging`.
 
+### A fuel gauge that counts the charge
+
+A fuel gauge such as TI's BQ27220 sits in the battery's path and counts what flows in and out, so its level does not
+jump with the load or with the charger as a level from the voltage does. ESPHome has it as `bq27220` from 2026.11.0, on
+the I2C bus, and its level is in the `battery` device class by itself. The reTerminal Sticky reads its battery this
+way (docs/RETERMINAL_STICKY.md):
+
+```yaml
+sensor:
+  - platform: bq27220
+    i2c_id: board_bus
+    update_interval: 30s
+    battery_level:
+      id: screen_battery_level
+      name: "Battery Level"
+      device_class: battery
+      state_class: measurement
+      unit_of_measurement: "%"
+    voltage:
+      id: screen_battery_voltage
+      name: "Battery Voltage"
+      entity_category: diagnostic
+    current:
+      id: screen_battery_current
+      name: "Battery Current"
+      entity_category: diagnostic
+```
+
+ESPHome gives the level its class, its state class and its unit by itself. The board file states the three all the
+same, as every board's battery does, because the tools that read board files look for those lines (`boards.json`
+`battery`, which lets the app offer the top bar's battery item before the screen has connected).
+
+Whether the battery charges follows from the same gauge: its current is positive while the battery takes charge,
+which is the third way under "Whether it charges" below.
+
 ### A voltage and a formula
 
 Many boards put the battery on an ADC pin through a voltage divider of two resistors, because a pin takes at most about
@@ -122,6 +157,19 @@ binary_sensor:
       lower: 0.02   # and back under this: not charging
 ```
 
+  or with a template on a fuel gauge's current, as the reTerminal Sticky does: charging while more than 20 mA flows
+  into the battery, and unknown until the gauge has answered:
+
+```yaml
+binary_sensor:
+  - platform: template
+    name: "Battery Charging"
+    device_class: battery_charging
+    lambda: |-
+      if (isnan(id(screen_battery_current).state)) return {};
+      return id(screen_battery_current).state > 0.02f;
+```
+
 ## A battery on a screen of your own
 
 A screen from Tessera Screen Manager takes extra hardware in its **Override YAML** (More → Override YAML), which may not
@@ -177,6 +225,19 @@ The charger only works when the firmware enables it: M5Stack's documentation say
 started. The board file switches it on at boot, together with quick charge and the Wi-Fi chip's power, on the second
 I/O expander (docs/TAB5.md).
 
+## The Seeed reTerminal Sticky
+
+The Sticky runs on a 750 mAh lithium cell with two chips of TI's beside it: a BQ25616 charger and a BQ27220 fuel
+gauge on the board's I2C bus. Its board file reads the gauge every 30 seconds:
+
+- **Battery Level** is the gauge's own level, which the top bar shows;
+- **Battery Voltage** and **Battery Current** are diagnostic sensors; the current is positive while the cell charges;
+- **Battery Charging** is on while more than 20 mA flows into the cell.
+
+The charger charges while its enable line is low, and the board file holds it there. On its battery the board stays on
+only while two lines of its power latch are high, which the board file sets before anything else
+(docs/RETERMINAL_STICKY.md).
+
 ## A dark screen saves power
 
 Every screen, with a battery or not, saves what it can while its glass is dark: in standby or after Sleep, at a
@@ -191,6 +252,10 @@ brightness of 0 (`components/smart_display/screen_power.h`). Two seconds after t
 A touch on the dark glass resumes drawing at once and wakes the screen as before; the light fades in over 200 ms. A
 standby or night brightness above 0 keeps the screen drawing, since its glass still shows something. The log says
 when the saving starts (`dark: saving`) and stops (`awake`), under the tag `power`.
+
+A screen whose glass is e-paper has no dark: its standby is rest, with the page still on the glass (docs/PAPER.md,
+"Standby is rest"). Its Wi-Fi dozes at rest in the same way, and its drawing does not pause, so the page keeps
+following Home Assistant.
 
 ## Places a change touches
 

@@ -162,6 +162,7 @@
       "media_player": "Volume",
       "volume": "Volume",
       "wake_when_moved": "Wake when moved",
+      "tap_sound": "Tap sound",
       "backlight_pwm": "Backlight PWM",
       "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
@@ -238,7 +239,18 @@
       "color_temperature": "Color temperature",
       "brightness": "Brightness",
       "waiting": "Waiting...",
-      "presets": "Presets"
+      "presets": "Presets",
+      "shade_warm": "Warm",
+      "shade_neutral": "Neutral",
+      "shade_cool": "Cool",
+      "color_red": "Red",
+      "color_orange": "Orange",
+      "color_yellow": "Yellow",
+      "color_green": "Green",
+      "color_cyan": "Cyan",
+      "color_blue": "Blue",
+      "color_purple": "Purple",
+      "color_pink": "Pink"
     },
     "effects": {
       "effect": "Effect",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "tap_sound": {
+          "label": "Tap sound",
+          "hint": "A short tick the moment the screen hears a tap or a key, before its e-paper has printed the answer."
         },
         "backlight_pwm": {
           "label": "Backlight PWM",

@@ -149,12 +149,12 @@ inline void lock_card_ring(const Tile &t,int cx,int cy,int size,int width){
     lv_arc_set_angles(arc,0,0);
     lv_anim_set_values(&a,0,360);lv_anim_set_duration(&a,500);lv_anim_set_exec_cb(&a,alarm_ring_close);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
     lv_anim_set_completed_cb(&a,[](lv_anim_t *done){lv_obj_add_flag(static_cast<lv_obj_t *>(done->var),LV_OBJ_FLAG_HIDDEN);});
-    lv_anim_start(&a);
+    screen_motion::start(&a);
     return;
   }
   lv_arc_set_angles(arc,0,70);
   lv_anim_set_values(&a,270,630);lv_anim_set_duration(&a,1600);lv_anim_set_exec_cb(&a,alarm_ring_turn);
-  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);lv_anim_start(&a);
+  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);screen_motion::start(&a);
   lock_ring=arc;
 #else
   (void)t;(void)cx;(void)cy;(void)size;(void)width;

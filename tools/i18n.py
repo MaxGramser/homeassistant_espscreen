@@ -223,6 +223,7 @@ LINT_KEEP = {
     # Who woke the screen or sent it to standby, in the log (packages/core.yaml, wake_from's and standby_by_hand's source),
     # and the log lines the standby writes with them (screen_standby.h, through the glass's say()).
     'Home Assistant', "Home Assistant's Sleep", "the board's key", 'the home key held', "Home Assistant's Motion", 'the board moved',
+    'a key of the board',
     'Wake from %s held: standby by hand, waiting for %u s without movement', 'Wake from %s, screen %s', 'in standby',
     'Standby from %s ignored: touch calibration is running', 'Standby from %s',
     # An alert's log line on a board without a backlight to blink (alert_life.h, through the glass's say()).
@@ -249,7 +250,7 @@ LINT_KEEP = {
     'Lamp', 'Plug', 'Evening', 'All off', 'AC', 'Vacuum', 'Tile 7', 'Tile 8', 'Tile 9', 'Tile 10', 'Light', 'Light Color',
     'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 4.3', 'My Guition 5', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 5', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4.3C', 'My Waveshare 4B', 'My Waveshare P4', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7', 'My reTerminal D1001', 'My CrowPanel 10',
     'My Waveshare 4', 'My SenseCAP Indicator', 'My Freenove 4', 'My WT32-SC01 Plus', 'My Waveshare P4 7B',
-    'My Waveshare P4 7', 'My Waveshare 10', 'My Waveshare 10 V3',
+    'My Waveshare P4 7', 'My Waveshare 10', 'My Waveshare 10 V3', 'My reTerminal Sticky',
 }
 LINT_FILES = ('components/smart_display/*.h', 'packages/core.yaml', 'packages/boards/*.yaml', 'packages/looks/*.yaml',
               'packages/features/*.yaml', 'packages/hardware/*.yaml')

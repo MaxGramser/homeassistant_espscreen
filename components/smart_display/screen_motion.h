@@ -28,6 +28,31 @@ namespace screen_motion {
 // The rule, in one place.
 inline bool able() { return hw::caps().motion; }
 
+// ---- A still glass ----
+// The other end of the same rule (hw.h, docs/PAPER.md "A still glass"): a glass of ink prints, and a print takes a
+// part of a second, so nothing on it moves. Whoever draws again by itself, once a second or once a frame, asks still()
+// and does it at a pace a print keeps up with (still_glass.h) or not at all.
+inline bool still() { return hw::caps().still; }
+// An animation, started the way this glass does it: LVGL's own on a glass that is lit. On a still glass it does not
+// run: what would run for ever (a heartbeat, a ring that turns) is left standing as it was made, and what would end
+// stands at its end at once, with its last call made, so whatever the end hides or opens still happens. An animation
+// that keeps time for something (a key held long enough) is not motion and is started with LVGL's own call.
+inline void start(lv_anim_t *a) {
+  if (!still()) {
+    lv_anim_start(a);
+    return;
+  }
+  if (a->repeat_cnt == LV_ANIM_REPEAT_INFINITE) return;
+  // One that goes there and back rests where it began.
+  const int32_t rest = a->reverse_duration ? a->start_value : a->end_value;
+  if (a->exec_cb) {
+    lv_anim_delete(a->var, a->exec_cb);
+    a->exec_cb(a->var, rest);
+  }
+  if (a->custom_exec_cb) a->custom_exec_cb(a, rest);
+  if (a->completed_cb) a->completed_cb(a);
+}
+
 // ---- An overlay over a dimmed page ----
 // What LVGL is told while the pixels already show it: it draws nothing for this, and whatever changes later is drawn
 // under the dim as it should be.

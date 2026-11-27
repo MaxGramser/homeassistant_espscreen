@@ -28,6 +28,17 @@ the rule from its hardware, with no line in its board file.
 | `screen_motion::show(over, card)`, `screen_motion::hide(over, card)` | LVGL finishes what it still had to draw, the card is drawn first and whole, then the page dims around it on the glass itself; the way back in the same order | LVGL shows or hides `over` |
 | `screen_motion::dim(over, opa, keep, on)` | The dim alone, all of the glass but `keep`, for an overlay that moves its own part; the caller tells LVGL inside `screen_motion::quietly` | Returns false; the caller sets the style |
 | `screen_motion::settle(obj, set, from, to, speed, full, shortest, longest)` | What a finger let go travels on at the finger's speed and comes to rest | The same: it is plain LVGL |
+| `screen_motion::start(anim)` | LVGL's own `lv_anim_start` | The same, except on a still glass (below) |
+
+## A still glass
+
+The other end of the same rule: a glass of ink prints, and a print takes a part of a second, so nothing on it moves
+(`hw::caps().still`, docs/PAPER.md, "A still glass"). `screen_motion::still()` is where the firmware asks.
+`screen_motion::start()` starts an animation the way the glass does it: on a still glass one that would run for ever
+is left standing as it was made, one that would end stands at its end at once with its last call made, and one that
+goes there and back rests where it began. An animation that keeps time for something, such as a key held long enough,
+is not motion and keeps LVGL's own call. Whoever draws again by itself, once a frame or once a second, asks `still()`
+and does it at a pace a print keeps up with (`still_glass.h`) or not at all.
 
 ## What each block rests on
 

@@ -2,6 +2,8 @@
 section whose tiles follow its contrast is painted in the other look, and a draw callback runs outside every paint of
 ours, so each one that draws on a grid tile opens the card's scope on its own object (CardScope(obj), or
 theme::LookScope where only theme.h is known). Without it a meter's value stood light on a light card (2026-11-15).
+A widget that stands anywhere (a slider's still form on paper, still_glass_lvgl.h) opens theme::LookOf on its object:
+the card's look in a card that carries the other one, and the look painted now anywhere else.
 
 A new draw callback either opens the scope in its first lines or is named below with the reason it needs none."""
 from pathlib import Path
@@ -10,7 +12,7 @@ import unittest
 
 COMPONENT = Path(__file__).resolve().parents[1] / 'components/smart_display'
 CALL = 'lv_obj_add_event_cb('
-SCOPE = re.compile(r'\b(CardScope|LookScope)\b')
+SCOPE = re.compile(r'\b(CardScope|LookScope|LookOf)\b')
 
 # A registration whose callback is a parameter: the functions handed in there, each checked like any other.
 HANDED_IN = {
@@ -137,12 +139,18 @@ class CardLook(unittest.TestCase):
             if line.startswith('}') or (start and line.rstrip().endswith('}')):
                 owner = None  # the end of a block at the left margin, or of a one-line one
         self.assertEqual(writers, {'LookScope', 'LookOf', 'set_dark', 'TestLook'})
-        # And no new way in: Looks' friends are exactly those four.
+        # And no new way in: Looks' friends are exactly those four, and set_paper(), which says what the glass is
+        # (Looks::paper_, once at boot) and writes nothing of the look: its whole body is that one assignment, and
+        # nothing else in theme.h assigns it.
         looks = re.search(r'^class Looks \{\n(.*?)^\};', theme, re.S | re.M)
         self.assertIsNotNone(looks, 'theme.h keeps the looks in class Looks')
         friends = re.findall(r'\bfriend\s+(?:struct|class)?\s*(?:void\s+)?(\w+)', looks.group(1))
-        self.assertEqual(sorted(friends), sorted(['LookScope', 'LookOf', 'set_dark', 'TestLook']),
+        self.assertEqual(sorted(friends), sorted(['LookScope', 'LookOf', 'set_dark', 'TestLook', 'set_paper']),
                          'only the scopes, set_dark() and the test write the look (theme.h, Looks)')
+        self.assertIn('inline void set_paper(bool on) { Looks::paper_ = on; }', theme,
+                      'set_paper() says what the glass is and nothing else: it is a friend of Looks')
+        self.assertEqual(len(re.findall(r'\bpaper_\s*=(?!=)', '\n'.join(line.split('//')[0] for line in theme.splitlines()))), 2,
+                         'the glass is said where Looks declares it (false) and in set_paper(), nowhere else')
 
     def test_the_card_carries_its_look_for_what_lvgl_draws(self):
         sections = (COMPONENT / 'module_sections.h').read_text()

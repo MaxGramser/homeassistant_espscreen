@@ -23,7 +23,8 @@ inline void second_hand(Widgets &w,const esphome::ESPTime &now) {
   w.points[28]={(lv_value_precise_t)(w.hand_cx-w.hand_r*0.2f*sinf(a)),(lv_value_precise_t)(w.hand_cy+w.hand_r*0.2f*cosf(a))};
   w.points[29]={(lv_value_precise_t)(w.hand_cx+w.hand_r*0.92f*sinf(a)),(lv_value_precise_t)(w.hand_cy-w.hand_r*0.92f*cosf(a))};
   auto *p=part_line(w,18,w.points+28,2,w.hand_width);
-  set_hidden(p,!(awake() && now.is_valid()));
+  // A hand that steps each second is not for a still glass: its line is made, and stays hidden.
+  set_hidden(p,!(awake() && now.is_valid() && !screen_motion::still()));
 }
 // ---- Clock faces beside the digital clock and the classic dial (firmware 0.3.6+) ----
 // "dial": a calm face, a filled disc with four strokes and eight dots and no numerals, so it reads at any size.

@@ -38,7 +38,7 @@ inline void saver_motion_place(uint32_t now) {
 }
 inline void saver_motion_start(const lv_image_dsc_t *src) {
   const int width = overlay_card::screen_width(), height = overlay_card::screen_height();
-  saver_motion = saver_now.kind == "photos" && saver_now.motion && src
+  saver_motion = saver_now.kind == "photos" && saver_now.motion && src && !screen_motion::still()
                      ? picture_motion::path(src->header.w, src->header.h, width, height, saver_now.picture)
                      : picture_motion::Path{};
   saver_motion_shown = {-1, -1};
@@ -213,7 +213,7 @@ inline void camera_want() {
   w.slot = picture_loader::Slot::FULL;
   w.rank = picture_loader::Rank::VIEW;
   // A camera at its pace, the screensaver's cover once; a map is drawn by the app, so it is always there to be had.
-  w.every = camera.once ? 0 : camera.every;
+  w.every = camera.once ? 0 : picture_pace(camera.every);
   w.drawn = camera_map_index >= 0;
   const std::string entity = camera.entity;
   w.ask = [entity] { camera_request(entity); };
@@ -259,7 +259,7 @@ inline void tile_picture_want(Widgets &w, bool glass) {
   want.tag = tile_picture::tag(a.index);
   want.slot = picture_loader::Slot::LIVE;
   want.rank = glass ? picture_loader::Rank::PAGE : picture_loader::Rank::AHEAD;
-  want.every = glass ? a.every : 0;
+  want.every = glass ? picture_pace(a.every) : 0;
   want.bytes = picture_store::bytes_of(a.frame.w, a.frame.h);
   want.drawn = a.drawn;
   want.ask = [a] { tile_picture_request(a); };

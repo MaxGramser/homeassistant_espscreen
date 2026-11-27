@@ -251,6 +251,28 @@ class OwnedSettings(unittest.IsolatedAsyncioTestCase):
             for key in ('dark_mode', 'auto_home', 'auto_home_seconds', 'swipe_pages', 'page_buttons'):
                 self.assertIn(key, view['keys'], key)
 
+    async def test_a_glass_of_ink_has_no_light_to_set(self):
+        # A glass of e-paper is read by the light of the room (docs/PAPER.md): no brightness and no night, on the
+        # screen (tests/test_settings_screen.cpp) and here. Its board says so in boards.json (`inks`),
+        # and a screen says so itself with the word "paper". Standby stays: the picture it keeps while it rests.
+        self.assertTrue(core.is_paper({'board': 'reterminalsticky'}))
+        self.assertFalse(core.is_paper({'board': 'guition'}))
+        self.assertFalse(core.is_paper({'board': 'a board this app never heard of'}))
+        self.assertTrue(core.is_paper({'board': 'guition', 'features': 'standby paper battery'}))
+        self.assertFalse(core.is_paper({'board': 'guition', 'features': 'dimmable standby'}))
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            screen = m.screen('text.screen')
+            view = m.settings_view({**screen, 'features': 'standby paper battery'})
+            for key in core.PAPER_KEYS:
+                self.assertNotIn(key, view['keys'] + view['unavailable'], key)
+            for key in ('dark_mode', 'standby_enabled', 'standby_seconds', 'auto_home', 'swipe_pages', 'page_buttons'):
+                self.assertIn(key, view['keys'], key)
+            # The same screen with a glass that is lit keeps them.
+            view = m.settings_view(screen)
+            for key in core.PAPER_KEYS:
+                self.assertIn(key, view['keys'], key)
+
     async def test_a_screen_says_itself_what_it_can_do(self):
         # A board can be changed: a Waveshare whose backlight was rewired to a PWM pin (docs/WAVESHARE7.md) really
         # does dim, and the table this app keeps per board would keep saying it cannot. So a screen reports its own

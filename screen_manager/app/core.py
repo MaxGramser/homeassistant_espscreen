@@ -760,6 +760,20 @@ def has_module(screen, name):
     out from the board's flash as the firmware does. A board this app does not know has none."""
     return name in SHAPES.get(board_of(screen), {}).get('modules', ())
 
+# A glass of ink (docs/PAPER.md): the word a screen says for it (settings_screen::features), and the settings such a
+# glass has no use for. It is read by the light of the room, so it has no brightness and no night; standby stays, as
+# the picture it keeps while it rests, and so does its dark look (ink and paper traded).
+PAPER_FEATURE = 'paper'
+PAPER_KEYS = ('brightness', 'standby_brightness', 'night_enabled', 'night_start', 'night_end', 'night_brightness')
+
+def is_paper(screen):
+    """Whether this screen's glass is ink without a light: its own word when it reports its features, else its
+    board's `inks` in boards.json. A board this app does not know is a glass that is lit."""
+    words = features_of(screen)
+    if words is not None and PAPER_FEATURE in words:
+        return True
+    return bool(SHAPES.get(board_of(screen), {}).get('inks'))
+
 def dimmable(screen):
     """Whether this screen's backlight takes levels: no normal brightness without it, and standby and night as the
     switch they really are."""

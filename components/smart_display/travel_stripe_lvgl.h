@@ -70,7 +70,8 @@ inline void forget(lv_event_t *e) {
 // The stripe of one slider: from and to in the slider's raw values, or none.
 inline void set(lv_obj_t *slider, bool on, int from, int to) {
   Run *r = find(slider);
-  if (!on) { if (r) { *r = Run(); lv_obj_invalidate(slider); } return; }
+  // A stripe that glides is motion: a still glass has none (the level's blocks say where the cover is).
+  if (!on || screen_motion::still()) { if (r) { *r = Run(); lv_obj_invalidate(slider); } return; }
   if (!r) {
     r = find(nullptr);
     if (!r) return;

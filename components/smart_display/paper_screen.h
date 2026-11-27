@@ -20,6 +20,7 @@ inline uint8_t &inks() {
 inline bool is() { return false; }
 inline void finger(bool, uint32_t) {}
 inline void key(uint32_t) {}
+inline void news(uint32_t) {}
 inline void hold(bool, uint32_t) {}
 inline void whole_next(uint32_t) {}
 }  // namespace paper

@@ -257,15 +257,77 @@ static void a_finger_puts_the_tidying_off() {
 
 static void many_small_prints_are_enough_too() {
   fresh();
-  for (int i = 0; i < 30; ++i) {  // a clock's minute, thirty times
+  for (int i = 0; i < 60; ++i) {  // a clock's minute, sixty times
     p.drawn(10, now_ms);
     run(350);
     panel_done();
     run(59000);
   }
-  // The thirtieth made it enough; the rest since it has long passed in the minute after it.
-  assert(p.parts() == 30 && p.wholes() == wholes_before + 1);
+  // The sixtieth made it enough, and nobody has touched the glass: it is tidied as soon as that print ended.
+  assert(p.parts() == 60 && p.wholes() == wholes_before + 1);
   assert(trail.back() == "whole");
+}
+
+// The clock runs on with a panel that takes 700 ms for each refresh it is told to make.
+static void live(uint32_t ms) {
+  for (uint32_t t = 0; t < ms; t += 50) {
+    run(50);
+    if (p.printing() && now_ms - at.back() >= 700) p.printed(now_ms);
+  }
+}
+
+static void a_stream_takes_its_turn() {
+  fresh();
+  // A meter's watts every second for a minute, on a glass nobody touches: the first prints after its quiet, and each
+  // one after it no sooner than five seconds after the print before it ended.
+  for (int i = 0; i < 60; ++i) {
+    p.drawn(10, now_ms);
+    live(1000);
+  }
+  assert(at[0] == 100000 + 350);
+  for (size_t i = 1; i < at.size(); ++i) assert(at[i] - at[i - 1] >= 700 + 5000);
+  assert(trail.size() >= 9 && trail.size() <= 11);
+  // A finger's answer does not wait for that turn: a tap right after a print of the stream prints as fast as ever.
+  live(12000);
+  p.drawn(10, now_ms);
+  live(1200);
+  assert(!p.printing() && now_ms - at.back() < 2000);
+  size_t before = trail.size();
+  tap();
+  p.drawn(40, now_ms);
+  const uint32_t answered = now_ms;
+  live(500);
+  assert(trail.size() == before + 1 && at.back() - answered == 80);
+  // Nor does news the screen was told to show (paper::news: a finger that lifted), nor a whole refresh asked for.
+  live(1000);
+  before = trail.size();
+  p.drawn(10, now_ms);
+  p.whole_next(now_ms);
+  const uint32_t asked = now_ms;
+  live(500);
+  assert(trail.size() == before + 1 && trail.back() == "whole" && at.back() - asked == 350);
+}
+
+static void a_page_that_streams_is_tidied_too() {
+  fresh();
+  // A value every six seconds, drawn by the house on a glass nobody touches: each a partial print, and none of them
+  // a moment of rest by the old count. After sixty the glass is tidied all the same.
+  for (int i = 0; i < 60; ++i) {
+    p.drawn(10, now_ms);
+    live(6000);
+  }
+  assert(p.parts() == 60 && p.wholes() == wholes_before + 1 && trail.back() == "whole");
+  // With someone at the glass every twenty seconds no rest comes, and the prints stay partial.
+  fresh();
+  for (int i = 0; i < 80; ++i) {
+    if (i % 3 == 0) p.finger(false, now_ms);
+    p.drawn(10, now_ms);
+    live(6000);
+  }
+  assert(p.wholes() == wholes_before && p.parts() == 80);
+  // Once they are gone for half a minute, it is.
+  live(31000);
+  assert(p.wholes() == wholes_before + 1);
 }
 
 static void far_past_enough_the_print_is_whole() {
@@ -317,6 +379,8 @@ static void the_first_print_is_whole() {
   p.printed(now_ms + 2350);
   p.drawn(20, now_ms + 3000);
   p.tick(now_ms + 3350);
+  assert(trail.size() == 1);   // by itself it waits for its turn, five seconds after the first ended
+  p.tick(now_ms + 7350);
   assert(trail.size() == 2 && trail[1] == "part");
 }
 
@@ -343,6 +407,8 @@ int main() {
   traces_are_tidied_at_rest();
   a_finger_puts_the_tidying_off();
   many_small_prints_are_enough_too();
+  a_stream_takes_its_turn();
+  a_page_that_streams_is_tidied_too();
   far_past_enough_the_print_is_whole();
   a_whole_one_on_request();
   a_poster_prints_whole_and_seldom();

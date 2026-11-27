@@ -122,7 +122,7 @@ inline bool chosen_subtitle(const Tile &t, std::string &out) {
 }
 inline std::string timer_text(const Tile &t) {
   const Extra &x = t.extra();
-  if (t.state == "active") return countdown(timer_left(x.timer_end, now_epoch(), x.duration));
+  if (t.state == "active") return countdown(shown_left(timer_left(x.timer_end, now_epoch(), x.duration)));
   if (t.state == "paused") return fill(txt::timer_paused_left, "time", countdown(duration_seconds(x.remaining)));
   return x.duration.empty() ? std::string(tr(txt::ha_off)) : countdown(duration_seconds(x.duration));
 }

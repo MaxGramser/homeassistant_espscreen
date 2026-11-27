@@ -294,7 +294,8 @@ def painted(question, raws, said=None):
 
 def too_old(esphome):
     """Refuse an ESPHome older than the app's (screen_manager/Dockerfile): an older one fails the host build on what it
-    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3."""
+    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3.
+    Returns the version that runs, for a board that asks for a newer one than the app's (main)."""
     wanted = re.search(r'esphome/esphome:(\d+\.\d+\.\d+)', (REPO / 'screen_manager/Dockerfile').read_text())[1]
     try:
         said = subprocess.run([*esphome, 'version'], capture_output=True, text=True, timeout=60).stdout
@@ -305,6 +306,7 @@ def too_old(esphome):
         raise SystemExit(f'The host renders need ESPHome {wanted} or newer (the app\'s) and {" ".join(esphome)} is '
                          f'{found[0] if found else "unknown"}: run uv run --no-project --python 3.13 --with esphome=={wanted} '
                          f'--with pillow python tools/render/run.py {" ".join(sys.argv[1:])}')
+    return tuple(map(int, found.groups()))
 
 
 def free(port):
@@ -4959,12 +4961,28 @@ def main():
     if busy:
         raise SystemExit(f'ports {", ".join(busy)} are in use; stop what listens there first')
     esphome = shlex.split(os.environ.get('ESPHOME', 'esphome'))
-    too_old(esphome)
+    running = too_old(esphome)
     camera = tuple(int(n) for n in args.camera.split('x'))
     pictures = Pictures()
-    results, failed = {}, []
+    results, failed, skipped = {}, [], []
     tree = args.tree.resolve()
     for item in items:
+        # A board that asks for a newer ESPHome than the one running (its board file's min_version; the reTerminal
+        # Sticky asks for 2026.11.0 while the app's is older) cannot be built here. In a run of every board it is
+        # skipped, as tools/check.sh skips its firmware build; asked for by name it fails, and says what it needs.
+        floor = host.esphome_floor(tree, item.file)
+        if running < floor:
+            wants, has = '.'.join(map(str, floor)), '.'.join(map(str, running))
+            if args.variants:
+                failed.append(item.key)
+                results[item.key] = {'status': 'build failed', 'log': f'asks for ESPHome {wants}, this is {has}'}
+                print(f'{item.key}: BUILD FAILED\nits board asks for ESPHome {wants} and this is {has}: run uv run --no-project '
+                      f'--python 3.13 --with esphome=={wants} --with pillow python tools/render/run.py {item.key}', flush=True)
+            else:
+                skipped.append(item.key)
+                results[item.key] = {'status': 'SKIP', 'summary': f'asks for ESPHome {wants}, this is {has}'}
+                print(f'{item.key}: SKIP (asks for ESPHome {wants}, this is {has})', flush=True)
+            continue
         build = host.Build(item, tree=tree, work=args.work, esphome=esphome, plugin=args.plugin)
         started = time.monotonic()
         ok, output = build.compile()
@@ -4993,7 +5011,9 @@ def main():
         sheet(args.out, rendered)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / 'summary.json').write_text(json.dumps({'tree': str(tree), 'results': results}, indent=1) + '\n')
-    last = f'{len(items) - len(failed)} of {len(items)} variants passed'
+    last = f'{len(items) - len(failed) - len(skipped)} of {len(items)} variants passed'
+    if skipped:
+        last += f', {len(skipped)} skipped for a newer ESPHome ({", ".join(skipped)})'
     (args.out / 'summary.txt').write_text(''.join(f"{key}: {result['status']} {result.get('summary', '')}\n"
                                                   + ''.join(f'  {line}\n' for line in result.get('failures', []))
                                                   for key, result in results.items()) + last + '\n')

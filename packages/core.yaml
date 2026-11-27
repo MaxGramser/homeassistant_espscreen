@@ -225,6 +225,7 @@ esphome:
           // Whether this board's backlight takes levels (firmware 0.2.90+): a board whose backlight is one line
           // shows a switch where the others show a percentage. ESP Screens reads the same fact from boards.json.
           settings_screen::dimmable = ${BACKLIGHT_DIMMABLE};
+          settings_screen::lit = ${PAPER_INKS} == 0;
           // Whether this board's screen can go dark at all (firmware 0.2.91+): the Waveshare's backlight boost pulls
           // the 3.3 V rail under the brownout level when it switches on from a dark screen, so that board has no
           // standby and no night. The rows, the entities and the add-on's Settings follow the same fact.
@@ -314,7 +315,8 @@ esphome:
               lv_obj_move_foreground(id(dim_wake_overlay));
             };
             // The screensaver lies over everything on the top layer without a tap of its own: the overlay takes the touch.
-            glass.saver = [](bool lit) { runtime_tiles::saver_sync(lit); };
+            // What a glass of ink keeps while it rests is printed whole: it stands for hours.
+            glass.saver = [](bool lit) { if (lit) paper::whole_next(millis()); runtime_tiles::saver_sync(lit); };
             glass.saver_wake = []() { const bool was = runtime_tiles::saver_on(); runtime_tiles::saver_wake(); return was; };
             glass.close_settings = []() { settings_screen::close(); };
             glass.close_cards = []() { id(close_cards).execute(); };
@@ -352,6 +354,8 @@ esphome:
               lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(card.color)), LV_PART_MAIN);
             };
             alert.glass.reveal = [](bool shown) {
+              // News: a glass of ink prints it at once, not when a stream of values has its turn (paper_print.h).
+              paper::news(millis());
               if (shown) screen_motion::show(id(alert_overlay), id(alert_card));
               else screen_motion::hide(id(alert_overlay), id(alert_card));
             };
@@ -644,6 +648,7 @@ api:
         - lambda: |-
             screen_standby::the().use(millis());
             screen_standby::the().wake(millis());
+            paper::news(millis());  // asked for now: a glass of ink prints it at once
             if (!runtime_tiles::navigation_ready()) {
               runtime_tiles::wanted_page = std::max(1, (int) page);
               ESP_LOGI("navigation", "show page %d waits until the pages are ready", runtime_tiles::wanted_page);

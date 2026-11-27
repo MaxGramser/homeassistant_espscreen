@@ -81,7 +81,7 @@ inline void animate(lv_obj_t *o, lv_anim_exec_xcb_t exec, int32_t from, int32_t 
   lv_anim_set_path_cb(&a, path);
   if (done) lv_anim_set_completed_cb(&a, done);
   exec(o, from);
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 // The rest of the way after a finger let go, starting at its speed: `speed` in px a second, down positive.
 inline void carry(int32_t from, int32_t to, int speed, uint32_t longest, lv_anim_completed_cb_t done = nullptr) {

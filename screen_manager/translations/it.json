@@ -162,6 +162,7 @@
       "media_player": "Volume",
       "volume": "Volume",
       "wake_when_moved": "Riattiva se mosso",
+      "tap_sound": "Suono al tocco",
       "backlight_pwm": "PWM retroilluminazione",
       "dimmest_level": "Livello minimo",
       "dark_mode": "Modalità scura",
@@ -238,7 +239,18 @@
       "color_temperature": "Temperatura colore",
       "brightness": "Luminosità",
       "waiting": "In attesa...",
-      "presets": "Preimpostazioni"
+      "presets": "Preimpostazioni",
+      "shade_warm": "Caldo",
+      "shade_neutral": "Neutro",
+      "shade_cool": "Freddo",
+      "color_red": "Rosso",
+      "color_orange": "Arancione",
+      "color_yellow": "Giallo",
+      "color_green": "Verde",
+      "color_cyan": "Ciano",
+      "color_blue": "Blu",
+      "color_purple": "Viola",
+      "color_pink": "Rosa"
     },
     "effects": {
       "effect": "Effetto",
@@ -1271,6 +1283,10 @@
         "wake_when_moved": {
           "label": "Riattiva se mosso",
           "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
+        },
+        "tap_sound": {
+          "label": "Suono al tocco",
+          "hint": "Un breve tic appena lo schermo rileva un tocco o un tasto, prima che la carta elettronica abbia stampato la risposta."
         },
         "backlight_pwm": {
           "label": "PWM retroilluminazione",

@@ -50,6 +50,21 @@ class Catalog(unittest.TestCase):
         # (tests/test_override_contract.py, KNOBS); the two models and the touch they share are docs/TAB5.md.
         self.assertEqual(tab5['choices'], {'DISPLAY_MODEL': ['ST7121', 'ST7123']})
 
+    def test_a_board_is_offered_only_when_this_app_can_build_it(self):
+        # A board file may ask for a newer ESPHome than the app ships (`esphome: min_version`; the reTerminal Sticky's
+        # e-paper driver came with 2026.11.0). boards.json carries that floor, and New screen leaves such a board out
+        # rather than offer a build that ends in ESPHome's refusal.
+        self.assertEqual(SHAPES['reterminalsticky']['esphome'], '2026.11.0')
+        core_floor = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+        self.assertEqual(SHAPES['guition']['esphome'], core_floor)
+        older, newer = firmware_module.offered('2026.9.0'), firmware_module.offered('2026.11.0')
+        self.assertNotIn('reterminalsticky', older)
+        self.assertEqual([board for board in profiles.CATALOG if board not in older], ['reterminalsticky'])
+        self.assertEqual(list(newer), list(profiles.CATALOG))
+        self.assertEqual(list(firmware_module.offered('2027.1.0')), list(profiles.CATALOG))
+        # Nobody can say which ESPHome this is (a test, a development run): every board.
+        self.assertEqual(list(firmware_module.offered('')), list(profiles.CATALOG))
+
     def test_what_the_files_say_is_worked_out_not_written(self):
         for board in profiles.CATALOG:
             catalog, values = SHAPES[board]['catalog'], profiles.board_values(board)

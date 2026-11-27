@@ -364,7 +364,7 @@ void talk_tap() {
   talk_said = State::OFF;
   if (!now_ring.talk.empty() && talk_uplink::start(now_ring.talk)) {
     paint_talk(State::CONNECTING);
-    if (!talk_timer) talk_timer = lv_timer_create(talk_bars_step, 100, nullptr);
+    if (!talk_timer && !screen_motion::still()) talk_timer = lv_timer_create(talk_bars_step, 100, nullptr);
   }
 }
 
@@ -633,6 +633,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
+  paper::news(now);  // someone is at the door: a glass of ink prints it at once (paper_print.h)
   untouched_ms = doorbell_ring::untouched_ms(untouched_s);
   const auto what = doorbell_ring::ring(active && camera_root && camera.entity == camera_entity &&
                                             doorbell_door::kind_of(door_kind) == door.kind,

@@ -65,6 +65,9 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_wake_when_moved,
         []() -> int32_t { return id(board_wake_when_moved).state ? 1 : 0; },
         [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_tap_sound,
+        []() -> int32_t { return id(tap_sound).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(tap_sound).turn_on(); else id(tap_sound).turn_off(); }));
 
 # ============================================================
 # No need to edit below this line.
@@ -185,6 +188,9 @@ sensor:
     battery_level:
       id: screen_battery_level
       name: "Battery Level"
+      device_class: battery
+      state_class: measurement
+      unit_of_measurement: "%"
     voltage:
       id: screen_battery_voltage
       name: "Battery Voltage"

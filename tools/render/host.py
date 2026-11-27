@@ -9,6 +9,10 @@ picture as on the glass), an SDL touchscreen `ts_touch` for the features' `!exte
 every output id the chain named, so `back_light` and the backlight scripts still resolve. A handful of API actions let
 tools/render/run.py drive and photograph it.
 
+A board whose glass is paper (features/paper.yaml) has two displays, the paper glass LVGL draws on and the panel of
+e-paper under it. The SDL display stands for the glass and the panel goes with the hardware, so such a board is drawn
+here as LVGL draws it, in colour: no ink step and no printer (docs/PAPER.md, "What is not built yet").
+
 A variant is a board of the catalog (boards.yaml) the way it hangs: `guition`, or `waveshare43-portrait` for a board
 whose glass is not square, built with the angle ESP Screens writes into a screen standing up (boards.json).
 
@@ -36,6 +40,14 @@ HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554
 # An item anywhere that stands on a chip of the I2C bus the host leaves out (a clock, a motion sensor, an expander's pin)
 # goes with it, and so does an item that names one of those (a clock's write).
 ON_I2C = re.compile(r'(?m)^    i2c_id: |\b(xl9535|pi4ioe5v6408): |^    (lsm6ds|motion)_id: |\bpcf8563\b')
+# A battery's fuel gauge on that bus is the exception: each reading it names (the level, the voltage, the current)
+# stands as a template sensor of the same id, as a battery on an ADC pin does. The top bar finds the battery by its
+# class, and what reads a reading (a board's charging sensor, from the current) reads its state.
+FUEL_GAUGES = ('bq27220',)
+# How often the SDL touchscreen is read for a board whose own panel names no interval, because it is read on its
+# interrupt: the pace every polled panel here is read at. ESPHome's own default (50 ms) is slower than a finger's
+# interrupts, and LVGL's swipe would see reads without movement.
+INTERRUPT_TOUCH_INTERVAL = '20ms'
 # The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
 # has not. The host build leaves the audio packages out whole (features/audio*.yaml and a board's audio hardware under
 # hardware/, with the settings rows and the boot steps they bring), and these blocks wherever else they live (a board
@@ -51,6 +63,8 @@ def audio_package(rel):
         or rel.name == 'amplifier.yaml'   # the speaker's amplifier: its pin may be an expander's
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
+# The longest name ESPHome takes for a device (esphome/core/config.py: "Hostnames can only be 31 characters long").
+NAME_LIMIT = 31
 
 
 @dataclass
@@ -64,7 +78,14 @@ class Variant:
 
     @property
     def name(self):
-        return f'render-{self.key}'
+        """The program's name in ESPHome, which takes 31 characters at most (a hostname): `render-<key>`, and for a
+        key too long for that the shortest of `render-<key>` with -tall for -portrait and `r-` for `render-` that
+        fits (render-freenovefnk0104s-portrait is 32, and ESPHome refused it)."""
+        for name in (f'render-{self.key}', f'render-{self.key}'.replace('-portrait', '-tall'),
+                     f'r-{self.key}'.replace('-portrait', '-tall')):
+            if len(name) <= NAME_LIMIT:
+                return name
+        raise SystemExit(f'variant {self.key}: no name of {NAME_LIMIT} characters for its host program')
 
 
 def variants():
@@ -84,6 +105,17 @@ def variant(key):
         if item.key == key:
             return item
     raise SystemExit(f'unknown variant {key}; one of {", ".join(v.key for v in variants())}')
+
+
+def esphome_floor(tree, file):
+    """The ESPHome a board of `tree` asks for, as (year, month, patch): the `min_version` of its board file when it has
+    one, else the core's (tools/check.sh board_needs reads the same two). The host copy of the board file keeps that
+    line, so ESPHome refuses the host build on an older one as it would the firmware's."""
+    for path in (Path(tree) / 'packages' / 'boards' / file, Path(tree) / 'packages' / 'core.yaml'):
+        found = re.search(r'(?m)^  min_version: (\d+)\.(\d+)\.(\d+)', path.read_text())
+        if found:
+            return tuple(map(int, found.groups()))
+    return (0, 0, 0)
 
 
 # ---- a little YAML surgery on text, so comments and ESPHome tags (!extend, !remove, !lambda) stay as they are
@@ -117,6 +149,25 @@ def drop_items(text, key, predicate):
     _, start, end = blocks[0]
     parts = re.split(r'(?m)^(?=  - )', text[start:end])
     return text[:start] + parts[0] + ''.join(item for item in parts[1:] if not predicate(item)) + text[end:]
+
+
+def swap_items(text, key, swap):
+    """Every item of the top-level block `key:` handed to `swap`, which returns what stands in its place."""
+    blocks = blocks_of(text, key)
+    if not blocks:
+        return text
+    _, start, end = blocks[0]
+    parts = re.split(r'(?m)^(?=  - )', text[start:end])
+    return text[:start] + parts[0] + ''.join(swap(item) for item in parts[1:]) + text[end:]
+
+
+def fuel_gauge(item):
+    """A sensor item of a fuel gauge (FUEL_GAUGES) as template sensors, one for each reading it names with that
+    reading's own lines (its id, its name, its class); any other item as it is."""
+    if not re.match(r'  - platform: (?:%s)[ \t]*\n' % '|'.join(FUEL_GAUGES), item):
+        return item
+    readings = re.findall(r'(?m)^    [a-z_0-9]+:[ \t]*\n((?:      [^\n]*\n)+)', item)
+    return ''.join('  - platform: template\n' + re.sub(r'(?m)^  ', '', lines) for lines in readings)
 
 
 def drop_sub(block, indent, key):
@@ -195,6 +246,7 @@ class Chain:
     """What the walk of one board's include tree found: the ids the host stand-ins must carry."""
     outputs: list = field(default_factory=list)
     displays: list = field(default_factory=list)
+    panels: list = field(default_factory=list)  # displays another display wraps: a paper glass's panel of e-paper
     touches: list = field(default_factory=list)
     files: list = field(default_factory=list)
     notes: list = field(default_factory=list)
@@ -208,7 +260,14 @@ def host_file(text, chain, rel):
         for block in removed:
             if key == 'display':
                 chain.displays += re.findall(r'(?m)^    id: (\w+)', block)
+                # A glass of paper (components/paper_glass) is a display around another, its `panel`: ESPHome's own
+                # e-paper driver, which is hardware and has no stand-in. The SDL display stands for the glass alone.
+                chain.panels += re.findall(r'(?m)^    panel: (\w+)', block)
             chain.notes.append(f'{rel}: dropped {key}:')
+    before = text
+    text = swap_items(text, 'sensor', fuel_gauge)
+    if text != before:
+        chain.notes.append(f'{rel}: a fuel gauge\'s readings stand as template sensors')
     for key, _, _ in top_blocks(text):
         if key not in ('touchscreen', 'packages', 'substitutions', 'esphome'):
             before = text
@@ -241,6 +300,8 @@ def host_file(text, chain, rel):
             interval = re.search(r'(?m)^    update_interval: (\S+)', block)
             if interval:
                 chain.touch_interval = interval[1]
+            elif re.search(r'(?m)^    interrupt_pin:', block):
+                chain.touch_interval = INTERRUPT_TOUCH_INTERVAL
             changes.append((start, end, ''))
             chain.notes.append(f'{rel}: dropped touchscreen: platform')
         elif 'calibration:' in block:
@@ -262,6 +323,11 @@ def host_file(text, chain, rel):
     text, n = re.subn(r'(?m)^  STANDBY_KEY: \{[^\n]*\}[^\n]*\n', '', text)
     if n:
         chain.notes.append(f'{rel}: the standby key on an expander stands as a plain pin')
+    # A pin of the chip that is still there (a switch that holds a board's power on) is a host pin here, which knows a
+    # pin's number and mode and none of the ESP32's own options.
+    text, n = re.subn(r'(?m)^[ \t]+ignore_strapping_warning: \w+[ \t]*\n', '', text)
+    if n:
+        chain.notes.append(f'{rel}: {n} pins without the ESP32\'s note on strapping')
     return host_common(text)
 
 
@@ -336,7 +402,8 @@ def host_hw(board_text, chain):
     size = {key: re.search(rf'(?m)^  {key}: "?(\d+)"?', board_text) for key in ('PANEL_W', 'PANEL_H')}
     if not all(size.values()):
         raise SystemExit('the board file names no numeric PANEL_W / PANEL_H')
-    displays, touches = sorted(set(chain.displays)) or ['my_display'], sorted(set(chain.touches)) or ['ts_touch']
+    displays = sorted(set(chain.displays) - set(chain.panels)) or ['my_display']
+    touches = sorted(set(chain.touches)) or ['ts_touch']
     if len(displays) != 1 or len(touches) != 1:
         raise SystemExit(f'expected one display and one touchscreen in the chain, found {displays} and {touches}')
     text = f'''# Host stand-ins for the board's hardware (tools/render/host.py): the panel's own pixels on an offscreen SDL surface.

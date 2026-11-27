@@ -57,6 +57,10 @@ inline bool dimmable = true;
 // these rows, the entities behind them and the add-on's Settings leave them out, and screen_standby::enter does
 // nothing there.
 inline bool can_standby = true;
+// Whether the glass has a light of its own. A glass of ink has none (docs/PAPER.md): it is read by the light of the
+// room, so it has no brightness and no night, and "standby" is the picture it keeps while it rests. Its dark look
+// stays: ink and paper traded.
+inline bool lit = true;
 // What this screen is able to do, in the words ESP Screens reads from its "Screen features" sensor (firmware
 // 0.2.99+): one word per ability, space separated, and "none" for a screen that can do none of them. The add-on
 // used to read these facts from a table it keeps per board, which is right until a board is changed: a Waveshare
@@ -67,6 +71,7 @@ inline std::string features() {
   const struct { bool able; const char *word; } list[] = {
     {dimmable, "dimmable"},     // the backlight takes levels, not only lit or dark
     {can_standby, "standby"},   // the screen can go dark and come back
+    {!lit, "paper"},            // its glass is ink without a light: no brightness and no night
     // it has a battery the top bar can show (firmware 0.41.0, runtime_tiles::find_battery, docs/BATTERY.md)
     {static_cast<bool>(battery_status::level), "battery"},
   };
@@ -373,7 +378,7 @@ inline constexpr Row light_rows[] = {
   // app and the screen keep one number between them and a board that can dim shows it as the percentage it is.
   toggle(screen_text::txt::settings_standby_lit, []() -> int32_t { return screen_settings::current.standby_brightness > 0; },
          [](int32_t value) { set("standby_brightness", value ? 100 : 0); },
-         [] { return !dimmable && can_standby; },
+         [] { return !dimmable && can_standby && lit; },
          [] { return screen_settings::current.standby_enabled != 0; }),
 };
 
@@ -382,22 +387,22 @@ inline constexpr Row night_rows[] = {
   // Night is standby with a clock: a board that cannot go dark has none of it (can_standby).
   toggle(screen_text::txt::settings_night_mode, []() -> int32_t { return screen_settings::current.night_enabled; },
          [](int32_t value) { set("night_enabled", value); },
-         [] { return can_standby; }),
+         [] { return can_standby && lit; }),
   moment(screen_text::txt::settings_starts, []() -> int32_t { return screen_settings::current.night_start; },
          [](int32_t value) { set("night_start", value); },
          [] { return screen_settings::current.night_enabled != 0; },
-         [] { return can_standby; }),
+         [] { return can_standby && lit; }),
   moment(screen_text::txt::settings_ends, []() -> int32_t { return screen_settings::current.night_end; },
          [](int32_t value) { set("night_end", value); },
          [] { return screen_settings::current.night_enabled != 0; },
-         [] { return can_standby; }),
+         [] { return can_standby && lit; }),
   number(screen_text::txt::settings_night_brightness, []() -> int32_t { return screen_settings::current.night_brightness; },
          [](int32_t value) { set("night_brightness", value); }, 0, 100, 5, "%",
          [] { return screen_settings::current.night_enabled != 0; },
-         [] { return dimmable && can_standby; }),
+         [] { return dimmable && can_standby && lit; }),
   toggle(screen_text::txt::settings_night_lit, []() -> int32_t { return screen_settings::current.night_brightness > 0; },
          [](int32_t value) { set("night_brightness", value ? 100 : 0); },
-         [] { return !dimmable && can_standby; },
+         [] { return !dimmable && can_standby && lit; },
          [] { return screen_settings::current.night_enabled != 0; }),
 };
 

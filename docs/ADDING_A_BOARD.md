@@ -43,7 +43,9 @@ Then choose what the board includes:
 - how its touch panel is read: `features/capacitive-touch.yaml` (GT911, GSL3670: pixels, no calibration) or
   `features/resistive-touch.yaml` (XPT2046: calibrated on the glass, and the board states the raw range it measured,
   `TOUCH_CAL_*`);
-- `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark;
+- `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark.
+  A board whose glass is e-paper includes `features/paper.yaml` instead: it has no light, and its panel is a display of
+  ESPHome's `epaper_spi` named `paper_panel`, with no `gpio_backlight_pwm` (docs/PAPER.md, "What a board states");
 - `features/standby-key.yaml` on a board that can go dark: its own key if it has one the chip reads, else its BOOT key
   (GPIO0 on the ESP32 and ESP32-S3, GPIO35 on the ESP32-P4). Check the schematic or the vendor's code, and leave it out
   when other hardware drives that pin (`esphome config` says so when the display uses it, not when a chip ESPHome does
@@ -189,6 +191,12 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   `.github/workflows/preview.yml` on the branch).
 - `tools/render/host.py` `HARDWARE_BLOCKS`, when the board brings a hardware block the host build must take out (the
   Waveshare 7B's `waveshare_io_ch32v003`).
+- A glass of e-paper: `features/paper.yaml` in place of the backlight, the panel as `paper_panel` with the driver's
+  partial refresh on (`full_update_every: 255`, `update_interval: never`), `PAPER_INKS` when the panel prints four
+  greys, `LVGL_BUFFER_SIZE: "100%"` where the board has the PSRAM, the touch panel's axes against the panel's own
+  pixels (the panel is never turned, so try a tap in each corner), and the ESPHome version its panel's driver needs as
+  the board file's `min_version`. Its keys and its buzzer are `features/page-keys.yaml` and `features/buzzer.yaml`.
+  docs/PAPER.md has the whole list and what the shared tree does with it (the reTerminal Sticky did).
 - A battery: a sensor in the `battery` device class (and a `battery_charging` binary sensor when the board can tell)
   in its hardware file, which the firmware finds and the top bar shows. `packages/features/battery-voltage.yaml` and
   `battery-adc.yaml` turn a voltage on a pin into one (docs/BATTERY.md).

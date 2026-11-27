@@ -1,4 +1,7 @@
 // The paper glass (paper_glass.h): LVGL's pixels to ink, and the printer's word to the panel.
+// Every pixel LVGL draws passes through this file, a whole glass at a turn of a page, so it is built for speed where
+// the rest of a firmware is built for size (the ink step took 280 ms of a turn at -Os, 2026-11-27).
+#pragma GCC optimize("O3")
 #include "paper_glass.h"
 
 #include <algorithm>
@@ -64,7 +67,12 @@ void PaperGlass::print_(bool whole) {
 void PaperGlass::update() {
   const uint32_t glass = static_cast<uint32_t>(this->panel_->get_native_width()) * this->panel_->get_native_height();
   const uint32_t permille = glass == 0 ? 0 : std::min<uint64_t>(1000, static_cast<uint64_t>(this->drawn_pixels_) * 1000 / glass);
+  // A page's worth says what it took, for whoever wonders where a slow turn of a page goes.
+  if (permille >= 500)
+    ESP_LOGI(TAG, "%u pixels: %u ms as ink, %u ms into the driver", (unsigned) this->drawn_pixels_,
+             (unsigned) (this->ink_us_ / 1000), (unsigned) (this->driver_us_ / 1000));
   this->drawn_pixels_ = 0;
+  this->ink_us_ = this->driver_us_ = 0;
   paper::printer().drawn(static_cast<uint16_t>(permille), millis());
 }
 
@@ -95,8 +103,12 @@ void HOT PaperGlass::draw_pixels_internal(int x_start, int y_start, int w, int h
   const int rows_a_band = std::max<int>(1, static_cast<int>(this->band_pixels_ / w));
   for (int row = 0; row < h; row += rows_a_band) {
     const int rows = std::min(rows_a_band, h - row);
+    const uint32_t began = micros();
     paper_ink::block(source, this->band_, w, h, stride, row, rows, x_start, y_start, big_endian, this->inks_);
+    const uint32_t inked = micros();
     this->panel_->draw_pixels_at(x_start, y_start + row, w, rows, this->band_, display::COLOR_BITNESS_565, big_endian);
+    this->ink_us_ += inked - began;
+    this->driver_us_ += micros() - inked;
   }
 }
 

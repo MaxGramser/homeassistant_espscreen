@@ -341,6 +341,22 @@ int main() {
   dimmable = true;  can_standby = true;   assert(features() == "dimmable standby battery");
   dimmable = false; can_standby = false;  assert(features() == "battery");
   battery_status::level = nullptr;
+  // A glass of ink has no light (docs/PAPER.md): it says so, and has no row for a brightness or a night. Standby
+  // stays: it is the picture the glass keeps while it rests. So does the dark look: ink and paper traded.
+  const bool lit_before = lit;
+  lit = false; dimmable = false; can_standby = true;
+  assert(features() == "standby paper");
+  for (const auto &row : light_rows) {
+    const bool stays = row.label == screen_text::txt::settings_dark_mode || row.label == screen_text::txt::settings_auto_standby ||
+                       row.label == screen_text::txt::settings_standby_after;
+    assert(visible_row(row) == stays);
+  }
+  for (const auto &row : night_rows) assert(!visible_row(row));
+  lit = true;
+  for (const auto &row : light_rows)
+    if (row.label == screen_text::txt::settings_standby_lit) assert(visible_row(row));
+  assert(visible_row(night_rows[0]));
+  lit = lit_before;
   dimmable = dimmable_before; can_standby = standby_before;
 
   // ---- a plugin's rows (docs/PLUGINS.md): their own words, read and written through their context ----

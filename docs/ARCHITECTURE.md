@@ -24,9 +24,10 @@ firmware's map, with the add-on where the firmware's layers end at it.
   │ hw::caps: what this screen can do, one record                  │
   ├──────────────────────────────────────────────────────────────┤
   │ picture_engine (per chip)       glass (per panel kind)        │
-  │   P4: JPEG + PPA, ppa_guard      DSI (P4)   RGB (S3)          │
+  │   P4: JPEG + PPA, ppa_guard      DSI (P4)   RGB (S3)   paper  │
   │   S3: esp_new_jpeg, CPU blit     core: the lock, the rooms    │
   │   other: BMP rows, no blit       other: no direct glass        │
+  │                                  paper: inks and a printer    │
   ├──────────────────────────────────────────────────────────────┤
   │ ESPHome + ESP-IDF: LVGL, the display, Wi-Fi, the API, audio    │
   └──────────────────────────────────────────────────────────────┘
@@ -46,11 +47,16 @@ three defines, each with its own files, and one may come without the others:
 | `PICTURE_ENGINE_S3` | Espressif's software decoder esp_new_jpeg on an ESP32-S3 with PSRAM, a CPU blit as-is | `picture_engine_s3.cpp` |
 | `GLASS_DSI` / `GLASS_RGB` | a frame buffer a task may write past LVGL | `glass_dsi.cpp`, `glass_rgb.cpp`, shared `glass_core.cpp` |
 | `USE_LIVE_VIEW` | the streams | `live_view.cpp` |
+| none of them: a display of the `paper_glass` platform | a glass of e-paper, on any chip: the software engine, no direct glass, no streams | `components/paper_glass/` |
 
 Without an engine a screen decodes BMP rows (`picture_fetch`) and LVGL draws every still; without a direct glass there
 are no streams. A new chip or panel kind is a row in that table with files of its own; `picture_fetch`, `live_view`,
 `live_spots` and `runtime_tiles` do not change for it. Detail: docs/PICTURE_ARCHITECTURE.md section 3.9;
 test: `tests/test_live_view.py`.
+
+A build whose display is the paper glass is the one row keyed by the panel and not by the chip: an ESP32-S3 or a P4
+with a panel of e-paper gets no JPEG decoder and no stream, because its panel has no frame buffer a task writes
+(`picture_engine(..., paper=True)`). Detail: docs/PAPER.md.
 
 Modules work the same way one level up: `modules.py` gates the parts of the UI a 4 MB board has no room for behind a
 define per module (docs/MODULES.md).
@@ -75,6 +81,13 @@ minute in the "Panel watch" sensor (`glass::watch_said`), so a flash needs no ey
 it what the glass cannot see (log lines, the finger: `glass::note_log_line`, `note_finger`); an RGB
 panel's driver keeps no such count, so on an S3 a frame that shifts sideways is seen by eye only. Detail: docs/PICTURE_ARCHITECTURE.md 3.1, docs/CAMERA.md "Live on
 the P4 boards" and "Live on an ESP32-S3"; tests: `tests/test_live_view.cpp` (a rectangle on a turned panel).
+
+A panel of e-paper is a glass of another kind, and none of the above holds for it: it has no frame buffer a task may
+write, no lock and no rooms. Its glass is the paper glass (`components/paper_glass/`), a display platform that stands
+between LVGL and ESPHome's `epaper_spi` driver: every pixel LVGL flushes becomes one of the panel's inks
+(`paper_ink.h`), and a printer decides when the panel refreshes and whether it refreshes a part or all of itself
+(`paper_print.h`). The firmware reaches it through `paper_screen.h`, whose calls are empty on every other screen.
+Detail: docs/PAPER.md; tests: `tests/test_paper_ink.cpp`, `tests/test_paper_print.cpp`.
 
 ### 3. The picture engine: decode, scale, turn
 
@@ -139,6 +152,12 @@ camera of its own, live tiles at once, the heaps. The build's half comes from th
 `live_view::available`, the memory). The firmware, the hello to the app, the editor and the plugins all read this one
 record, so nothing infers a capability from a board. Detail: docs/PLATFORM_PLAN.md 3.3; tests: `tests/test_hw.cpp`,
 `tests/test_hw.py`.
+
+The record also says what kind of glass this is. `inks` is how many inks the panel prints with: 0 on a glass that is
+lit and shows colours, 2 for black and white, 4 for four greys (the paper glass's, `paper::inks`). `still` is true on
+a glass of ink: a change there is a print that takes a part of a second, so nothing on it runs by itself, and it has
+no `motion` whatever else the build has. The firmware asks it in one place, `screen_motion::still()`, and the hello
+carries `inks`. Detail: docs/PAPER.md, "A still glass".
 
 ### 7. The governor
 
@@ -245,6 +264,13 @@ Change a rule of the standby in that file, with its case in the test. The state 
 (`screen_standby::the().in_standby()`) and calls a function. The kinds of wake that are no finger are one named list
 there (`Wake`), with one line that says which of them waits for the quiet after a standby by hand.
 
+A glass that keeps its picture without a light (paper, `Glass::keeps`) has no dark: its standby is rest. With a
+screensaver set it shows that one and a finger or a key wakes it as on any screen. Without one the page stays where it
+is, readable, with nothing over it, and a finger or a key on it is used at once and ends the rest by the way
+(`resting()`, `act()`): a first tap that only wakes a page nobody saw change would read as a tap that was not heard.
+The saving of a screen at rest starts either way (`at_rest()`), and on paper LVGL keeps drawing through it, so the
+page follows the house. Detail: docs/PAPER.md, "Standby is rest".
+
 ### 14. An alert's life
 
 `alert_life.h` holds when the card of `show_alert` and `show_alert_choice` is up and what ends it: its OK, its second
@@ -350,6 +376,13 @@ screen makes of the app (events such as `esphome.screen_history`) are no actions
   on the CYD, a page from the loop 5.6 to 5.9 KB, with LVGL's own depth on top. Under 2 KB left at any time the health
   line warns (`loop_stack.h`) and every screen reports it as "Loop Stack Free". An S3 and a classic ESP32 have no
   hardware stack guard: an overflow there corrupts memory without a word, so their margin counts as much as a P4's.
+- **On paper an area is rastered by its place, an edge is cut, and nothing prints under a finger** (docs/PAPER.md). On
+  a reTerminal Sticky (an SSD1677, 800 x 480, ESPHome 2026.11.0, 2026-11-27) a whole refresh takes 1.8 to 2.0 s and a
+  partial one 0.70 s, longer than a tap, so the look of a press is never printed and a tap is one refresh. The
+  driver's cut at half brightness left greys of 25, 50 and 75 % as white, white and black and lost a word at 40 %;
+  the ordered raster kept all four. Rastered soft edges frayed into loose dots, and a glyph on a ground of raster fell
+  away into it: an edge prints as the nearer ink, letters are built without soft edges, and a ground that carries a
+  glyph is paper with a rim of ink.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

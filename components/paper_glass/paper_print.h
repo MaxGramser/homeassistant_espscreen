@@ -9,15 +9,19 @@
 // - Nothing prints under a finger. What LVGL draws while one lies on the glass is the look of a press, which is gone
 //   again when it lifts; a refresh takes longer than a tap, so printing it would show the press after the fact and
 //   make every tap two refreshes. A finger that stays (a hold, a drag) is shown after a most of its own.
+// - What comes by itself and keeps coming (a meter's watts, a clock) prints no sooner than a few seconds after the last
+//   print ended: a value every second would be a refresh every second, on a glass that wears with each. A finger's
+//   answer, news the screen was told of and a whole refresh that was asked for do not wait for it.
 // - A finger's answer does not wait for the quiet of a burst. What is drawn soon after a finger lifted or a key was
 //   pressed prints as soon as the drawing has stood still for a few frames, so a short fade ends before its print and
 //   never is one.
 // - While something is on its way that is only whole at its end (a layout, a page's build), nothing prints; a hold
 //   that never ends still lets go after a most of its own.
 // - A partial refresh leaves a trace of what stood there. So the glass keeps count of how much of itself partial
-//   refreshes have changed, and once that is enough it refreshes whole (the panel flashes, the traces go): when it has
-//   been left alone for a while, never under a finger. Only when the count runs far past enough does the next print
-//   become the whole one, wanted or not.
+//   refreshes have changed, and once that is enough it refreshes whole (the panel flashes, the traces go): when
+//   nobody has touched it for a while, never under a finger. What the house draws on it meanwhile does not put that
+//   off, or a page that shows a meter would never be clean. Only when the count runs far past enough does the next
+//   print become the whole one, wanted or not.
 // - A panel that cannot refresh a part (a panel of coloured inks) prints every time whole, after a longer quiet.
 // - The first print after a start is a whole one: the panel still shows what it showed before the restart, which no
 //   partial refresh can take off cleanly.
@@ -34,14 +38,15 @@ struct Rules {
   bool partial = true;          // the panel refreshes only what changed, between whole refreshes
   uint32_t quiet_ms = 350;      // a change waits this long for more of them
   uint32_t most_ms = 1500;      // and never longer than this from the first of them
+  uint32_t stream_ms = 5000;    // what comes by itself prints no sooner than this after the last print ended
   uint32_t finger_ms = 1200;    // what is drawn this soon after a finger is its answer
   uint32_t finger_quiet_ms = 80;   // an answer prints once the drawing stood still this long
   uint32_t finger_most_ms = 400;   // and never later than this after the finger
   uint32_t down_most_ms = 1500;    // a finger that stays down this long is shown where it is
   uint32_t hold_most_ms = 10000;  // a hold lets go by itself after this
-  uint32_t rest_ms = 30000;     // left alone this long, the glass may refresh whole
+  uint32_t rest_ms = 30000;     // not touched for this long, the glass may refresh whole
   uint16_t tidy_area = 3000;    // per mille of the glass changed by partial refreshes that is enough: three glasses
-  uint16_t tidy_prints = 30;    // or this many partial refreshes
+  uint16_t tidy_prints = 60;    // or this many partial refreshes
   uint16_t must_area = 9000;    // past this the next print is whole, rest or no rest
 };
 // A panel without a partial refresh: every print is the whole panel and takes many seconds, so changes gather longer.
@@ -71,7 +76,6 @@ class Printer {
     down_ = down;
     finger_at_ = now;
     fingered_ = true;
-    active_at_ = now;
     tick(now);
   }
   // LVGL finished a round of drawing that changed `permille` of the glass.
@@ -79,7 +83,6 @@ class Printer {
     if (!dirty_) first_at_ = now;
     dirty_ = true;
     last_at_ = now;
-    active_at_ = now;
     area_ = static_cast<uint16_t>(area_ + permille > 1000 ? 1000 : area_ + permille);
     tick(now);
   }
@@ -97,6 +100,8 @@ class Printer {
   // The panel finished the refresh print() started.
   void printed(uint32_t now) {
     printing_ = false;
+    printed_at_ = now;
+    printed_once_ = true;
     tick(now);
   }
 
@@ -112,13 +117,12 @@ class Printer {
       glass.later(static_cast<uint32_t>(left));
       return;
     }
-    if (!wants_tidy()) return;
-    const int32_t rest = static_cast<int32_t>(active_at_ + rules.rest_ms - now);
-    if (rest <= 0) {
+    if (!wants_tidy() || down_) return;
+    if (rested(now)) {
       whole_next_ = true;
       print(now);
     } else {
-      glass.later(static_cast<uint32_t>(rest));
+      glass.later(finger_at_ + rules.rest_ms - now);
     }
   }
 
@@ -131,6 +135,8 @@ class Printer {
 
  private:
   bool wants_tidy() const { return rules.partial && (worn_ >= rules.tidy_area || parts_ >= rules.tidy_prints); }
+  // Nobody has touched the glass for the rest time. What was drawn on it by itself does not count.
+  bool rested(uint32_t now) const { return !down_ && (!fingered_ || now - finger_at_ >= rules.rest_ms); }
   // How long what is drawn still waits, in ms; zero or less: it prints now.
   int32_t wait(uint32_t now) const {
     if (held_) {
@@ -152,10 +158,20 @@ class Printer {
     }
     const int32_t quiet = static_cast<int32_t>(last_at_ + rules.quiet_ms - now);
     const int32_t most = static_cast<int32_t>(first_at_ + rules.most_ms - now);
-    return quiet < most ? quiet : most;
+    int32_t left = quiet < most ? quiet : most;
+    // A stream: what comes by itself waits for its turn after the last print. A whole refresh that was asked for is
+    // no stream.
+    if (printed_once_ && !whole_next_ && now - printed_at_ < rules.stream_ms) {
+      const int32_t turn = static_cast<int32_t>(printed_at_ + rules.stream_ms - now);
+      if (turn > left) left = turn;
+    }
+    return left;
   }
   void print(uint32_t now) {
-    const bool whole = !rules.partial || whole_next_ || !started_ || worn_ + area_ >= rules.must_area;
+    // Whole: a panel that knows no other way, one that was asked for, the first, traces enough on a glass nobody
+    // touches, or far too many of them.
+    const bool whole = !rules.partial || whole_next_ || !started_ || (wants_tidy() && rested(now)) ||
+                       worn_ + area_ >= rules.must_area;
     started_ = true;
     if (whole) {
       worn_ = 0;
@@ -170,7 +186,6 @@ class Printer {
     dirty_ = false;
     area_ = 0;
     printing_ = true;
-    (void) now;
     glass.print(whole);
   }
 
@@ -178,7 +193,9 @@ class Printer {
   bool started_ = false;  // the panel has been refreshed since the start
   bool down_ = false;     // a finger lies on the glass
   uint32_t down_at_ = 0;
-  uint32_t first_at_ = 0, last_at_ = 0, finger_at_ = 0, hold_at_ = 0, active_at_ = 0;
+  uint32_t first_at_ = 0, last_at_ = 0, finger_at_ = 0, hold_at_ = 0;
+  uint32_t printed_at_ = 0;    // when the last print ended
+  bool printed_once_ = false;  // one has ended since the start
   uint16_t area_ = 0;   // per mille of the glass drawn and not printed yet
   uint16_t worn_ = 0;   // per mille changed by partial refreshes since the last whole one
   uint16_t parts_ = 0;  // partial refreshes since the last whole one

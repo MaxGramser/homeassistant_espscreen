@@ -292,7 +292,7 @@ static void swipe_to(int target) {
   lv_anim_set_values(&a, full.swipe_dx, target);
   lv_anim_set_duration(&a, 140);
   lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 // The row goes back: at once where the list itself changes, else on its way.
 static void swipe_close(bool now) {

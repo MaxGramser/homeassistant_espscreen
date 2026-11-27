@@ -269,7 +269,7 @@ inline void glass(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int 
   const float inner = std::min(hx, hy);
   const int blade = std::max(6, (int) std::lround(S * 0.036f));
   const Hands h{cx, cy, inner * 0.62f, inner - major * 0.35f, inner - minor * 0.4f, S * 0.06f, blade, std::max(3, blade / 3),
-                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds};
+                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
@@ -314,7 +314,7 @@ inline void dial(lv_obj_t *stage, const SaverFace &f, const Ink &k, float cx, fl
   auto &hp = painter(stage, &layer);
   const int blade = std::max(5, (int) std::lround(R * 0.055f));
   const Hands h{cx, cy, R * 0.48f, R * 0.78f, R * 0.86f, R * 0.14f, blade, std::max(3, blade / 3), std::max(2, (int) std::lround(R * 0.011f)),
-                k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds};
+                k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
@@ -494,7 +494,7 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
 // ---- the face on the glass: drawn whole into the screensaver's root, every minute
 // Glass and Classic stand a fraction further along a slow circle every minute, up to a millimetre from their place.
 inline lv_point_t drift(const esphome::ESPTime &now) {
-  if (!now.is_valid()) return {0, 0};
+  if (!now.is_valid() || screen_motion::still()) return {0, 0};  // paper keeps no shadow of a face that stands
   const auto at = saver_view::drift(now.hour * 60 + now.minute, ui::mm(1));
   return {(int32_t) at.x, (int32_t) at.y};
 }
