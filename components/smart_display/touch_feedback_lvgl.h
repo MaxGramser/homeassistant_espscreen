@@ -1,6 +1,8 @@
 #pragma once
 // touch_feedback.h for LVGL's own widgets, so no control of the core or of a plugin has to say anything itself
-// (docs/PLUGINS.md, "Touch feedback"). Included by plugin_host.cpp alone: a screen without a plugin has none of it.
+// (docs/PLUGINS.md, "Touch feedback"). Included by plugin_host.cpp, and by a board's own listener where it has one (a
+// buzzer that ticks, packages/features/buzzer.yaml): a screen with neither has none of it. Everything here is inline,
+// and listen() starts the listening once, whoever asks first.
 //
 // A press: LVGL tells the input device which object a finger landed on before that object's own events. The press is
 // said when that object, or a parent its events bubble up to, listens for a press, a tap or a hold: a tile, a key, a

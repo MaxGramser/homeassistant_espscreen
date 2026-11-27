@@ -1,0 +1,47 @@
+# ESP Screens - a board's buzzer on a pin of the chip, as the tick that answers a finger (the reTerminal Sticky's).
+#
+# A glass of e-paper shows a tap a part of a second later, so the board says at once that it was heard: a short tick
+# the moment a finger lands on something that takes it, or a key is pressed (touch_feedback.h says when, as it does for
+# a plugin). The switch Tap sound turns it off, in Home Assistant and under the screen's Extras.
+#
+# The board file names the pin: BUZZER_PIN.
+#
+# This is not the board's speaker. A buzzer driven by a second chip plays the app's sounds (features/chip-speaker.yaml);
+# one on a bare pin only ticks, until it is given a way to play them.
+substitutions:
+  BUZZER_FREQUENCY: "2700Hz"
+  BUZZER_TICK: "20ms"
+  BOOT_AUDIO: |-
+    // The tick under a finger and a key (touch_feedback.h): this board's buzzer answers before its glass can.
+    touch_feedback::pressed().push_back([]() { if (id(tap_sound).state) id(buzzer_tick).execute(); });
+    touch_feedback::lvgl::listen();
+
+esphome:
+  # LVGL's presses, heard for the tick (touch_feedback_lvgl.h): a screen without a plugin has no other listener.
+  includes:
+    - <esphome/components/smart_display/touch_feedback_lvgl.h>
+
+output:
+  - platform: ledc
+    id: board_buzzer
+    pin: ${BUZZER_PIN}
+    frequency: ${BUZZER_FREQUENCY}
+
+script:
+  - id: buzzer_tick
+    mode: restart
+    then:
+      - output.set_level:
+          id: board_buzzer
+          level: 50%
+      - delay: ${BUZZER_TICK}
+      - output.turn_off: board_buzzer
+
+switch:
+  - platform: template
+    id: tap_sound
+    name: "Tap sound"
+    icon: "mdi:gesture-tap"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON

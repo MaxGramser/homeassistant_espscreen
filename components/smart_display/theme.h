@@ -253,6 +253,51 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* SECTION_CONTRAST_INK */     {0xF0F0F0, 0x181818},
 };
 
+// ---- Ink: a glass that prints (docs/PAPER.md, "Ink")
+// A panel of e-paper has a few inks, not colours. On it a role is no shade of grey or blue but one of four things: the
+// paper, the ink, and two tones between them that a panel of two inks prints as a raster and one of four as a grey
+// (components/paper_glass/paper_ink.h). Dark trades paper and ink, as it trades white and graphite on a lit glass.
+// The names say what a tone is for, so a panel with coloured inks gets its own (an accent, a warning) as more of them,
+// with nothing above this table changing.
+enum class Ink : uint8_t { PAPER, INK, SOFT, FIRM };
+constexpr uint32_t ink_value(Ink ink, bool in_dark) {
+  switch (ink) {
+    case Ink::PAPER: return in_dark ? 0x000000 : 0xFFFFFF;
+    case Ink::INK: return in_dark ? 0xFFFFFF : 0x000000;
+    case Ink::SOFT: return in_dark ? 0x555555 : 0xAAAAAA;
+    default: return in_dark ? 0xAAAAAA : 0x555555;
+  }
+}
+// Relative lightness 0-255 (Rec. 601 weights), as the paper glass reads a colour; also enough to tell a colour that
+// sinks into a dark card.
+constexpr uint32_t lightness(uint32_t color) {
+  return ((color >> 16 & 0xFF) * 299 + (color >> 8 & 0xFF) * 587 + (color & 0xFF) * 114) / 1000;
+}
+// The tone nearest a colour: what a role prints as when nothing below says otherwise. Near white is the paper and near
+// black the ink, so a page of #E7E7E7 is clean paper and not paper with a dot in every sixteenth place.
+constexpr uint32_t nearest_ink(uint32_t color) {
+  const uint32_t l = lightness(color);
+  return l >= 208 ? 0xFFFFFF : l >= 128 ? 0xAAAAAA : l >= 48 ? 0x555555 : 0x000000;
+}
+// The roles whose tone on paper is not the one nearest their colour, with the reason each has one.
+struct InkOf { Role role; Ink ink; };
+inline constexpr InkOf INKS[] = {
+  // What sets a card or a key off from the page is a pale line on a lit glass; on paper only ink is a line.
+  {LINE, Ink::INK}, {RAISED_LINE, Ink::INK},
+  // Words and glyphs are ink, whatever grey ranks them on a lit glass: a raster through a letter breaks it.
+  {INK_SOFT, Ink::INK}, {MUTED, Ink::INK}, {SUBTLE, Ink::INK}, {SLATE, Ink::INK}, {BEDSIDE, Ink::INK}, {ROW_ICON, Ink::INK},
+  {CHEVRON, Ink::INK}, {ICON_OFF, Ink::INK},
+  // The accent is ink, and what stands on it is paper: a chosen segment, a toggle that is on, a key that acts.
+  {ACCENT, Ink::INK}, {ACCENT_PRESSED, Ink::INK}, {ACCENT_BRIGHT, Ink::INK}, {ACCENT_ICON, Ink::INK},
+  {BUTTON_DARK, Ink::INK}, {BUTTON_DARK_PRESSED, Ink::INK}, {ON_ACCENT, Ink::PAPER}, {KNOB, Ink::PAPER},
+  // A track, an empty toggle and what marks a chosen row carry no words: the lighter tone, which reads as a shade.
+  {TRACK, Ink::SOFT}, {GRID, Ink::SOFT}, {TOGGLE_OFF, Ink::SOFT}, {SWITCH_OFF, Ink::SOFT}, {PANEL_TOGGLE_OFF, Ink::SOFT},
+  {PANEL_TOGGLE_OFF_PRESSED, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {ACCENT_TINT, Ink::SOFT}, {AMBER_TRACK, Ink::SOFT},
+  {HISTORY_OFF, Ink::SOFT},
+  // Not there: the darker tone, a glyph or a mark that still shows but does not read as ink.
+  {OFF, Ink::FIRM}, {TICK, Ink::FIRM},
+};
+
 // The look on screen (screen_dark): the board sets it through set_dark() (below) from the Dark mode setting. And the look
 // the table and the helpers read (dark): the screen's, except while a card is painted that carries the other look (a
 // section whose tiles follow its contrast, docs/PAGES.md "Sections"): a LookScope (runtime_tiles' CardScope) or a LookOf
@@ -270,6 +315,8 @@ struct TestLook;
 #endif
 class Looks {
   static inline bool screen_ = false, now_ = false;
+  static inline bool paper_ = false;  // the glass prints with inks (set_paper)
+  friend void set_paper(bool on);
   friend struct LookScope;
   friend struct LookOf;
   friend void set_dark(bool on);
@@ -278,13 +325,25 @@ class Looks {
 #endif
 
  public:
-  static inline const bool &screen = screen_, &now = now_;
+  static inline const bool &screen = screen_, &now = now_, &paper = paper_;
 };
 inline const bool &screen_dark = Looks::screen;
 inline const bool &dark = Looks::now;
-inline uint32_t hex(Role role) { return dark ? ROLES[role].dark : ROLES[role].light; }
+// Whether the glass prints with inks: said once at boot, before the first paint (packages/core.yaml, from the paper
+// glass), and by a test or the editor's preview for the glass it draws.
+inline const bool &paper = Looks::paper;
+inline void set_paper(bool on) { Looks::paper_ = on; }
+// A role on paper: its own tone where the table names one, else the tone nearest its colour in that look.
+inline uint32_t ink_of(Role role, bool in_dark) {
+  for (const auto &own : INKS) if (own.role == role) return ink_value(own.ink, in_dark);
+  return nearest_ink(in_dark ? ROLES[role].dark : ROLES[role].light);
+}
 // A role in a given look, whatever look is painted now.
-inline uint32_t hex_in(Role role, bool in_dark) { return in_dark ? ROLES[role].dark : ROLES[role].light; }
+inline uint32_t hex_in(Role role, bool in_dark) {
+  if (paper) return ink_of(role, in_dark);
+  return in_dark ? ROLES[role].dark : ROLES[role].light;
+}
+inline uint32_t hex(Role role) { return hex_in(role, dark); }
 // The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
 // or the other one; then what was there before. A card's flag for draw callbacks (OTHER_LOOK_FLAG) is in the LVGL half.
 // How many looks of a card are open now: set_dark() inside one would be undone when it closes (the host build says so).
@@ -386,7 +445,8 @@ struct Face {
 // The card's colour as this look draws it.
 inline uint32_t surface(Face f) {
   switch (f.kind) {
-    case Face::SWATCH: return dark ? SWATCHES[f.swatch].dark : SWATCHES[f.swatch].light;
+    // A card of a colour of its own is a card on paper: its pastel would be a raster under every word on it.
+    case Face::SWATCH: return paper ? hex(CARD) : dark ? SWATCHES[f.swatch].dark : SWATCHES[f.swatch].light;
     case Face::INSTRUMENT: return hex(INSTRUMENT);
     default: return hex(CARD);
   }
@@ -394,7 +454,7 @@ inline uint32_t surface(Face f) {
 // A colour kept as its light value (a tile's background: a swatch, or 0 for the card), as this look draws it. Any other
 // light value stands as it is in the light look and is the card in the dark one, as before Face.
 inline uint32_t surface(uint32_t own) {
-  if (!own) return hex(CARD);
+  if (!own || paper) return hex(CARD);
   if (!dark) return own;
   for (const auto &s : SWATCHES) if (s.light == own) return s.dark;
   return hex(CARD);
@@ -402,13 +462,13 @@ inline uint32_t surface(uint32_t own) {
 // The hairline around a card: the card's own colour a little darker in light, a little lighter in dark.
 inline uint32_t outline(Face f) {
   switch (f.kind) {
-    case Face::SWATCH: return dark ? mix(surface(f), 0xFFFFFF, 232) : mix(SWATCHES[f.swatch].light, 0x000000, 220);
+    case Face::SWATCH: return paper ? hex(LINE) : dark ? mix(surface(f), 0xFFFFFF, 232) : mix(SWATCHES[f.swatch].light, 0x000000, 220);
     case Face::INSTRUMENT: return hex(INSTRUMENT_LINE);
     default: return hex(LINE);
   }
 }
 inline uint32_t outline(uint32_t own) {
-  if (!own) return hex(LINE);
+  if (!own || paper) return hex(LINE);
   return dark ? mix(surface(own), 0xFFFFFF, 232) : mix(own, 0x000000, 220);
 }
 
@@ -462,16 +522,21 @@ inline uint32_t temperature(float celsius) {
 }
 
 constexpr uint32_t STATE_OFF = ha::GREY;
+// A state's colour as a tone of ink: the ink itself for any state, and the tone of what is not there for "off" and the
+// greys of a history that say the same. Colour carries no state on paper; a shape does (disc, on_disc, track).
+inline uint32_t state_ink(uint32_t color) {
+  if (color == STATE_OFF) return hex(OFF);
+  if (color == ROLES[HISTORY_OFF].light) return hex(HISTORY_OFF);
+  if (color == ROLES[HISTORY_EMPTY].light) return hex(HISTORY_EMPTY);
+  return hex(INK);
+}
 inline uint32_t state(uint32_t color) {
+  if (paper) return state_ink(color);
   if (!dark) return color;
   if (color == STATE_OFF) return ROLES[OFF].dark;
   if (color == ROLES[HISTORY_OFF].light) return ROLES[HISTORY_OFF].dark;
   if (color == ROLES[HISTORY_EMPTY].light) return ROLES[HISTORY_EMPTY].dark;
   return color;
-}
-// Relative lightness 0-255 (Rec. 601 weights): enough to tell a colour that sinks into a dark card.
-inline uint32_t lightness(uint32_t color) {
-  return ((color >> 16 & 0xFF) * 299 + (color >> 8 & 0xFF) * 587 + (color & 0xFF) * 114) / 1000;
 }
 // A state colour drawn as a glyph, a line or words on the page or a card. Dark lifts the deep ones (indigo, purple)
 // until they read on graphite.
@@ -484,6 +549,8 @@ inline uint32_t foreground(uint32_t color) {
 // The pale circle behind a tile's icon, a halo, a slider's track: the colour at `amount` over white in light, and
 // over the card in dark, where the same share would vanish, a little more.
 inline uint32_t tint(uint32_t color, uint8_t amount) {
+  // On paper the pale share of a colour is the lighter tone, and of "off" nothing: the card itself.
+  if (paper) return color == STATE_OFF ? hex(CARD) : ink_value(Ink::SOFT, dark);
   color = state(color);
   if (!dark) return mix(color, 0xFFFFFF, amount);
   const unsigned stronger = amount + amount / 3 + 8;
@@ -491,8 +558,25 @@ inline uint32_t tint(uint32_t color, uint8_t amount) {
 }
 // A tile's icon in its state colour: a touch darker in light, so a pale bulb still shows; a touch lighter in dark.
 inline uint32_t icon(uint32_t color) {
+  if (paper) return hex(INK);  // a glyph is ink; whether its state is on is its disc's to say (on_disc)
   color = state(color);
   return dark ? mix(foreground(color), 0xFFFFFF, 230) : mix(color, 0x333333, 205);
+}
+// A tile's icon and the disc behind it, where the pair says whether the tile is on (runtime_tiles' render_slot). On a
+// lit glass the disc is the state's colour pale and the glyph the colour itself. On paper the shape says it: on is a
+// disc of ink with the glyph left open in it, off the glyph alone in ink on the card.
+inline uint32_t disc(uint32_t color) {
+  if (paper) return color == STATE_OFF ? hex(CARD) : hex(INK);
+  return tint(color, 38);
+}
+inline uint32_t on_disc(uint32_t color) {
+  if (paper) return color == STATE_OFF ? hex(INK) : hex(CARD);
+  return icon(color);
+}
+// A slider's track under its fill: the colour pale on a lit glass, the lighter tone on paper, where the fill is ink.
+inline uint32_t track(uint32_t color) {
+  if (paper) return ink_value(Ink::SOFT, dark);
+  return tint(color, 51);
 }
 // The soft area under a graph line: a fifth of the line's colour in light; less over graphite, where the same share
 // turns a large brown or purple block.
@@ -500,20 +584,36 @@ inline uint8_t fill_opacity() { return dark ? 38 : 51; }
 // Keys drawn inside a card of any colour (a wide tile's direct controls): a shade away from the card, towards the
 // middle, so they read on white, on a pastel and on graphite alike.
 inline uint32_t key_on(uint32_t card, uint8_t depth) {
+  if (paper) return ink_value(Ink::SOFT, dark);
   return dark ? mix(card, 0xFFFFFF, static_cast<uint8_t>(255 - (255 - depth) * 3 / 2)) : mix(card, 0x000000, depth);
 }
 // A card under a finger (firmware 0.2.95+): its own colour an eighth of the way to black in light and to white in
 // dark, the same share on white, on a pastel and on graphite, so the press reads on every card in both looks.
-inline uint32_t pressed(uint32_t card) { return mix(card, dark ? 0xFFFFFF : 0x000000, 224); }
+// On paper a press has no shade: nothing prints under a finger (paper_print.h), and a shade drawn for nobody would
+// only be a second refresh.
+inline uint32_t pressed(uint32_t card) { return paper ? card : mix(card, dark ? 0xFFFFFF : 0x000000, 224); }
 // A card of its own colour under a finger: an instrument's face is dark in both looks, so it goes towards white in both.
-inline uint32_t pressed(Face f) { return mix(surface(f), dark || f.kind == Face::INSTRUMENT ? 0xFFFFFF : 0x000000, 224); }
+inline uint32_t pressed(Face f) {
+  if (paper) return surface(f);
+  return mix(surface(f), dark || f.kind == Face::INSTRUMENT ? 0xFFFFFF : 0x000000, 224);
+}
 // A calendar's own colour (Home Assistant's, from its registry or the frontend's palette) on the calendar card
 // (calendar_card.h): an event's pale block, the words on it, a progress track, and what is past, a step towards the
 // card. The same shares as Apple's and the frontend's events: the colour reads, the words stay dark (light in dark).
-inline uint32_t calendar_block(uint32_t c) { return dark ? mix(c, hex(CARD), 80) : mix(c, 0xFFFFFF, 58); }
-inline uint32_t calendar_ink(uint32_t c) { return dark ? mix(c, 0xFFFFFF, 110) : mix(c, 0x000000, 120); }
-inline uint32_t calendar_track(uint32_t c) { return dark ? mix(c, hex(CARD), 90) : mix(c, 0xFFFFFF, 70); }
-inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
+// On paper every calendar is the lighter tone under words of ink: which calendar an event is of is not told there.
+inline uint32_t calendar_block(uint32_t c) {
+  if (paper) return ink_value(Ink::SOFT, dark);
+  return dark ? mix(c, hex(CARD), 80) : mix(c, 0xFFFFFF, 58);
+}
+inline uint32_t calendar_ink(uint32_t c) {
+  if (paper) return hex(INK);
+  return dark ? mix(c, 0xFFFFFF, 110) : mix(c, 0x000000, 120);
+}
+inline uint32_t calendar_track(uint32_t c) {
+  if (paper) return ink_value(Ink::SOFT, dark);
+  return dark ? mix(c, hex(CARD), 90) : mix(c, 0xFFFFFF, 70);
+}
+inline uint32_t calendar_past(uint32_t c) { return paper ? ink_value(Ink::SOFT, dark) : mix(c, hex(CARD), 130); }
 
 }  // namespace theme
 

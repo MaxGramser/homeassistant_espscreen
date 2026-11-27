@@ -71,9 +71,10 @@ def _engine_of(full_config):
         return engine_build.ENGINES["software"]
     from esphome.components.esp32 import get_esp32_variant
 
+    paper = any((item or {}).get("platform") == "paper_glass" for item in full_config.get("display") or [])
     return engine_build.ENGINES[
         engine_build.picture_engine(str(get_esp32_variant()).lower(), bool(full_config.get("lvgl")),
-                                    "psram" in full_config)
+                                    "psram" in full_config, paper)
     ]
 
 

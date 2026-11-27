@@ -2,7 +2,9 @@
 // What this screen's hardware can do, in one record (docs/PLATFORM_PLAN.md, section 3.3): whether it streams a camera
 // live, has a speaker, a microphone, echo cancellation and a camera of its own, how many live camera tiles it runs at
 // once, and how much memory it has. The firmware, the hello to the app, the editor and the plugins all read this one
-// record, so no code anywhere infers a capability from a board's name, a chip or a pin.
+// record, so no code anywhere infers a capability from a board's name, a chip or a pin. It also says what kind of
+// glass this is: one that is lit and shows colours, or paper, which prints with a few inks and keeps its picture
+// without a light (docs/PAPER.md).
 //
 // Two halves make it. The build's half comes from what the configuration contains (hw_build.py reads the config and
 // defines HW_SPEAKER, HW_MICROPHONE, HW_ECHO_CANCEL and HW_CAMERA when a component of that kind is built in: a part
@@ -40,6 +42,11 @@ struct Caps {
   // Motion (screen_motion.h, docs/MOTION.md): dims laid on the glass itself, a card before its dim, a change of the whole glass
   // behind the backlight. A full-tier screen whose frame buffer a task may write; never a lite one (the CYD).
   bool motion = false;
+  // Paper (docs/PAPER.md): the inks the panel prints with, 0 on a glass that is lit and shows colours, 2 for black and
+  // white, 4 for four greys. A glass of ink is a still one: a change is a print that takes a part of a second, so
+  // nothing on it runs by itself (screen_motion.h, "A still glass"), and it streams nothing.
+  uint8_t inks = 0;
+  bool still = false;
   uint32_t psram_bytes = 0, internal_bytes = 0;  // the heaps as the chip reports them at boot
 };
 
@@ -49,6 +56,7 @@ struct Facts {
   bool live_video = false;
   bool direct_glass = false;  // a frame buffer a task may write past LVGL (glass::direct)
   bool full_tier = false;     // the build's tier (modules.py: 8 MB of flash or more)
+  uint8_t inks = 0;           // the paper glass's (paper::inks), 0 without one
   uint8_t live_tiles = 0;  // the engine's (picture_engine::limits)
   uint32_t psram_bytes = 0, internal_bytes = 0;
 };
@@ -61,7 +69,9 @@ constexpr Caps resolve(const Facts &f) {
   c.echo_cancel = f.echo_cancel && f.microphone && f.speaker;  // cancelling echo needs both ends
   c.camera = f.camera;
   c.live_tiles = f.live_video ? f.live_tiles : 0;
-  c.motion = f.direct_glass && f.full_tier;
+  c.motion = f.direct_glass && f.full_tier && f.inks == 0;
+  c.inks = f.inks;
+  c.still = f.inks != 0;
   c.psram_bytes = f.psram_bytes;
   c.internal_bytes = f.internal_bytes;
   return c;

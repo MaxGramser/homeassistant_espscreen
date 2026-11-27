@@ -41,10 +41,12 @@ ENGINES = {
 }
 
 
-def picture_engine(variant, has_lvgl, has_psram=False):
+def picture_engine(variant, has_lvgl, has_psram=False, paper=False):
     """The engine a build gets: 'p4' for an ESP32-P4 with LVGL, 's3' for an ESP32-S3 with LVGL and PSRAM, else
-    'software'. `variant` as ESPHome names it, lowercase."""
-    if not has_lvgl:
+    'software'. `variant` as ESPHome names it, lowercase. A build whose glass is paper (a display of the paper_glass
+    platform, docs/PAPER.md) is 'software' on any chip: its panel has no frame buffer a task writes and shows no
+    stream, and its stills come as BMP rows in the panel's inks."""
+    if not has_lvgl or paper:
         return "software"
     if variant == "esp32p4":
         return "p4"

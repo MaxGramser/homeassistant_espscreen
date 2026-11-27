@@ -2513,14 +2513,16 @@ inline void render_slot(size_t slot) {
   w.painted = from;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
-  auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
+  // A key is its circle and carries the tile's words on it, so it keeps the pale share; a tile's disc and its glyph
+  // say on and off as a pair (theme::disc, on_disc: by colour on a lit glass, by shape on paper).
+  auto circle_color=lv_color_hex(!available?theme::hex(theme::TRACK):w.key?theme::tint(state_color,38):theme::disc(state_color));
   // Very pale bulbs still need a visible icon: a touch darker on a light card, a touch lighter on a dark one.
-  auto icon_color=lv_color_hex(available?theme::icon(state_color):theme::hex(theme::OFF));
+  auto icon_color=lv_color_hex(!available?theme::hex(theme::OFF):w.key?theme::icon(state_color):theme::on_disc(state_color));
   // Off: a grey track without fill or handle, as in Home Assistant.
   const uint32_t fill=slider_on?accent:theme::STATE_OFF;
   auto fill_color=lv_color_hex(theme::state(fill));
   set_color(w.slider,LV_STYLE_BG_COLOR,fill_color,LV_PART_INDICATOR);
-  set_color(w.slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::tint(fill,51)),LV_PART_MAIN);
+  set_color(w.slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::track(fill)),LV_PART_MAIN);
   slider_bar(w.slider,slider_bar_shown(t,slider_on));
   // Every card, the one over the whole page too, is white or its own pastel (firmware 0.2.77+): the state shows in the
   // icon and the controls, as on the other sizes. Firmware 0.2.62 to 0.2.76 tinted a full-page card in its state colour

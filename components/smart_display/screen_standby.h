@@ -25,6 +25,12 @@
 // page 1 is built one pass of the loop later, where the loop task's stack has the room (docs/ARCHITECTURE.md, "The
 // loop's stack"); a screensaver that opened before it was closed by it again (GitHub #457).
 //
+// A glass that keeps its picture without a light (paper, docs/PAPER.md) has no dark: its standby is rest. With a
+// screensaver set it shows that one, and a finger or a key wakes it as on any screen. Without one the page stays where
+// it is, readable, and nothing lies over it: a finger or a key on it is used at once and ends the rest by the way
+// (resting(), act()), because a first tap that only "wakes" a page nobody saw change would read as a tap not heard.
+// The saving of a screen at rest is the same either way (screen_power.h).
+//
 // Two clocks. The standby time counts from the last touch, wake, alert that ended or Auto standby turned on
 // (since_touch). Back to page 1 counts from the last touch or page Home Assistant opened (since_use), so a wake on every
 // motion holds no card or second page up.
@@ -74,6 +80,9 @@ struct Glass {
   uint32_t (*home_after)() = []() -> uint32_t { return 0; };  // Back to page 1 after so many seconds; 0: off
   int (*standby_level)() = []() { return 0; };        // the backlight's level in standby now (night or day)
 
+  bool (*keeps)() = []() { return false; };           // the glass shows its picture without a light (paper)
+  bool (*saver_up)() = []() { return false; };        // a screensaver is on the glass now
+
   void (*light)(int, int) = [](int, int) {};          // the backlight to a level (percent), over so many ms
   void (*overlay)(bool) = [](bool) {};                // the sheet over a screen in standby that takes the waking tap
   void (*saver)(bool) = [](bool) {};                  // the screensaver follows: in standby with the backlight lit
@@ -102,8 +111,25 @@ class Standby {
   // A finger on the glass, or one that just left: both clocks start again.
   void touch(uint32_t now) { last_touch_ = last_use_ = now; }
   void contact(bool down, uint32_t now) {
+    if (resting()) lit(now);  // a paper page at rest is used at once: nothing lay over it to take the tap
     touch(now);
     finger_ = down;
+  }
+  // In standby with nothing to light: the backlight at 0, or a glass that keeps its picture. What the power saving
+  // of screen_power.h asks before it starts (its `dark`).
+  bool at_rest() const { return dimmed_ && (glass.keeps() || glass.standby_level() == 0); }
+  // In standby with the page itself on the glass: a glass that keeps its picture, and no screensaver over it.
+  bool resting() const { return dimmed_ && glass.keeps() && !glass.saver_up(); }
+  // Something that is no finger is about to act on the page (a board's page key). True: it may, and the screen counts
+  // as touched. False: the screen was in standby under a screensaver or in the dark, and that press woke it instead.
+  bool act(uint32_t now) {
+    if (dimmed_ && !resting()) {
+      wake_from("a key of the board", Wake::KEY, now);
+      return false;
+    }
+    if (dimmed_) lit(now);
+    touch(now);
+    return true;
   }
   // The screen was used without a finger (Home Assistant opened a page): Back to page 1 counts from now.
   void use(uint32_t now) { last_use_ = now; }
@@ -115,16 +141,24 @@ class Standby {
   // Auto standby turned off lights a screen the time dimmed, never one someone sent to standby by hand.
   void show() {
     if (dimmed_ && !screen_settings::current.standby_enabled && !hand_) dimmed_ = false;
+    const bool keeps = glass.keeps();
     const int level = dimmed_ ? glass.standby_level() : static_cast<int>(screen_settings::current.brightness);
     glass.light(level, dimmed_ ? FADE_OUT_MS : FADE_IN_MS);
-    // Dark (a level of 0): the power saving of screen_power.h, once the backlight has faded out. ESPHome puts its own
-    // Wi-Fi mode back when it connects again, so a screen that is saving dozes again here, within the minute.
-    if (dimmed_ && level == 0) {
+    // Dark (a level of 0), or at rest on a glass that keeps its picture: the power saving of screen_power.h, once the
+    // backlight has faded out. ESPHome puts its own Wi-Fi mode back when it connects again, so a screen that is saving
+    // dozes again here, within the minute.
+    if (dimmed_ && (level == 0 || keeps)) {
       if (screen_power::saving) screen_power::doze_wifi(true);
       else screen_power::rest();
     } else {
       stop(POWER);
       screen_power::leave();
+    }
+    if (keeps) {
+      // The screensaver first, where one is set; the sheet that takes the waking tap only over it.
+      glass.saver(dimmed_);
+      glass.overlay(dimmed_ && glass.saver_up());
+      return;
     }
     glass.overlay(dimmed_);
     glass.saver(dimmed_ && level > 0);

@@ -67,6 +67,12 @@ substitutions:
   ALERT_BLINKS: "4"
   BACKLIGHT_DIMMABLE: "true"                       # false: the backlight is lit or dark, a switch instead of a percentage
   CAN_STANDBY: "true"                              # false: the screen never goes dark (features/backlight-always-on.yaml)
+  # The glass (docs/PAPER.md). A panel of e-paper states its inks (features/paper.yaml: 2 for black and white, 4 for
+  # four greys); 0 is a glass that is lit and shows colours. On paper LVGL draws only while the panel is not
+  # refreshing, and the letters are built without soft edges, which a panel of two inks cannot show.
+  PAPER_INKS: "0"
+  LVGL_WAITS_FOR_GLASS: "false"
+  FONT_TEXT_BPP: 4                                 # the text and digit fonts' bits a pixel (a number, as ESPHome reads it)
   # 0: the bedside clock takes the display step, never digits of its own (hardware/flash-4mb.yaml, looks/shared/digits.yaml).
   BEDSIDE_OWN_DIGITS: "1"
   # The touch test page (CALIBRATION_ON_BOOT); its sizes are the look's.
@@ -74,8 +80,10 @@ substitutions:
   TOUCH_TEST_TITLE: "calibration_touch_check"      # the words at the top
   TOUCH_TEST_PAINT: "paint_ink"                    # the crosses
   # Code the shared lambdas below take from a feature or a board, at the place named ${...}; empty when nothing
-  # adds anything there. BOOT_TOUCH, BOOT_PAGE_GESTURE and OTA_BACKLIGHT have no default: every screen
-  # reads a touch panel and lights a backlight, so the board says how (features/capacitive-touch.yaml, features/backlight.yaml).
+  # adds anything there. BOOT_TOUCH and BOOT_PAGE_GESTURE have no default: every screen reads a touch panel, so the
+  # board says how (features/capacitive-touch.yaml). Nor have the light's three, SET_BACKLIGHT (a level in percent over
+  # so many ms, as `level` and `ms`), BOOT_BACKLIGHT and OTA_BACKLIGHT: every screen says how its glass is lit
+  # (features/backlight.yaml) or that it has no light of its own (features/paper.yaml, where they are empty).
   CAMERA_PAINT_FILL: ""                            # the paint styles a feature brings (theme::paints)
   CALIBRATION_PAINT_FILL: ""
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
@@ -141,6 +149,7 @@ esphome:
     - <esphome/components/smart_display/alert_overlay.h>
     - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
+    - <esphome/components/smart_display/paper_screen.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/screen_standby.h>
     - <esphome/components/smart_display/alert_life.h>
@@ -242,6 +251,8 @@ esphome:
             ${CAMERA_PAINT_FILL}
             ${CALIBRATION_PAINT_FILL}
           };
+          // A glass that prints takes its tones from the ink table (theme.h, "Ink"): said before the first paint.
+          theme::set_paper(paper::is());
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
           runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(false); };
@@ -288,8 +299,11 @@ esphome:
             };
             glass.home_after = []() -> uint32_t { return runtime_tiles::auto_home ? (uint32_t) runtime_tiles::auto_home_seconds : 0; };
             glass.standby_level = []() { return runtime_tiles::standby_level(); };
-            // One owner for the backlight's level, the board's script set_backlight (features/backlight.yaml).
-            glass.light = [](int level, int ms) { id(set_backlight).execute(level, ms); };
+            glass.keeps = []() { return paper::is(); };
+            glass.saver_up = []() { return runtime_tiles::saver_on(); };
+            // One owner for the backlight's level, the board's script set_backlight (features/backlight.yaml); a glass
+            // without a light of its own has nothing here (features/paper.yaml).
+            glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };
             glass.overlay = [](bool shown) {
               if (!shown) { lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN); return; }
               lv_obj_clear_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
@@ -340,7 +354,7 @@ esphome:
             alert.glass.clear = []() { runtime_tiles::alert_clear(); };
             alert.glass.wake = []() { screen_standby::the().wake(millis()); };
             alert.glass.stir = []() { screen_standby::the().stir(millis()); };
-            alert.glass.light = [](int level, int ms) { id(set_backlight).execute(level, ms); };
+            alert.glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };
             alert.glass.report = [](const char *action, const std::string &title) { id(alert_event).execute(std::string(action), title); };
             alert.glass.later = [](uint32_t ms) { id(alert_wait).execute(ms); };
             alert.glass.say = [](const char *line) { ESP_LOGI("alert", "%s", line); };
@@ -365,17 +379,29 @@ esphome:
           // How a doorbell's ring ended on this screen goes to ESP Screens (module doorbell, esphome.screen_doorbell).
           runtime_tiles::doorbell_reports([](const std::string &action, const std::string &key) { id(doorbell_report).execute(action, key); });
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
-          screen_power::freeze = [](bool on) { id(screen_lvgl).set_paused(on, false); ESP_LOGI("power", on ? "dark: saving" : "awake"); };
+          // A paper glass at rest keeps drawing: its page stays readable and follows the house (docs/PAPER.md).
+          screen_power::freeze = [](bool on) {
+            if (!paper::is()) id(screen_lvgl).set_paused(on, false);
+            ESP_LOGI("power", on ? "at rest: saving" : "awake");
+          };
           screen_power::later = [](uint32_t ms) { screen_standby::the().power_wait(ms, millis()); };
-          screen_power::dark = []() { return screen_standby::the().in_standby() && runtime_tiles::standby_level() == 0; };
+          screen_power::dark = []() { return screen_standby::the().at_rest(); };
           screen_power::wake = []() { screen_standby::the().wake(millis()); };
           // Feedback a finger hears or feels (touch_feedback.h): none for the push that wakes a dimmed screen, nor in a calibration.
           touch_feedback::quiet = []() { return screen_standby::the().in_standby() || id(calibration_active); };
           {
             // A touch on the dark glass resumes drawing before LVGL reads it, so the wake overlay gets the tap.
+            // A paper glass hears the same two moments: nothing prints under a finger (paper_print.h).
             struct WakeListener : public esphome::touchscreen::TouchListener {
-              void update(const esphome::touchscreen::TouchPoints_t &points) override { if (!points.empty()) screen_power::touched(esphome::millis()); }
-              void release() override { screen_power::released(esphome::millis()); }
+              void update(const esphome::touchscreen::TouchPoints_t &points) override {
+                if (points.empty()) return;
+                screen_power::touched(esphome::millis());
+                paper::finger(true, esphome::millis());
+              }
+              void release() override {
+                screen_power::released(esphome::millis());
+                paper::finger(false, esphome::millis());
+              }
             };
             id(ts_touch).register_listener(new WakeListener());
           }
@@ -491,9 +517,8 @@ esphome:
           // the action at the top right of a card keep their taps.
           settings_screen::attach_hold(id(home_page)->obj, ${SETTINGS_HOLD_X}, 0,
             overlay_card::screen_width() - ${SETTINGS_HOLD_X} * 2, ${SCROLL_Y});
-      - light.turn_on:
-          id: back_light
-          brightness: !lambda "return screen_settings::current.brightness / 100.0f;"
+      - lambda: |-
+          ${BOOT_BACKLIGHT}
       - script.execute: show_tile_page
       - lambda: 'if (!id(ui_refresh).is_running()) id(ui_refresh).execute();'
       - if:
@@ -999,7 +1024,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: headline
     size: ${FONT_HEADLINE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1020,7 +1045,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: watch_value
     size: ${FONT_WATCH_VALUE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1042,7 +1067,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: clock_digits
     size: ${FONT_CLOCK_DIGITS_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','-','0','1','2','3','4','5','6','7','8','9']
 
   # The display step (firmware 0.17.0+): half a page's width, the flip clock's blocks and the bedside clock
@@ -1050,7 +1075,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: display_digits
     size: ${FONT_DISPLAY_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','0','1','2','3','4','5','6','7','8','9']
 
   # The bedside clock's own step (firmware 0.8.0+), only where the whole page takes a fifth larger digits than the display
@@ -1058,21 +1083,21 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: bedside_digits
     size: ${FONT_BEDSIDE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','0','1','2','3','4','5','6','7','8','9']
 
   # The climate card's setpoint, large enough to read across the room; a humidifier's in percent (firmware 0.42.0+).
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: setpoint_digits
     size: ${FONT_SETPOINT_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['-','.',',','°','%','0','1','2','3','4','5','6','7','8','9']
 
   # A tile's name: bold, or medium on the compact look (TILE_NAME_FONT_FILE), the same glyphs either way.
   - file: "${FONT_DIR}/${TILE_NAME_FONT_FILE}"
     id: label
     size: ${FONT_LABEL_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1093,7 +1118,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: sublabel
     size: ${FONT_SUBLABEL_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1114,7 +1139,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: sublabel_big
     size: ${FONT_SUBLABEL_BIG_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1136,7 +1161,7 @@ font:
   - file: "${FONT_DIR}/Roboto-700.ttf"
     id: brand_wordmark
     size: ${FONT_BRAND_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['t','e','s','r','a']
 
   # Material Design Icons (MDI) — included at fonts/materialdesignicons-webfont.ttf (Apache 2.0)
@@ -1994,6 +2019,9 @@ lvgl:
     - touchscreen_id: ts_touch
 
   buffer_size: ${LVGL_BUFFER_SIZE}
+  # A panel of e-paper is busy for a part of a second with every refresh: LVGL draws again when it is free, and tells
+  # the glass after every round of drawing (components/paper_glass). False on every glass that is lit.
+  update_when_display_idle: ${LVGL_WAITS_FOR_GLASS}
 
   # Direct local feedback on the WHOLE UI. A theme sets the style per widget type, so this covers all
   # buttons, tabs, sliders and the thermostat ring in one go. Non-clickable widgets never enter the

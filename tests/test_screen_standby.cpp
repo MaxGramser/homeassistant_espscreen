@@ -14,6 +14,7 @@ static bool timer_set = false;
 static uint32_t timer_at = 0;
 static uint8_t owners = 0;
 static bool is_away = false, can = true, saver_up = false;
+static bool keeps_picture = false, saver_set = true;  // a paper glass; a screensaver is set
 static uint32_t home_seconds = 0;
 static int level = 20;
 static int alerts_closed = 0;
@@ -46,6 +47,8 @@ static void fresh() {
   is_away = false;
   can = true;
   saver_up = false;
+  keeps_picture = false;
+  saver_set = true;
   home_seconds = 0;
   level = 20;
   alerts_closed = 0;
@@ -53,7 +56,7 @@ static void fresh() {
   screen_power::saving = screen_power::touching = screen_power::settling = screen_power::was_tap = false;
   screen_power::freeze = [](bool on) { told(on ? "freeze" : "draw"); };
   screen_power::later = [](uint32_t ms) { s.power_wait(ms, now_ms); };
-  screen_power::dark = []() { return s.in_standby() && level == 0; };
+  screen_power::dark = []() { return s.at_rest(); };
   screen_power::wake = []() { s.wake(now_ms); };
   s = Standby{};
   s.touch(now_ms);
@@ -64,7 +67,9 @@ static void fresh() {
   s.glass.standby_level = []() { return level; };
   s.glass.light = [](int to, int ms) { told("light " + std::to_string(to) + " in " + std::to_string(ms)); };
   s.glass.overlay = [](bool on) { told(on ? "overlay on" : "overlay off"); };
-  s.glass.saver = [](bool on) { saver_up = on; told(on ? "saver on" : "saver off"); };
+  s.glass.saver = [](bool on) { saver_up = on && saver_set; told(on ? "saver on" : "saver off"); };
+  s.glass.keeps = []() { return keeps_picture; };
+  s.glass.saver_up = []() { return saver_up; };
   s.glass.saver_wake = []() { const bool was = saver_up; saver_up = false; return was; };
   s.glass.close_settings = []() { told("close settings"); };
   s.glass.close_cards = []() { told("close cards"); };
@@ -180,6 +185,55 @@ static void a_dark_standby_saves_power() {
   assert(has("page 1") && !has("freeze"));
   after(screen_power::REST_MS);
   assert(has("freeze"));
+}
+
+static void a_glass_that_keeps_its_picture_rests() {
+  // Paper with no screensaver set: the page stays on the glass and nothing lies over it. The saving starts as on a
+  // dark screen, whatever level a light would have had.
+  fresh();
+  keeps_picture = true;
+  saver_set = false;
+  s.standby_by_time(now_ms);
+  assert(s.in_standby() && s.resting());
+  assert(has("overlay off") && !has("overlay on"));
+  after(screen_power::REST_MS);
+  assert(screen_power::saving);
+  // A finger on the page is used at once: the rest ends, no card is closed and nothing "wakes".
+  trail.clear();
+  s.contact(true, now_ms);
+  assert(!s.in_standby() && !screen_power::saving);
+  assert(!has("close cards") && !has("overlay off") && !has("light 100 in 200"));
+  s.contact(false, now_ms);
+
+  // A page key the same: it may act, and the screen counts as touched.
+  fresh();
+  keeps_picture = true;
+  saver_set = false;
+  s.standby_by_time(now_ms);
+  after(5000);
+  trail.clear();
+  assert(s.act(now_ms));
+  assert(!s.in_standby() && touch_at() == now_ms && !has("close cards"));
+
+  // With a screensaver set it is a standby as on any screen: the screensaver shows, the sheet takes the waking tap,
+  // and a key's first press only wakes.
+  fresh();
+  keeps_picture = true;
+  s.standby_by_time(now_ms);
+  assert(s.in_standby() && !s.resting());
+  assert(place("saver on") >= 0 && place("saver on") < place("overlay on"));
+  trail.clear();
+  assert(!s.act(now_ms));
+  assert(!s.in_standby() && has("close cards") && has("overlay off"));
+
+  // A lit screen's key press acts, as it always did.
+  fresh();
+  assert(s.act(now_ms) && !s.in_standby());
+  // And a lit glass in the dark is woken by a key, never used through the dark.
+  fresh();
+  level = 0;
+  s.standby_by_time(now_ms);
+  assert(!s.resting() && !s.act(now_ms) && !s.in_standby());
 }
 
 static void by_hand_holds_and_closes_an_alert() {
@@ -662,6 +716,7 @@ static void the_clocks() {
 int main() {
   the_standby_time();
   a_dark_standby_saves_power();
+  a_glass_that_keeps_its_picture_rests();
   by_hand_holds_and_closes_an_alert();
   a_standby_by_hand_closes_a_ring();
   auto_standby_turned_off_while_dark();

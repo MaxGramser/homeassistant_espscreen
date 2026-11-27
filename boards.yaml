@@ -235,6 +235,17 @@ sensecapd1:
       kind: chip_firmware
       chip: indicator-rp2040
 
+reterminalsticky:
+  file: seeed-reterminal-sticky.yaml
+  name: reTerminal Sticky
+  model: Seeed reTerminal Sticky
+  status: experimental
+  # Seeed's 3.97-inch magnetic e-paper display: the first board whose glass is paper (docs/PAPER.md). Tried by the
+  # project on its own unit with the SSD1677 panel; Seeed also ships the board with an SSD2677, which ESPHome does not
+  # drive yet.
+  # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
+  settings: [wake_when_moved]
+
 freenovefnk0104s:
   file: freenove-fnk0104s.yaml
   name: Freenove

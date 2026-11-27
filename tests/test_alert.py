@@ -208,8 +208,10 @@ class TheEnd(unittest.TestCase):
         always_on = package_yaml.load(ROOT / 'packages/features/backlight-always-on.yaml')
         self.assertEqual(str(always_on['substitutions']['ALERT_BLINKS']), '0')
         self.assertIn('alert.blinks = ${ALERT_BLINKS};', self.TEXT)
-        self.assertIn('alert.glass.light = [](int level, int ms) { id(set_backlight).execute(level, ms); };', self.TEXT,
+        self.assertIn('alert.glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };', self.TEXT,
                       'the blinks go through the board\'s one owner of the backlight')
+        backlight = package_yaml.load(ROOT / 'packages/features/backlight.yaml')
+        self.assertEqual(backlight['substitutions']['SET_BACKLIGHT'], 'id(set_backlight).execute(level, ms);')
 
 
 class TheLimits(unittest.TestCase):

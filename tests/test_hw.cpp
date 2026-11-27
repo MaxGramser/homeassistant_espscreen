@@ -44,6 +44,14 @@ int main() {
   mute.speaker = false;
   assert(!hw::resolve(mute).echo_cancel);
 
+  // A paper glass: its inks pass through, it is a still glass, and it has no motion whatever else the build has.
+  hw::Facts sheet = moving;
+  sheet.direct_glass = true;
+  sheet.inks = 2;
+  const hw::Caps s = hw::resolve(sheet);
+  assert(s.inks == 2 && s.still && !s.motion);
+  assert(a.inks == 0 && !a.still);
+
   // Nothing at all: the host, the WASM preview, a CYD.
   static_assert(!hw::resolve(nothing).live_video && hw::resolve(nothing).live_tiles == 0, "a bare board streams nothing");
 

@@ -306,7 +306,7 @@ def glyphs(source, font):
     extras, or None. Each list is read as YAML: it holds a ']' and a backslash of its own (firmware 0.36.0+), so a
     pattern up to the first ']' cuts it."""
     flow = r'(\[(?:\'[^\']*\'|"(?:[^"\\]|\\.)*"|[^\]\'"])*\])'
-    block = re.search(r'id: ' + font + r'\n    size: [^\n]+\n    bpp: 4\n    glyphs: ' + flow
+    block = re.search(r'id: ' + font + r'\n    size: [^\n]+\n    bpp: \$\{FONT_TEXT_BPP\}\n    glyphs: ' + flow
                       + r'((?:\n    extras:)?(?:\n      - file: [^\n]+\n        glyphs: ' + flow + r')*)', source)
     if not block:
         return None

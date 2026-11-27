@@ -10,6 +10,10 @@ substitutions:
   # the loop that runs the light's transition, so the level goes straight to the output, with the light's own gamma.
   OTA_BACKLIGHT: |-
     id(gpio_backlight_pwm)->set_level(powf(screen_settings::current.brightness / 100.0f, id(back_light)->get_gamma_correct()));
+  # The light to a level (percent) over so many ms, for the standby and an alert's blinks: the one script below.
+  SET_BACKLIGHT: "id(set_backlight).execute(level, ms);"
+  # The light comes on at the screen's brightness when it starts, with the light's own transition.
+  BOOT_BACKLIGHT: "id(back_light).turn_on().set_brightness(screen_settings::current.brightness / 100.0f).perform();"
 
 light:
   # The firmware owns the backlight: brightness, standby, night and alerts set it, and the minute tick
