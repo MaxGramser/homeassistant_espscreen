@@ -23,10 +23,12 @@ inline paper_print::Printer &printer() {
   return p;
 }
 
-// A finger landed, moved or lifted, or a key was pressed: what is drawn next is its answer.
-inline void finger(uint32_t now) {
-  if (is()) printer().finger(now);
+// A finger lies on the glass or lifted from it: nothing prints under it, and what is drawn after it is its answer.
+inline void finger(bool down, uint32_t now) {
+  if (is()) printer().finger(down, now);
 }
+// A key was pressed: a finger that came and went at once.
+inline void key(uint32_t now) { finger(false, now); }
 // Something that is only whole at its end begins or ends: a layout on its way, a page being built.
 inline void hold(bool on, uint32_t now) {
   if (is()) printer().hold(on, now);

@@ -4,6 +4,12 @@
 // between two inks (a see-through layer, a tint, the soft edge of a shape, a picture) becomes a fixed pattern of the
 // two, so nothing the UI draws ever vanishes: a word at 40 % still reads, as a raster.
 //
+// One kind of in-between is not an area but an edge: the soft pixels LVGL draws along a rounded corner, a slanted
+// line or a letter, each a step between the ink on one side of it and the ink on the other. Rastered, such an edge
+// frays into loose dots (seen on a reTerminal Sticky, 2026-11-27: the corners of a card). So a pixel that has a
+// clearly darker neighbour and a clearly lighter one is an edge and prints as the nearer ink, and only a pixel in an
+// even stretch of its own tone, a see-through word, a tint, a picture, gets the raster.
+//
 // The pattern is ordered (a 4 x 4 Bayer matrix) and hangs on the pixel's own place on the glass, never on what was drawn
 // around it or before it. So a part LVGL draws again prints the same dots it printed last time, and a partial refresh,
 // which moves only the pixels that changed, has nothing to move in a raster that stayed. An error-diffusing dither
@@ -54,6 +60,23 @@ constexpr uint8_t level(uint8_t l, int x, int y, uint8_t inks) {
   return static_cast<uint8_t>(rest > threshold ? below + 1 : below);
 }
 
+// The ink nearest a luma, with no raster: what an edge prints as.
+constexpr uint8_t nearest(uint8_t l, uint8_t inks) {
+  return inks == 4 ? static_cast<uint8_t>((l * 3U + 127U) / 255U) : static_cast<uint8_t>(l >= 128 ? 1 : 0);
+}
+// How far a neighbour's luma must lie from a pixel's to count as the other side of an edge.
+constexpr uint8_t EDGE = 40;
+// Whether a pixel of luma `l` is an edge between two tones: one of its neighbours clearly darker and one clearly
+// lighter. `around` holds the lumas of the neighbours there are (a block's rim has fewer).
+constexpr bool edge(uint8_t l, const uint8_t *around, int count) {
+  bool darker = false, lighter = false;
+  for (int i = 0; i < count; ++i) {
+    darker = darker || around[i] + EDGE <= l;
+    lighter = lighter || around[i] >= l + EDGE;
+  }
+  return darker && lighter;
+}
+
 // A level as a grey of 0 to 255, in the middle of the band the driver reads as that ink: black and white for two
 // inks; for four, the middles of ESPHome's four bands (under 32, 32 to 95, 96 to 159, 160 and up).
 constexpr uint8_t grey(uint8_t lvl, uint8_t inks) {
@@ -67,16 +90,35 @@ constexpr uint16_t ink565(uint16_t pixel, int x, int y, uint8_t inks) {
   return grey565(grey(level(luma565(pixel), x, y, inks), inks));
 }
 
-// A block of RGB565 pixels as LVGL flushes it: `rows` rows of `columns` pixels read from `source`, whose rows are
-// `stride` pixels apart, written tightly into `ink`. The block's first pixel lies at (x, y) on the glass. Two bytes a
-// pixel, the high byte first when `big_endian`, in and out alike.
-inline void block(const uint8_t *source, uint8_t *ink, int columns, int rows, int stride, int x, int y, bool big_endian,
-                  uint8_t inks) {
-  for (int row = 0; row < rows; ++row) {
-    const uint8_t *in = source + static_cast<long>(row) * stride * 2;
-    for (int column = 0; column < columns; ++column, in += 2, ink += 2) {
-      const uint16_t pixel = big_endian ? static_cast<uint16_t>((in[0] << 8) | in[1]) : static_cast<uint16_t>((in[1] << 8) | in[0]);
-      const uint16_t out = ink565(pixel, x + column, y + row, inks);
+// A block of RGB565 pixels as LVGL flushes it: `total_rows` rows of `columns` pixels at `source`, whose rows are
+// `stride` pixels apart, with its first pixel at (x, y) on the glass. The rows from `first` on, `rows` of them, are
+// written tightly into `ink`; the rows around them are read for what lies beside a pixel. Two bytes a pixel, the high
+// byte first when `big_endian`, in and out alike.
+inline void block(const uint8_t *source, uint8_t *ink, int columns, int total_rows, int stride, int first, int rows,
+                  int x, int y, bool big_endian, uint8_t inks) {
+  const auto luma_at = [&](int row, int column) {
+    const uint8_t *in = source + (static_cast<long>(row) * stride + column) * 2;
+    return luma565(big_endian ? static_cast<uint16_t>((in[0] << 8) | in[1]) : static_cast<uint16_t>((in[1] << 8) | in[0]));
+  };
+  const unsigned steps = inks == 4 ? 3U : 1U;
+  for (int row = first; row < first + rows; ++row) {
+    for (int column = 0; column < columns; ++column, ink += 2) {
+      const uint8_t l = luma_at(row, column);
+      // How far from the ink under it, as level() counts: a pixel that is an ink needs no look around it.
+      const unsigned rest = (l * steps) % 255U;
+      uint8_t lvl;
+      if (l == 255 || rest <= NEAR || rest >= 255U - NEAR) {
+        lvl = level(l, x + column, y + row, inks);
+      } else {
+        uint8_t around[4];
+        int count = 0;
+        if (column > 0) around[count++] = luma_at(row, column - 1);
+        if (column + 1 < columns) around[count++] = luma_at(row, column + 1);
+        if (row > 0) around[count++] = luma_at(row - 1, column);
+        if (row + 1 < total_rows) around[count++] = luma_at(row + 1, column);
+        lvl = edge(l, around, count) ? nearest(l, inks) : level(l, x + column, y + row, inks);
+      }
+      const uint16_t out = grey565(grey(lvl, inks));
       ink[0] = static_cast<uint8_t>(big_endian ? out >> 8 : out & 0xFF);
       ink[1] = static_cast<uint8_t>(big_endian ? out & 0xFF : out >> 8);
     }

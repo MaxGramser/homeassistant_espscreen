@@ -6,8 +6,12 @@
 // The rules, each with its case in tests/test_paper_print.cpp:
 // - A change waits a short quiet for more of them, and never longer than a most from the first: a burst of values from
 //   Home Assistant, a card's parts, a page's tiles print as one refresh, not as one each.
-// - A finger does not wait. What is drawn soon after a finger landed, moved or lifted is the answer to it and prints
-//   at once.
+// - Nothing prints under a finger. What LVGL draws while one lies on the glass is the look of a press, which is gone
+//   again when it lifts; a refresh takes longer than a tap, so printing it would show the press after the fact and
+//   make every tap two refreshes. A finger that stays (a hold, a drag) is shown after a most of its own.
+// - A finger's answer does not wait for the quiet of a burst. What is drawn soon after a finger lifted or a key was
+//   pressed prints as soon as the drawing has stood still for a few frames, so a short fade ends before its print and
+//   never is one.
 // - While something is on its way that is only whole at its end (a layout, a page's build), nothing prints; a hold
 //   that never ends still lets go after a most of its own.
 // - A partial refresh leaves a trace of what stood there. So the glass keeps count of how much of itself partial
@@ -31,6 +35,9 @@ struct Rules {
   uint32_t quiet_ms = 350;      // a change waits this long for more of them
   uint32_t most_ms = 1500;      // and never longer than this from the first of them
   uint32_t finger_ms = 1200;    // what is drawn this soon after a finger is its answer
+  uint32_t finger_quiet_ms = 80;   // an answer prints once the drawing stood still this long
+  uint32_t finger_most_ms = 400;   // and never later than this after the finger
+  uint32_t down_most_ms = 1500;    // a finger that stays down this long is shown where it is
   uint32_t hold_most_ms = 10000;  // a hold lets go by itself after this
   uint32_t rest_ms = 30000;     // left alone this long, the glass may refresh whole
   uint16_t tidy_area = 3000;    // per mille of the glass changed by partial refreshes that is enough: three glasses
@@ -58,8 +65,10 @@ class Printer {
   Rules rules;
 
   // ---- what happened ----
-  // A finger landed, moved or lifted, or a key was pressed.
-  void finger(uint32_t now) {
+  // A finger lies on the glass (down) or lifted from it. A key's press is a finger that lifted.
+  void finger(bool down, uint32_t now) {
+    if (down && !down_) down_at_ = now;
+    down_ = down;
     finger_at_ = now;
     fingered_ = true;
     active_at_ = now;
@@ -129,7 +138,18 @@ class Printer {
       if (let_go > 0) return let_go;
     }
     if (!dirty_) return 0;  // a whole refresh that was asked for, with nothing new drawn
-    if (fingered_ && now - finger_at_ < rules.finger_ms) return 0;
+    if (down_) {
+      const int32_t stays = static_cast<int32_t>(down_at_ + rules.down_most_ms - now);
+      if (stays > 0) return stays;
+    }
+    if (fingered_ && now - finger_at_ < rules.finger_ms) {
+      // Counted from the finger or from the first drawing after it, whichever is later: what was drawn under the
+      // finger does not hurry the print that follows its lifting.
+      const uint32_t from = static_cast<int32_t>(first_at_ - finger_at_) > 0 ? first_at_ : finger_at_;
+      const int32_t still = static_cast<int32_t>(last_at_ + rules.finger_quiet_ms - now);
+      const int32_t latest = static_cast<int32_t>(from + rules.finger_most_ms - now);
+      return still < latest ? still : latest;
+    }
     const int32_t quiet = static_cast<int32_t>(last_at_ + rules.quiet_ms - now);
     const int32_t most = static_cast<int32_t>(first_at_ + rules.most_ms - now);
     return quiet < most ? quiet : most;
@@ -156,6 +176,8 @@ class Printer {
 
   bool dirty_ = false, printing_ = false, held_ = false, fingered_ = false, whole_next_ = false;
   bool started_ = false;  // the panel has been refreshed since the start
+  bool down_ = false;     // a finger lies on the glass
+  uint32_t down_at_ = 0;
   uint32_t first_at_ = 0, last_at_ = 0, finger_at_ = 0, hold_at_ = 0, active_at_ = 0;
   uint16_t area_ = 0;   // per mille of the glass drawn and not printed yet
   uint16_t worn_ = 0;   // per mille changed by partial refreshes since the last whole one

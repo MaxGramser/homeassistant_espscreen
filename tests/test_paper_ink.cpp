@@ -85,15 +85,70 @@ static void a_block_as_lvgl_flushes_it() {
       source[i * 2] = static_cast<uint8_t>(big ? pixels[i] >> 8 : pixels[i] & 0xFF);
       source[i * 2 + 1] = static_cast<uint8_t>(big ? pixels[i] & 0xFF : pixels[i] >> 8);
     }
-    block(source, ink, 3, 2, 5, 9, 6, big, 2);
+    block(source, ink, 3, 2, 5, 0, 2, 9, 6, big, 2);
     for (int row = 0; row < 2; ++row)
       for (int column = 0; column < 3; ++column) {
         const uint8_t *o = ink + (row * 3 + column) * 2;
         const uint16_t got = big ? static_cast<uint16_t>((o[0] << 8) | o[1]) : static_cast<uint16_t>((o[1] << 8) | o[0]);
-        assert(got == ink565(pixels[row * 5 + column], 9 + column, 6 + row, 2));
         assert(got == 0x0000 || got == 0xFFFF);
+        // The two that are inks stay them; the grey in an even stretch of grey is the raster of its place.
+        if (pixels[row * 5 + column] != 0x8410) assert(got == pixels[row * 5 + column]);
       }
+    const uint8_t *corner = ink + (1 * 3 + 0) * 2;  // the grey of the second row, beside another grey
+    const uint16_t raster = big ? static_cast<uint16_t>((corner[0] << 8) | corner[1]) : static_cast<uint16_t>((corner[1] << 8) | corner[0]);
+    assert(raster == ink565(0x8410, 9, 7, 2));
   }
+}
+
+// A row of greys as a block one pixel high, printed at (x, y): the levels it prints as.
+static void print_row(const uint8_t *lumas, int count, int x, int y, uint8_t inks, uint8_t *levels) {
+  uint8_t source[64], ink[64];
+  for (int i = 0; i < count; ++i) {
+    const uint16_t pixel = grey565(lumas[i]);
+    source[i * 2] = static_cast<uint8_t>(pixel >> 8);
+    source[i * 2 + 1] = static_cast<uint8_t>(pixel & 0xFF);
+  }
+  block(source, ink, count, 1, count, 0, 1, x, y, true, inks);
+  for (int i = 0; i < count; ++i) {
+    const uint8_t g = luma565(static_cast<uint16_t>((ink[i * 2] << 8) | ink[i * 2 + 1]));
+    levels[i] = inks == 4 ? static_cast<uint8_t>((g + 32) >> 6 > 3 ? 3 : (g + 32) >> 6) : static_cast<uint8_t>(g >= 128);
+  }
+}
+
+static void an_edge_is_not_rastered() {
+  // The soft pixels of a rounded corner or a letter: black, a step between, white. The step prints as the nearer ink
+  // at every place on the glass, so the edge is a line and not a row of loose dots.
+  for (int y = 0; y < 4; ++y)
+    for (int x = 0; x < 4; ++x) {
+      uint8_t levels[5];
+      const uint8_t dark_step[5] = {0, 0, 96, 255, 255};
+      print_row(dark_step, 5, x, y, 2, levels);
+      assert(levels[0] == 0 && levels[1] == 0 && levels[2] == 0 && levels[3] == 1 && levels[4] == 1);
+      const uint8_t light_step[5] = {0, 0, 170, 255, 255};
+      print_row(light_step, 5, x, y, 2, levels);
+      assert(levels[2] == 1);
+      // The rim of a grey area against white is an edge too: the area keeps its raster, the rim takes a side.
+      const uint8_t rim[5] = {128, 128, 190, 255, 255};
+      print_row(rim, 5, x, y, 2, levels);
+      assert(levels[2] == 1);
+    }
+  // A word at 40 % over white is no edge: its pixels have white beside them and their own tone, nothing darker. It
+  // keeps its raster, and with it its ink.
+  int ink_dots = 0;
+  for (int y = 0; y < 4; ++y)
+    for (int x = 0; x < 4; ++x) {
+      uint8_t levels[5];
+      const uint8_t word[5] = {255, 153, 153, 153, 255};
+      print_row(word, 5, x, y, 2, levels);
+      ink_dots += levels[2] == 0;
+      assert(levels[0] == 1 && levels[4] == 1);
+    }
+  assert(ink_dots >= 5 && ink_dots <= 8);
+  // Four inks: an edge takes the nearest of the four.
+  uint8_t levels[3];
+  const uint8_t step[3] = {0, 120, 255};
+  print_row(step, 3, 0, 0, 4, levels);
+  assert(levels[1] == 1);
 }
 
 int main() {
@@ -102,6 +157,7 @@ int main() {
   the_raster_hangs_on_the_place();
   the_driver_reads_the_same_ink();
   a_block_as_lvgl_flushes_it();
+  an_edge_is_not_rastered();
   std::puts("paper_ink: ok");
   return 0;
 }

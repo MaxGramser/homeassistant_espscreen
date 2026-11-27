@@ -95,8 +95,7 @@ void HOT PaperGlass::draw_pixels_internal(int x_start, int y_start, int w, int h
   const int rows_a_band = std::max<int>(1, static_cast<int>(this->band_pixels_ / w));
   for (int row = 0; row < h; row += rows_a_band) {
     const int rows = std::min(rows_a_band, h - row);
-    paper_ink::block(source + static_cast<size_t>(row) * stride * 2, this->band_, w, rows, stride, x_start, y_start + row,
-                     big_endian, this->inks_);
+    paper_ink::block(source, this->band_, w, h, stride, row, rows, x_start, y_start, big_endian, this->inks_);
     this->panel_->draw_pixels_at(x_start, y_start + row, w, rows, this->band_, display::COLOR_BITNESS_565, big_endian);
   }
 }
