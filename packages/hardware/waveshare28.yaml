@@ -1,0 +1,88 @@
+# ESP Screens - the Waveshare ESP32-S3-Touch-LCD-2.8 (V1) apart from its glass, for packages/boards/waveshare28.yaml.
+#
+# The pins are those of Waveshare's V1 demo (ESP32-S3-Touch-LCD-2.8-Demo, ESP-IDF and Arduino). The display and touch
+# settings are those of an ESPHome configuration that runs on a V1 board (docs/WAVESHARE28.md).
+packages:
+  build: !include esp-idf.yaml
+
+esphome:
+  # ESPHome's cst328 touch platform came with 2026.9.0, after the packages' own min_version (2026.6.2,
+  # packages/core.yaml). A board's min_version wins over the core's, so the other boards keep building on 2026.6.2.
+  min_version: 2026.9.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# The ESP32-S3R8's 8 MB of octal PSRAM; ESPHome's S3BOX model requires it.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: write only, clock on GPIO40 and data on GPIO45 (a strapping pin of the ESP32-S3, wired to the panel
+# on this board). Waveshare wires MISO to GPIO46; the write-only display does not read it.
+spi:
+  id: lcd_spi
+  clk_pin: GPIO40
+  mosi_pin:
+    number: GPIO45
+    ignore_strapping_warning: true
+
+# The CST328 capacitive touch, at 0x1A, on a bus of its own. GPIO3 is a strapping pin of the ESP32-S3, wired to the
+# touch panel on this board. The motion sensor and the clock sit on a second bus (SDA GPIO11, SCL GPIO10), left alone.
+i2c:
+  id: touch_bus
+  sda: GPIO1
+  scl:
+    number: GPIO3
+    ignore_strapping_warning: true
+  frequency: 400kHz
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light); zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    pin: GPIO5
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# ESPHome's cst328 platform, with the touch panel's interrupt on GPIO4 and its reset on GPIO2, read every 20 ms as on
+# the other boards (a finger that moves between reads is what LVGL counts as a swipe). The range and the transform
+# (TOUCH_SWAP_XY and TOUCH_MIRROR_X in the board file) are those of the configuration this file comes from.
+touchscreen:
+  - platform: cst328
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO4
+    reset_pin: GPIO2
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 320
+      y_min: 0
+      y_max: 240
+
+# ESPHome's S3BOX model carries the init sequence and the size; this panel takes it with its colours inverted, in RGB
+# order and mirrored along x only, data/command on GPIO41 and chip select on GPIO42, at 8 MHz, as in the configuration
+# this file comes from. Waveshare's demo drives the panel's reset on GPIO39 and the bus at 80 MHz; neither has been
+# tried with this model yet.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: S3BOX
+    spi_id: lcd_spi
+    dc_pin: GPIO41
+    cs_pin: GPIO42
+    invert_colors: true
+    color_order: rgb
+    data_rate: 8MHz
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: false
+    update_interval: never
+    auto_clear_enabled: false

@@ -3430,6 +3430,120 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/waveshare28.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "waveshare28",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ESP32-S3-Touch-LCD-2.8",
+   "name": "Waveshare",
+   "order": 34,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST328"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "esphome": "2026.9.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "inks": 0,
+  "label_weight": 500,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -10787,6 +10901,120 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/waveshare28.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "waveshare28",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ESP32-S3-Touch-LCD-2.8",
+   "name": "Waveshare",
+   "order": 34,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST328"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "esphome": "2026.9.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "inks": 0,
+  "label_weight": 500,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -13913,6 +14141,120 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1280
+ },
+ "waveshare28": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "waveshare28",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ESP32-S3-Touch-LCD-2.8",
+   "name": "Waveshare",
+   "order": 34,
+   "recommended": false,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST328"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "esphome": "2026.9.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "inks": 0,
+  "label_weight": 500,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
  },
  "waveshare35": {
   "alert": {
