@@ -938,6 +938,7 @@
         "save_first": "Enregistrez la disposition des pages avant ses paramètres",
         "destination_exists": "L’écran de destination possède déjà une disposition enregistrée",
         "update_tall": "Mettez l’écran à jour pour utiliser ces tailles de tuiles",
+        "update_orientation": "Mettez à jour l’écran pour choisir la disposition des tuiles",
         "memory": "L’écran ne dispose pas de suffisamment de mémoire libre pour cette disposition. Utilisez moins de tuiles.",
         "grid_range": "Cet écran n’accepte pas une grille de cette taille. Choisissez une autre grille à côté de l’aperçu.",
         "section_title": "Une section a besoin d'un nom de 48 octets au plus.",
@@ -2669,6 +2670,13 @@
         "needs_firmware": "Les tuiles de navigation nécessitent le firmware 0.2.62 : appuyez d'abord sur Mettre à jour pour cet écran.",
         "no_page": "Cet écran n'a pas de page {page} : toucher la tuile ouvre donc sa dernière page. Choisissez une autre page.",
         "hint": "Toucher la tuile ouvre cette page."
+      },
+      "orientation": {
+        "label": "Disposition",
+        "hint": "Placez l’icône à côté du texte ou au-dessus si la place le permet. Automatique s’adapte à l’espace disponible.",
+        "auto": "Automatique",
+        "horizontal": "Horizontale",
+        "vertical": "Verticale"
       },
       "display": {
         "label": "Affichage",

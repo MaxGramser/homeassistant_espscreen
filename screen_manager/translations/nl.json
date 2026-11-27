@@ -938,6 +938,7 @@
         "save_first": "Sla eerst de pagina-indeling op voordat je de instellingen opslaat",
         "destination_exists": "Het doelscherm heeft al een opgeslagen indeling",
         "update_tall": "Werk het scherm bij om deze tegelmaten te gebruiken",
+        "update_orientation": "Werk het scherm bij om de tegelindeling zelf te kiezen",
         "memory": "Het scherm heeft onvoldoende vrij geheugen voor deze indeling. Gebruik minder tegels.",
         "grid_range": "Dit scherm neemt geen raster van deze grootte aan. Kies een ander raster naast het voorbeeld.",
         "section_title": "Een sectie heeft een naam van hoogstens 48 bytes nodig.",
@@ -2178,6 +2179,13 @@
         "needs_firmware": "Navigatietegels hebben firmware 0.2.62 nodig: druk eerst bij het scherm op Bijwerken.",
         "no_page": "Dit scherm heeft geen pagina {page}, dus een tik opent de laatste pagina. Kies een andere pagina.",
         "hint": "Een tik op de tegel opent die pagina."
+      },
+      "orientation": {
+        "label": "Indeling",
+        "hint": "Plaats het pictogram naast de tekst of erboven als er ruimte is. Automatisch volgt de beschikbare ruimte.",
+        "auto": "Automatisch",
+        "horizontal": "Horizontaal",
+        "vertical": "Verticaal"
       },
       "display": {
         "label": "Weergave",

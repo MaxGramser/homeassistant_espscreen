@@ -938,6 +938,7 @@
         "save_first": "Salva la disposizione delle pagine prima delle relative impostazioni",
         "destination_exists": "Lo schermo di destinazione ha già una disposizione salvata",
         "update_tall": "Aggiorna lo schermo per usare queste dimensioni di tessera",
+        "update_orientation": "Aggiorna lo schermo per scegliere la disposizione dei riquadri",
         "memory": "Lo schermo non ha abbastanza memoria libera per questo layout. Usa meno riquadri.",
         "grid_range": "Questo schermo non accetta una griglia di queste dimensioni. Scegli un’altra griglia accanto all’anteprima.",
         "section_title": "Una sezione ha bisogno di un nome di al massimo 48 byte.",
@@ -2669,6 +2670,13 @@
         "needs_firmware": "I riquadri di navigazione richiedono il firmware 0.2.62: premi prima Aggiorna per questo schermo.",
         "no_page": "Questo schermo non ha la pagina {page}, quindi un tocco apre la sua ultima pagina. Scegli un'altra pagina.",
         "hint": "Un tocco sul riquadro apre quella pagina."
+      },
+      "orientation": {
+        "label": "Disposizione",
+        "hint": "Posiziona l’icona accanto al testo o sopra, se c’è spazio. Automatica si adatta allo spazio disponibile.",
+        "auto": "Automatica",
+        "horizontal": "Orizzontale",
+        "vertical": "Verticale"
       },
       "display": {
         "label": "Visualizzazione",

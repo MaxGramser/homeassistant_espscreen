@@ -8,6 +8,7 @@ export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "sc
 export type LightPreset = { b?: number; k?: number; h?: number; s?: number; fx?: string; rw?: Record<string, string | number> };
 export type PluginPick = { value: string; label: string };
 export type PluginValue = string | number | boolean | PluginPick | (string | PluginPick)[];
+export type CardOrientation = "horizontal" | "vertical";
 export type TileOptions = {
   // A plugin tile's own options (design): what its manifest lets the inspector set.
   plugin?: Record<string, PluginValue>;
@@ -31,6 +32,7 @@ export type TileOptions = {
   tap?: string;
   icon?: string;
   background?: string;
+  orientation?: CardOrientation;
   history_hours?: number;
   // The Call tile (docs/CALLS.md): a screen's node, none for the list; video where it can, or sound only.
   call_to?: string;
@@ -117,7 +119,7 @@ export type PageTile = {
   // A footprint is a rectangle. The renderer's capabilities decide which
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
-  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; labelScroll?: "off"; subtitleScroll?: "off"; fit?: string; overlay?: string;
+  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; orientation?: CardOrientation; historyHours?: number; refresh?: number; subtitle?: string; labelScroll?: "off"; subtitleScroll?: "off"; fit?: string; overlay?: string;
     mapEntities?: string[]; mapFraming?: string; mapDistance?: string; mapFollow?: string; mapMarkers?: string; mapNames?: string;
     mapZones?: string; mapStreets?: string; mapLook?: string; energyFlow?: string;
     // The Call tile: whom it calls and how (docs/CALLS.md).
@@ -334,6 +336,7 @@ export type Screen = {
   // Which way it is to hang on glass that turns (app 0.4.85): what the editor chose, else the way it hangs; null on square glass.
   hang?: "landscape" | "portrait" | null;
   tile_sizes?: string[];
+  tile_orientation?: boolean;
   page_capability?: "ready" | "update_screen" | "offline";
   // Home Assistant ignores its taps: it may not perform actions (app 0.4.63, the ESPHome integration's own repair issue).
   actions_blocked?: boolean;

@@ -69,4 +69,26 @@ for (const before of [true, false]) {
   const refused = raw({ v: 2, session: granted.slice(8), seq: 1, rev: '4444444444444444', op: 'begin', title: 'Too many', pages: 25, tiles: 1, home: 0, keepalive: 60 });
   assert.match(refused, /^Error/, `25 pages: ${refused}`);
 }
-console.log('Preview language, look and the largest board: ok');
+// Manual icon/text layout travels through the real decoder and changes the card's geometry. Automatic keeps its
+// height threshold, and a vertical override falls back to a row when the two lines and a readable icon cannot fit.
+for (const [height, rows, automatic, vertical] of [[160, 1, false, true], [240, 1, true, true], [160, 2, false, false]]) {
+  const m = await createModule({ wasmBinary });
+  assert.equal(m._preview_init(640, height, 143, 4, rows), 1);
+  let ms = 0, revision = 0;
+  for (const entity of ['switch.test', 'button.test', 'script.test', 'screen.page_2']) {
+    for (const orientation of [undefined, 'horizontal', 'vertical']) {
+      const options = { icon: 'F0335', ...(orientation ? { orientation } : {}) };
+      const id = (++revision).toString(16).padStart(16, '0');
+      configure(connection(m, id, id), 'Room', 2,
+        [{ entity, name: 'Test', state: 'on', slot: 0, a: {}, o: options }]);
+      for (let i = 0; i < 8; i++) { ms += 64; m._preview_time(ms, 1789401840, 7200); m._preview_render(); }
+      const objects = JSON.parse(m.ccall('preview_layout', 'string', [], [])).objects;
+      const title = objects.find(o => o.card === 0 && o.text === 'Test');
+      const icon = objects.find(o => o.card === 0 && o.icon);
+      assert.ok(title && icon, `${entity}: the name and icon are visible`);
+      const stacked = orientation === 'vertical' ? vertical : orientation === 'horizontal' ? false : automatic;
+      assert.equal(title.y1 > icon.y2, stacked, `${entity}, ${height}px/${rows} rows, ${orientation ?? 'auto'}: icon above text`);
+    }
+  }
+}
+console.log('Preview language, look, tile orientation and the largest board: ok');

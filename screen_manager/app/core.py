@@ -1995,8 +1995,13 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'sub_scroll', 'name_scroll', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'sub_scroll', 'name_scroll', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', 'orientation', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
+            if 'orientation' in options:
+                if options['orientation'] not in ('auto', 'horizontal', 'vertical'):
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting='orientation'))
+                if options['orientation'] == 'auto':
+                    options = {k: v for k, v in options.items() if k != 'orientation'}
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
                 try:

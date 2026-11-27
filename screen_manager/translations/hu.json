@@ -938,6 +938,7 @@
         "save_first": "A dokumentumbeállítások mentése előtt mentsd az oldaldokumentumot",
         "destination_exists": "A célkijelzőnek már van mentett elrendezése",
         "update_tall": "Ezekhez a csempeméretekhez frissítsd a kijelzőt",
+        "update_orientation": "Frissítsd a kijelzőt a csempék elrendezésének kiválasztásához",
         "memory": "A kijelzőn nincs elég szabad memória ehhez az elrendezéshez. Csökkentsd a csempék számát.",
         "grid_range": "Ez a kijelző nem fogad el ekkora rácsot. Válassz másik rácsot az előnézet mellett.",
         "section_title": "Egy szakasznak legfeljebb 48 bájtos név kell.",
@@ -2669,6 +2670,13 @@
         "needs_firmware": "A navigációs csempékhez 0.2.62-es firmware kell: előbb nyomd meg a Frissítés gombot a kijelzőnél.",
         "no_page": "Ennek a kijelzőnek nincs {page}. oldala, így a koppintás az utolsó oldalt nyitja meg. Válassz másik oldalt.",
         "hint": "A csempére koppintva ez az oldal nyílik meg."
+      },
+      "orientation": {
+        "label": "Elrendezés",
+        "hint": "Az ikon a szöveg mellé vagy fölé kerül, ha van elég hely. Az Automatikus a rendelkezésre álló helyhez igazodik.",
+        "auto": "Automatikus",
+        "horizontal": "Vízszintes",
+        "vertical": "Függőleges"
       },
       "display": {
         "label": "Megjelenítés",

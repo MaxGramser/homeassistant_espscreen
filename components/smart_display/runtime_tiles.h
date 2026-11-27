@@ -2164,6 +2164,8 @@ inline void render_slot(size_t slot) {
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.
   bool large_tile=ui::large();
+  const auto orientation=(!t.builtin() || t.is_page()) && t.row_span()==1 && t.display=="standard" && t.inline_control!="slider"
+    ? t.orientation : card_orientation::Choice::automatic;
   lap(swipe_profile::TEXT);
   // Cards that replace the name/status layout entirely.
   bool bedside=t.is_bedside() && w.full;
@@ -2296,12 +2298,18 @@ inline void render_slot(size_t slot) {
     lap(swipe_profile::GEOMETRY);
     render_full(w,t,custom,clock,sunpath,graph,mini,with_panel,large_tile,value,unit,content_w,content_h);
     lap(swipe_profile::CUSTOM);
-  }else if(!custom && !watch && !mini && !graph && !with_panel && !w.wide && tile_height(w)>=2*ui::cell_height()){
-    // A cell at least twice the look's height shows its icon above its name and state, like a full card does.
+  }else if(!custom && !watch && !mini && !graph && !with_panel && !w.wide &&
+           card_orientation::stacked(orientation,tile_height(w),ui::cell_height(),
+             content_h >= ui::px(large_tile?32:20) + ui::px(large_tile?10:6) + ui::px(large_tile?2:1) +
+                          lv_font_get_line_height(w.title_font) + value_height &&
+             content_w >= ui::px(large_tile?32:20))){
+    // Stack the head on a tall cell or when requested and there is room for the icon and both lines.
     lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);hide_extra(w);lv_obj_add_flag(w.unit,LV_OBJ_FLAG_HIDDEN);
     set_font(w.title,w.title_font);title_height=lv_font_get_line_height(w.title_font);lv_obj_set_height(w.title,title_height);
-    const int circle=large_tile?std::min(content_w,content_h*45/100):std::min(content_w,content_h*40/100);
     const int gap=ui::px(large_tile?10:6),line_gap=ui::px(large_tile?2:1);
+    int circle=std::min(content_w,content_h*(large_tile?45:40)/100);
+    if(orientation==card_orientation::Choice::vertical)
+      circle=std::min(content_h-gap-title_height-line_gap-value_height,std::max(ui::px(large_tile?32:20),circle));
     const int block=circle+gap+title_height+line_gap+value_height;
     const int top=std::max(0,(content_h-block)/2);
     lv_obj_set_size(w.circle,circle,circle);lv_obj_set_pos(w.circle,(content_w-circle)/2,top);

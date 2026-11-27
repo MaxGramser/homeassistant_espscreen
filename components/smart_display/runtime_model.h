@@ -1,4 +1,5 @@
 #pragma once
+#include "card_orientation.h"
 #include "tile_catalogue.h"
 #include <algorithm>
 #include <array>
@@ -537,6 +538,7 @@ struct Tile {
   bool white = false;
   int saturation = 0;
   std::string tap = "auto", display = "standard", inline_control = "none", guard = "confirm";
+  card_orientation::Choice orientation = card_orientation::Choice::automatic;
   // What the second line says (firmware 0.2.90+), as the option was stored: "auto" is the line the screen works
   // out itself, "none" leaves it empty, "text:<words>" says those words, and "attr:<name>" says a value of this
   // entity that Home Assistant itself names. Only the last one needs an answer from the app: the other three

@@ -143,6 +143,10 @@ const refreshChoices = computed(() => offer("refresh", rules.refresh.filter((sec
 const history = computed(() => current("history_hours", 24) as number);
 const historyChoices = computed(() => offer("history_hours", [1, 6, 24].map((hours) => [hours, t("editor.tile.history.hours", hours)] as [number, string]), history.value));
 const size = computed(() => current("size", "single") as string);
+const orientationReady = computed(() => scr.currentScreen?.tile_orientation === true);
+const orientations = computed<[string, string][]>(() => ["auto", "horizontal", "vertical"]
+  .filter(value => orientationReady.value || value === "auto" || value === props.tile.options?.orientation)
+  .map(value => [value, t(`editor.tile.orientation.${value}`)]));
 const controls = computed(() => tileControls(props.tile, panel.value, inlineControlKind(domain.value)));
 const primaryControl = computed(() => domain.value === 'cover' ? coverPrimary(controls.value) : controls.value);
 const tiltSelected = computed(() => domain.value === 'cover' && hasCoverTilt(controls.value));
@@ -226,6 +230,10 @@ const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value &
 const controlsHere = computed(() => Boolean(catalogue.value) && (size.value !== "single" || roomHere(props.tile, panel.value)));
 // A light's presets (module light_presets): their keys right under the control that draws them, on a board that has them.
 const presetsShown = computed(() => presetsOffered(props.tile, panel.value, controls.value));
+const orientationShown = computed(() => size.value === "single" && display.value === "standard" && inline.value !== "slider"
+  && (goesTo.value || (lookShown.value && domain.value !== "screen"))
+  && (!todoCard.value || scr.currentScreen?.todo_lists === false)
+  && !presetsShown.value && (domain.value !== "cover" || controls.value === "none"));
 const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value) || (controlsHere.value && !goesTo.value) || (showSlider.value && !goesTo.value));
 // What the pointer rests on is drawn on the tile before it is picked (ChoiceField does the same for its lists).
 const subSample = (kind: string) => kind === "attr" ? `attr:${subAttribute.value || "state"}` : kind === "text" ? `text:${subText.value || t("editor.tile.sub.text_placeholder")}` : kind;
@@ -305,6 +313,12 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile && !energyTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="shownHint && !shownHint.warn ? shownHint.text : undefined">
         <ChoiceField :choices="displays" :value="display" :tile="tile" preview-key="display" :aria-label="t('editor.tile.display.label')" @pick="(v) => setTileOption(tile, 'display', v)" />
         <template v-if="shownHint?.warn" #note><small class="help warn">{{ shownHint.text }}</small></template>
+      </PropRow>
+      <PropRow v-if="orientationShown" :label="t('editor.tile.orientation.label')" icon="view-dashboard-outline" :hint="t('editor.tile.orientation.hint')">
+        <ChoiceField :choices="orientations" :value="current('orientation', 'auto')" :tile="tile" preview-key="orientation" :sample="v => v === 'auto' ? undefined : v"
+          :disabled="!orientationReady && !tile.options?.orientation"
+          :aria-label="t('editor.tile.orientation.label')" @pick="(v) => setTileOption(tile, 'orientation', v)" />
+        <template v-if="!orientationReady" #note><small class="help">{{ t('addon.errors.pages.update_orientation') }}</small></template>
       </PropRow>
       <!-- A bedside clock and its keys have no second line: the clock draws the time, a key its name alone. A meter
            writes its value and name itself. -->

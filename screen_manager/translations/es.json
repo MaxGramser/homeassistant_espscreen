@@ -938,6 +938,7 @@
         "save_first": "Guarda la distribución de páginas antes de guardar sus ajustes",
         "destination_exists": "La pantalla de destino ya tiene una distribución guardada",
         "update_tall": "Actualiza la pantalla para usar estos tamaños de tarjeta",
+        "update_orientation": "Actualiza la pantalla para elegir la disposición de las tarjetas",
         "memory": "La pantalla no tiene suficiente memoria libre para este diseño. Usa menos tarjetas.",
         "grid_range": "Esta pantalla no admite una cuadrícula de ese tamaño. Elige otra cuadrícula junto a la vista previa.",
         "section_title": "Una sección necesita un nombre de 48 bytes como máximo.",
@@ -2669,6 +2670,13 @@
         "needs_firmware": "Los mosaicos de navegación necesitan el firmware 0.2.62: pulsa antes Actualizar en la lista de pantallas.",
         "no_page": "Esta pantalla no tiene página {page}, así que un toque abre su última página. Elige otra página.",
         "hint": "Al tocar el mosaico se abre esa página."
+      },
+      "orientation": {
+        "label": "Distribución",
+        "hint": "Coloca el icono junto al texto o encima si hay espacio. Automática se adapta al espacio disponible.",
+        "auto": "Automática",
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
       },
       "display": {
         "label": "Presentación",

@@ -971,6 +971,9 @@ std::string receive(const std::string &payload) {
       tile.meter = std::move(m);
     }
     tile.inline_control = string(options["inline"]); if (tile.inline_control.empty()) tile.inline_control="none";
+    const auto orientation = string(options["orientation"], 10);
+    tile.orientation = orientation == "vertical" ? card_orientation::Choice::vertical :
+                       orientation == "horizontal" ? card_orientation::Choice::horizontal : card_orientation::Choice::automatic;
     // What the second line says (firmware 0.2.90+); "auto" is the line the screen works out itself, as before.
     tile.subtitle = string(options["sub"], 96); if (tile.subtitle.empty()) tile.subtitle="auto";
     // Whether a name and a second line too wide for their room roll by (dev): anything but "off", a missing key too, rolls.
