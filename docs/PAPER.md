@@ -347,6 +347,10 @@ in `packages/core.yaml`). Its standby is rest:
 
 - **With a screensaver set** it shows that one, the sheet over it takes the waking tap, and a finger or a key wakes
   the screen as on any screen: that first press does nothing more.
+  A clock face there is paper with everything on it in ink, or the other way round in its dark look
+  (`module_clock_faces.cpp`, `ink()`): a pale face would be a raster over the whole glass, and a white hand with a
+  pale rim next to nothing. Its hands are solid with a rim of the face's tone, it has no seconds hand, and it does not
+  drift. Bauhaus still draws its colours, which print as rasters.
 - **Without one** the page stays where it is, readable, and nothing lies over it. A finger or a key on it is used at
   once and ends the rest by the way (`resting()`, `contact()`, `act()`): a first tap that only wakes a page nobody saw
   change would read as a tap that was not heard.

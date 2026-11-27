@@ -122,6 +122,16 @@ struct Ink { bool dark; uint32_t face, ink, soft, tick, minor, hand, edge, accen
 inline Ink ink(const SaverFace &f) {
   Ink k;
   k.dark = dark_look(f);
+  if (theme::paper) {
+    // A glass of ink (docs/PAPER.md): the face is paper and everything on it ink, or the other way round in the dark
+    // look. A pale face would print as a raster over the whole glass, a grey tick as loose dots and a white hand with
+    // a pale rim as next to nothing (seen on a reTerminal Sticky's Glass face, 2026-11-27). A hand is solid ink with a
+    // rim of the face's own tone, which keeps it clear of the numeral it crosses.
+    k.face = theme::ink_value(theme::Ink::PAPER, k.dark);
+    k.ink = k.soft = k.tick = k.minor = k.hand = k.accent = theme::ink_value(theme::Ink::INK, k.dark);
+    k.edge = k.raised = k.face;
+    return k;
+  }
   k.face = k.dark ? role(theme::CAMERA_PAGE, true) : role(theme::PAGE, false);
   k.ink = role(theme::INK, k.dark);
   k.soft = theme::mix(k.ink, k.face, 150);
@@ -269,7 +279,7 @@ inline void glass(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int 
   const float inner = std::min(hx, hy);
   const int blade = std::max(6, (int) std::lround(S * 0.036f));
   const Hands h{cx, cy, inner * 0.62f, inner - major * 0.35f, inner - minor * 0.4f, S * 0.06f, blade, std::max(3, blade / 3),
-                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds && !screen_motion::still()};
+                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, !k.dark || theme::paper, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
@@ -278,7 +288,8 @@ inline void glass(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int 
 // month, and the clock's row (the temperature and the entities) one to a line, as many as fit. On square glass the date
 // stands in a window at 3, as on a watch.
 inline void dial(lv_obj_t *stage, const SaverFace &f, const Ink &k, float cx, float cy, float R, bool window, const esphome::ESPTime &now) {
-  box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), k.raised, LV_RADIUS_CIRCLE);
+  // The dial: a raised disc on a lit glass, and on paper, where it has the page's own tone, a rim of ink.
+  theme::rim(box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), k.raised, LV_RADIUS_CIRCLE), true);
   auto &p = painter(stage);
   const float ro = R * 0.94f, major = R * 0.09f, minor = R * 0.045f;
   const int wmaj = std::max(3, (int) std::lround(R * 0.022f)) | 1, wmin = std::max(1, (int) std::lround(R * 0.008f));
@@ -314,7 +325,7 @@ inline void dial(lv_obj_t *stage, const SaverFace &f, const Ink &k, float cx, fl
   auto &hp = painter(stage, &layer);
   const int blade = std::max(5, (int) std::lround(R * 0.055f));
   const Hands h{cx, cy, R * 0.48f, R * 0.78f, R * 0.86f, R * 0.14f, blade, std::max(3, blade / 3), std::max(2, (int) std::lround(R * 0.011f)),
-                k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds && !screen_motion::still()};
+                k.hand, k.edge, k.accent, k.face, !k.dark || theme::paper, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
