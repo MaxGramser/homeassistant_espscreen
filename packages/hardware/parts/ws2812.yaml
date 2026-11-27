@@ -1,0 +1,15 @@
+# ESP Screens - one WS2812 RGB LED on a pin of the chip (a part: docs/PROFILES.md, "Parts"), as a light in Home
+# Assistant called LED, off after every start: the same light features/rgb-led.yaml makes of an LED on three PWM
+# pins. The board declares the pin (LED_PIN) and, when it differs, the order of the LED's colours (LED_RGB_ORDER).
+substitutions:
+  LED_RGB_ORDER: GRB
+
+light:
+  - platform: esp32_rmt_led_strip
+    name: LED
+    id: led
+    pin: ${LED_PIN}
+    num_leds: 1
+    chipset: WS2812
+    rgb_order: ${LED_RGB_ORDER}
+    restore_mode: ALWAYS_OFF

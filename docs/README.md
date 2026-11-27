@@ -63,6 +63,7 @@
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
+- [ES3C28P.md](ES3C28P.md): the Hosyond (lcdwiki) ES3C28P, 2.8 inch, ESP32-S3.
 - [FREENOVEFNK0104S.md](FREENOVEFNK0104S.md): the Freenove FNK0104S, 4 inch.
 - [SENSECAP_INDICATOR.md](SENSECAP_INDICATOR.md): the Seeed SenseCAP Indicator D1 series with the GX panel, 4 inch.
 - [SUNTON8048S070.md](SUNTON8048S070.md): the Sunton ESP32-8048S070, 7 inch.

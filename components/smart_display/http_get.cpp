@@ -1,8 +1,12 @@
 // The socket of http_get.h: what every download of the screen from ESP Screen Manager opens (docs/SCREEN_FILES.md).
-// Compiled with the pictures (SCREEN_PICTURES, packages/features/camera.yaml), as everything that downloads is; a 4 MB
-// board without them pays nothing.
+// Compiled with the pictures (SCREEN_PICTURES, packages/features/camera.yaml), as everything that downloads is, and with
+// the screen's voice to the app (talk_uplink.h: a microphone and the live streams), which a board without pictures may
+// have; a 4 MB board without either pays nothing.
 #include "http_get.h"
-#ifdef SCREEN_PICTURES
+#if __has_include("esphome/core/defines.h")
+#include "esphome/core/defines.h"  // USE_MICROPHONE
+#endif
+#if defined(SCREEN_PICTURES) || (defined(USE_MICROPHONE) && defined(USE_LIVE_VIEW))
 #include <cerrno>
 #include <arpa/inet.h>
 #include <fcntl.h>

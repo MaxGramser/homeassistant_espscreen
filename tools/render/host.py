@@ -47,8 +47,11 @@ def audio_package(rel):
     """Whether a package, by its path under packages/, is the screen's audio, which the host build leaves out."""
     # The echo canceller and a codec's transport through it are audio by another name (hardware/parts/echo-cancel.yaml,
     # es7210/aec.yaml and split-aec.yaml: esp_aec and esp_audio_stack, which the host has not).
+    # A codec's part is audio too, whichever file includes it: a board that names its parts itself (the ES3C28P) includes
+    # es8311-voice.yaml from its board file, not through a hardware file with audio in its name.
     return 'audio' in rel.as_posix() or rel.name == 'echo-cancel.yaml' or rel.name.endswith('aec.yaml') \
-        or rel.name == 'amplifier.yaml'   # the speaker's amplifier: its pin may be an expander's
+        or rel.name == 'amplifier.yaml' \
+        or rel.name in ('es7210.yaml', 'es8311.yaml', 'es8311-voice.yaml', 'es8388.yaml')
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
 
@@ -218,6 +221,15 @@ def host_file(text, chain, rel):
                 _, start, end = blocks_of(text, key)[0]
                 if not re.search(r'(?m)^  - ', text[start:end]):
                     text = text[:start] + text[end:]
+    # An LED strip on the chip's RMT (a board's WS2812, parts/ws2812.yaml) goes: the host has no pins, and nothing reads it.
+    if 'light' in dict((k, 0) for k, _, _ in top_blocks(text)):
+        before = text
+        text = drop_items(text, 'light', lambda item: 'platform: esp32_rmt_led_strip' in item)
+        if text != before:
+            chain.notes.append(f'{rel}: dropped light: an LED on the RMT')
+            found = blocks_of(text, 'light')
+            if found and not re.search(r'(?m)^  - ', text[found[0][1]:found[0][2]]):
+                text = text[:found[0][1]] + text[found[0][2]:]
     # A sensor on an ADC pin (a battery's voltage) stands as a template sensor of the same id: the host has no pins, and
     # what reads it (the board's own measure) reads its state.
     text, n = re.subn(r'(?m)^  - platform: adc\n((?:    [^\n]*\n|\s*\n)*?)(?=  - |\S|\Z)',

@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **A new board: the Hosyond ES3C28P, 2.8 inch (experimental).** The 2.8-inch ESP32-S3 display from lcdwiki, also sold by diymore, with capacitive touch, 8 MB of PSRAM, a speaker and a microphone. Choose **Hosyond · 2.8 inch** in New screen.
 - **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
 - **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
 
