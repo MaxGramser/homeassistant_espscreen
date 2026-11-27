@@ -70,6 +70,29 @@ class Signal(unittest.TestCase):
                     process.wait()
                 process.stderr.close()
 
+    def test_ha_token_env_starts_without_token_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {k: v for k, v in os.environ.items() if k not in ('HA_TOKEN_FILE', 'SUPERVISOR_TOKEN')}
+            env.update({'SCREEN_DEV': '1', 'HA_TOKEN': 'not-a-real-token', 'HA_API': 'http://127.0.0.1:9/api',
+                        'SCREEN_DATA': tmp, 'ESPHOME_CONFIG': str(Path(tmp) / 'esphome'), 'HA_CONFIG': tmp, 'PYTHONUNBUFFERED': '1'})
+            process = subprocess.Popen([sys.executable, '-c', LAUNCH, str(APP)], env=env, cwd=tmp,
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            try:
+                deadline, lines = time.monotonic() + 20, []
+                while time.monotonic() < deadline:
+                    line = process.stderr.readline()
+                    lines.append(line)
+                    if 'Home Assistant temporarily unavailable' in line or not line:
+                        break
+                self.assertIn('Home Assistant temporarily unavailable', ''.join(lines), ''.join(lines))
+                process.send_signal(signal.SIGTERM)
+                self.assertEqual(process.wait(timeout=10), 0)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+                process.stderr.close()
+
 
 if __name__ == '__main__':
     unittest.main()

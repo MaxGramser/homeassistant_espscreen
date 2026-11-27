@@ -6938,8 +6938,10 @@ async def addon_self(session):
 
 async def main():
     development = os.environ.get('SCREEN_DEV') == '1'
-    token = os.environ.get('SUPERVISOR_TOKEN', '')
-    if development and os.environ.get('HA_TOKEN_FILE'):
+    token = os.environ.get('HA_TOKEN', '').strip() if development else ''
+    if not token:
+        token = os.environ.get('SUPERVISOR_TOKEN', '')
+    if development and not token and os.environ.get('HA_TOKEN_FILE'):
         token = Path(os.environ['HA_TOKEN_FILE']).read_text().strip()
     if not token:
         raise SystemExit('No Home Assistant access. Start the app via Supervisor.')
