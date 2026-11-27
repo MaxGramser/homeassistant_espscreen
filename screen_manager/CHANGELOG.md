@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Elecrow CrowPanel Advance 7.0-inch ESP32-S3 (`DIS08070H`), experimental.** 800 × 480 RGB IPS panel with 16 MB of flash, 8 MB of octal PSRAM, GT911 capacitive touch, dimmable backlight and NS4168 speaker amplifier gate on the onboard STC8H1K28 coprocessor at `0x30`, PDM microphone, 4 × 4 tiles lying down and 2 × 7 standing up (`crowpanel7s3`, [docs/CROWPANEL7S3.md](../docs/CROWPANEL7S3.md)).
 - **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
 - **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
 
