@@ -170,7 +170,7 @@ class PackageTests(unittest.TestCase):
             # And the pins of the serial line to a board's second chip (features/chip-speaker.yaml, docs/SECOND_CHIP.md).
             # And a board's own keys for its pages with how long home is held (features/page-keys.yaml), and its buzzer on
             # a pin with the tick it gives (features/buzzer.yaml).
-            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$|CHIP_REVISION$|DSI_PLATFORM$|P4_EV_BOARD$|STANDBY_KEY(?:_PIN|_INVERTED|_PULLUP)?$|CHIP_LINK_[TR]X_PIN$|PAGE_KEY_(?:PREVIOUS|NEXT)_PIN$|HOME_KEY_(?:PIN|HOLD)$|BUZZER_(?:PIN|FREQUENCY|TICK)$)', n) for n in own), f'{board}: {sorted(own)}')
+            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$|CHIP_REVISION$|DSI_PLATFORM$|P4_EV_BOARD$|STANDBY_KEY(?:_PIN|_INVERTED|_PULLUP)?$|CHIP_LINK_[TR]X_PIN$|PAGE_KEY_(?:PREVIOUS|NEXT)_PIN$|HOME_KEY_(?:PIN|HOLD)$|BUZZER_(?:PIN|FREQUENCY|TICK)$|WAKE_WHEN_MOVED_AT_FIRST$)', n) for n in own), f'{board}: {sorted(own)}')
 
 
 class BoardRules(unittest.TestCase):

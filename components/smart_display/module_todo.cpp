@@ -121,7 +121,7 @@ static cc::Measure measure() {
 // it takes the blue of everything without one.
 static std::vector<uint32_t> colours() {
   const uint32_t own = theme::ha::BLUE;
-  return {theme::state(own), theme::tint(own, 40), theme::icon(own), theme::ha::RED};
+  return {theme::state(own), theme::field(own, 40), theme::icon(own), theme::ha::RED};
 }
 // Days since 1970-01-01 of a date, and back (Howard Hinnant's civil algorithms).
 static int days_of(int y, int m, int d) {

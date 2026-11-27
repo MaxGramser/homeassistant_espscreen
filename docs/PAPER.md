@@ -137,17 +137,42 @@ What the table says, and why:
   lists them: a key, a track, an empty toggle, a knob, the mark of a chosen row. `theme::ground()` sets a ground's
   colour and its rim together, `theme::rim()` puts the rim on or takes it off, and a paint whose ground is rimmed
   takes the rim with it unless it names a line of its own.
-- **`SOFT` is for lines and arcs with nothing on them** (a grid, a spinner's ring, an empty history), the pale share
-  of a state's colour and a calendar's blocks. **`FIRM` is for what is not there**: the glyph of something that is
-  off, a tick.
+- **`SOFT` is for lines and arcs with nothing on them** (a grid, an empty history, the track of an arc, the area
+  under a graph's line) and the pale share of a state's colour where nothing stands on it (`theme::tint`). **`FIRM`
+  is for what is not there**: a tick, a field of a picture. Never a glyph or a word: a tile that cannot be reached
+  shows its glyph in ink without its ring, beside the word that says so.
+- **The pale ground under a glyph or under words is paper** (`theme::field`): a module's own disc, a badge, a
+  calendar's event. On a lit glass it is the tint; on paper the glyph stands alone, or in a rim where its maker
+  gives the ground one. `theme::key_on`, the shade of a key on a card of any colour, is the card's own paper there
+  too, and the key gets its rim (`style_panel`).
+- **A switch that is off is a rimmed pill with a knob of ink** (`theme::toggle`): a pill of paper with a knob of paper
+  was no switch at all.
 - **Colour carries no state; a shape does.** A state's colour is ink for any state and the tone of what is not there
   for "off" (`theme::state`). A tile that is on is a disc of ink with its glyph left open in it; a tile that is off
-  is its glyph in ink inside a ring (`theme::disc`, `theme::on_disc`, and the rim in `render_slot`). A round key that
-  is on is a disc of ink too (`KEY_ON`, `KEY_ON_ICON`).
+  is its glyph in ink inside a ring (`theme::disc`, `theme::on_disc`, and the rim in `render_slot`). The same pair
+  says it wherever a disc carries a state: a key tile, the alarm's and the lock's big disc (armed and locked are the
+  disc of ink), the thermostat's mode in use, a round key that is on (`KEY_ON`, `KEY_ON_ICON`). A chosen segment of
+  a row, a chosen name and the alarm's chosen mode are ink with their words left open; what is not chosen is its
+  word alone, and the row has the rim.
 - **A card of a colour of its own is a card.** A pastel would be a raster under every word on it
   (`theme::surface`, `theme::outline`).
 - **A press has no shade** (`theme::pressed`): nothing prints under a finger, and a shade drawn for nobody would only
   be a second refresh.
+- **Nothing is faded.** A part at half its strength is a raster through its words. The pass holds it for every
+  widget (`still_glass_lvgl.h`): a part at part strength keeps its ink whole, switched off or not, and words at less
+  than their whole strength are whole. A card's keys are switched off for the moment a command is on its way; taken
+  away instead, they would go and come back at every tap, two prints, where whole in both states they are none.
+  What must not look as if it works is taken away by its maker: a page key that leads nowhere, a stepper's key at
+  its end on the settings page, whose row keeps its ink when its switch is off.
+- **A drawing in lines** (the robot seen from above, a battery's outline) has a body of paper and lines of ink, and
+  what a state's colour marks on it (the robot's light bar, the dot before its state) is ink in every state: the
+  word says which.
+- **A picture is no ground for words.** An album's cover, dimmed and in two inks, leaves the name on it hard to read:
+  a favourite and a cover tile are ordinary tiles on paper, the glyph in its disc and the words beside it
+  (`render_favorite_card`, `tile_picture_place`).
+- **A scene's own colours** (the calendar's, the to-do list's and the keyboard's share one painter,
+  `calendar_paint.h`): a calendar's colour is ink where it marks and paper where it carries words, a colour its giver
+  already made paper stays paper and gets a rim (the keyboard's special keys, a list's disc), and every line is ink.
 
 `tests/test_theme.cpp` holds each of these in both looks.
 
@@ -230,8 +255,15 @@ settings, a plugin's card. A widget that is hidden is dressed when it shows.
 
 - **A slider is a level** (next section). It stays the `lv_slider` it was, with its range, its value and every
   listener it had; only what it draws and what a finger's place means are replaced.
-- **A spinner stands still.** An arc that turns would be a refresh every frame; the pass takes its animation off.
+- **A spinner stands still**, where one was made at all: the firmware's own (`spinner_create`) makes none on a still
+  glass, since a spinner says "busy" by turning and one that stands is a grey ring. The words beside it say what the
+  screen waits for.
 - **A label that would roll its words is cut with dots.**
+- **A dark ground that lets what is under it through is solid black** (an alert's scrim, a key over a picture): mixed
+  with what lies under it, it is a grey, and a grey is a raster in which a word or a glyph is lost. It applies to a
+  ground at least 4 mm each way, at 30 % or more, in its state at rest. A pale wash and anything as small as a dot
+  keep their raster: the first is how a tile says it waits. What a module draws itself follows the same rule in its
+  own paint (`calendar_paint.h`).
 - **A list that is let go stops where the finger left it.** Gliding on and springing back would be a row of prints,
   so the pass takes both off anything that scrolls.
 
@@ -287,36 +319,45 @@ and under Screen settings in the app (a board's own setting, docs/SETTINGS.md).
 ## A level
 
 A refresh takes longer than a drag, so a knob that slides shows nothing while the finger moves and jumps when it
-lifts. On a still glass a slider is a level: a row of blocks, filled up to the value, and where the control is thick
-enough for a finger, a key at each end. It is what e-readers and watches do with a value on a slow glass: fixed
-steps, set by a tap, a key at each side for one step. `level_bar.h` holds the rules, free of LVGL, with
+lifts. On a still glass a slider is a level: one shape that fills in steps up to the value, with a short mark where
+each step ends, and where the control is thick enough for a finger, a key at each end. It is what e-readers and
+watches do with a value on a slow glass: fixed steps, set by a tap, a key at each side for one step. It fills as the
+slider of a lit glass fills, so the two read as one control. `level_bar.h` holds the rules, free of LVGL, with
 `tests/test_level_bar.cpp`; `still_glass_lvgl.h` draws them and hears the finger.
 
-- **The blocks of a range.** Ten, or one for each whole value of a range that spans twelve or fewer: a fan of four
-  speeds is four blocks, not ten of which six mean nothing.
+The form was chosen from four drawn side by side at the glass's own pixels (2026-11-27): loose blocks between round
+keys stood apart from each other, one capsule with blocks in it was heavier, and blocks that grow was busier. The
+filled column is one calm shape, which is what a glass of ink is best at.
+
+- **The steps of a range.** Ten, or one for each whole value of a range that spans twelve or fewer: a fan of four
+  speeds is four steps, not ten of which six mean nothing.
 - **The real ends.** A slider's range often reaches a little past its real ends, so that its least fill is still a
   stub to hold (-40 to 1000, or a blind's past both ends). A level has no stub, so it counts between the real ends,
-  nothing and a hundred or a thousand (`real_end()`), and its blocks are whole tenths: a tap on the fourth is 40 %.
-- **Keys.** A control at least 5 mm thick, and long enough for two keys and its blocks, has a key at each end, as
-  long as the control is thick: minus at the left and plus at the right of one lying down, minus at the bottom and
-  plus at the top of one standing up. A thin one, the slider under a tile's name, is blocks alone. A range that counts
-  down lies the other way round, as LVGL draws it.
-- **What a tap picks.** A block picks its level. The first quarter of the first block, and anything before it, picks
-  none, so a control without keys can still be set to nothing. A finger that drifted off an end still means that end.
-- **A value and its blocks.** A value fills the nearest count of blocks, and never none for a value above the range's
-  start: a lamp at 3 % is on and shows one block.
-- **A key takes one step**, to the next whole block that way and never past an end. From between two blocks (Home
-  Assistant says 71 %) up goes to 80 and down to 70, not past it to 60. The last block down is nothing. A key steps
+  nothing and a hundred or a thousand (`real_end()`), and its steps are whole tenths: a tap on the fourth is 40 %.
+- **Keys.** A control at least 5 mm thick, and long enough for two keys and its steps, has a key at each end: minus
+  at the left and plus at the right of one lying down, minus at the bottom and plus at the top of one standing up. A
+  key is as thick as the control, so keys and room stand in one line with the same corners, and a sixth of the
+  control's length, never less than a finger needs or more than the control is thick. A thin control, the slider
+  under a tile's name, is the room alone. A range that counts down lies the other way round, as LVGL draws it.
+- **What a tap picks.** A place in the room picks its step. The first quarter of the first step, and anything before
+  it, picks none, so a control without keys can still be set to nothing. A finger that drifted off an end still means
+  that end.
+- **A value and its steps.** A value fills the nearest count of steps, and never none for a value above the range's
+  start: a lamp at 3 % is on and shows one step. A slider whose maker draws neither its fill nor its knob (a lamp
+  that is off keeps its last level under parts that are not shown) is an empty level.
+- **A key takes one step**, to the next whole step that way and never past an end. From between two steps (Home
+  Assistant says 71 %) up goes to 80 and down to 70, not past it to 60. The last step down is nothing. A key steps
   from the value the finger found, however long it is held.
-- **What listeners hear.** The level's own values, never one between two blocks, and never the same one twice. A value
+- **What listeners hear.** The level's own values, never one between two steps, and never the same one twice. A value
   the firmware sets, from Home Assistant, shows as it is.
 - **No end at the glass's edge.** A slider on a lit glass takes a finger let go near the edge of the glass for its
   end, because a drag cannot reach it (`screen_input::edge_snap`). A level is not dragged and its end there is a
   key, so a still glass has no such band: with it, every tap on minus or plus was the lowest or the highest (seen on
   the Sticky, 2026-11-27).
 
-Each tap is one refresh. The blocks and keys are drawn in the card's own look, ink on the card's ground with the
-theme's rim, and the keys' minus and plus are bars, so they need no font.
+Each tap is one refresh. The room and the keys are drawn in the card's own look, ink on the card's ground with the
+theme's rim; the marks are paper on the ink and ink on the paper, and the keys' minus and plus are bars, so they need
+no font.
 
 ## A colour by its name
 
@@ -343,17 +384,26 @@ there, and that page is next.
 ## Standby is rest
 
 A glass that keeps its picture without a light has no dark (`screen_standby.h`, `Glass::keeps`, bound to `paper::is()`
-in `packages/core.yaml`). Its standby is rest:
+in `packages/core.yaml`). Its standby is rest, and it is seen:
 
-- **With a screensaver set** it shows that one, the sheet over it takes the waking tap, and a finger or a key wakes
-  the screen as on any screen: that first press does nothing more.
+- **With a screensaver set** it shows that one.
   A clock face there is paper with everything on it in ink, or the other way round in its dark look
-  (`module_clock_faces.cpp`, `ink()`): a pale face would be a raster over the whole glass, and a white hand with a
-  pale rim next to nothing. Its hands are solid with a rim of the face's tone, it has no seconds hand, and it does not
-  drift. Bauhaus still draws its colours, which print as rasters.
-- **Without one** the page stays where it is, readable, and nothing lies over it. A finger or a key on it is used at
-  once and ends the rest by the way (`resting()`, `contact()`, `act()`): a first tap that only wakes a page nobody saw
-  change would read as a tap that was not heard.
+  (`module_clock_faces.cpp`, `ink()`; the digital clock in `saver_lvgl.h`): a pale face would be a raster over the
+  whole glass, and a white hand with a pale rim next to nothing. Its hands are solid with a rim of the face's tone,
+  it has no seconds hand, and it does not drift. On Bauhaus the school's black is ink, its cream paper and its
+  three colours the two tones between, fields with nothing on them; the clock on them is ink alone.
+  A screensaver over a picture (a player's cover, a camera) has its words and its keys on a band of black across the
+  foot of the glass, and the picture ends where the band begins (`saver_words`): the shade the app paints into a
+  picture's foot is a raster there, and white words fell away into it. A volume key is the band's black in a ring.
+- **Without one** the page stays in a calm look (`Glass::calm`, `runtime_tiles::calm`): every tile shows what it
+  tells and nothing a finger works (no panel, no slider, no keys), and the page bar is gone, with its room kept so
+  no tile moves when the screen wakes. The top bar stays as it is: a page without it sat out of balance.
+- **A finger or a key wakes it as on every screen**: the sheet over it takes the waking tap, and that first press
+  brings the page back and does nothing more. A key of the screensaver (a player's volume) acts without waking. The
+  wake for a tap LVGL may have missed while it was paused is not for paper, where LVGL is never paused
+  (`screen_power::wake` in `packages/core.yaml`): it woke the screen on a tap of such a key.
+- **A board that feels being picked up may wake by itself**: `features/wake-when-moved.yaml` is on at first where
+  the board says so (`WAKE_WHEN_MOVED_AT_FIRST`), as the reTerminal Sticky does.
 
 The saving of a screen at rest starts as on a dark screen (`at_rest()`, `screen_power.h`): Wi-Fi dozes between the
 router's beacons. LVGL is not paused there, so the page at rest follows the house. There is no brightness, no night
@@ -362,7 +412,8 @@ screensaver, by a finger and by a key.
 
 The settings follow. A glass of ink has no light of its own (`settings_screen::lit`, false where `PAPER_INKS` is not
 0), so its settings page has no row for a brightness or a night, in standby or out of it; Dark mode stays, as ink and
-paper traded, and so do Standby and its time. The screen says so with the word `paper` in its Screen features, the
+paper traded, and so do Standby and its time. Their page is called Display there, not Brightness, and Night, which
+has no row left, is no page (`settings_screen::offered`). The screen says so with the word `paper` in its Screen features, the
 app reads that word or the board's `inks` in `boards.json` (`core.is_paper`), and Screen settings in the editor leaves
 the same rows out (`PAPER_KEYS`; `tests/test_settings_screen.cpp`, `tests/test_screen_owned_settings.py`).
 
@@ -402,8 +453,10 @@ uv run --no-project --python 3.13 --with pillow \
   chooses one. Most rounds bring a layout that needs two columns, so on this board standing up, whose own grid is one
   column, they stop with "Invalid tile position" without it.
 - **`--only paper` is the look book**: every page of the demo layout, the card a hold opens on every tile, the colour
-  card's example, the alerts, the settings pages, the page at rest, and every clock face as the screensaver, in both
-  looks. One picture each and no checks (`Run.look_book`). The first build takes about a minute, the next ones a few
+  card's example, the alerts, the settings pages the screen has (its Extras as `settings-extras`), the page at rest,
+  and every clock face as the screensaver, in both looks. One picture each and no checks (`Run.look_book`). What the screen
+  logged meanwhile is `log.txt` beside the pictures, as after every round: the first place to look when a picture is
+  not what it should be (the page at rest says "The page at rest" there, a settings page the screen lacks "no page"). The first build takes about a minute, the next ones a few
   seconds, and the look book itself a minute and a half.
 - **Every other round renders in ink too**: `--only climate`, `media`, `mediatiles`, `alarm`, `lock`, `remote`,
   `bedside`, `humidifier`, `weather`, `calendar`, `todo`, `text`, `vacuum`, `vacuumtile`, `saver`, `bars`, `dock`,

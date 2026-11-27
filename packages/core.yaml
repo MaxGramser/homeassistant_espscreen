@@ -255,11 +255,17 @@ esphome:
           };
           // A glass that prints takes its tones from the ink table (theme.h, "Ink"): said before the first paint.
           theme::set_paper(paper::is());
-          // And every widget of LVGL's own takes its still form there: a slider is a level of blocks, a spinner stands,
+          // And every widget of LVGL's own takes its still form there: a slider is a level in steps, a spinner stands,
           // a line that would roll is cut (still_glass_lvgl.h). An empty call on a glass that is lit.
           still_glass::watch();
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
+          // The paints are styles the profile's widgets already wear, most of them empty until this first fill. LVGL
+          // notes per widget which kinds of property its styles hold (LV_OBJ_STYLE_CACHE) when a style is put on, so
+          // a colour that comes into an empty style afterwards is not looked up: a page key's chevron wore paint_ink
+          // and was drawn in LVGL's own grey, dark on dark in the dark look (seen on a reTerminal Sticky's render,
+          // 2026-11-27). Told once, here, before anything is drawn; a change of look only changes colours that are there.
+          lv_obj_report_style_change(nullptr);
           runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(false); };
           runtime_tiles::dismiss = []() {
             effects_page::close();
@@ -399,7 +405,10 @@ esphome:
           };
           screen_power::later = [](uint32_t ms) { screen_standby::the().power_wait(ms, millis()); };
           screen_power::dark = []() { return screen_standby::the().at_rest(); };
-          screen_power::wake = []() { screen_standby::the().wake(millis()); };
+          // The wake for a tap LVGL may have missed while it was paused. A paper glass never pauses LVGL, so every tap
+          // there is LVGL's own: a key of the screensaver among them, which must not wake the screen (a render of
+          // the reTerminal Sticky, 2026-11-27: volume up on the screensaver woke it).
+          screen_power::wake = []() { if (!paper::is()) screen_standby::the().wake(millis()); };
           // Feedback a finger hears or feels (touch_feedback.h): none for the push that wakes a dimmed screen, nor in a calibration.
           touch_feedback::quiet = []() { return screen_standby::the().in_standby() || id(calibration_active); };
           {
@@ -637,7 +646,8 @@ api:
             screen_standby::the().use(millis());
             screen_standby::the().wake(millis());
             settings_screen::open((uint8_t) page);
-            ESP_LOGI("settings", "page %d open from Home Assistant", (int) page);
+            if (settings_screen::offered((uint8_t) page)) ESP_LOGI("settings", "page %d open from Home Assistant", (int) page);
+            else ESP_LOGI("settings", "no page %d on this screen: its first page open from Home Assistant", (int) page);
 
     # Home Assistant automations: esphome.<device>_show_page puts a page of tiles on the screen (README,
     # "Open a page from an automation"), the way a Go to page tile does: a player that starts an album can

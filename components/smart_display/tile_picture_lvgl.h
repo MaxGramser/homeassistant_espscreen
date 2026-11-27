@@ -48,6 +48,10 @@ inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
 #endif
   if (!w.tile || !w.circle || !t.pictured()) return false;
   const bool art = card_art(t);
+  // On paper a picture is no ground for words: dimmed and in two inks, an album's cover leaves the name on it hard to
+  // read (a favourite on a reTerminal Sticky's render, 2026-11-27). A tile that carries its words on its picture
+  // keeps its icon there.
+  if (theme::paper && art && (t.cover_tile() || t.favorite())) return false;
   lv_obj_t *place = art ? w.tile : w.circle;
   lv_obj_update_layout(place);
   const int width = lv_obj_get_width(place), height = lv_obj_get_height(place);

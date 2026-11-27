@@ -67,8 +67,8 @@ picture.
 ## The keys and the buzzer
 
 The two page keys turn one page, as a swipe from the edge does. The home key, pressed, brings the first page with
-everything closed; held for 0.7 s it sends the screen to standby. On a page at rest a key is used at once, as a finger
-is; under a screensaver the first press only wakes the screen. Each key is also a binary sensor in Home Assistant
+everything closed; held for 0.7 s it sends the screen to standby. In standby the first press of a key only wakes
+the screen, as the first tap does. Each key is also a binary sensor in Home Assistant
 (Key previous, Key next, Key home), for an automation of its own.
 
 The buzzer answers before the glass can: a tick of 20 ms at 2700 Hz the moment a finger lands on something that takes
@@ -81,12 +81,14 @@ only ticks; it is not the screen's speaker and plays none of the app's sounds.
 - Pages print in black and white. A change is a partial refresh of about 0.7 s. A whole refresh, which flashes the
   panel and takes its traces off, takes 1.8 to 2.0 s: it comes at the first print after a start, with a new layout,
   and by itself only as the screen goes to standby (docs/PAPER.md, "Printing").
-- A slider is a row of blocks with a minus and a plus (docs/PAPER.md, "A level").
+- A slider is one bar that fills in steps, with a minus and a plus at its ends (docs/PAPER.md, "A level").
 - Nothing moves by itself (docs/PAPER.md, "A still glass"): a clock has no second hand, a timer counts down in whole
   minutes and in steps of ten seconds inside its last, and a camera tile takes a new still every ten
   seconds at most, or at the slower pace it is set to in the editor.
-- There is no backlight: no brightness, no night level, and an alert does not blink. Standby is rest: the page stays
-  readable, or the screensaver shows where one is set.
+- There is no backlight: no brightness, no night level, and an alert does not blink. Standby is rest: the screensaver shows where one is
+  set, a clock in ink, and without one the page stays in a calm look, what each tile tells without its sliders, keys
+  and page bar (docs/PAPER.md, "Standby is rest"). The first tap or key only wakes it, and so does picking the board
+  up: **Wake when moved** is on at first, under Extras, in the app and in Home Assistant.
 - Pictures (camera tiles, an alert's snapshot, media artwork) come from the app in black and white, their shades as
   grain (docs/PAPER.md, "Pictures").
 

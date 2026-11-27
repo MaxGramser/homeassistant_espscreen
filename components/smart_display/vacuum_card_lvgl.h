@@ -19,6 +19,8 @@ struct VacuumLook { uint32_t accent, tint; };
 inline VacuumLook vacuum_look(const std::string &state){
   using namespace theme::ha;
   const uint32_t accent=state=="cleaning"?TEAL:state=="returning"?BLUE:state=="paused"?ORANGE:state=="error"?RED:SKY;
+  // On paper the state is its word: what the colour marks (a dot, the robot's light bar) is ink, and the halo paper.
+  if(theme::paper)return {theme::hex(theme::INK),theme::hex(theme::CARD)};
   // A robot at rest has the quietest halo.
   return {accent,theme::tint(accent,accent==SKY?22:36)};
 }
@@ -27,9 +29,11 @@ inline void vacuum_robot(lv_obj_t *parent,int x,int y,int size,const VacuumLook 
   auto *halo=detail_shape(parent,x,y,size,size,look.tint,size/2);
   int r=size*72/100,rim=std::max(1,size/44);
   auto *body=detail_shape(halo,(size-r)/2,(size-r)/2,r,r,theme::ROBOT_BODY,r/2);
+  // On paper the robot is a drawing in lines: the body and the turret paper in a rim of ink.
+  if(theme::paper)rim=std::max<int>(rim,theme::PAPER_RIM);
   lv_obj_set_style_border_width(body,rim,0);lv_obj_set_style_border_color(body,theme::color(theme::ROBOT_RIM),0);
   int c=r-2*rim;auto s=[&](int v){return std::max(1,v*c/100);};
-  detail_shape(body,s(32),s(10),s(36),s(36),theme::ROBOT_TOP,s(18));
+  theme::rim(detail_shape(body,s(32),s(10),s(36),s(36),theme::ROBOT_TOP,s(18)),true);
   detail_shape(body,s(41),s(19),s(18),s(18),theme::ROBOT_LENS,s(9));
   detail_shape(body,s(31),s(70),s(38),std::max(3,s(7)),look.accent,s(4));
 }

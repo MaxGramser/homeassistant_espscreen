@@ -27,6 +27,11 @@ on the same step of the RGB565 panel, so it stays grey on both boards.
   carries one (`style_page`, `style_tile`, `style_room`, ...). The style definitions have no colour;
   `on_boot` sets `theme::paints` to the list of `theme::fill(id(style), Paint::...)` calls and runs it. The list is
   code in flash, not a table in RAM, and `theme::set_dark()` runs it again.
+  After the first run the boot tells LVGL once that styles changed (`lv_obj_report_style_change`): the widgets already
+  wear these styles, most of them empty until then, and LVGL notes per widget which kinds of property its styles hold
+  when a style is put on (`LV_OBJ_STYLE_CACHE`), so a colour that comes into an empty style afterwards is not looked
+  up. A page key's chevron wore `paint_ink` and was drawn in LVGL's own grey, dark on dark in the dark look (seen
+  with ESPHome 2026.11, 2026-11-27). A change of look only changes colours that are there and needs no such word.
   Scripts that colour a widget by state ask for a role: `theme::color(selected ? theme::ACCENT_BRIGHT : theme::CARD)`.
 - **Firmware** asks for roles: `theme::color(theme::INK)`, `theme::hex(theme::MUTED)`, the
   `detail_text(..., theme::SUBTLE)` and `detail_shape(..., theme::TRACK, ...)` overloads. A widget

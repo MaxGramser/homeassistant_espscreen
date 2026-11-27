@@ -94,7 +94,7 @@
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
 - [PAPER.md](PAPER.md): a glass of e-paper as a kind of panel: the paper glass between LVGL and ESPHome's driver, how
-  a colour becomes an ink, when the panel prints, a slider as a level of blocks, standby as rest, what a board states
+  a colour becomes an ink, when the panel prints, a slider as a level that fills in steps, standby as rest, what a board states
   and what is not built yet (also a recipe).
 - [CARD_PARTS.md](CARD_PARTS.md): a card built once and painted in place when a value changes, instead of built again.
 - [KEYBOARD.md](KEYBOARD.md): the screens' own keyboard: what a caller asks of it, how it tells the caller what was

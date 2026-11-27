@@ -351,6 +351,7 @@ inline lv_obj_t *saver_root = nullptr;      // the clock
 // The words over the screensaver's picture (firmware 0.32.0+): drawn again with the next track's picture, and
 // `saver_words_due` until it has come.
 inline lv_obj_t *saver_first = nullptr, *saver_second = nullptr;
+inline lv_obj_t *saver_band = nullptr;  // on paper: the black the words and keys stand on (saver_words)
 inline bool saver_words_due = false;
 // A player's keys over its cover (firmware 0.33.0+): volume up, volume down, play or pause. They take their own tap, so
 // the screen stays in standby; a touch anywhere else wakes it. What a key changes shows at once and is squared with Home
@@ -1515,6 +1516,9 @@ inline void favorite_key_event(lv_event_t *e){
 // The card with its picture, or while its picture is on its way the same card with the spinner every picture card
 // has; false on a board without pictures and when the app has none, and the tile is drawn as an ordinary one.
 inline bool render_favorite_card(Widgets &w,const Tile &t,int width,int height){
+  // On paper a picture is no ground for words (tile_picture_place), and this card without its picture is two lines in
+  // a corner of an empty card: the tile is an ordinary one there, its glyph in its disc, and a tap plays it.
+  if(theme::paper){set_loading(w,false,width,height);return false;}
   tile_picture_place(w,t,0,0,0);
   const bool photo=w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN),waiting=!photo&&t.pictured()&&tile_picture_waiting(w,t);
   set_loading(w,waiting,width,height);
@@ -2532,7 +2536,9 @@ inline void render_slot(size_t slot) {
   const bool key_ink=theme::paper&&w.key&&available&&state_color!=theme::STATE_OFF;
   auto circle_color=lv_color_hex(!available?theme::hex(theme::TRACK):w.key?(theme::paper?theme::hex(key_ink?theme::INK:theme::CARD):theme::tint(state_color,38)):theme::disc(state_color));
   // Very pale bulbs still need a visible icon: a touch darker on a light card, a touch lighter on a dark one.
-  auto icon_color=lv_color_hex(!available?theme::hex(theme::OFF):w.key?(theme::paper?theme::hex(key_ink?theme::CARD:theme::INK):theme::icon(state_color)):theme::on_disc(state_color));
+  // What cannot be reached is grey on a lit glass. On paper a grey glyph is a raster of loose dots: it is ink there,
+  // and stands without its ring (below), beside the word that says so.
+  auto icon_color=lv_color_hex(!available?theme::hex(theme::paper?theme::INK:theme::OFF):w.key?(theme::paper?theme::hex(key_ink?theme::CARD:theme::INK):theme::icon(state_color)):theme::on_disc(state_color));
   // Off: a grey track without fill or handle, as in Home Assistant.
   const uint32_t fill=slider_on?accent:theme::STATE_OFF;
   auto fill_color=lv_color_hex(theme::state(fill));
@@ -2562,7 +2568,7 @@ inline void render_slot(size_t slot) {
   set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
   // On paper a disc that is not ink is a ring: a glyph alone on the card is too little to read as a tile's icon.
-  theme::rim(w.circle,!w.key&&(!available||theme::disc(state_color)!=theme::hex(theme::INK)));
+  theme::rim(w.circle,!w.key&&available&&theme::disc(state_color)!=theme::hex(theme::INK));
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
   if(w.key){
@@ -4400,6 +4406,7 @@ inline void restyle() {
 inline void calm(bool on) {
   if (calm_look == on) return;
   calm_look = on;
+  ESP_LOGI("tiles", "The page %s", on ? "at rest: calm, no page bar" : "awake again");
   each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (room_label) {
     if (applied_page >= 0 && navigation_ready()) place_page(applied_page, true);

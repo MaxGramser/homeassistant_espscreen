@@ -119,7 +119,7 @@ inline void camera_close() {
   camera_sound_key = camera_warm_spinner = nullptr;  // they went with the view
   camera_sound_waiting = false;
   map_zoom_keys = map_pad = map_waiting = nullptr;
-  saver_first = saver_second = nullptr;  // they went with the view
+  saver_first = saver_second = saver_band = nullptr;  // they went with the view
   saver_keys = {};
   map_focus.clear();
   map_pinned = false;

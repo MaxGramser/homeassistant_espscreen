@@ -16,6 +16,22 @@ inline uint32_t colour(cc::Paint p, const std::vector<uint32_t> &colors) {
   // The room's state (calendar_card FREE_COLOUR, BUSY_COLOUR): Home Assistant's green and red, painted as a calendar's.
   const uint32_t key = p.cal == cc::FREE_COLOUR ? theme::ha::GREEN : p.cal == cc::BUSY_COLOUR ? theme::ha::RED
                        : p.cal < colors.size() ? colors[p.cal] : theme::ha::BLUE;
+  // On paper (docs/PAPER.md): a calendar's own colour, the red of now and every pale share of one are rasters, and a
+  // raster under words or through a line is hard to read. What marks is ink, what carries words is paper (paint()
+  // gives it its rim), and what stands on a disc of ink is paper. A colour its giver already made paper (the
+  // keyboard's special keys, a to-do list's disc through theme::field) stays paper: ink there hid the glyph on it.
+  if (theme::paper) {
+    switch (p.role) {
+      case cc::CAL_KEY: case cc::CAL_KEY_PAST:
+        return key == theme::hex(theme::CARD) ? key : theme::hex(theme::INK);
+      case cc::NOW: case cc::ON_TINT: case cc::CAL_INK: case cc::CAL_INK_PAST:
+        return theme::hex(theme::INK);
+      case cc::ON_ICON: case cc::CAL_BLOCK: case cc::CAL_BLOCK_PAST: case cc::OFF_TINT:
+        return theme::hex(theme::CARD);
+      case cc::SCRIM: return theme::ink_value(theme::Ink::PAPER, true);  // black in either look, as every scrim on paper
+      default: break;
+    }
+  }
   switch (p.role) {
     case cc::INK: return theme::hex(theme::INK);
     case cc::MUTED: return theme::hex(theme::MUTED);
@@ -63,6 +79,23 @@ inline void paint(lv_layer_t *layer, const cc::Scene &sc, int ox, int oy, const 
     d.bg_opa = b.opa;
     d.radius = b.radius;
     if (b.border) { d.border_width = b.border; d.border_color = lv_color_hex(colour(b.line, colors)); d.border_opa = LV_OPA_COVER; }
+    if (theme::paper) {
+      // A ground that lets what is under it through is solid or gone, and a ground of paper that is a shape (an
+      // event's block, a track, a key, the head's circle while nothing runs) has a rim of ink.
+      if (b.opa < LV_OPA_COVER) d.bg_opa = b.opa >= 64 ? LV_OPA_COVER : LV_OPA_TRANSP;
+      // Every line is ink: one in a pale tone (a chip's rim, a sheet's edge) is a row of dots.
+      const uint32_t blank = theme::hex(theme::CARD);
+      if (b.border && colour(b.line, colors) != blank) d.border_color = lv_color_hex(theme::hex(theme::INK));
+      const auto role = b.paint.role;
+      const bool own_blank = (role == cc::CAL_KEY || role == cc::CAL_KEY_PAST) && colour(b.paint, colors) == blank;
+      // The accent's pale share marks what is chosen (a row of the view choice, the keyboard's shift): its rim says so.
+      const bool shape = own_blank || role == cc::ACCENT_TINT || role == cc::CAL_BLOCK || role == cc::CAL_BLOCK_PAST || role == cc::OFF_TINT || role == cc::TRACK || role == cc::KEY;
+      if (shape && !b.border && b.radius > 0 && d.bg_opa) {
+        d.border_width = theme::PAPER_RIM;
+        d.border_color = lv_color_hex(theme::hex(theme::INK));
+        d.border_opa = LV_OPA_COVER;
+      }
+    }
     lv_area_t a{x1, y1, x2, y2};
     if (b.cw > 0) {
       // Cut to its strip: the shape keeps its corners, only the part inside the strip is drawn.

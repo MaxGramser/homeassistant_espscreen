@@ -291,6 +291,8 @@ inline constexpr InkOf INKS[] = {
   // Words and glyphs are ink, whatever grey ranks them on a lit glass: a raster through a letter breaks it.
   {INK_SOFT, Ink::INK}, {MUTED, Ink::INK}, {SUBTLE, Ink::INK}, {SLATE, Ink::INK}, {BEDSIDE, Ink::INK}, {ROW_ICON, Ink::INK},
   {CHEVRON, Ink::INK}, {ICON_OFF, Ink::INK},
+  // A drawing in lines (the robot seen from above, a battery's outline): its body is paper and its lines ink.
+  {ROBOT_BODY, Ink::PAPER}, {ROBOT_TOP, Ink::PAPER}, {ROBOT_RIM, Ink::INK}, {ROBOT_LENS, Ink::INK}, {BATTERY, Ink::INK},
   // The accent is ink, and what stands on it is paper: a chosen segment, a toggle that is on, a key that acts.
   {ACCENT, Ink::INK}, {ACCENT_PRESSED, Ink::INK}, {ACCENT_BRIGHT, Ink::INK}, {ACCENT_ICON, Ink::INK},
   {BUTTON_DARK, Ink::INK}, {BUTTON_DARK_PRESSED, Ink::INK}, {ON_ACCENT, Ink::PAPER}, {KNOB, Ink::PAPER},
@@ -304,7 +306,7 @@ inline constexpr InkOf INKS[] = {
   {BUTTON, Ink::PAPER}, {SETTING_KEY, Ink::PAPER}, {SETTING_KEY_PRESSED, Ink::PAPER}, {RAISED, Ink::PAPER},
   {CARD, Ink::PAPER}, {CARD_PRESSED, Ink::PAPER}, {PAGE, Ink::PAPER}, {PAGE_SOFT, Ink::PAPER}, {PAGE_PRESSED, Ink::PAPER},
   // Lines and arcs with nothing on them: the lighter tone, which reads as a shade.
-  {SUN_PATH, Ink::INK}, {GRID, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {HISTORY_OFF, Ink::SOFT},
+  {SUN_PATH, Ink::INK}, {CAMERA_NOTE, Ink::PAPER}, {GRID, Ink::SOFT}, {SPINNER_TRACK, Ink::SOFT}, {HISTORY_OFF, Ink::SOFT},
   // Not there: the darker tone, a glyph or a mark that still shows but does not read as ink.
   {OFF, Ink::FIRM}, {TICK, Ink::FIRM},
 };
@@ -581,6 +583,10 @@ inline uint32_t tint(uint32_t color, uint8_t amount) {
   const unsigned stronger = amount + amount / 3 + 8;
   return mix(color, hex(CARD), static_cast<uint8_t>(stronger > 255 ? 255 : stronger));
 }
+// The pale ground under a glyph or under words (a module's own disc, a badge): the tint on a lit glass. On paper it is
+// the card itself, since a raster under a glyph breaks the glyph (docs/PAPER.md), so the glyph stands alone there, or
+// in a rim where its maker gives the ground one. tint() stays for what has nothing on it: a track, an unlit segment.
+inline uint32_t field(uint32_t color, uint8_t amount) { return paper ? hex(CARD) : tint(color, amount); }
 // A tile's icon in its state colour: a touch darker in light, so a pale bulb still shows; a touch lighter in dark.
 inline uint32_t icon(uint32_t color) {
   if (paper) return hex(INK);  // a glyph is ink; whether its state is on is its disc's to say (on_disc)
@@ -609,7 +615,9 @@ inline uint8_t fill_opacity() { return dark ? 38 : 51; }
 // Keys drawn inside a card of any colour (a wide tile's direct controls): a shade away from the card, towards the
 // middle, so they read on white, on a pastel and on graphite alike.
 inline uint32_t key_on(uint32_t card, uint8_t depth) {
-  if (paper) return ink_value(Ink::SOFT, dark);
+  // On paper a key is the card's own paper, and its maker gives it a rim (style_panel): a shade of the card would be a
+  // raster under the key's glyph or word.
+  if (paper) return card;
   return dark ? mix(card, 0xFFFFFF, static_cast<uint8_t>(255 - (255 - depth) * 3 / 2)) : mix(card, 0x000000, depth);
 }
 // A card under a finger (firmware 0.2.95+): its own colour an eighth of the way to black in light and to white in

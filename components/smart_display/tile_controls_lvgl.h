@@ -164,6 +164,8 @@ inline void style_panel(Widgets &w,const Tile &t,lv_color_t accent,lv_color_t te
     set_color(key,LV_STYLE_BG_COLOR,in_pill?theme::color(theme::STEPPER_KEY_PRESSED):key_pressed,LV_STATE_PRESSED);
     set_color(key,LV_STYLE_BG_COLOR,w.key_args[n]=="off" && w.panel_mode=="mode"?theme::color(theme::OFF):accent,LV_STATE_CHECKED);
     if(w.key_icons[n])set_color(w.key_icons[n],LV_STYLE_TEXT_COLOR,w.key_checked[n]==1?theme::color(theme::ON_ACCENT):text);
+    // On paper a key that is not chosen is paper in a rim; one inside a pill is the pill's own part.
+    theme::rim(key,!in_pill&&w.key_checked[n]!=1);
   }
   if(w.pill){set_color(w.pill,LV_STYLE_BG_COLOR,theme::color(theme::TRACK));if(w.pill_value)set_color(w.pill_value,LV_STYLE_TEXT_COLOR,text);}
   if(w.control_slider){
@@ -310,7 +312,8 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   // The placeholder and the player's icon; the cover comes over them once the app served it. A board that draws no
   // pictures has neither (firmware 0.46.0): the player stands in the middle of the room instead.
   if(l.art.w){
-    w.parts[0]=media_box(w.extra,w.parts[0],at(l.art),theme::tint(theme::ha::LIGHT_BLUE,51),l.art_radius);
+    w.parts[0]=media_box(w.extra,w.parts[0],at(l.art),theme::paper?theme::hex(theme::CARD):theme::tint(theme::ha::LIGHT_BLUE,51),l.art_radius);
+    theme::rim(w.parts[0],true);
     lv_obj_remove_flag(w.parts[0],LV_OBJ_FLAG_HIDDEN);
     const std::string glyph=icon_for(t);
     // The big icon where the square holds it (a cover that shrank for the volume row may not), else the tile's icon.
@@ -360,6 +363,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   w.media_live=live;
   if(barred){
     w.parts[4]=media_box(w.extra,w.parts[4],at(l.bar),theme::hex(theme::TRACK),LV_RADIUS_CIRCLE);lv_obj_remove_flag(w.parts[4],LV_OBJ_FLAG_HIDDEN);
+    theme::rim(w.parts[4],true);  // on paper the track is paper: without its rim the bar was a loose dash
     Rect fill=at(l.bar);fill.w=std::max(l.bar.h,timed?l.bar.w*std::max(0,progress(x.media_position,x.media_position_at,now_epoch(),play,x.media_duration))/1000:0);
     w.parts[5]=media_box(w.extra,w.parts[5],fill,media_accent(),LV_RADIUS_CIRCLE);
     if(live)lv_obj_add_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN);else lv_obj_remove_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN);

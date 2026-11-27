@@ -533,7 +533,7 @@ void fill_list() {
     int right = width;
     const auto key = [&](bool video) {
       right -= d;
-      auto *k = disc(line, right, (row_h - d) / 2, d, theme::tint(green(), 40), video ? VIDEO : PHONE, mini_icon_font, theme::icon(green()));
+      auto *k = disc(line, right, (row_h - d) / 2, d, theme::field(green(), 40), video ? VIDEO : PHONE, mini_icon_font, theme::icon(green()));
       lv_obj_add_flag(k, LV_OBJ_FLAG_CLICKABLE);
       if (video) lv_obj_add_flag(k, LV_OBJ_FLAG_USER_1);
       lv_obj_add_event_cb(k, dial_cb, LV_EVENT_SHORT_CLICKED, reinterpret_cast<void *>(static_cast<intptr_t>(index)));

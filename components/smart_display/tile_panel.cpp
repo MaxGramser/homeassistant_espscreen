@@ -207,6 +207,11 @@ int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h
     if(on && w.key_checked[0]!=1)lv_obj_set_style_bg_color(w.keys[0],w.panel_accent,LV_STATE_CHECKED);
     set_checked(0,on);
     if(w.knob_on!=(int)on){w.knob_on=on;lv_obj_set_x(w.knob,on?m.toggle_w-m.toggle_h+knob_pad:knob_pad);}
+    // On paper a switch that is off is a rimmed pill with a knob of ink, as the settings page's (theme::toggle).
+    if(theme::paper){
+      theme::rim(w.keys[0],!on);
+      lv_obj_set_style_bg_color(w.knob,theme::color(on?theme::KNOB:theme::INK),0);
+    }
     panel_w=m.toggle_w;panel_h=m.toggle_h;
   }else if(mode=="run"){
     // The requested width: a key created in this pass has no coordinates before LVGL's layout.

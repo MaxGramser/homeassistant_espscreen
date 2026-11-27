@@ -96,16 +96,20 @@ swipe in `runtime_tiles::touch_input`). Holding the top bar of the overview for 
 as well; a line in the accent colour grows along the top edge while you hold, and letting go before it finishes
 cancels. Both follow **Swipe between pages** for the swipe and `settings_screen::may_open` for the rest. A screen can also carry a
 `screen.settings` tile, which opens the page with or without Home Assistant, and Home Assistant can open it
-with `esphome.<screen>_open_settings`.
+with `esphome.<screen>_open_settings`. A page number the screen has nothing on (Night on a board that cannot go dark, a
+number past the last page) opens the menu (`settings_screen::offered`).
 
 The page is a menu of groups, each of which opens a page of its own:
 
 | Group | Rows |
 |---|---|
-| Brightness | Brightness (dimmable backlight), Dark mode, Auto standby, Standby after, Standby brightness or Screen on in standby (boards that can go dark) |
-| Night (boards that can go dark) | Night mode, Starts, Ends, Night brightness or Screen on at night |
+| Brightness, called Display on a glass without a light (e-paper) | Brightness (dimmable backlight), Dark mode, Auto standby, After, Standby brightness or Screen on in standby (boards that can go dark) |
+| Night (boards that can go dark, and whose glass is lit) | Night mode, Starts, Ends, Night brightness or Screen on at night |
 | Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Loop pages, Show home button, Rotation |
 | This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Debug mode, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
+
+The standby's time says After on the screen, as the row under Back to Home does: it stands right under Auto standby,
+and the entity's longer name, Standby after, was cut beside its keys on a narrow glass.
 
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
 Tessera show it within a second. The editor's **Screen settings** tab has the same rows, grouped by what a person looks

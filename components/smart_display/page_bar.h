@@ -130,7 +130,8 @@ inline void enable(lv_obj_t *key, bool on) {
   if (!key) return;
   if (on) lv_obj_remove_state(key, LV_STATE_DISABLED); else lv_obj_add_state(key, LV_STATE_DISABLED);
   if (auto *chevron = glyph(key)) {
-    const lv_opa_t opa = on ? LV_OPA_COVER : LV_OPA_30;
+    // On paper a dimmed chevron is a few dots of raster: a key that leads nowhere shows nothing there.
+    const lv_opa_t opa = on ? LV_OPA_COVER : theme::paper ? LV_OPA_TRANSP : LV_OPA_30;
     if (lv_obj_get_style_text_opa(chevron, LV_PART_MAIN) != opa) lv_obj_set_style_text_opa(chevron, opa, 0);
   }
 }

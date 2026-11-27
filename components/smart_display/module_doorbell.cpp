@@ -402,9 +402,10 @@ void build(lv_obj_t *root, const std::string &name) {
   lv_obj_set_pos(halo, home.x - grow, home.y - grow);
   lv_obj_set_size(halo, home.w + 2 * grow, home.h + 2 * grow);
   lv_obj_set_style_radius(halo, LV_RADIUS_CIRCLE, 0);
-  lv_obj_set_style_border_color(halo, theme::color(theme::MARK_AMBER), 0);
+  // On paper the amber is a raster: the disc and its ring are the view's own ink, with the glyph left open in it.
+  lv_obj_set_style_border_color(halo, theme::color(theme::paper ? theme::CAMERA_INK : theme::MARK_AMBER), 0);
   lv_obj_set_style_border_width(halo, std::max(2, ui::px(3)), 0);
-  lv_obj_set_style_border_opa(halo, LV_OPA_60, 0);
+  lv_obj_set_style_border_opa(halo, theme::paper ? LV_OPA_COVER : LV_OPA_60, 0);
   lv_obj_remove_flag(halo, LV_OBJ_FLAG_CLICKABLE);
   disc = lv_obj_create(root);
   lv_obj_remove_style_all(disc);
@@ -412,7 +413,7 @@ void build(lv_obj_t *root, const std::string &name) {
   lv_obj_set_size(disc, home.w, home.h);
   lv_obj_set_style_radius(disc, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_style_bg_opa(disc, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(disc, theme::color(theme::MARK_AMBER), 0);
+  lv_obj_set_style_bg_color(disc, theme::color(theme::paper ? theme::CAMERA_INK : theme::MARK_AMBER), 0);
   lv_obj_remove_flag(disc, LV_OBJ_FLAG_CLICKABLE);
   auto *glyph = lv_label_create(disc);
   if (detail_bar::icon_font) lv_obj_set_style_text_font(glyph, detail_bar::icon_font, 0);

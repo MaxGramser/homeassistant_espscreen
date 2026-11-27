@@ -397,6 +397,8 @@ inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading){
   lv_obj_set_pos(pill,px_left,bar_y+(bar-h)/2);lv_obj_set_size(pill,w,h);
   lv_obj_set_style_radius(pill,LV_RADIUS_CIRCLE,0);lv_obj_add_flag(pill,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(pill,LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_bg_color(pill,theme::rgb(media_ink()),0);lv_obj_set_style_bg_opa(pill,40,0);lv_obj_set_style_bg_opa(pill,90,LV_STATE_PRESSED);
+  // On paper a faint ground is a raster under the speaker's name: the key is paper with a rim.
+  if(theme::paper){theme::ground(pill,theme::KEY);lv_obj_set_style_bg_opa(pill,LV_OPA_COVER,0);}
   lv_obj_set_ext_click_area(pill,(bar-h)/2);
   lv_obj_add_event_cb(pill,cb,LV_EVENT_SHORT_CLICKED,(void*)(intptr_t)28);
   media_pill_obj=pill;
@@ -490,6 +492,8 @@ inline void media_backdrop_paint(lv_obj_t *backdrop,const Tile &,const CardPart 
 }
 // The square under the cover: a darker one on a cover's colour, a faint white one on the plain black.
 inline void media_frame_paint(lv_obj_t *frame,const Tile &,const CardPart &){
+  // On paper the square without a cover is paper with a rim: a faint ground is a raster under the player's icon.
+  if(theme::paper){theme::ground(frame,theme::KEY);set_number(frame,LV_STYLE_BG_OPA,LV_OPA_COVER);return;}
   set_color(frame,LV_STYLE_BG_COLOR,theme::rgb(media_face.coloured?theme::hex(theme::CAMERA_PAGE):media_ink()));
   set_number(frame,LV_STYLE_BG_OPA,media_face.coloured?60:24);
 }

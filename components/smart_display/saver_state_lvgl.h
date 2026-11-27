@@ -74,16 +74,20 @@ inline void saver_row_draw(const std::vector<header_bar::Item> &row, const espho
   const auto placed = header_bar::centre(widths.data(), count, spaced, line.w);
   const int middle2 = 2 * line.y + line.h, baseline = page_header::digits_baseline(font, middle2);
   const int line_h = lv_font_get_line_height(font);
+  // Each piece is measured by its ink (page_header::piece) and its label is that wide: a label asks for the letters'
+  // whole advance, so with dots for what does not fit, "Open" stood as "O..." on a dense glass, where the last
+  // letter's side bearing is more than the two pixels spare. Nothing here can be too long: it is clipped at its ink.
+  const auto piece = [](lv_obj_t *label) { lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP); };
   for (size_t k = 0; k < placed.count; ++k) {
     const auto &p = pieces[k];
     int x = line.x + placed.x[k];
-    if (k && dot.text_w) saver_text(saver_root, font, ink, {x - side - dot.text_w - dot.text_left, page_header::text_top(font, baseline), dot.text_left + dot.text_w + 2, line_h}, dot.text, LV_TEXT_ALIGN_LEFT);
+    if (k && dot.text_w) piece(saver_text(saver_root, font, ink, {x - side - dot.text_w - dot.text_left, page_header::text_top(font, baseline), dot.text_left + dot.text_w + 2, line_h}, dot.text, LV_TEXT_ALIGN_LEFT));
     if (p.icon) {
       const auto glyph = tile_icon::utf8(p.icon);
-      saver_text(saver_root, p.font, ink, {x - p.icon_left, page_header::icon_top(p.font, p.icon, middle2), p.icon_w + 2, (int) lv_font_get_line_height(p.font)}, glyph, LV_TEXT_ALIGN_LEFT);
+      piece(saver_text(saver_root, p.font, ink, {x - p.icon_left, page_header::icon_top(p.font, p.icon, middle2), p.icon_w + 2, (int) lv_font_get_line_height(p.font)}, glyph, LV_TEXT_ALIGN_LEFT));
       x += p.icon_w + (p.text_w ? gaps.icon : 0);
     }
-    if (p.text_w) saver_text(saver_root, font, ink, {x - p.text_left, page_header::text_top(font, baseline), p.text_left + p.text_w + 2, line_h}, p.text, LV_TEXT_ALIGN_LEFT);
+    if (p.text_w) piece(saver_text(saver_root, font, ink, {x - p.text_left, page_header::text_top(font, baseline), p.text_left + p.text_w + 2, line_h}, p.text, LV_TEXT_ALIGN_LEFT));
   }
 }
 }  // namespace runtime_tiles

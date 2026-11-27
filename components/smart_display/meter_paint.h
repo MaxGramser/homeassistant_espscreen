@@ -82,7 +82,7 @@ inline void paint_ring(lv_layer_t *layer, const Look &v, int ox, int oy) {
       rect(layer, x - p.thick / 2, y - p.thick / 2, p.thick, p.thick, c, LV_RADIUS_CIRCLE);
     } else arc(layer, cx, cy, p.d, p.thick, 150, 150 + f * 240, c);
   }
-  rect(layer, cx - p.disc / 2, cy - p.disc / 2, p.disc, p.disc, known ? theme::tint(raw, theme::dark ? 70 : 45) : theme::hex(theme::TRACK), LV_RADIUS_CIRCLE);
+  rect(layer, cx - p.disc / 2, cy - p.disc / 2, p.disc, p.disc, known ? theme::field(raw, theme::dark ? 70 : 45) : theme::hex(theme::TRACK), LV_RADIUS_CIRCLE);
   const lv_font_t *f = v.faces[p.icon];
   if (f && !v.icon.empty()) {
     mc::Text t;

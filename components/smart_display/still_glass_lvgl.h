@@ -112,7 +112,11 @@ inline void level_draw(lv_event_t *e) {
   const auto ink = lv_color_hex(theme::hex(theme::INK)), sheet = lv_color_hex(theme::hex(theme::CARD));
   const auto l = layout_of(s);
   const int low = low_of(s), high = high_of(s);
-  const int filled = level_bar::level_of(lv_slider_get_value(s), low, high, l.count);
+  // A slider whose maker shows neither fill nor knob (a lamp that is off keeps its last level under parts that are
+  // not drawn) is an empty level: every lamp of a group that was off stood at one step. One with a knob alone (a
+  // blind, a tilt, a hue) shows where it stands by its fill here.
+  const bool shown = lv_obj_get_style_bg_opa(s, LV_PART_INDICATOR) > LV_OPA_TRANSP || lv_obj_get_style_bg_opa(s, LV_PART_KNOB) > LV_OPA_TRANSP;
+  const int filled = shown ? level_bar::level_of(lv_slider_get_value(s), low, high, l.count) : 0;
   // One shape that fills in steps, as the slider of a lit glass fills: a rimmed room, ink from its start up to the
   // level, and a short mark where each step ends, of paper on the ink and of ink on the paper.
   const int thick = l.upright ? lv_obj_get_width(s) : lv_obj_get_height(s);
@@ -206,6 +210,21 @@ inline void dress(lv_obj_t *o) {
         lv_color_brightness(lv_obj_get_style_bg_color(o, LV_PART_MAIN)) < 128) {
       lv_obj_set_style_bg_color(o, lv_color_black(), 0);
       lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+    }
+  }
+  // Nothing is faded: a part at part strength is a raster through everything in it, so it keeps its ink whole,
+  // switched off or not. A card's keys are switched off for the moment a command is on its way (card_blocked): were
+  // they taken away instead, every tap would be two prints, the keys going and coming back. Whole in both states they
+  // are no print at all. What must not look as if it works is taken away by its maker (a page key that leads
+  // nowhere, a stepper's key at its end on the settings page). Set for the state the part is in, and never under a
+  // finger, where nothing prints.
+  if (const lv_state_t state = lv_obj_get_state(o); !(state & LV_STATE_PRESSED)) {
+    const lv_opa_t whole = lv_obj_get_style_opa(o, LV_PART_MAIN);
+    if (whole > LV_OPA_TRANSP && whole < LV_OPA_COVER) lv_obj_set_style_opa(o, LV_OPA_COVER, state);
+    // Words are ink: at four fifths of their strength a letter has holes in it.
+    if (lv_obj_check_type(o, &lv_label_class)) {
+      const lv_opa_t words = lv_obj_get_style_text_opa(o, LV_PART_MAIN);
+      if (words >= LV_OPA_30 && words < LV_OPA_COVER) lv_obj_set_style_text_opa(o, LV_OPA_COVER, state);
     }
   }
   // A list that is let go stops where the finger left it: gliding on and springing back are a row of prints.

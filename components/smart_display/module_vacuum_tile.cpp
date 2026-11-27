@@ -201,7 +201,7 @@ static void draw_over(lv_event_t *e) {
   const int c = v->input.width ? measure().circle : 0;
   const uint32_t state_colour = t.active() ? tile_controls::accent(t) : theme::STATE_OFF;
   const vt::Box circle{0, (l.head - c) / 2, c, c};
-  pen.box(circle, t.available() ? theme::tint(state_colour, 38) : track, c / 2);
+  pen.box(circle, t.available() ? theme::field(state_colour, 38) : track, c / 2);
   pen.glyph(vt::ICON, icon_for(t), circle, t.available() ? theme::icon(state_colour) : theme::hex(theme::OFF));
   const int lh = lv_font_get_line_height(face(vt::LABEL)), sh = lv_font_get_line_height(face(vt::SMALL));
   const int ty = (l.head - lh - ui::px(2) - sh) / 2;
@@ -276,7 +276,7 @@ static void draw_over(lv_event_t *e) {
     pen.box(p, pressed(card, down), l.tile_radius);
     const int disc = p.h - 2 * ui::px(6);
     const vt::Box mark{p.x + ui::px(6), p.y + ui::px(6), disc, disc};
-    pen.box(mark, theme::tint(theme::ha::TEAL, 36), disc / 2);
+    pen.box(mark, theme::field(theme::ha::TEAL, 36), disc / 2);
     pen.glyph(vt::WATCH_ICON, PLAY, mark, theme::foreground(theme::ha::TEAL));
     const int tx = mark.x + disc + ui::px(10);
     pen.text(vt::SMALL, fit(vt::SMALL, d->routines[p.index].name, p.x + p.w - tx - ui::px(6)), tx, p.y + (p.h - sh) / 2, p.x + p.w - tx - ui::px(6), ink);

@@ -150,7 +150,7 @@ inline void settle(lv_obj_t *o, lv_anim_exec_xcb_t set, int32_t from, int32_t to
   lv_anim_set_user_data(&a, reinterpret_cast<void *>(static_cast<intptr_t>(s.lead)));
   if (done) lv_anim_set_completed_cb(&a, done);
   set(o, from);
-  lv_anim_start(&a);
+  start(&a);  // on a still glass the sheet stands at its end at once (start)
 }
 
 }  // namespace screen_motion

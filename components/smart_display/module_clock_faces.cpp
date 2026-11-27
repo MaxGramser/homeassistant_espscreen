@@ -451,9 +451,16 @@ inline void classic(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
 inline uint32_t mix32(uint32_t x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
 inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int Hh, const esphome::ESPTime &now) {
   const bool dk = k.dark;
-  const uint32_t cream = role(theme::BAUHAUS_CREAM, dk), black = role(theme::BAUHAUS_BLACK, dk), red = role(theme::BAUHAUS_RED, dk);
-  const uint32_t colours[] = {red, role(theme::BAUHAUS_YELLOW, dk), role(theme::BAUHAUS_BLUE, dk), black, cream};
-  const uint32_t hand = dk ? role(theme::BAUHAUS_CREAM, false) : role(theme::BAUHAUS_BLACK, false);
+  // On paper (docs/PAPER.md) the school's black is ink and its cream paper, and its three colours are the two tones
+  // between them: fields with nothing on them, which a raster may be. The clock that stands on them is ink alone, its
+  // hour marks and its hub too: a red dot was a few grey pixels.
+  const bool pp = theme::paper;
+  const auto tone = [dk](theme::Ink i) { return theme::ink_value(i, dk); };
+  const uint32_t cream = pp ? tone(theme::Ink::PAPER) : role(theme::BAUHAUS_CREAM, dk), black = pp ? tone(theme::Ink::INK) : role(theme::BAUHAUS_BLACK, dk);
+  const uint32_t red = pp ? tone(theme::Ink::FIRM) : role(theme::BAUHAUS_RED, dk);
+  const uint32_t colours[] = {red, pp ? tone(theme::Ink::SOFT) : role(theme::BAUHAUS_YELLOW, dk), pp ? tone(theme::Ink::FIRM) : role(theme::BAUHAUS_BLUE, dk), black, cream};
+  const uint32_t hand = pp ? tone(theme::Ink::INK) : dk ? role(theme::BAUHAUS_CREAM, false) : role(theme::BAUHAUS_BLACK, false);
+  const uint32_t mark = pp ? hand : red;
   const int S = std::min(W, Hh);
   lv_obj_set_style_bg_color(stage, theme::rgb(cream), 0);
   const int n = 3, cell = std::max(1, S / n);
@@ -482,13 +489,15 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
   const float turn = period * 2.39996f, reach = S * 0.05f;
   const float cx = W / 2.f + std::cos(turn) * reach, cy = Hh / 2.f + std::sin(turn) * reach, R = S * 0.36f;
   // A ring in the hands' colour keeps the clock its own object, also where a shape of its colour touches it.
-  auto *face = box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), dk ? black : cream, LV_RADIUS_CIRCLE);
+  // The dial is the dark of the look. On paper that is the look's paper (ink and paper trade in the dark look, so
+  // `black` is the light one there), with the hands in its ink.
+  auto *face = box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), pp ? tone(theme::Ink::PAPER) : dk ? black : cream, LV_RADIUS_CIRCLE);
   lv_obj_set_style_border_width(face, std::max(2, (int) (R * 0.035f)), 0);
   lv_obj_set_style_border_color(face, theme::rgb(hand), 0);
   auto &p = painter(stage);
   for (int i = 0; i < 12; ++i) {
     const float a = i * PI / 6;
-    p.dot(cx + std::sin(a) * R * 0.84f, cy - std::cos(a) * R * 0.84f, i % 3 ? R * 0.025f : R * 0.05f, i % 3 ? hand : red);
+    p.dot(cx + std::sin(a) * R * 0.84f, cy - std::cos(a) * R * 0.84f, i % 3 ? R * 0.025f : R * 0.05f, i % 3 ? hand : mark);
   }
   if (!now.is_valid()) return;
   lv_obj_t *layer = nullptr;
@@ -496,8 +505,8 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
   const int w = std::max(6, (int) (R * 0.09f));
   hp.line(cx, cy, cx + std::sin(hour_angle(now)) * R * 0.48f, cy - std::cos(hour_angle(now)) * R * 0.48f, w, hand);
   hp.line(cx, cy, cx + std::sin(minute_angle(now)) * R * 0.72f, cy - std::cos(minute_angle(now)) * R * 0.72f, w * 2 / 3, hand);
-  hp.dot(cx, cy, w * 0.75f, red);
-  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, red, red, false, f.seconds && !screen_motion::still()};
+  hp.dot(cx, cy, w * 0.75f, mark);
+  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, mark, mark, false, f.seconds && !screen_motion::still()};
   if (h.seconds) second_marks(hp, h, now.second);
   keep_hands(layer, hp, h, now);
 }

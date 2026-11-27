@@ -718,7 +718,13 @@ class Editor(unittest.TestCase):
         # editor, and no key the screen reports.
         screen_only = {english['debug_mode']}
         self.assertTrue(screen_only <= page_labels)
-        self.assertEqual(page_labels - switch_labels - screen_only, script_labels)
+        # The standby's time says After on the screen, as the row under Back to Home does: it stands right under Auto
+        # standby, and its longer name was cut beside its keys on a narrow glass. The editor's row, in a list of its
+        # own order, keeps the whole name.
+        whole = {editor_sources.text('screen_settings.rows.standby_seconds')}
+        self.assertEqual(whole, {'Standby after'})
+        self.assertIn('duration(screen_text::txt::settings_after, []() -> int32_t { return screen_settings::current.standby_seconds; }', SCREEN_PAGE)
+        self.assertEqual(page_labels - switch_labels - screen_only, script_labels - whole)
         # The -/+ steps and the duration ladder are run on both sides over the same edges: ladderStep and steppedSetting
         # in web/tests/settings.spec.ts, ladder_step in tests/test_settings_screen.cpp.
 

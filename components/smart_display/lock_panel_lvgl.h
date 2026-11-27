@@ -226,7 +226,8 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   // everything else the glyph in a ring. A pale disc would be a raster under the glyph.
   const bool shut=t.state=="locked"||t.state=="jammed";
   const uint32_t ground=!available?theme::hex(theme::TRACK):theme::paper?theme::hex(shut?theme::INK:theme::CARD):theme::tint(theme::state(colour),38);
-  const uint32_t face_ink=!available?theme::hex(theme::OFF):theme::paper?theme::hex(shut?theme::CARD:theme::INK):theme::icon(theme::state(colour));
+  // What cannot be reached is grey on a lit glass; on paper a grey glyph is a raster, so it is ink in its ring.
+  const uint32_t face_ink=!available?theme::hex(theme::paper?theme::INK:theme::OFF):theme::paper?theme::hex(shut?theme::CARD:theme::INK):theme::icon(theme::state(colour));
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),0);
   theme::rim(big,!available||!shut);
   lv_obj_set_style_bg_color(big,lv_color_hex(theme::pressed(ground)),LV_STATE_PRESSED);

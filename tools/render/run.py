@@ -1939,14 +1939,16 @@ class Run:
             await asyncio.sleep(0.5)
         # The settings: its first page and each page behind it.
         if 'open_settings' in self.services:
-            for page in range(8):
+            # The table's own pages, a few of the plugins' and the board's Extras (settings_screen.h, BOARD_PAGE); the
+            # screen says which of them it has.
+            for page in (*range(8), 250):
                 await home()
                 start = len(self.lines)
                 await self.call('open_settings', page=page)
                 await asyncio.sleep(0.8)
                 if any('settings' in line.lower() and 'no page' in line.lower() for line in self.lines[start:]):
-                    break
-                await keep(f'settings-{page}')
+                    continue
+                await keep('settings-extras' if page == 250 else f'settings-{page}')
             await home()
         # At rest: the page in its calm look, then each face of the clock as the screensaver.
         await home()

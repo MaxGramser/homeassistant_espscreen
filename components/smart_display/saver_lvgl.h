@@ -107,8 +107,23 @@ inline void saver_words() {
       if (saver_view::fits(shape, taller, width, height)) { w = taller; saver_view::before_keys(w, keys, margin); }
     }
   }
-  for (lv_obj_t **words : {&saver_first, &saver_second}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
+  for (lv_obj_t **words : {&saver_first, &saver_second, &saver_band}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
   saver_words_due = false;
+  // On paper a picture is no ground for words (docs/PAPER.md): the shade the app paints into its foot is a raster
+  // there, and white words and a key's sign fell away into it. The words and the keys stand on a band of black across
+  // the foot of the glass, from a little above the highest of them, and the picture ends where the band begins.
+  if (theme::paper) {
+    int top = w.first.y;
+    for (const auto &r : {keys.plus, keys.minus, keys.play}) if (r.w > 0) top = std::min(top, r.y);
+    top = std::max(0, top - margin / 2);
+    saver_band = lv_obj_create(camera_root);
+    lv_obj_remove_style_all(saver_band);
+    lv_obj_remove_flag(saver_band, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+    lv_obj_set_pos(saver_band, 0, top);
+    lv_obj_set_size(saver_band, width, height - top);
+    lv_obj_set_style_bg_color(saver_band, theme::color(theme::CAMERA_PAGE), 0);
+    lv_obj_set_style_bg_opa(saver_band, LV_OPA_COVER, 0);
+  }
   // The words stand on the screensaver's own dark ground, on paper too: its ink, never the media card's.
   const uint32_t words = theme::hex(theme::CAMERA_INK);
   saver_first = saver_text(camera_root, font, words, w.first, first, LV_TEXT_ALIGN_LEFT);
@@ -251,6 +266,16 @@ inline void saver_keys_draw() {
     lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 56, 0);
     lv_obj_set_style_bg_color(o, theme::rgb(primary ? theme::mix(ink, 0, 200) : ink), LV_STATE_PRESSED);
     lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 110, LV_STATE_PRESSED);
+    // On paper a haze is a raster under the key's sign: a volume key is the band's black in a ring of its ink.
+    if (theme::paper && !primary) {
+      for (lv_style_selector_t s : {(lv_style_selector_t) 0, (lv_style_selector_t) LV_STATE_PRESSED}) {
+        lv_obj_set_style_bg_color(o, theme::color(theme::CAMERA_PAGE), s);
+        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, s);
+      }
+      lv_obj_set_style_border_width(o, theme::PAPER_RIM, 0);
+      lv_obj_set_style_border_color(o, theme::rgb(ink), 0);
+      lv_obj_set_style_border_opa(o, LV_OPA_COVER, 0);
+    }
     auto *icon = lv_label_create(o);
     lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
     if (font) lv_obj_set_style_text_font(icon, font, 0);

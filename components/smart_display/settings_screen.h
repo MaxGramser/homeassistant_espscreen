@@ -366,7 +366,9 @@ inline constexpr Row light_rows[] = {
   toggle(screen_text::txt::settings_auto_standby, []() -> int32_t { return screen_settings::current.standby_enabled; },
          [](int32_t value) { set("standby_enabled", value); },
          [] { return can_standby; }),
-  duration(screen_text::txt::settings_standby_after, []() -> int32_t { return screen_settings::current.standby_seconds; },
+  // "After", as under Back to Home: the row stands right under Auto standby, and the longer "Standby after" was cut to
+  // "Stan..." beside its keys on every narrow glass.
+  duration(screen_text::txt::settings_after, []() -> int32_t { return screen_settings::current.standby_seconds; },
            [](int32_t value) { set("standby_seconds", value); }, 60, 86400,
            [] { return screen_settings::current.standby_enabled != 0; },
            [] { return can_standby; }),
@@ -482,7 +484,10 @@ inline bool has_board_rows() { return !board_rows.empty(); }
 constexpr uint8_t BOARD_PAGE = 250;  // beside the numbered pages: the plugins' pages count up from PLUGINS_PAGE
 
 inline constexpr Row menu_rows[] = {
-  page_row(screen_text::txt::settings_brightness, "\U000F0599", 1),
+  // The first page by its name: Brightness, and Display on a glass without a light (lit), where it holds the dark
+  // look and the standby alone.
+  page_row(screen_text::txt::settings_brightness, "\U000F0599", 1, [] { return lit; }),
+  page_row(screen_text::txt::settings_display, "\U000F0599", 1, [] { return !lit; }),
   page_row(screen_text::txt::settings_night, "\U000F0594", 2, [] { return can_standby && lit; }),
   page_row(screen_text::txt::settings_screen, "\U000F0379", 3),
   page_row(screen_text::txt::settings_this_screen, "\U000F02FD", 4),
@@ -510,7 +515,20 @@ inline const Page &page_at(uint8_t index) {
   return index < PAGE_COUNT || index - PAGE_COUNT >= plugin_pages.size() ? pages[index < PAGE_COUNT ? index : 0]
                                                                         : plugin_pages[index - PAGE_COUNT];
 }
-inline const char *page_title(const Page &page) { return page.words ? page.words : screen_text::tr(page.title); }
+inline const char *page_title(const Page &page) {
+  if (!lit && &page == &pages[1]) return screen_text::tr(screen_text::txt::settings_display);
+  return page.words ? page.words : screen_text::tr(page.title);
+}
+// A page this screen has something on: the menu, and a page with a row that shows. Night on a glass without a light
+// has none, and neither has a number past the last page: open() shows the menu for those.
+inline bool offered(uint8_t page) {
+  if (page == 0) return true;
+  if (page != BOARD_PAGE && page >= page_total()) return false;
+  const Page &p = page_at(page);
+  for (uint8_t i = 0; i < p.count; ++i)
+    if (visible_row(p.rows[i])) return true;
+  return false;
+}
 
 }  // namespace settings_screen
 
@@ -602,7 +620,9 @@ inline lv_obj_t *key(lv_obj_t *parent, const char *glyph, int x, int y, int w, i
   lv_obj_set_style_bg_color(button, theme::color(theme::SETTING_KEY), 0);
   lv_obj_set_style_bg_color(button, theme::color(theme::SETTING_KEY_PRESSED), LV_STATE_PRESSED);
   lv_obj_set_style_radius(button, LV_RADIUS_CIRCLE, 0);
-  lv_obj_set_style_opa(button, LV_OPA_40, LV_STATE_DISABLED);
+  // On paper a faded key is a raster: a key that does nothing now is not shown, and one that does has its rim.
+  lv_obj_set_style_opa(button, theme::paper ? LV_OPA_TRANSP : LV_OPA_40, LV_STATE_DISABLED);
+  theme::rim(button, true);
   auto *label = text(button, glyph, icon_font ? icon_font : row_font, theme::INK);
   lv_obj_set_width(label, LV_SIZE_CONTENT);
   lv_obj_center(label);
@@ -656,7 +676,8 @@ inline void refresh() {
     if (d.knob) move_knob(d, row);
     // A row whose switch is off (night times, the standby levels) is there but does nothing, and says so.
     bool live = live_row(row);
-    const lv_opa_t opa = live ? LV_OPA_COVER : LV_OPA_50;
+    // On paper a faded row is a raster through its words: it keeps its ink, and its keys are gone (key()).
+    const lv_opa_t opa = live || theme::paper ? LV_OPA_COVER : LV_OPA_50;
     if (d.card && lv_obj_get_style_opa(d.card, LV_PART_MAIN) != opa) lv_obj_set_style_opa(d.card, opa, 0);
     if (d.minus && readable(row)) {
       bool off = !live || at_end(row, get(row), -1);
@@ -838,6 +859,7 @@ inline void draw() {
       lv_obj_set_style_bg_opa(chip, LV_OPA_COVER, 0);
       lv_obj_set_style_bg_color(chip, theme::color(theme::SETTING_KEY), 0);
       lv_obj_set_style_radius(chip, LV_RADIUS_CIRCLE, 0);
+      theme::rim(chip, true);
       d.value = text(chip, value_text(row), row_font, theme::INK, LV_TEXT_ALIGN_CENTER);
       lv_obj_set_width(d.value, value_w - 8);
       lv_obj_set_pos(d.value, 4, (chip_h - label_h) / 2);
@@ -869,7 +891,7 @@ inline void hide_hold_bar() {
 
 inline void open(uint8_t page = 0) {
   hide_hold_bar();
-  current_page = page < page_total() ? page : 0;
+  current_page = offered(page) ? page : 0;
   first_row = 0;
   forget_confirm();
   if (before_open) before_open();

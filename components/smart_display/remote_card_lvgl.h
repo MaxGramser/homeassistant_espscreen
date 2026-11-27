@@ -44,6 +44,7 @@ inline void render_remote_keypad(const Tile &t,bool large,int width,int height,i
   auto *disc=lv_obj_create(detail_root);lv_obj_remove_style_all(disc);
   lv_obj_set_pos(disc,x,y);lv_obj_set_size(disc,ring,ring);lv_obj_set_style_radius(disc,LV_RADIUS_CIRCLE,0);
   lv_obj_set_style_bg_color(disc,theme::color(theme::KEY),0);lv_obj_set_style_bg_opa(disc,LV_OPA_COVER,0);
+  theme::rim(disc,true);  // on paper the ring is its two rims: the disc's, and OK's inside it
   lv_obj_remove_flag(disc,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(disc,LV_OBJ_FLAG_CLICKABLE);
   auto press=[](lv_event_t *e){detail_command((intptr_t)lv_event_get_user_data(e));};
   // The arrows: from the rim to OK's edge, a third of the ring wide, lit while a finger is on them.
@@ -64,6 +65,7 @@ inline void render_remote_keypad(const Tile &t,bool large,int width,int height,i
   // OK in the middle: the card's own white, as the key a thumb rests on.
   auto *centre=lv_obj_create(disc);lv_obj_remove_style_all(centre);lv_obj_set_pos(centre,(ring-ok)/2,(ring-ok)/2);lv_obj_set_size(centre,ok,ok);
   lv_obj_set_style_radius(centre,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_color(centre,theme::color(theme::CARD),0);lv_obj_set_style_bg_opa(centre,LV_OPA_COVER,0);
+  theme::rim(centre,true);
   lv_obj_set_style_bg_color(centre,theme::color(theme::CARD_PRESSED),LV_STATE_PRESSED);
   lv_obj_add_flag(centre,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(centre,LV_OBJ_FLAG_SCROLLABLE);
   auto *word=lv_label_create(centre);lv_label_set_text(word,"OK");lv_obj_set_style_text_font(word,text,0);
