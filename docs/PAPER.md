@@ -176,8 +176,6 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
 | and never later than a most after the finger | `finger_most_ms`, 400 ms |
 | A finger that stays down is shown where it is | `down_most_ms`, after 1.5 s |
 | A hold lets go by itself | `hold_most_ms`, after 10 s |
-| A screen at rest refreshes whole by itself no more often than this | `tidy_every_ms`, an hour |
-| How much partial refreshes must have changed for that | `tidy_area`, three glasses, or `tidy_prints`, 60 of them |
 | Past this the next print is whole, rest or no rest | `must_area`, thirty glasses |
 | A panel without a partial refresh gathers longer | `poster()`: a quiet of 3 s, a most of 15 s |
 
@@ -202,10 +200,11 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
 - **Traces are tidied where it bothers nobody.** A partial refresh leaves a trace of what stood there, and a whole
   refresh takes the traces off. But a whole refresh flashes the whole panel black and white, which draws the eye from
   across a room: every few minutes, as the first rule had it on a page with a camera, was far too often for the owner
-  of the first paper screen (2026-11-27). So the glass refreshes whole by itself only once as the screen comes to
-  rest, its standby, when nobody has touched it for the whole standby time, and while it rests no more than once an
-  hour, when the traces are enough. An awake screen gets a whole refresh only when the count runs far past enough,
-  on a print that changes the glass anyway.
+  of the first paper screen (2026-11-27), and so was a whole refresh on any clock. So the glass refreshes whole by
+  itself at one moment only: as the screen comes to rest, its standby, when nobody has touched it for the whole
+  standby time. Beyond that a whole refresh comes with something that changes the whole glass anyway (a start, a new
+  layout, a change of look, the screensaver), and only when the count of traces runs far past enough does a print
+  that changes the glass become the whole one.
 - **A panel that cannot refresh a part** prints every time whole, after a longer quiet.
 
 How the firmware tells it: the board's touch listener says when a finger lands and lifts and a page key says it was

@@ -318,7 +318,13 @@ inline void media_seek_event(lv_event_t *e){
   auto &t=model.tiles[detail_index];
   const auto &x=t.extra();
   if(!media_card::has_track(t.state)||!x.media_duration)return;
-  lv_point_t point;lv_indev_get_point(lv_indev_active(),&point);
+  // The bar hears every event (LV_EVENT_ALL), and only a finger's have a finger to ask: a change of its size comes
+  // from LVGL's layout with no input device, and LVGL 9.6 no longer takes none for an answer (a reTerminal Sticky
+  // restarted here with the media card open, 2026-11-27, ESPHome 2026.11.0).
+  if(code!=LV_EVENT_PRESSED&&code!=LV_EVENT_PRESSING&&code!=LV_EVENT_PRESS_LOST&&code!=LV_EVENT_RELEASED)return;
+  auto *indev=lv_indev_active();
+  if(!indev)return;
+  lv_point_t point;lv_indev_get_point(indev,&point);
   lv_area_t area;lv_obj_get_coords(lv_obj_get_parent(media_progress_fill),&area);
   const int along=point.x-area.x1-media_bar_x;
   const uint32_t seconds=media_card::seek_seconds(along,media_bar_width,x.media_duration);

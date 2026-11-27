@@ -20,9 +20,9 @@
 // - A partial refresh leaves a trace of what stood there. So the glass keeps count of how much of itself partial
 //   refreshes have changed. A whole refresh takes the traces off, and it flashes the whole panel black and white,
 //   which draws the eye from across a room (the owner of the first paper screen, 2026-11-27: every few minutes was
-//   far too often). So the glass refreshes whole by itself only where that bothers nobody: once as the screen comes
-//   to rest, its standby, and while it rests no more than once an hour, when the traces are enough. Only when the
-//   count runs far past enough does a print that changes the glass anyway become the whole one.
+//   far too often, and so was "once an hour"). So the glass refreshes whole by itself at one moment only: as the
+//   screen comes to rest, its standby, when nobody has touched it for the whole standby time. Never on a clock. Only
+//   when the count runs far past enough does a print that changes the glass anyway become the whole one.
 // - A panel that cannot refresh a part (a panel of coloured inks) prints every time whole, after a longer quiet.
 // - The first print after a start is a whole one: the panel still shows what it showed before the restart, which no
 //   partial refresh can take off cleanly.
@@ -45,9 +45,6 @@ struct Rules {
   uint32_t finger_most_ms = 400;   // and never later than this after the finger
   uint32_t down_most_ms = 1500;    // a finger that stays down this long is shown where it is
   uint32_t hold_most_ms = 10000;  // a hold lets go by itself after this
-  uint32_t tidy_every_ms = 3600000;  // a screen at rest refreshes whole by itself no more often than this
-  uint16_t tidy_area = 3000;    // per mille of the glass changed by partial refreshes that is enough for that
-  uint16_t tidy_prints = 60;    // or this many partial refreshes
   uint16_t must_area = 30000;   // past this, thirty glasses, the next print is whole, rest or no rest
 };
 // A panel without a partial refresh: every print is the whole panel and takes many seconds, so changes gather longer.
@@ -125,13 +122,6 @@ class Printer {
       glass.later(static_cast<uint32_t>(left));
       return;
     }
-    if (!resting_ || !wants_tidy() || down_) return;
-    if (tidy_due(now)) {
-      whole_next_ = true;
-      print(now);
-    } else {
-      glass.later(whole_at_ + rules.tidy_every_ms - now);
-    }
   }
 
   // ---- to read ----
@@ -142,11 +132,6 @@ class Printer {
   uint32_t wholes() const { return wholes_total_; }       // whole refreshes since the start
 
  private:
-  bool wants_tidy() const { return rules.partial && (worn_ >= rules.tidy_area || parts_ >= rules.tidy_prints); }
-  // A screen at rest with traces enough, whose last whole refresh is long enough ago.
-  bool tidy_due(uint32_t now) const {
-    return resting_ && !down_ && wants_tidy() && now - whole_at_ >= rules.tidy_every_ms;
-  }
   // How long what is drawn still waits, in ms; zero or less: it prints now.
   int32_t wait(uint32_t now) const {
     if (held_) {
@@ -177,13 +162,12 @@ class Printer {
     }
     return left;
   }
-  void print(uint32_t now) {
-    // Whole: a panel that knows no other way, one that was asked for, the first, traces enough on a screen at rest
-    // that had none for an hour, or far too many of them.
-    const bool whole = !rules.partial || whole_next_ || !started_ || tidy_due(now) || worn_ + area_ >= rules.must_area;
+  void print(uint32_t) {
+    // Whole: a panel that knows no other way, one that was asked for (the screen coming to rest asks), the first, or
+    // far too many traces.
+    const bool whole = !rules.partial || whole_next_ || !started_ || worn_ + area_ >= rules.must_area;
     started_ = true;
     if (whole) {
-      whole_at_ = now;
       worn_ = 0;
       parts_ = 0;
       ++wholes_total_;
@@ -207,7 +191,6 @@ class Printer {
   uint32_t printed_at_ = 0;    // when the last print ended
   bool printed_once_ = false;  // one has ended since the start
   bool resting_ = false;       // the screen is at rest (its standby)
-  uint32_t whole_at_ = 0;      // when the last whole refresh began
   uint16_t area_ = 0;   // per mille of the glass drawn and not printed yet
   uint16_t worn_ = 0;   // per mille changed by partial refreshes since the last whole one
   uint16_t parts_ = 0;  // partial refreshes since the last whole one

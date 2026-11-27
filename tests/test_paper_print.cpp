@@ -260,35 +260,28 @@ static void traces_are_tidied_as_the_screen_comes_to_rest() {
   assert(trail.size() == 7);
 }
 
-static void a_screen_at_rest_is_tidied_once_an_hour_at_most() {
+static void a_screen_at_rest_is_left_alone() {
   fresh();
   p.rest(true, now_ms);
-  // A clock's minute for three hours on a screen at rest: sixty partial prints are enough to want a whole one, and
-  // an hour has passed since the last by then. The next is an hour and sixty prints later.
-  for (int i = 0; i < 185; ++i) {
+  // A clock's minute for five hours on a screen at rest: partial prints, and never a whole one on a clock of the
+  // glass's own. A flash at a moment nothing happens is what draws the eye.
+  for (int i = 0; i < 300; ++i) {
     p.drawn(10, now_ms);
     run(350);
     panel_done();
-    if (p.printing()) panel_done(2000);  // the whole one that followed the sixtieth
     run(59000);
   }
-  assert(p.wholes() == wholes_before + 3);
-  // A meter's watts every six seconds on a screen at rest: enough within minutes, and still one whole print an hour.
-  fresh();
-  p.rest(true, now_ms);
-  const uint32_t began = now_ms;
-  for (int i = 0; i < 1100; ++i) {  // an hour and fifty minutes
-    p.drawn(10, now_ms);
-    live(6000);
+  assert(p.wholes() == wholes_before && p.parts() == 300);
+  // A meter's watts every six seconds for two hours, at rest and awake: the same.
+  for (bool resting : {true, false}) {
+    fresh();
+    p.rest(resting, now_ms);
+    for (int i = 0; i < 1200; ++i) {
+      p.drawn(10, now_ms);
+      live(6000);
+    }
+    assert(p.wholes() == wholes_before);
   }
-  assert(now_ms - began > 6000000 && p.wholes() == wholes_before + 1);
-  // Awake, the same stream brings none.
-  fresh();
-  for (int i = 0; i < 1100; ++i) {
-    p.drawn(10, now_ms);
-    live(6000);
-  }
-  assert(p.wholes() == wholes_before);
 }
 
 static void a_stream_takes_its_turn() {
@@ -399,7 +392,7 @@ int main() {
   nothing_prints_under_a_refresh();
   a_layout_prints_once();
   traces_are_tidied_as_the_screen_comes_to_rest();
-  a_screen_at_rest_is_tidied_once_an_hour_at_most();
+  a_screen_at_rest_is_left_alone();
   a_stream_takes_its_turn();
   far_past_enough_the_print_is_whole();
   a_whole_one_on_request();
