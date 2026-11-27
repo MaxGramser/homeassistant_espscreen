@@ -2879,6 +2879,12 @@
         "part_now": "Ora",
         "hint_parts": "Scegli cosa dice la riga. Dove il − e il + del riquadro mostrano già la temperatura impostata, la riga la omette."
       },
+      "scroll": {
+        "name": "Scorri un nome lungo",
+        "name_hint": "Un nome troppo largo per il riquadro scorre in tondo e si ferma quando entra. Disattivato, finisce con dei puntini.",
+        "line": "Scorri una seconda riga lunga",
+        "line_hint": "Una seconda riga troppo larga per il riquadro scorre in tondo e si ferma quando entra. Disattivato, finisce con dei puntini o una forma più corta."
+      },
       "slider": {
         "label": "Piccolo cursore sul riquadro",
         "nothing": "Home Assistant non ha nulla che un cursore possa regolare per questa entità. Scegli No."

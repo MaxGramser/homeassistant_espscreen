@@ -86,6 +86,8 @@ NIGHTSTAND_KEYS = 3
 KEY_HOLDERS = {NIGHTSTAND: NIGHTSTAND_KEYS}
 # A key's name under its circle can be hidden (`overlay`: "none", firmware 0.17.0+), as a picture's name on it can.
 KEY_OPTIONS = ('icon', 'tap', 'action', 'guard', 'overlay')
+# A tile's name and its second line roll by when they are too wide for their room (firmware dev); "off" ends them in dots.
+SCROLL_OPTIONS = ('name_scroll', 'sub_scroll')
 KEY_DOMAINS = catalogue.key_domains()
 
 def is_key(tile):
@@ -1392,6 +1394,8 @@ TILE_RESULT_EVENT = 'esp_screens_tile_result'
 TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'display', 'icon': 'icon',
                       'color': 'background', 'background': 'background', 'tap': 'tap', 'inline': 'inline',
                       'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay',
+                      # Whether a name or a second line too wide for its room rolls by: "off" ends it in dots.
+                      'name_scroll': 'name_scroll', 'sub_scroll': 'sub_scroll',
                       # Where a cover's slats stand open: 100 (Home Assistant's rule) or 50.
                       'tilt_open': 'tilt_open',
                       # A light's presets: a list of at most four, each {"b": 1-100} with "k" kelvin or "h" and "s".
@@ -1991,7 +1995,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'sub_scroll', 'name_scroll', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -2025,7 +2029,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             domain = tile['entity'].split('.')[0]
             # The bedside clock is the whole page, always, and the only tile with keys.
             if tile['entity'] == NIGHTSTAND:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 options['size'] = 'full'
             # A key takes what a tile of its own takes, but no size, face or control: its clock decides its shape.
             if is_key(tile) and set(options) - set(KEY_OPTIONS):
@@ -2034,10 +2038,10 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             # The map tile (app 0.4.36) is a map and nothing else, and has no slider or controls of its own.
             if tile['entity'] == MAP_TILE:
                 displays = ('map',)
-                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub')}, 'display': 'map'}
+                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}, 'display': 'map'}
             # The energy card draws its diagram on every size it takes, with no face, slider or second line of its own.
             if tile['entity'] == ENERGY_TILE:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 if 'flow' in options and options['flow'] not in ENERGY_FLOWS:
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='flow'))
                 if options.get('flow') == ENERGY_FLOWS[0]:
@@ -2051,7 +2055,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     template = text_tile.validate(options.get(text_tile.OPTION))
                 except ValueError:
                     raise ValueError(t('addon.errors.layout.text_template')) from None
-                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')},
+                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')},
                            text_tile.OPTION: template}
                 if options.get('tap') not in (None, 'none'):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
@@ -2118,6 +2122,14 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
                 if sub == 'auto':
                     options = {k: v for k, v in options.items() if k != 'sub'}
+            # Whether a name or a second line too wide for its room rolls by (firmware dev, Tile::name_scroll and
+            # sub_scroll): on unless "off", so only "off" is kept. Older firmware reads neither and ends them in dots.
+            for key in SCROLL_OPTIONS:
+                if key in options:
+                    if options[key] not in ('on', 'off'):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
+                    if options[key] == 'on':
+                        options = {k: v for k, v in options.items() if k != key}
             # The five-day strip and the sun path only fit a double-width card (or the whole page).
             if options.get('display') in WIDE_ONLY and options.get('size') not in ('wide', 'square', 'full') and size_columns(options.get('size')) < 2:
                 options = {**options, 'size': 'wide'}

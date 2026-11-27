@@ -2879,6 +2879,12 @@
         "part_now": "Agora",
         "hint_parts": "Escolha o que a linha diz. Onde o − e o + do mosaico já mostram a temperatura definida, a linha omite-a."
       },
+      "scroll": {
+        "name": "Deslizar um nome longo",
+        "name_hint": "Um nome largo demais para o bloco desliza em ciclo e fica parado quando cabe. Desligado, termina em reticências.",
+        "line": "Deslizar uma segunda linha longa",
+        "line_hint": "Uma segunda linha larga demais para o bloco desliza em ciclo e fica parada quando cabe. Desligado, termina em reticências ou numa forma mais curta."
+      },
       "slider": {
         "label": "Controlo deslizante pequeno no mosaico",
         "nothing": "O Home Assistant não tem nada que um controlo deslizante possa alterar nesta entidade. Escolha Não."

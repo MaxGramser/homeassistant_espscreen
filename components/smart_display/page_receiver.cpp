@@ -973,6 +973,9 @@ std::string receive(const std::string &payload) {
     tile.inline_control = string(options["inline"]); if (tile.inline_control.empty()) tile.inline_control="none";
     // What the second line says (firmware 0.2.90+); "auto" is the line the screen works out itself, as before.
     tile.subtitle = string(options["sub"], 96); if (tile.subtitle.empty()) tile.subtitle="auto";
+    // Whether a name and a second line too wide for their room roll by (dev): anything but "off", a missing key too, rolls.
+    tile.name_scroll = string(options["name_scroll"], 4) != "off";
+    tile.sub_scroll = string(options["sub_scroll"], 4) != "off";
     // Direct controls (0.2.19+): the manager sends only the set a wide card really shows.
     tile.controls = string(options["controls"], 24);  // the longest, brightness_presets, is 18
     // Geometry belongs to initialization and never changes in a live value packet.

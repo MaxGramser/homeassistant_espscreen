@@ -18,7 +18,7 @@ import { PLUGIN_TILE, PLUGIN_TILE_OPTIONS } from "./plugins";
 import { canonicalMeter } from "./meter";
 import { climateParts, climatePartsChoice } from "./tile-text";
 
-const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
+const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", labelScroll: "name_scroll", subtitleScroll: "sub_scroll", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
   energyFlow: "flow", textTemplate: "template", callTo: "call_to", callKind: "call_kind",

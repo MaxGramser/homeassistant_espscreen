@@ -114,7 +114,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
     for (const tile of allTiles(page)) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction', 'children'], ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
-      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
+      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'labelScroll', 'subtitleScroll', 'fit', 'overlay',
         'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow', 'textTemplate',
         ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...TODO_FIELDS, ...METER_FIELDS], ['label']);
       fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open', 'presets', 'preset_levels'], []);
@@ -262,6 +262,8 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
           (sub.startsWith('show:') && entityId.startsWith('climate.') && climatePartsChoice(climateParts(sub)) === sub)) ||
         (sub.startsWith('text:') && (!sub.slice(5).trim() || sub.slice(5) !== sub.slice(5).trim()))) fail('normalization');
   }
+  // A name and a second line that roll are the default; only "off" is kept (core.validate_layout).
+  if ((a.labelScroll !== undefined && a.labelScroll !== 'off') || (a.subtitleScroll !== undefined && a.subtitleScroll !== 'off')) fail('normalization');
   if (i.tap === 'action') {
     if (domain === 'screen') fail();
     const action = i.action;

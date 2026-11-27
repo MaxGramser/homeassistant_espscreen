@@ -131,6 +131,10 @@ export function useTileCard(props: TileCardProps) {
   const chip = computed(() => rangeChip(domain.value, current.value, rangeReady.value, words.value));
   // What a thermostat measures, in its own unit: degrees, or a humidifier's humidity (tile_controls::reading_text).
   const measured = computed(() => current.value?.a?.[domain.value === "humidifier" ? "current_humidity" : "current_temperature"]);
+  // A name and a second line too wide for their room roll by, as on the glass (Tile::name_scroll, sub_scroll): the whole
+  // words go to MarqueeText, which moves them only when they do not fit. Off, they end in dots as the glass cuts them.
+  const rollName = computed(() => props.tile.options?.name_scroll !== "off");
+  const rollLine = computed(() => props.tile.options?.sub_scroll !== "off");
   const texts = proxyRefs({
     name, note, status, line, value, unit,
     headLine: computed(() => headLine(body.value, line.value)),
@@ -246,8 +250,8 @@ export function useTileCard(props: TileCardProps) {
     const r = room.value, g = tall.value;
     if (!r || !g) return null;
     const box = (b: Rect) => ({ left: glassPx(b.x), top: glassPx(b.y), width: glassPx(b.w), height: glassPx(b.h) });
-    const text = (t: TallText) => ({ style: { left: glassPx(t.x), top: glassPx(t.y), width: glassPx(t.w), fontSize: glassPx(t.size), lineHeight: glassPx(t.line),
-      fontWeight: String(t.weight), textAlign: t.align }, text: t.marquee ? t.text : dotted(t.text, t.size, t.weight, t.w), muted: Boolean(t.muted),
+    const text = (t: TallText, roll = false) => ({ style: { left: glassPx(t.x), top: glassPx(t.y), width: glassPx(t.w), fontSize: glassPx(t.size), lineHeight: glassPx(t.line),
+      fontWeight: String(t.weight), textAlign: t.align }, text: t.marquee || roll ? t.text : dotted(t.text, t.size, t.weight, t.w), muted: Boolean(t.muted),
       marquee: Boolean(t.marquee) });
     const c = g.climate, p = g.panel;
     const role = (name: string) => `#${theme.roles[name].light.toString(16).padStart(6, "0")}`;
@@ -255,7 +259,7 @@ export function useTileCard(props: TileCardProps) {
       box: { left: glassPx(r.pad), top: glassPx(r.padY), width: glassPx(r.width), height: glassPx(r.height),
         "--track": role("TRACK"), "--stepper-key": role("STEPPER_KEY"), "--muted": role("MUTED"), "--camera-track": role("CAMERA_TRACK") },
       circle: g.circle && { left: glassPx(g.circle.x), top: glassPx(g.circle.y), width: glassPx(g.circle.size), height: glassPx(g.circle.size), fontSize: glassPx(g.circle.icon) },
-      title: g.title && text(g.title), value: g.value && text(g.value), body: g.body.map(text),
+      title: g.title && text(g.title, rollName.value), value: g.value && text(g.value, rollLine.value), body: g.body.map((b) => text(b)),
       panel: p && { kind: p.kind, box: { ...box(p), "--key-w": glassPx(p.keyW), "--key-h": glassPx(p.keyH), "--key-gap": glassPx(p.gap), "--icon-mini": glassPx(look.value.iconMini),
           "--key-r": glassPx(panelMetrics(doc.screenShape).radius), "--slider-r": glassPx(sliderCorner(p.keyH)),
           "--tog-w": glassPx(p.w), "--tog-h": glassPx(p.h), "--knob": glassPx(p.knob) },
@@ -300,7 +304,7 @@ export function useTileCard(props: TileCardProps) {
     if (f.kind === "stack") return { kind: f.kind, box: frame,
       circle: { ...box({ x: f.circle.x, y: f.circle.y, w: f.circle.size, h: f.circle.size }), fontSize: glassPx(f.circle.icon) },
       title: { left: "0", width: "100%", top: glassPx(f.nameY), fontSize: glassPx(lk.headline), lineHeight: glassPx(f.nameH), fontWeight: "500", textAlign: "center" as const },
-      name: dotted(texts.name, lk.headline, 500, r.width), line: texts.line,
+      name: rollName.value ? texts.name : dotted(texts.name, lk.headline, 500, r.width), line: texts.line,
       value: { left: "0", width: "100%", top: glassPx(f.valueY), fontSize: glassPx(lk.sublabel), lineHeight: glassPx(f.valueH), textAlign: "center" as const } };
     const h = f.head, l = f.layout, a = current.value?.a || {}, state = current.value?.state || "";
     const track = ["playing", "paused", "buffering"].includes(state);
@@ -309,7 +313,8 @@ export function useTileCard(props: TileCardProps) {
     return { kind: f.kind, box: frame,
       circle: { left: glassPx(h.circle.x), top: glassPx(h.circle.y), width: glassPx(h.circle.size), height: glassPx(h.circle.size), fontSize: glassPx(h.circle.icon) },
       title: { left: glassPx(h.title.x), top: glassPx(h.title.y), width: glassPx(h.title.width), fontSize: glassPx(h.title.size), lineHeight: glassPx(h.title.line), fontWeight: String(h.title.weight) },
-      name: dotted(texts.name, h.title.size, h.title.weight, h.title.width), line: h.value ? dotted(texts.line, h.value.size, 400, h.value.width) : "",
+      name: rollName.value ? texts.name : dotted(texts.name, h.title.size, h.title.weight, h.title.width),
+      line: !h.value ? "" : rollLine.value ? texts.line : dotted(texts.line, h.value.size, 400, h.value.width),
       value: h.value && { left: glassPx(h.value.x), top: glassPx(h.value.y), width: glassPx(h.value.width), fontSize: glassPx(h.value.size), lineHeight: glassPx(h.value.line) },
       cover: coverArt.value, art: l.art.w ? { ...box(l.art, f.top), borderRadius: glassPx(l.artRadius), fontSize: glassPx(Math.min(l.art.h, uiScale(doc.screenShape).px(uiScale(doc.screenShape).large ? 64 : 40))) } : null,
       track: { style: text(l.title, look.value.headline, 500), text: track && a.media_title ? String(a.media_title) : "" },
@@ -344,8 +349,8 @@ export function useTileCard(props: TileCardProps) {
         "--key-r": glassPx(p.radius), "--key-gap": glassPx(p.gap), "--tog-w": glassPx(p.toggleW), "--tog-h": glassPx(p.toggleH), "--knob": glassPx(p.knob),
         "--slider-h": glassPx(p.sliderH), "--slider-w": glassPx(p.slider), "--icon-mini": glassPx(look.value.iconMini), "--slider-r": glassPx(sliderCorner(p.sliderH)) },
       dots: p?.presets ? presetDots(p.presets.keys) : null,
-      name: dotted(texts.name, h.title.size, h.title.weight, h.title.width),
-      line: h.value ? dotted(texts.line, h.value.size, h.value.weight, h.value.width) : "" };
+      name: rollName.value ? texts.name : dotted(texts.name, h.title.size, h.title.weight, h.title.width),
+      line: !h.value ? "" : rollLine.value ? texts.line : dotted(texts.line, h.value.size, h.value.weight, h.value.width) };
   });
   // ---- A light's presets (module light_presets): round keys in their colours, the ring round the one it shows ----
   const presets = computed(() => (domain.value === "light" ? presetsOf(props.tile.options) : []));
@@ -401,7 +406,7 @@ export function useTileCard(props: TileCardProps) {
     tile: computed(() => props.tile), preview: computed(() => Boolean(props.preview)), placeholder: computed(() => Boolean(props.placeholder)),
     grid, foreign, domain, shape, goesTo, current, gone, face, texts, fill, lit, on, palette, background, icon, chip, wideFit, glassScale, sliderStyle, head, panel, pill, glassStyle, tall, tallStyle, full, fullStyle,
     watchFace, watchStyle, clock, energy: energyPaints(), pluginTile, pluginRow, artwork, cameraPicture, livePaused, favoritePicture, favoriteIcon, loaded,
-    keyPlaces, chosen, live, presets, presetLit, features: computed(() => Number(current.value?.a?.supported_features || 0)),
+    keyPlaces, chosen, live, rollName, rollLine, presets, presetLit, features: computed(() => Number(current.value?.a?.supported_features || 0)),
     key,
   });
 }

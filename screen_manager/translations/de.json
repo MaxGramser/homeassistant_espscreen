@@ -2879,6 +2879,12 @@
         "part_now": "Jetzt",
         "hint_parts": "Wähle, was die Zeile sagt. Wo − und + der Kachel die eingestellte Temperatur zeigen, lässt die Zeile sie weg."
       },
+      "scroll": {
+        "name": "Langen Namen laufen lassen",
+        "name_hint": "Ein Name, der zu breit für die Kachel ist, läuft im Kreis und steht still, wenn er passt. Aus endet er mit Punkten.",
+        "line": "Lange zweite Zeile laufen lassen",
+        "line_hint": "Eine zweite Zeile, die zu breit für die Kachel ist, läuft im Kreis und steht still, wenn sie passt. Aus endet sie mit Punkten oder einer kürzeren Fassung."
+      },
       "slider": {
         "label": "Kleiner Schieberegler auf der Kachel",
         "nothing": "Home Assistant hat für diese Entität nichts, was ein Schieberegler ändern kann. Wähle „Nein“."

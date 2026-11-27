@@ -353,7 +353,7 @@ export function childOf(tile: Tile, id: string): ChildTile {
   for (const field of KEY_INTERACTION) if (options[field] !== undefined) Object.assign(interaction, { [field]: clone(options[field]) });
   return { id, content: { kind: "entity", entityId: tile.entity }, appearance, interaction };
 }
-const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
+const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", labelScroll: "name_scroll", subtitleScroll: "sub_scroll", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
   energyFlow: "flow", textTemplate: "template",

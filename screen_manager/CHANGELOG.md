@@ -1,6 +1,7 @@
 ## Unreleased
 
 - **A German screen types on QWERTZ.** The screen's keyboard, in the to-do card and in a text's field, follows the screen's language: on a screen in German z and y change places, and ü, ö and ä are keys of their own. ß is beside the 0 on the page of digits, and holding s still offers it too. Every other language keeps QWERTY. It comes with the screen's next update.
+- **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
 - **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
 
 ## 0.4.109 (firmware 0.68.0)
