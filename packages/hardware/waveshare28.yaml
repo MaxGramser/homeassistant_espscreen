@@ -49,9 +49,12 @@ output:
     min_power: 0.01
     zero_means_zero: true
 
-# ESPHome's cst328 platform, with the touch panel's interrupt on GPIO4 and its reset on GPIO2, read every 20 ms as on
-# the other boards (a finger that moves between reads is what LVGL counts as a swipe). The range and the transform
-# (TOUCH_SWAP_XY and TOUCH_MIRROR_X in the board file) are those of the configuration this file comes from.
+# ESPHome's cst328 platform, with the touch panel's interrupt on GPIO4 and its reset on GPIO2. It reports 240 x 320
+# standing up, the axes of the canvas below, each the other way round (TOUCH_MIRROR_X and TOUCH_MIRROR_Y in the board
+# file), so it needs no swap. No calibration either: ESPHome's driver
+# replaces it with the resolution the chip reports, in the chip's own axes (cst328_touchscreen.cpp, 2026.9.0), which
+# is why the touch cannot swap its axes here. With the panel's 320 x 240 and the touch swapped, every tap landed at
+# three quarters of its height (a V1 board, 2026-11-27). The interrupt line takes the reads, so no update_interval.
 touchscreen:
   - platform: cst328
     id: ts_touch
@@ -59,17 +62,14 @@ touchscreen:
     display: my_display
     interrupt_pin: GPIO4
     reset_pin: GPIO2
-    update_interval: 20ms
-    calibration:
-      x_min: 0
-      x_max: 320
-      y_min: 0
-      y_max: 240
 
-# ESPHome's S3BOX model carries the init sequence and the size; this panel takes it with its colours inverted, in RGB
-# order and mirrored along x only, data/command on GPIO41 and chip select on GPIO42, at 8 MHz, as in the configuration
-# this file comes from. Waveshare's demo drives the panel's reset on GPIO39 and the bus at 80 MHz; neither has been
-# tried with this model yet.
+# ESPHome's S3BOX model carries the init sequence; this panel takes it with its colours inverted, in RGB order,
+# data/command on GPIO41 and chip select on GPIO42, at 8 MHz, as in the configuration this file comes from. The panel
+# scans 320 x 240; swapping its axes turns that onto a 240 x 320 canvas standing up, the touch panel's own axes, and
+# LVGL's quarter turn (ROTATION_LANDSCAPE 90, which mipi_spi does as a flip of x and a swap) sends the panel the
+# same picture as the configuration's mirror along x. As on the CYD with an ILI9342 (cyd-2432s028-ili9342.yaml), which
+# also says why it needs ESPHome 2026.7.0 or newer. Waveshare's demo drives the panel's reset on GPIO39 and the bus
+# at 80 MHz; neither has been tried with this model yet.
 display:
   - platform: mipi_spi
     id: my_display
@@ -80,9 +80,12 @@ display:
     invert_colors: true
     color_order: rgb
     data_rate: 8MHz
+    dimensions:
+      width: 240
+      height: 320
     transform:
-      swap_xy: false
-      mirror_x: true
+      swap_xy: true
+      mirror_x: false
       mirror_y: false
     update_interval: never
     auto_clear_enabled: false

@@ -1,5 +1,5 @@
 # ESP Screens - Waveshare ESP32-S3-Touch-LCD-2.8 (V1), experimental: a 2.8-inch 240 x 320 panel (an ST7789 over SPI,
-# driven through ESPHome's mipi_spi model S3BOX as 320 x 240) with CST328 capacitive touch over I2C, on an ESP32-S3R8
+# driven through ESPHome's mipi_spi model S3BOX) with CST328 capacitive touch over I2C, on an ESP32-S3R8
 # with 16 MB flash and 8 MB octal PSRAM.
 #
 # The pins are those of Waveshare's V1 demo (ESP32-S3-Touch-LCD-2.8-Demo, ESP-IDF and Arduino). The display and touch
@@ -35,11 +35,17 @@ substitutions:
   DEVICE_NAME: "waveshare28-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 2.8"
 
-  # The glass: the panel as the S3BOX model drives it, lying down (320 x 240), and its density, 400 diagonal pixels
-  # over 2.8 inches. The LVGL angle that lays it out lying down is the core's 0.
-  PANEL_W: "320"
-  PANEL_H: "240"
+  # The glass: the canvas the display block draws, standing up (240 x 320, the touch panel's own axes), and its
+  # density, 400 diagonal pixels over 2.8 inches.
+  PANEL_W: "240"
+  PANEL_H: "320"
   DISPLAY_DPI: "142.857"
+  # The LVGL angle that lays this canvas out lying down (320 x 240), the way the panel scans. Standing up is the 0.
+  ROTATION_LANDSCAPE: "90"
+  # The CST328 reports the canvas's axes, each the other way round (taps measured in all four corners lying down on a
+  # V1 board, 2026-11-27): a half turn, which packages/core.yaml turns into the touchscreen's transform.
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
   # The tile grid: columns and rows of cells lying down, and standing up, as on the CYD's glass of the same size.
   GRID_COLS: "2"
   GRID_ROWS: "3"
@@ -51,11 +57,6 @@ substitutions:
   SCREEN_MAX_PAGES: "24"
   SCREEN_MAX_BAR_ITEMS: "12"                   # twelve top bar items, as on every board with PSRAM (docs/TILE_MEMORY.md)
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen, 38 KB of 320 x 240
-
-  # The CST328 reports its axes swapped and mirrored against the display's pixels (packages/core.yaml turns these into
-  # the touchscreen's transform).
-  TOUCH_SWAP_XY: "true"
-  TOUCH_MIRROR_X: "true"
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "1220Hz"                 # the backlight's PWM, as in the configuration this file comes from

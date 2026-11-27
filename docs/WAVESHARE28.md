@@ -5,8 +5,10 @@ capacitive touch over I2C, and an ESP32-S3R8 with 16 MB flash and 8 MB octal PSR
 Waveshare ships a V2 since June 2026 with a CST3530 touch controller instead, which this board file does not drive. The
 label on the back of the board says which version it is.
 
-The display and touch settings come from an ESPHome configuration that runs on a V1 board, the pins from Waveshare's
-own V1 demo. The project has not run this board file on one yet, so the board is **experimental**.
+The display settings come from an ESPHome configuration that runs on a V1 board, the pins from Waveshare's own V1 demo.
+This board file has run on one V1 board, lying down: the picture, and taps in all four corners and the middle and a
+swipe from the edge, landed where they should. Standing up, dimming, standby and a full layout over a long run have
+not been tried yet, so the board is **experimental**.
 
 ## Install
 
@@ -24,12 +26,16 @@ The remote package is `packages/waveshare28.yaml` and the checkout entry `checko
 
 - Lying down 320 x 240, two columns of three cells; standing up 240 x 320, one column of four. The compact look at
   143 dpi, the size and resolution of the CYD.
-- The panel is driven through ESPHome's `mipi_spi` model `S3BOX` as 320 x 240, with its colours inverted, RGB order and
-  mirrored along x, at 8 MHz. Waveshare's demo drives it at 80 MHz with a reset line on GPIO39; neither has been tried
-  with this model yet, so a full redraw is slow.
+- The panel is driven through ESPHome's `mipi_spi` model `S3BOX`, with its colours inverted and in RGB order, at 8 MHz.
+  It scans 320 x 240; the board file swaps its axes onto a 240 x 320 canvas standing up and turns that a quarter
+  (`ROTATION_LANDSCAPE: "90"`) to lie down, as on the CYD with an ILI9342. Waveshare's demo drives it at 80 MHz with a
+  reset line on GPIO39; neither has been tried with this model yet, so a full redraw is slow.
 - The backlight is a PWM pin (GPIO5) at 1220 Hz: brightness is a percentage, and standby, night mode, Sleep, Wake and the
   alert's flashes are enabled.
-- The CST328 reports pixels, its axes swapped and mirrored against the panel's, and is read through its interrupt line.
+- The CST328 reports pixels in the canvas's axes, each the other way round (`TOUCH_MIRROR_X` and `TOUCH_MIRROR_Y`),
+  and is read through its interrupt line. It cannot swap its axes: ESPHome's `cst328` driver replaces a `calibration`
+  with the resolution the chip reports, in the chip's own axes, so a swapped touch lands at three quarters of the
+  height. That is why the canvas stands up.
 - No camera pictures: lying down, the alert card on 320 x 240 has no room for one. Full-screen snapshots use the PSRAM.
 - No standby key. The BOOT key (GPIO0) and the PWR key (GPIO6) are left alone.
 - Not used yet: the battery (ADC on GPIO8, divider 3.0) and the power hold line (GPIO7) that keeps the board on when it
