@@ -1,0 +1,18 @@
+# ESP Screens - a GT911 read without its reset or interrupt line, on the board's touch bus (a part: docs/PROFILES.md,
+# "Parts"). The board declares `i2c: id: touch_bus` and `display: id: my_display`; this part reads the GT911 every
+# 20 ms at whichever of its two addresses it answers (0x5D or 0x14).
+#
+# It reports pixels of the panel; the range is stated so a chip that carries a generic resolution in its own
+# configuration still maps onto the glass (GitHub #78). The GUITION JC1060F570C reads its GT911 this way; the Sunton
+# 8048S070 carries the same block in its own board file and can move onto this part in a release of its own.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: ${PANEL_W}
+      y_min: 0
+      y_max: ${PANEL_H}

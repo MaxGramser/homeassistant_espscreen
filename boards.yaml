@@ -297,3 +297,12 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+jc1060f570c:
+  file: jc1060f570c.yaml
+  name: Guition
+  model: JC1060F570C_I_W_Y
+  status: experimental
+  # The first ESP32-S31 board: GUITION's 7-inch 1024 x 600 with a JD9165 RGB panel and a GT911, from GUITION's own
+  # board package. Display, touch and backlight only: ESPHome drives neither its ES8389 nor its RMII Ethernet on the
+  # S31 yet (docs/JC1060F570C.md).

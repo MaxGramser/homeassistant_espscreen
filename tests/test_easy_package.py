@@ -183,8 +183,13 @@ class BoardRules(unittest.TestCase):
         for board, text in self.TEXTS.items():
             if not self.RGB_PANEL.search(text):
                 continue
-            for needed in ('CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"', 'CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"', 'execute_from_psram: true'):
-                self.assertIn(needed, text, f'{board} has an RGB panel: include packages/hardware/esp32s3-rgb.yaml, which sets {needed}')
+            # An ESP32-S31 has no 64-byte cache line option; packages/hardware/esp32s31-rgb.yaml is its counterpart.
+            if re.search(r'(?m)^\s*variant: esp32s31\b', text):
+                family, needs = 'esp32s31-rgb.yaml', ('CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"', 'execute_from_psram: true')
+            else:
+                family, needs = 'esp32s3-rgb.yaml', ('CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"', 'CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"', 'execute_from_psram: true')
+            for needed in needs:
+                self.assertIn(needed, text, f'{board} has an RGB panel: include packages/hardware/{family}, which sets {needed}')
 
     def test_no_board_restarts_the_rgb_panel_in_vsync(self):
         # Only ever named in a comment (packages/hardware/esp32s3-rgb.yaml says why it stays off).

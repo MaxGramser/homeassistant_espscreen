@@ -1,0 +1,37 @@
+# ESP Screens - an ESP32-S31 with octal PSRAM that drives an RGB panel, for a board file that includes this one.
+#
+# The chip, its memory and the ESP-IDF settings an RGB panel on this chip needs. The board file adds its flash size
+# (`esp32: flash_size:`) and everything else it has. The S31 counterpart of hardware/esp32s3-rgb.yaml; ESPHome knows
+# the chip from 2026.7 (esp32 variant, PSRAM, GPIO and mipi_rgb).
+#
+# What differs from the ESP32-S3 file:
+# - The CPU is a 320 MHz RISC-V core, and the octal PSRAM of the -N16R16V module runs at 200 MHz, the speed GUITION's
+#   own board package sets (sdkconfig.defaults.board of guition_boards/jc1060f570c). The panel reads every line out of
+#   PSRAM, so its bandwidth is what keeps the picture steady (see below).
+# - CONFIG_ESP32S3_DATA_CACHE_LINE_64B does not exist on this chip and is left out.
+# - CONFIG_LCD_RGB_RESTART_IN_VSYNC depends on the ESP32-S3 in ESP-IDF and is compiled out here; it is left out too.
+#
+# Known risk on this chip (espressif/esp-idf#19395, reported on this very board): with a bounce buffer and the
+# framebuffer in PSRAM, a moment of PSRAM contention can shift the picture, and the S31 has no recovery path yet (the
+# restart-in-VSYNC of the S3 is not wired up). ESPHome's mipi_rgb always uses a ten-line bounce buffer, so the fast
+# PSRAM above and an LVGL draw buffer in PSRAM (the board's LVGL_BUFFER_SIZE) are the mitigations available here.
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  variant: esp32s31
+  cpu_frequency: 320MHz
+  framework:
+    # ESPHome's `recommended` ESP-IDF is 5.5, which predates the S31: the chip needs ESP-IDF 6.1 or later (ESPHome's
+    # esp32 docs). 6.1.1 is the release GUITION's Arduino core 4.0.0 is built on.
+    version: 6.1.1
+    advanced:
+      execute_from_psram: true
+    sdkconfig_options:
+      # As on the ESP32-S3 (hardware/esp32s3-rgb.yaml, where the reason is written out): the panel driver's own
+      # bookkeeping stays in internal RAM, so its interrupt handlers never spin on a lock that lives in PSRAM.
+      CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"
+
+psram:
+  mode: octal
+  speed: 200MHz
