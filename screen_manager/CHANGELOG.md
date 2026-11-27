@@ -1,3 +1,7 @@
+## Unreleased
+
+- **The SenseCAP Indicator is stable and recommended.** Seeed's SenseCAP Indicator D1 (the GX panel) joins the recommended boards at the top of New screen, with its buzzer as the screen's speaker.
+
 ## 0.4.108 (firmware 0.68.0)
 
 - **A thermostat's tile says more under its name, and you choose what.** A thermostat or airco that was on showed only the temperature it is set to. It now says its mode, that temperature and the room's temperature, such as "Cool · 19° · Now 22.5°". In the tile's settings, under Second line with Automatic chosen, chips switch each part on or off: Mode, Action (what it is doing right now), Set to and Now. A tile whose own − and + already show the set temperature leaves it out of the line. Screens show it after their update.

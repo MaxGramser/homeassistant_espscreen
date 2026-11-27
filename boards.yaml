@@ -222,9 +222,10 @@ sensecapd1:
   file: seeed-sensecap-indicator-d1.yaml
   name: SenseCAP
   model: Indicator D1, D1S, D1L, D1Pro (GX)
-  status: experimental
+  status: stable
+  recommended: true
   # Seeed's SenseCAP Indicator D1 series with the GX panel (GitHub #277): the four models share the ESP32-S3 side.
-  # Tried on a D1L; the DX panel is not covered.
+  # Tested by the project on its own units, buzzer included; the DX panel is not covered.
   # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings"): how loud its buzzer plays.
   settings: [volume]
   # Its own step in New screen (docs/BOARD_STEPS.md): Tessera's firmware for its second chip, the RP2040 that drives

@@ -2289,11 +2289,11 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
-   "recommended": false,
+   "recommended": true,
    "settings": [
     "volume"
    ],
-   "status": "experimental",
+   "status": "stable",
    "steps": [
     {
      "chip": "indicator-rp2040",
@@ -9261,11 +9261,11 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
-   "recommended": false,
+   "recommended": true,
    "settings": [
     "volume"
    ],
-   "status": "experimental",
+   "status": "stable",
    "steps": [
     {
      "chip": "indicator-rp2040",
@@ -12059,11 +12059,11 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
-   "recommended": false,
+   "recommended": true,
    "settings": [
     "volume"
    ],
-   "status": "experimental",
+   "status": "stable",
    "steps": [
     {
      "chip": "indicator-rp2040",
