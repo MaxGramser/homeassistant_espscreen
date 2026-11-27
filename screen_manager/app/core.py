@@ -766,13 +766,18 @@ def has_module(screen, name):
 PAPER_FEATURE = 'paper'
 PAPER_KEYS = ('brightness', 'standby_brightness', 'night_enabled', 'night_start', 'night_end', 'night_brightness')
 
+def inks_of(screen):
+    """The inks this screen's glass prints with: 0 for a glass that is lit, 2 for black and white, 4 for four greys.
+    Its board's `inks` in boards.json; a screen that says `paper` on a board this app has no inks for prints black and
+    white. A board this app does not know is a glass that is lit."""
+    inks = SHAPES.get(board_of(screen), {}).get('inks') or 0
+    if not inks and PAPER_FEATURE in (features_of(screen) or ()):
+        inks = 2
+    return int(inks)
+
 def is_paper(screen):
-    """Whether this screen's glass is ink without a light: its own word when it reports its features, else its
-    board's `inks` in boards.json. A board this app does not know is a glass that is lit."""
-    words = features_of(screen)
-    if words is not None and PAPER_FEATURE in words:
-        return True
-    return bool(SHAPES.get(board_of(screen), {}).get('inks'))
+    """Whether this screen's glass is ink without a light."""
+    return inks_of(screen) > 0
 
 def dimmable(screen):
     """Whether this screen's backlight takes levels: no normal brightness without it, and standby and night as the

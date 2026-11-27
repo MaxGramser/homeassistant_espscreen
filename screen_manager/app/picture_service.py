@@ -13,6 +13,7 @@ import hashlib
 import logging
 import time
 
+from core import inks_of
 import live_pictures
 import picture_paint
 import picture_question as pq
@@ -181,7 +182,9 @@ class Service:
             raws.append(raw)
         painted = replace(question, places=places)
         fmt = format_for(question, resolved)
-        key = (painted.box, painted.places, tuple(r.mark for r in resolved), fmt)
+        # A glass of ink gets its pictures in its inks (picture_paint.inked): made here, where the whole picture is known.
+        inks = inks_of(screen)
+        key = (painted.box, painted.places, tuple(r.mark for r in resolved), fmt, inks)
         etag = f'"{hashlib.sha1(repr(key).encode()).hexdigest()[:16]}"'
         body = self.kept.get(key)
         if body is None:
@@ -192,7 +195,7 @@ class Service:
 
                 def paint():
                     ran.append(time.monotonic())
-                    return picture_paint.paint(painted, raws, fmt)
+                    return picture_paint.paint(painted, raws, fmt, inks)
                 body = await asyncio.get_running_loop().run_in_executor(None, paint)
                 done = time.monotonic()
                 if ran and (behind or ran[0] - asked > 1):

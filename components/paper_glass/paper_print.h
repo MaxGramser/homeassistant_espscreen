@@ -18,10 +18,11 @@
 // - While something is on its way that is only whole at its end (a layout, a page's build), nothing prints; a hold
 //   that never ends still lets go after a most of its own.
 // - A partial refresh leaves a trace of what stood there. So the glass keeps count of how much of itself partial
-//   refreshes have changed, and once that is enough it refreshes whole (the panel flashes, the traces go): when
-//   nobody has touched it for a while, never under a finger. What the house draws on it meanwhile does not put that
-//   off, or a page that shows a meter would never be clean. Only when the count runs far past enough does the next
-//   print become the whole one, wanted or not.
+//   refreshes have changed. A whole refresh takes the traces off, and it flashes the whole panel black and white,
+//   which draws the eye from across a room (the owner of the first paper screen, 2026-11-27: every few minutes was
+//   far too often). So the glass refreshes whole by itself only where that bothers nobody: once as the screen comes
+//   to rest, its standby, and while it rests no more than once an hour, when the traces are enough. Only when the
+//   count runs far past enough does a print that changes the glass anyway become the whole one.
 // - A panel that cannot refresh a part (a panel of coloured inks) prints every time whole, after a longer quiet.
 // - The first print after a start is a whole one: the panel still shows what it showed before the restart, which no
 //   partial refresh can take off cleanly.
@@ -44,10 +45,10 @@ struct Rules {
   uint32_t finger_most_ms = 400;   // and never later than this after the finger
   uint32_t down_most_ms = 1500;    // a finger that stays down this long is shown where it is
   uint32_t hold_most_ms = 10000;  // a hold lets go by itself after this
-  uint32_t rest_ms = 30000;     // not touched for this long, the glass may refresh whole
-  uint16_t tidy_area = 3000;    // per mille of the glass changed by partial refreshes that is enough: three glasses
+  uint32_t tidy_every_ms = 3600000;  // a screen at rest refreshes whole by itself no more often than this
+  uint16_t tidy_area = 3000;    // per mille of the glass changed by partial refreshes that is enough for that
   uint16_t tidy_prints = 60;    // or this many partial refreshes
-  uint16_t must_area = 9000;    // past this the next print is whole, rest or no rest
+  uint16_t must_area = 30000;   // past this, thirty glasses, the next print is whole, rest or no rest
 };
 // A panel without a partial refresh: every print is the whole panel and takes many seconds, so changes gather longer.
 constexpr Rules poster() {
@@ -92,6 +93,13 @@ class Printer {
     held_ = on;
     tick(now);
   }
+  // The screen came to rest (its standby began) or left it. Coming to rest, a glass with traces is made clean once:
+  // it will stand for a long time, and nobody has touched it for the whole standby time.
+  void rest(bool on, uint32_t now) {
+    if (on && !resting_ && rules.partial && parts_ > 0) whole_next_ = true;
+    resting_ = on;
+    tick(now);
+  }
   // The next print is a whole one: a key asked for it, the look of the whole glass changed.
   void whole_next(uint32_t now) {
     whole_next_ = true;
@@ -117,12 +125,12 @@ class Printer {
       glass.later(static_cast<uint32_t>(left));
       return;
     }
-    if (!wants_tidy() || down_) return;
-    if (rested(now)) {
+    if (!resting_ || !wants_tidy() || down_) return;
+    if (tidy_due(now)) {
       whole_next_ = true;
       print(now);
     } else {
-      glass.later(finger_at_ + rules.rest_ms - now);
+      glass.later(whole_at_ + rules.tidy_every_ms - now);
     }
   }
 
@@ -135,8 +143,10 @@ class Printer {
 
  private:
   bool wants_tidy() const { return rules.partial && (worn_ >= rules.tidy_area || parts_ >= rules.tidy_prints); }
-  // Nobody has touched the glass for the rest time. What was drawn on it by itself does not count.
-  bool rested(uint32_t now) const { return !down_ && (!fingered_ || now - finger_at_ >= rules.rest_ms); }
+  // A screen at rest with traces enough, whose last whole refresh is long enough ago.
+  bool tidy_due(uint32_t now) const {
+    return resting_ && !down_ && wants_tidy() && now - whole_at_ >= rules.tidy_every_ms;
+  }
   // How long what is drawn still waits, in ms; zero or less: it prints now.
   int32_t wait(uint32_t now) const {
     if (held_) {
@@ -168,12 +178,12 @@ class Printer {
     return left;
   }
   void print(uint32_t now) {
-    // Whole: a panel that knows no other way, one that was asked for, the first, traces enough on a glass nobody
-    // touches, or far too many of them.
-    const bool whole = !rules.partial || whole_next_ || !started_ || (wants_tidy() && rested(now)) ||
-                       worn_ + area_ >= rules.must_area;
+    // Whole: a panel that knows no other way, one that was asked for, the first, traces enough on a screen at rest
+    // that had none for an hour, or far too many of them.
+    const bool whole = !rules.partial || whole_next_ || !started_ || tidy_due(now) || worn_ + area_ >= rules.must_area;
     started_ = true;
     if (whole) {
+      whole_at_ = now;
       worn_ = 0;
       parts_ = 0;
       ++wholes_total_;
@@ -196,6 +206,8 @@ class Printer {
   uint32_t first_at_ = 0, last_at_ = 0, finger_at_ = 0, hold_at_ = 0;
   uint32_t printed_at_ = 0;    // when the last print ended
   bool printed_once_ = false;  // one has ended since the start
+  bool resting_ = false;       // the screen is at rest (its standby)
+  uint32_t whole_at_ = 0;      // when the last whole refresh began
   uint16_t area_ = 0;   // per mille of the glass drawn and not printed yet
   uint16_t worn_ = 0;   // per mille changed by partial refreshes since the last whole one
   uint16_t parts_ = 0;  // partial refreshes since the last whole one

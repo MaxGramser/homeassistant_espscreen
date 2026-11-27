@@ -225,7 +225,15 @@ static void turn_a_page(uint16_t permille) {
   panel_done();
 }
 
-static void traces_are_tidied_at_rest() {
+// The clock runs on with a panel that takes 700 ms for each refresh it is told to make.
+static void live(uint32_t ms) {
+  for (uint32_t t = 0; t < ms; t += 50) {
+    run(50);
+    if (p.printing() && now_ms - at.back() >= 700) p.printed(now_ms);
+  }
+}
+
+static void traces_are_tidied_as_the_screen_comes_to_rest() {
   fresh();
   // Six page turns, each half the glass: three glasses' worth of partial refreshes.
   for (int i = 0; i < 6; ++i) {
@@ -234,46 +242,53 @@ static void traces_are_tidied_at_rest() {
   }
   assert(trail.size() == 6 && p.worn() == 3000);
   for (const auto &kind : trail) assert(kind == "part");
-  // Nothing whole while someone is at it; half a minute after the last key the glass refreshes whole, once.
-  run(20000);
+  // Nothing whole by itself while the screen is awake, however long nobody touches it: a flash of the whole panel
+  // draws the eye from across the room.
+  run(300000);
   assert(trail.size() == 6);
-  run(10000);
+  // The screen comes to rest (its standby): the glass is made clean, once.
+  p.rest(true, now_ms);
   assert(trail.size() == 7 && trail[6] == "whole" && p.worn() == 0);
   panel_done(2000);
+  p.rest(true, now_ms);  // said again every second: nothing more
   run(120000);
+  assert(trail.size() == 7);
+  // A glass without a trace is left as it is.
+  p.rest(false, now_ms);
+  run(1000);
+  p.rest(true, now_ms);
   assert(trail.size() == 7);
 }
 
-static void a_finger_puts_the_tidying_off() {
+static void a_screen_at_rest_is_tidied_once_an_hour_at_most() {
   fresh();
-  for (int i = 0; i < 6; ++i) turn_a_page(500);
-  run(25000);
-  p.finger(false, now_ms);  // someone is back before the rest is over
-  run(25000);
-  assert(trail.size() == 6);
-  run(5000);
-  assert(trail.size() == 7 && trail[6] == "whole");
-}
-
-static void many_small_prints_are_enough_too() {
-  fresh();
-  for (int i = 0; i < 60; ++i) {  // a clock's minute, sixty times
+  p.rest(true, now_ms);
+  // A clock's minute for three hours on a screen at rest: sixty partial prints are enough to want a whole one, and
+  // an hour has passed since the last by then. The next is an hour and sixty prints later.
+  for (int i = 0; i < 185; ++i) {
     p.drawn(10, now_ms);
     run(350);
     panel_done();
+    if (p.printing()) panel_done(2000);  // the whole one that followed the sixtieth
     run(59000);
   }
-  // The sixtieth made it enough, and nobody has touched the glass: it is tidied as soon as that print ended.
-  assert(p.parts() == 60 && p.wholes() == wholes_before + 1);
-  assert(trail.back() == "whole");
-}
-
-// The clock runs on with a panel that takes 700 ms for each refresh it is told to make.
-static void live(uint32_t ms) {
-  for (uint32_t t = 0; t < ms; t += 50) {
-    run(50);
-    if (p.printing() && now_ms - at.back() >= 700) p.printed(now_ms);
+  assert(p.wholes() == wholes_before + 3);
+  // A meter's watts every six seconds on a screen at rest: enough within minutes, and still one whole print an hour.
+  fresh();
+  p.rest(true, now_ms);
+  const uint32_t began = now_ms;
+  for (int i = 0; i < 1100; ++i) {  // an hour and fifty minutes
+    p.drawn(10, now_ms);
+    live(6000);
   }
+  assert(now_ms - began > 6000000 && p.wholes() == wholes_before + 1);
+  // Awake, the same stream brings none.
+  fresh();
+  for (int i = 0; i < 1100; ++i) {
+    p.drawn(10, now_ms);
+    live(6000);
+  }
+  assert(p.wholes() == wholes_before);
 }
 
 static void a_stream_takes_its_turn() {
@@ -308,34 +323,13 @@ static void a_stream_takes_its_turn() {
   assert(trail.size() == before + 1 && trail.back() == "whole" && at.back() - asked == 350);
 }
 
-static void a_page_that_streams_is_tidied_too() {
-  fresh();
-  // A value every six seconds, drawn by the house on a glass nobody touches: each a partial print, and none of them
-  // a moment of rest by the old count. After sixty the glass is tidied all the same.
-  for (int i = 0; i < 60; ++i) {
-    p.drawn(10, now_ms);
-    live(6000);
-  }
-  assert(p.parts() == 60 && p.wholes() == wholes_before + 1 && trail.back() == "whole");
-  // With someone at the glass every twenty seconds no rest comes, and the prints stay partial.
-  fresh();
-  for (int i = 0; i < 80; ++i) {
-    if (i % 3 == 0) p.finger(false, now_ms);
-    p.drawn(10, now_ms);
-    live(6000);
-  }
-  assert(p.wholes() == wholes_before && p.parts() == 80);
-  // Once they are gone for half a minute, it is.
-  live(31000);
-  assert(p.wholes() == wholes_before + 1);
-}
-
 static void far_past_enough_the_print_is_whole() {
   fresh();
-  // Someone turns pages without a pause: no rest comes, and the traces would only grow.
-  for (int i = 0; i < 9; ++i) turn_a_page(1000);
-  assert(trail.size() == 9 && trail[8] == "whole" && p.worn() == 0);
-  for (int i = 0; i < 8; ++i) assert(trail[i] == "part");
+  // Someone turns pages without a pause, on a screen that never rests: the traces would only grow. The thirtieth
+  // glass's worth is the whole one, on a print that changes the glass anyway.
+  for (int i = 0; i < 30; ++i) turn_a_page(1000);
+  assert(trail.size() == 30 && trail[29] == "whole" && p.worn() == 0);
+  for (int i = 0; i < 29; ++i) assert(trail[i] == "part");
 }
 
 static void a_whole_one_on_request() {
@@ -404,11 +398,9 @@ int main() {
   a_key_is_a_finger_that_lifted();
   nothing_prints_under_a_refresh();
   a_layout_prints_once();
-  traces_are_tidied_at_rest();
-  a_finger_puts_the_tidying_off();
-  many_small_prints_are_enough_too();
+  traces_are_tidied_as_the_screen_comes_to_rest();
+  a_screen_at_rest_is_tidied_once_an_hour_at_most();
   a_stream_takes_its_turn();
-  a_page_that_streams_is_tidied_too();
   far_past_enough_the_print_is_whole();
   a_whole_one_on_request();
   a_poster_prints_whole_and_seldom();

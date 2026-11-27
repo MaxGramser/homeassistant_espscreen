@@ -25,15 +25,15 @@ static void a_countdown_in_steps() {
   assert(changes == 9 + 6);  // nine minutes fall away, then six steps of ten seconds
 }
 
-static void a_picture_a_minute() {
-  assert(picture_every(4000) == 60000 && picture_every(60000) == 60000);
+static void a_picture_every_ten_seconds_at_most() {
+  assert(picture_every(4000) == 10000 && picture_every(10000) == 10000 && picture_every(15000) == 15000);
   // What a lit glass already takes more slowly keeps its own pace.
   assert(picture_every(300000) == 300000);
 }
 
 int main() {
   a_countdown_in_steps();
-  a_picture_a_minute();
+  a_picture_every_ten_seconds_at_most();
   std::puts("still_glass: ok");
   return 0;
 }

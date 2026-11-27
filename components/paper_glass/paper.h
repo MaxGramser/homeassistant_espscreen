@@ -32,6 +32,10 @@ inline void key(uint32_t now) { finger(false, now); }
 // News the screen was told to show now (an alert, a ring at the door, a page Home Assistant asked for): what is drawn
 // next prints as a finger's answer does, without waiting for a stream's turn.
 inline void news(uint32_t now) { finger(false, now); }
+// The screen is at rest (its standby) or not: said again and again, the printer hears the change.
+inline void rest(bool on, uint32_t now) {
+  if (is()) printer().rest(on, now);
+}
 // Something that is only whole at its end begins or ends: a layout on its way, a page being built.
 inline void hold(bool on, uint32_t now) {
   if (is()) printer().hold(on, now);

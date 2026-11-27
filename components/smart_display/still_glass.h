@@ -19,9 +19,9 @@ constexpr uint32_t counted(uint32_t seconds) {
   return (seconds + step - 1) / step * step;
 }
 
-// A picture that is fetched again and again (a camera's still): one a minute, where a lit glass takes one every few
-// seconds. Each is a print of a large part of the glass.
-constexpr uint32_t PICTURE_MS = 60000;
+// A picture that is fetched again and again (a camera's still): one every ten seconds at most, where a lit glass
+// takes one every few. Each is a print of a part of the glass. A tile set to a slower pace in the editor keeps its own.
+constexpr uint32_t PICTURE_MS = 10000;
 constexpr uint32_t picture_every(uint32_t lit_ms) { return lit_ms > PICTURE_MS ? lit_ms : PICTURE_MS; }
 
 }  // namespace still_glass

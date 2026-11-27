@@ -105,6 +105,17 @@ The glass logs what a page's worth of pixels took, as ink and into the driver. O
 2026-11-27) the first version took 280 ms as ink and 100 ms into the driver's buffer of each turn; this one takes
 93 ms as ink.
 
+### Pictures
+
+A camera's still, a cover and a map reach a paper screen the way they reach every screen without a picture engine, as
+a picture of exactly the size they are drawn at. For a glass of ink the app makes that picture in the screen's inks
+before it sends it (`picture_paint.inked`, `core.inks_of`; `tests/test_picture_paint.py`): its tones are spread from
+black to white, and then every pixel becomes one of the inks, with what it lost handed on to its neighbours
+(Floyd-Steinberg). A photo keeps its shades as grain that way. The screen's own raster is made for a tint under a
+word and would lay its pattern over a face, and the app is where the whole picture is known. The screen prints an ink
+as that ink, so what the app made is what stands on the glass, and whatever LVGL draws over a picture (a name on a
+shade) still goes through the ink step.
+
 ### The theme's ink table
 
 On paper a role of `theme.h` is no shade of grey or blue but one of four tones (`theme::Ink`): `PAPER`, `INK`, and two
@@ -165,9 +176,9 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
 | and never later than a most after the finger | `finger_most_ms`, 400 ms |
 | A finger that stays down is shown where it is | `down_most_ms`, after 1.5 s |
 | A hold lets go by itself | `hold_most_ms`, after 10 s |
-| Not touched for this long, the glass may refresh whole | `rest_ms`, 30 s |
-| How much partial refreshes may have changed before that is wanted | `tidy_area`, three glasses, or `tidy_prints`, 60 of them |
-| Past this the next print is whole, rest or no rest | `must_area`, nine glasses |
+| A screen at rest refreshes whole by itself no more often than this | `tidy_every_ms`, an hour |
+| How much partial refreshes must have changed for that | `tidy_area`, three glasses, or `tidy_prints`, 60 of them |
+| Past this the next print is whole, rest or no rest | `must_area`, thirty glasses |
 | A panel without a partial refresh gathers longer | `poster()`: a quiet of 3 s, a most of 15 s |
 
 - **A burst is one print.** Four values from Home Assistant within a second, a card's parts, a page's tiles: each
@@ -188,16 +199,19 @@ takes 1.8 to 2.0 s and a partial one 0.70 s.
   built) nothing prints; a hold that never ends lets go by itself.
 - **The first print after a start is a whole one.** The panel still shows what it showed before the restart, which no
   partial refresh can take off cleanly.
-- **Traces are tidied at rest.** A partial refresh leaves a trace of what stood there. The printer keeps count of how
-  much of the glass partial refreshes have changed, and once that is enough it refreshes whole (the panel flashes, the
-  traces go) when nobody has touched the glass for the rest time, never under a finger. What the house draws on it
-  meanwhile does not put that off, or a page that shows a meter would never be clean.
-  Only when the count runs far past enough does the next print become the whole one, wanted or not.
+- **Traces are tidied where it bothers nobody.** A partial refresh leaves a trace of what stood there, and a whole
+  refresh takes the traces off. But a whole refresh flashes the whole panel black and white, which draws the eye from
+  across a room: every few minutes, as the first rule had it on a page with a camera, was far too often for the owner
+  of the first paper screen (2026-11-27). So the glass refreshes whole by itself only once as the screen comes to
+  rest, its standby, when nobody has touched it for the whole standby time, and while it rests no more than once an
+  hour, when the traces are enough. An awake screen gets a whole refresh only when the count runs far past enough,
+  on a print that changes the glass anyway.
 - **A panel that cannot refresh a part** prints every time whole, after a longer quiet.
 
 How the firmware tells it: the board's touch listener says when a finger lands and lifts and a page key says it was
 pressed (`paper::finger`, `paper::key`, in `packages/core.yaml` and `features/page-keys.yaml`), and the paper glass
-says after every round of LVGL's drawing how many per mille of the glass it changed. `paper::hold` is on while a
+says after every round of LVGL's drawing how many per mille of the glass it changed. The standby says whether the
+screen is at rest (`paper::rest`, once a second from `packages/core.yaml`). `paper::hold` is on while a
 layout's pages are being built (`prepare_start` to `prepare_done` in `runtime_tiles.h`), so the first page is one
 print, and `paper::whole_next` asks for a whole refresh where the whole glass changes or stays long: that first page,
 a change of look (`restyle`), and the screensaver a glass shows while it rests.
@@ -253,9 +267,9 @@ print can keep up with, and says a time that is true at the moment it is printed
   delay are drawn when their step changes, not each second.
 - **What a lit glass does each second, a still glass does each minute**: the bar of a track that plays, and the tick
   every plugin card gets.
-- **A picture that is fetched again and again** (`picture_every()`), a camera's still, comes once a minute, where a lit
-  glass takes one every few seconds: each is a print of a large part of the glass. What a lit glass already takes more
-  slowly keeps its own pace.
+- **A picture that is fetched again and again** (`picture_every()`), a camera's still, comes every ten seconds at most,
+  where a lit glass takes one every few: each is a print of a part of the glass. A tile set to a slower pace in the
+  editor keeps its own. A glass of ink streams nothing, so a camera tile set to Live shows stills at that pace.
 - **What a page tells again and again**, the network and the links on the settings page's This screen, is told every
   thirty seconds, where a lit glass tells it every two.
 
@@ -396,10 +410,8 @@ The platform's own options are in `components/paper_glass/display.py`: `panel`, 
 
 ## What is not built yet
 
-- **Pictures are rastered on the screen, not by the app.** A camera's still and a cover reach a paper screen as they
-  reach any screen without a picture engine, as BMP rows in colour, and the ink step gives them the same ordered
-  raster as a tint. The hello carries `inks`, and the app does not read it yet. A picture is where an error-diffusing
-  dither belongs, made once by the app where the whole picture is known.
+- **A picture in ink is as large as a picture in colour.** The app sends it in the format the screen asks for, three
+  bytes or one a pixel; a glass of two inks needs one bit.
 - **The editor and the host render show such a board in colour.** `paper_ink.h` and the theme's ink table are free of
   LVGL and ESPHome so that the firmware preview and `tools/render` can run them over their own pixels; neither does
   yet.

@@ -79,14 +79,16 @@ only ticks; it is not the screen's speaker and plays none of the app's sounds.
 ## On the glass
 
 - Pages print in black and white. A change is a partial refresh of about 0.7 s. A whole refresh, which flashes the
-  panel and takes its traces off, takes 1.8 to 2.0 s: it comes at the first print after a start, and once partial
-  refreshes have left enough traces, when the screen has been left alone for half a minute.
+  panel and takes its traces off, takes 1.8 to 2.0 s: it comes at the first print after a start, with a new layout,
+  and by itself only as the screen goes to standby and then at most once an hour (docs/PAPER.md, "Printing").
 - A slider is a row of blocks with a minus and a plus (docs/PAPER.md, "A level").
 - Nothing moves by itself (docs/PAPER.md, "A still glass"): a clock has no second hand, a timer counts down in whole
-  minutes and in steps of ten seconds inside its last, and a camera tile takes a new still once a minute.
+  minutes and in steps of ten seconds inside its last, and a camera tile takes a new still every ten
+  seconds at most, or at the slower pace it is set to in the editor.
 - There is no backlight: no brightness, no night level, and an alert does not blink. Standby is rest: the page stays
   readable, or the screensaver shows where one is set.
-- Pictures (camera tiles, an alert's snapshot, media artwork) are configured and print as a raster of dots.
+- Pictures (camera tiles, an alert's snapshot, media artwork) come from the app in black and white, their shades as
+  grain (docs/PAPER.md, "Pictures").
 
 ## Tried on the glass
 

@@ -967,6 +967,8 @@ interval:
     then:
       # The standby time and Back to page 1 (screen_standby.h).
       - lambda: 'screen_standby::the().tick(millis());'
+      # A glass of ink is made clean as the screen comes to rest, not while someone may be looking (paper_print.h).
+      - lambda: 'paper::rest(screen_standby::the().at_rest(), millis());'
       # A page Home Assistant asked for while the pages were being prepared (show_page) opens once they are ready.
       - lambda: |-
           if (runtime_tiles::wanted_page > 0 && runtime_tiles::navigation_ready()) {

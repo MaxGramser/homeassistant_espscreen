@@ -171,6 +171,35 @@ class SameAsBefore(unittest.TestCase):
         new = paint.paint(Question(Owner('tile', 0), (None,) * 3, (size, size * 3), places), raws)
         self.close(old, new, mean=1.5)
 
+    def test_a_glass_of_ink_gets_its_picture_in_its_inks(self):
+        # A photo for a screen whose glass prints (docs/PAPER.md): every pixel is one of the panel's inks, as the
+        # screen's ink step reads them, and the photo's shades are kept as the share of each.
+        shade = Image.linear_gradient('L').resize((128, 96)).convert('RGB')
+        for inks, levels in ((2, {0, 255}), (4, {0, 64, 128, 255})):
+            made = paint.inked(shade, inks)
+            self.assertEqual(made.size, shade.size)
+            red, green, blue = (band.tobytes() for band in made.split())
+            self.assertTrue(red == green == blue, 'a grey, never a colour')
+            self.assertEqual(set(red), levels, inks)
+            # The grain keeps the shade: the mean of a strip stays near the photo's own there.
+            for top in (8, 40, 80):
+                want = sum(shade.crop((0, top, 128, top + 8)).convert('L').tobytes()) / (128 * 8)
+                got = sum(made.crop((0, top, 128, top + 8)).convert('L').tobytes()) / (128 * 8)
+                self.assertLess(abs(got - want), 24, (inks, top, want, got))
+        # A dull photo is spread from black to white first, so it does not print as one grey.
+        dull = Image.linear_gradient('L').resize((64, 64)).point(lambda v: 100 + v // 5).convert('RGB')
+        printed = paint.inked(dull, 2).convert('L').tobytes()
+        self.assertEqual(set(printed), {0, 255})
+        self.assertGreater(printed.count(0), 64 * 64 // 4)
+        # Through paint(): the same question, in ink where the screen says so. What is paper stays paper.
+        raw = io.BytesIO()
+        Image.new('RGB', (80, 60), (255, 255, 255)).save(raw, 'PNG')
+        question = Question(Owner('tile', 0), (None,), (40, 30), (Place(0, 0, 40, 30),))
+        plain = Image.open(io.BytesIO(paint.paint(question, [raw.getvalue()])))
+        ink = Image.open(io.BytesIO(paint.paint(question, [raw.getvalue()], inks=2)))
+        self.assertEqual(plain.size, ink.size)
+        self.assertEqual(set(ink.convert('RGB').tobytes()), {255})
+
     def test_formats(self):
         image = Image.new('RGB', (64, 40), (200, 30, 30))
         self.assertTrue(paint.encode(image, 'bmp24').startswith(b'BM'))
