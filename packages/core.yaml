@@ -150,6 +150,7 @@ esphome:
     - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/paper_screen.h>
+    - <esphome/components/smart_display/still_glass_lvgl.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/screen_standby.h>
     - <esphome/components/smart_display/alert_life.h>
@@ -253,6 +254,9 @@ esphome:
           };
           // A glass that prints takes its tones from the ink table (theme.h, "Ink"): said before the first paint.
           theme::set_paper(paper::is());
+          // And every widget of LVGL's own takes its still form there: a slider is a level of blocks, a spinner stands,
+          // a line that would roll is cut (still_glass_lvgl.h). An empty call on a glass that is lit.
+          still_glass::watch();
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
           runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(false); };
