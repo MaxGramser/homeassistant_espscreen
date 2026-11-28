@@ -1,0 +1,62 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-2.8 (V1), experimental: a 2.8-inch 240 x 320 panel (an ST7789 over SPI,
+# driven through ESPHome's mipi_spi model S3BOX) with CST328 capacitive touch over I2C, on an ESP32-S3R8
+# with 16 MB flash and 8 MB octal PSRAM.
+#
+# The pins are those of Waveshare's V1 demo (ESP32-S3-Touch-LCD-2.8-Demo, ESP-IDF and Arduino). The display and touch
+# settings are those of an ESPHome configuration that runs on a V1 board. The V2 board, which Waveshare ships since
+# June 2026, carries a CST3530 touch controller instead and is not this board: the label on the back of the board says
+# which version it is (docs/WAVESHARE28.md).
+#
+# The screen only: the board's battery (ADC on GPIO8, divider 3.0) and its power hold line (GPIO7), the PWR key
+# (GPIO6), the speaker (PCM5101 on I2S), the QMI8658 motion sensor, the PCF85063 clock and the SD card are not part of
+# this file yet.
+#
+# The hardware itself (the chip, its memory, the buses, the panel, the touch panel and the backlight) is
+# hardware/waveshare28.yaml; this file declares the board's glass, its grid and its features. docs/PROFILES.md says how
+# the files of a screen fit together. Two entry files include this one: checkout/waveshare28.yaml (a build on this
+# computer) and packages/waveshare28.yaml (the package a screen builds from over GitHub).
+packages:
+  # The board apart from its glass: the ESP32-S3R8 and its memory, the buses, the panel, the touch panel and the
+  # backlight, with the ESPHome it needs.
+  hardware: !include ../hardware/waveshare28.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below: the CYD's glass, of the same size and resolution.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  # No features/camera.yaml, though the PSRAM would hold the pictures: lying down, the alert card on 320 x 240 has no
+  # room for a picture (screen_alert::layout, alert_layout.py), and every board with the camera shows one both ways.
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # No features/standby-key.yaml: the board's keys are left alone for now.
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare28"
+  DEVICE_NAME: "waveshare28-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 2.8"
+
+  # The glass: the canvas the display block draws, standing up (240 x 320, the touch panel's own axes), and its
+  # density, 400 diagonal pixels over 2.8 inches.
+  PANEL_W: "240"
+  PANEL_H: "320"
+  DISPLAY_DPI: "142.857"
+  # The LVGL angle that lays this canvas out lying down (320 x 240), the way the panel scans. Standing up is the 0.
+  ROTATION_LANDSCAPE: "90"
+  # The CST328 reports the canvas's axes, each the other way round (taps measured in all four corners lying down on a
+  # V1 board, 2026-11-27): a half turn, which packages/core.yaml turns into the touchscreen's transform.
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  # The tile grid: columns and rows of cells lying down, and standing up, as on the CYD's glass of the same size.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # twelve top bar items, as on every board with PSRAM (docs/TILE_MEMORY.md)
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen, 38 KB of 320 x 240
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "1220Hz"                 # the backlight's PWM, as in the configuration this file comes from

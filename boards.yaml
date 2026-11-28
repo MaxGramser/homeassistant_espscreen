@@ -318,3 +318,11 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+waveshare28:
+  file: waveshare28.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-2.8
+  status: experimental
+  # The V1 board with CST328 touch, as a screen only: its battery, speaker and motion sensor are not in its file yet
+  # (docs/WAVESHARE28.md). The V2 board with CST3530 touch is not this board.
