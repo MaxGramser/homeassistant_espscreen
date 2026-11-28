@@ -24,7 +24,7 @@ const allConnections = ref(false);
 
 const world = ref<HTMLElement>(), zoom = ref(0.8);
 const positions = computed(doc.workspacePositions), routes = computed(() => doc.document ? connections(doc.document) : []);
-const cardWidth = computed(() => parseFloat(canvas.deviceStyle['--mockup-width']));
+const cardWidth = computed(() => canvas.pageWidth);
 const pitch = computed(() => ({ x: cardWidth.value + 110, y: cardWidth.value * doc.screenShape.height / doc.screenShape.width + 115 }));
 const extent = computed(() => ({ width: (Math.max(0, ...Object.values(positions.value).map((p) => p.x)) + 1) * pitch.value.x + 80,
   height: (Math.max(0, ...Object.values(positions.value).map((p) => p.y)) + 1) * pitch.value.y + 80 }));

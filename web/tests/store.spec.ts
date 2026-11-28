@@ -718,33 +718,41 @@ describe("the mockup of a screen, whichever way it hangs", () => {
   it("draws a card's -/+ pill at the size the screen does, from the board's density, look and faces", () => {
     // The Guition: 480 glass pixels drawn 300 wide, so 0.625 an editor pixel each. Its pill is px(46) + 2 = 48 high,
     // its keys 48 - 2 x 4, and its number face 38 (runtime_tiles panel_metrics, stepper_keys; boards.json fonts).
+    // The page is laid out with the glass as large as in the hand (96 px an inch) and shown scaled whole: what is drawn
+    // is the layout's size times the page's scale.
+    const shown = (name: string) => Math.round(parseFloat(canvas.deviceStyle[name as keyof typeof canvas.deviceStyle] as string) * canvas.pageScale * 100) / 100;
     shaped({ width: 480, height: 480, columns: 2, rows: 3, look: "standard", dpi: 170, fonts: { watch_value: 38, sublabel_big: 21, sublabel: 16 } } as any);
-    expect(canvas.deviceStyle).toMatchObject({ "--pill-h": "30.00px", "--pill-in": "2.50px", "--pill-key": "25.00px", "--face-watch": "23.75px", "--face-text": "13.13px" });
+    expect(canvas.deviceStyle["--glass"]).toBe(String(96 / 170));
+    expect(canvas.deviceStyle["--pill-h"]).toBe(`${(48 * 96 / 170).toFixed(2)}px`);
+    expect([shown("--pill-h"), shown("--pill-in"), shown("--pill-key"), shown("--face-watch")].map(Math.round)).toEqual([30, 3, 25, 24]);
     // The CYD's compact look: px(34) + 2 = 36 high at 143 dpi, keys 36 - 2 x 3, face 22; 320 glass pixels drawn 400 wide.
     shaped({ width: 320, height: 240, columns: 2, rows: 3, look: "compact", dpi: 143, fonts: { watch_value: 22, sublabel_big: 14, sublabel: 11 } } as any);
-    expect(canvas.deviceStyle).toMatchObject({ "--pill-h": "45.00px", "--pill-key": "37.50px", "--face-watch": "27.50px" });
+    expect(canvas.deviceStyle["--glass"]).toBe(String(96 / 143));
+    expect([shown("--pill-h"), shown("--pill-key"), shown("--face-watch")].map(Math.round)).toEqual([45, 38, 28]);
   });
   it("draws larger glass larger, as long as it fits, and zooms from there", () => {
     // A 10-inch 1280 x 800 at 149 dpi: its shorter side 800 / 149 inches, drawn 96 px an inch, and its width in proportion.
     shaped({ width: 1280, height: 800, columns: 5, rows: 5, look: "standard", dpi: 149 });
-    expect(Math.round(shorter(canvas.deviceStyle))).toBe(Math.round((800 / 149) * 96));
+    expect(Math.round(canvas.pageWidth * 800 / 1280)).toBe(Math.round((800 / 149) * 96));
+    // Shown as large as in the hand, the page is drawn as it is laid out.
+    expect(canvas.pageScale).toBeCloseTo(1, 3);
     // The 4-inch Guition is smaller than 300 px on the glass and keeps the 300 every screen had.
     shaped({ width: 480, height: 480, columns: 2, rows: 3, look: "standard", dpi: 170 });
-    expect(px(canvas.deviceStyle)).toBe(300);
+    expect(canvas.pageWidth).toBe(300);
     // Never larger than the room the editor has for a page, never smaller than the 300 px.
     shaped({ width: 1280, height: 800, columns: 5, rows: 5, look: "standard", dpi: 149 });
     canvas.room = { width: 700, height: 2000 };
-    expect(px(canvas.deviceStyle)).toBe(700);
+    expect(canvas.pageWidth).toBe(700);
     canvas.room = { width: 2000, height: 400 };
-    expect(px(canvas.deviceStyle)).toBe(640);
+    expect(canvas.pageWidth).toBe(640);
     canvas.room = { width: 200, height: 200 };
-    expect(px(canvas.deviceStyle)).toBe(480);
+    expect(canvas.pageWidth).toBe(480);
     // A narrow page that is not a phone's (the full editor on a phone) is a ceiling: the glass never stands wider than
     // the page, where it made an iPhone's Home Assistant app draw the whole editor smaller.
     canvas.room = { width: 361, height: 600, cap: true };
-    expect(px(canvas.deviceStyle)).toBe(361);
+    expect(canvas.pageWidth).toBe(361);
     canvas.room = { width: 900, height: 200, cap: true };
-    expect(px(canvas.deviceStyle)).toBe(Math.round((800 / 149) * 96 * 1.6 * 10) / 10);
+    expect(canvas.pageWidth).toBe(Math.round((800 / 149) * 96 * 1.6 * 10) / 10);
     // The zoom takes the size from there, in a browser's steps, between 50 and 200 %.
     canvas.room = null;
     canvas.zoom = 1;
@@ -754,12 +762,14 @@ describe("the mockup of a screen, whichever way it hangs", () => {
     canvas.zoomBy(1);
     expect(canvas.zoom).toBe(2);
     shaped({ width: 480, height: 480, columns: 2, rows: 3, look: "standard", dpi: 170 });
-    expect(px(canvas.deviceStyle)).toBe(600);
-    expect(canvas.deviceStyle["--glass"]).toBe(String(600 / 480));
+    expect(canvas.pageWidth).toBe(600);
+    // Its layout stays the glass in the hand; the zoom only shows it larger.
+    expect(canvas.deviceStyle["--glass"]).toBe(String(96 / 170));
+    expect(canvas.pageScale).toBeCloseTo(600 / (480 * 96 / 170), 2);
     canvas.zoom = 0.5;
     canvas.zoomBy(-1);
     expect(canvas.zoom).toBe(0.5);
-    expect(px(canvas.deviceStyle)).toBe(150);
+    expect(canvas.pageWidth).toBe(150);
     canvas.zoom = 1;
   });
   it("keeps a board's look when it is built standing up", () => {

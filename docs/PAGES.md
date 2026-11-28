@@ -29,6 +29,28 @@ A screen's page says what matters in one look, in two rows with one job each (`S
 A phone keeps its own head and dock (app 0.4.40): the line under the screen's name says its state, and the dock holds
 Add tile and Save & send.
 
+### The mockup's scale
+
+A page in the editor is a picture of a screen that may hang in another room, so inside a tile it has to look as it does
+on that screen, and the page as a whole has to be comfortable to work on. The two are kept apart
+(`web/src/stores/canvas.ts`):
+
+- **The layout is the glass in the hand.** A page is laid out with its glass as large as it is in life (`lifeGlass`,
+  96 CSS pixels to the inch from the board's density), the scale the mockup's letters, icons and controls are drawn
+  for. So a name that fits its tile on the screen fits it in the editor, and one the screen cuts is cut here too.
+- **The page is shown scaled whole** to the width that suits the editor (`pageWidth`, `pageScale`; the `.device-fit`
+  wrapper in `DevicePage.vue`): at least 300 px on its shorter side, as large as in life where the room allows, never
+  larger than its room, times the zoom. A 2.8 inch screen is shown about twice as large as it is, a tablet a little
+  smaller, and both keep their proportions. Before, the page's boxes followed that width while its letters stayed as
+  they were, so a small screen's tiles looked roomier and a tablet's fuller than the real ones.
+- **What the editor lays over a tile** to work on it (the key that removes it, the handles that size it) is no part of
+  the glass and keeps its own size at any scale. A tile carried by the pointer is a copy at the size it is shown at.
+- A size computed in the mockup's code is a layout size: `canvas.deviceStyle` and `--glass` are the layout's, and
+  `canvas.pageWidth` is what a part outside the glass needs (the page to add, the map's cards). A board that does not
+  say its density, and a phone, whose page is as wide as the phone, are laid out at the size they are shown at.
+
+The library's shelf follows the same rule with a width of its own ("The library").
+
 ### The panes
 
 A screen's page is three panes on the app's ground, the way a window of macOS has its sidebar, its content and its

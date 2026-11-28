@@ -417,7 +417,13 @@ a:hover { text-decoration: underline; }
 .firmware-preview canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
 .firmware-preview-error { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
 .firmware-preview-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
-.page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
+.page { flex: 0 0 var(--page-width, var(--mockup-width, 292px)); display: grid; gap: 8px; }
+/* What the editor lays over a tile to work on it (the key that removes it, the handles that size it) is no part of the
+   glass: it keeps its own size whatever scale the page is shown at (stores/canvas.ts pageScale), so it is as easy to hit
+   on a tablet's small tiles as on a small screen's large ones. */
+.device-fit .tile > .remove, .device-fit .round-tile > .remove { transform: scale(calc(1 / var(--page-scale, 1))); transform-origin: 100% 0; }
+.device-fit .resize-handle.columns { transform: translate(50%, -50%) scale(calc(1 / var(--page-scale, 1))); }
+.device-fit .resize-handle.rows { transform: translate(-50%, 50%) scale(calc(1 / var(--page-scale, 1))); }
 /* The page is as wide as its glass and no wider: the glass keeps its proportions from its width, and the cards' least
    width never pushes it past the page (on a phone it stood 36 px wider than the window and the window with it). */
 .page { grid-template-columns: minmax(0, 1fr); }

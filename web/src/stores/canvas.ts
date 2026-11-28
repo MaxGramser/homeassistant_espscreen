@@ -91,7 +91,8 @@ export const useCanvasStore = defineStore("canvas", () => {
   /** The scale at which the glass is as large on this monitor as in the hand (96 CSS pixels to the inch), for a board that
    * says its density; 0 for one that does not. The fonts of the mockup are drawn for about this scale. */
   const lifeGlass = computed(() => { const shape = doc.screenShape; return "dpi" in shape && shape.dpi ? CSS_PER_INCH / shape.dpi : 0; });
-  const deviceStyle = computed(() => {
+  // How wide a page is shown, in editor pixels: what is comfortable to work in, from the room it has.
+  const pageWidth = computed(() => {
     const shape = doc.screenShape;
     // To a tenth of a pixel, not a whole one: on a 1280 x 800 screen the nearest whole pixel of width would make the
     // mockup a pixel taller than the rest. Every board lying down lands on a whole number anyway.
@@ -105,9 +106,18 @@ export const useCanvasStore = defineStore("canvas", () => {
     const width = ui.phone && room.value ? room.value.width
       : Math.min(room.value?.cap ? room.value.width : Infinity, Math.max(least, Math.min(life, fit)) * scale);
     const rounded = Math.round(width * 10) / 10;
-    // The glass in editor pixels, and its sizes at that scale.
-    return styleAt(rounded / shape.width, rounded);
+    return rounded;
   });
+  // A page is laid out with its glass as large as in the hand (lifeGlass), the scale the mockup's letters, icons and
+  // controls are drawn for, and then shown scaled whole to pageWidth (pageScale, DevicePage.vue). So inside a tile
+  // everything keeps the proportions it has on the screen at any size the page is shown at: before, the page's boxes
+  // followed its room while its letters stayed as they were, and a tablet's tile looked fuller, a small screen's roomier,
+  // than the real one. A board that does not say its density, and a phone, whose page is as wide as the phone, are laid
+  // out at the size they are shown at, as before.
+  const layoutGlass = computed(() => (ui.phone || !lifeGlass.value ? pageWidth.value / doc.screenShape.width : lifeGlass.value));
+  const pageScale = computed(() => pageWidth.value / Math.max(1, layoutGlass.value * doc.screenShape.width));
+  /** The glass's sizes for a page's layout (`--mockup-width` is the width it is laid out at, not the width it is shown at). */
+  const deviceStyle = computed(() => styleFor(layoutGlass.value));
   // The compact look: the board declares it (LOOK in its board file, served with the shape); a shape from an add-on that
   // does not say it is taken by its shorter side, the CYD being the only compact board there was. The shorter side and not
   // the width, because a screen keeps its look when it is built standing up: a 480 x 800 Waveshare is still the standard
@@ -128,5 +138,5 @@ export const useCanvasStore = defineStore("canvas", () => {
     return cell >= Math.floor((shape.dpi * 30 + 12) / 25);
   });
 
-  return { barMetrics, pageBarShown, deviceStyle, styleFor, lifeGlass, isCompact, roomyNames, zoom, zoomBy, room };
+  return { barMetrics, pageBarShown, deviceStyle, styleFor, lifeGlass, pageWidth, pageScale, isCompact, roomyNames, zoom, zoomBy, room };
 });

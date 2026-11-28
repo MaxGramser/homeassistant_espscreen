@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **A page in the editor looks like the screen, on every board.** A page is now drawn with the proportions of the real screen and then shown as large as is comfortable. Before, a small screen's tiles looked roomier in the editor than on the wall, so a name that fitted in the editor was cut on the screen, and a tablet's tiles looked fuller than they are. The key that removes a tile and the handles that size it keep their own size on every board.
+
 - **The library and the inspector are panes of their own.** On a wide page a screen's page, the library under it and the inspector beside it are now three cards on the same ground as the sidebar, each with its own rounded corners, as the windows of macOS have their content, sidebar and inspector.
 
 - **The library shows many tiles at once.** Every entity now stands on the library's shelf as one tile, at the size that suits it best: a light or a media player as a row of two, a sensor or a switch as one cell. The tiles stand close together as on a page of the screen, each with its name under it, so a low library shows many instead of one, and they are as large and as readable on a small screen as on a tablet. Point at a tile and a card opens with all its sizes; click or drag the one you want. The switch at the top right also shows everything at 1 x 1, 2 x 1 or 2 x 2, or as the list.

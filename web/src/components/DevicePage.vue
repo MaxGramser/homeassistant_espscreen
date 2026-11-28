@@ -44,6 +44,8 @@ const scr = useScreenStore();
 const topbar = useTopbarStore();
 const dragging = useDragStore();
 const canvas = useCanvasStore();
+// The glass's sizes for its layout, and the width and the scale it is shown at (stores/canvas.ts pageScale).
+const pageStyle = computed(() => ({ ...canvas.deviceStyle, "--page-width": `${canvas.pageWidth}px`, "--page-scale": String(canvas.pageScale) }));
 const doc = useDocumentStore();
 const insp = useInspectorStore();
 const { cellsOf, grid, pageOf, spanOf } = doc.editorLayout;
@@ -176,7 +178,7 @@ async function onKey(e: KeyboardEvent) {
 
 <template>
   <UiContextMenu v-model:open="menuOpen" width="248px" :disabled="preview || !owned" @update:open="menuOpened">
-  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && doc.selectedPageId === owned.id && insp.inspector?.kind === 'page' }" :style="canvas.deviceStyle" :data-page-id="owned?.id" @click="pageClick" @contextmenu="aim">
+  <div class="page" :class="{ carried, refused: dragging.refused === page, chosen: !preview && !!owned && doc.selectedPageId === owned.id && insp.inspector?.kind === 'page' }" :style="pageStyle" :data-page-id="owned?.id" @click="pageClick" @contextmenu="aim">
     <div v-if="!preview" class="page-head" :class="{ selected: doc.selectedPageId === owned?.id && insp.inspector?.kind === 'page' }">
       <button v-if="movable" type="button" class="grab" :data-page="page" v-drag="{ kind: 'page', page }"
         :title="t('editor.page.move_title')" :aria-label="t('editor.page.move_aria', { page: page + 1 })" @keydown="onKey">
@@ -193,6 +195,8 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
+    <!-- The glass, laid out at the scale its letters are drawn for and shown scaled whole (stores/canvas.ts pageScale). -->
+    <div class="device-fit">
     <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && insp.openBar(0, page)" @keydown.enter.prevent="!preview && insp.openBar(0, page)">
@@ -214,6 +218,7 @@ async function onKey(e: KeyboardEvent) {
         <SectionMaker v-if="!preview" :page="page" />
       </div>
       <PageNavigation v-if="owned" :page-id="owned.id" :interactive="preview" :can-go-back="canGoBack" @navigate="emit('navigate', { kind: $event })" />
+    </div>
     </div>
   </div>
   <template #menu>
@@ -238,6 +243,9 @@ async function onKey(e: KeyboardEvent) {
 
 <style scoped>
 .page { min-width: 0; }
+/* The room the glass takes as it is shown, and in it the glass at the size it is laid out at, scaled whole. */
+.device-fit { width: var(--page-width, var(--mockup-width)); aspect-ratio: var(--screen-aspect, 1 / 1); }
+.device-fit > .device { width: var(--mockup-width); transform: scale(var(--page-scale, 1)); transform-origin: 0 0; }
 /* The page in the glass's proportions (stores/canvas.ts deviceStyle, app 0.4.74): the top bar from the top edge of the glass down
    to where the tiles start, the grid's margins and gaps, and the page bar at its own height, so every card is as high
    against its page as the screen draws it. */
