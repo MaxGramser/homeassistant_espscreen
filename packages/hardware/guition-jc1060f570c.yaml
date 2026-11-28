@@ -1,0 +1,89 @@
+# ESP Screens - the GUITION JC1060F570C_I_W_Y's hardware, for packages/boards/jc1060f570c.yaml to include.
+#
+# The chip (hardware/esp32s31-rgb.yaml), the GT911 (hardware/parts/gt911-polled.yaml), and this board's own pins:
+# its touch bus, its backlight and the JD9165 panel. Pins and timings are GUITION's own board package
+# (github.com/Guition-JC/Guition, components/board/guition_boards/jc1060f570c); the board file says more.
+packages:
+  chip: !include esp32s31-rgb.yaml
+  # The GT911, polled: GUITION's package reads it without its reset or interrupt line (both -1).
+  touch_panel: !include parts/gt911-polled.yaml
+
+esphome:
+  # ESPHome builds for the ESP32-S31 from 2026.7.0. This min_version wins over the core's (packages/core.yaml), so
+  # the other boards keep building on the core's.
+  min_version: 2026.7.0
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The log goes out on the chip's own USB Serial/JTAG, as GUITION's firmware has it (CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG),
+  # on the full-speed USB-C port. Flash through that port too.
+  hardware_uart: USB_SERIAL_JTAG
+
+# The GT911 (hardware/parts/gt911-polled.yaml) shares its bus with the ES8389's control port (0x20), which nothing
+# here drives yet.
+i2c:
+  id: touch_bus
+  sda: GPIO2
+  scl: GPIO3
+  frequency: 400kHz
+  scan: true
+
+output:
+  # GPIO52 drives the backlight's LED driver with a PWM (guition_boards 0.2.1 moved it there from GPIO17, which is the
+  # Ethernet PHY's reset).
+  - platform: ledc
+    pin: GPIO52
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+  # The NS4150 amplifiers' enable, held low: no speaker is driven yet (no ES8389 driver), so the amplifiers stay off
+  # and quiet.
+  - platform: gpio
+    pin: GPIO42
+    id: amp_enable
+
+# ESPHome has no model for this board, so the panel is ESPHome's RPI model, an RGB panel without an init sequence:
+# GUITION drives the JD9165 as a generic RGB panel too, with no init commands. The pins and the timings are GUITION's.
+# ESP-IDF counts the 16 data lines D0-D15 as blue, green, red; ESPHome builds the same list from `blue`, `green` and
+# `red`, so GUITION's data_gpio_nums [36, 37, 38, 39, 46, 7, 35, 48, 49, 50, 51, 4, 5, 0, 1, 6] split 5 / 6 / 5 are the
+# three lists below. Should red and blue come out swapped on the glass, swap the `red` and `blue` lists.
+#
+# GPIO36 and GPIO37 are strapping pins of the S31 (VDD_SPI voltage, JTAG source): they only matter while the chip
+# starts, and the panel has them after that.
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: RGB
+    pclk_frequency: 34MHz
+    pclk_inverted: true
+    de_pin: GPIO43
+    pclk_pin: GPIO40
+    hsync_pin: GPIO44
+    vsync_pin: GPIO45
+    hsync_pulse_width: 24
+    hsync_back_porch: 160
+    hsync_front_porch: 136
+    vsync_pulse_width: 1
+    vsync_back_porch: 23
+    vsync_front_porch: 11
+    data_pins:
+      blue:
+        - number: GPIO36
+          ignore_strapping_warning: true
+        - number: GPIO37
+          ignore_strapping_warning: true
+        - GPIO38
+        - GPIO39
+        - GPIO46
+      green: [GPIO7, GPIO35, GPIO48, GPIO49, GPIO50, GPIO51]
+      red: [GPIO4, GPIO5, GPIO0, GPIO1, GPIO6]
+    update_interval: never
+    auto_clear_enabled: false

@@ -1,0 +1,58 @@
+# ESP Screens - GUITION JC1060F570C_I_W_Y (1024 x 600, 7 inch), EXPERIMENTAL.
+# ESP32-S31-WROOM-3-N16R16V (320 MHz RISC-V, 16 MB flash, 16 MB octal PSRAM), a JD9165 RGB565 panel, a GT911 touch
+# panel, an ES8389 codec with two NS4150 amplifiers, an IP101 Ethernet PHY (RMII), microSD and an RX8025T RTC.
+#
+# Pins and timings are GUITION's own board package for this board (github.com/Guition-JC/Guition,
+# components/board/guition_boards/jc1060f570c: board_devices.yaml and board_peripherals.yaml, with the backlight on
+# GPIO52 as corrected in guition_boards 0.2.1). Their comments name other nets than their values in places (copied
+# from a sibling board); the values are what GUITION's factory firmware runs, and are what is used here.
+# No physical acceptance by the project yet: see docs/JC1060F570C.md.
+# The standard look at 170 dpi, the density of the Waveshare 7B: 4 x 4 landscape, 2 x 8 portrait.
+#
+# Left out for now, because ESPHome 2026.9 cannot drive it on this chip:
+# - Ethernet: ESPHome takes the IP101 (RMII) only on the classic ESP32 and the ESP32-P4; on the S31 it offers only
+#   RGMII PHYs (GENERIC, YT8531). GUITION's wiring, for when it can: RMII clock in on GPIO13, TX_EN GPIO12, TXD0/1
+#   GPIO8/9, CRS_DV GPIO15, RXD0/1 GPIO19/18, MDC GPIO53, MDIO GPIO10, PHY reset GPIO17.
+# - Audio: ESPHome has no ES8389 driver. GUITION's wiring: control on the touch bus at 0x20, I2S BCLK GPIO54,
+#   LRCK GPIO47, DOUT GPIO56, DIN GPIO16, no MCLK; amplifier enable GPIO42, active high.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The ESP32-S31 and its memory for an RGB panel (hardware/esp32s31-rgb.yaml), the polled GT911, and this board's
+  # pins: its touch bus, its backlight and the JD9165 panel.
+  hardware: !include ../hardware/guition-jc1060f570c.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc1060f570c"
+  DEVICE_NAME: "jc1060f570c-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 7 S31"
+
+  # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 7.0 inches.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "169.548"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "8"
+  # LVGL's draw buffer as a share of the screen (docs/ADDING_A_BOARD.md, step 3). A quarter of 1024 x 600 is 307 KB,
+  # more than the chip holds inside, so it lands in PSRAM and the internal RAM stays free for Wi-Fi, the API and the
+  # panel's bounce buffers, as on the Waveshare 7B.
+  LVGL_BUFFER_SIZE: "25%"
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # As on the Waveshare 7B, the same glass at the same density; the look would give 27
+  FONT_ICON_HOME_SIZE: "26"
+  BACKLIGHT_FREQUENCY: "20000Hz"                # GUITION's own LEDC setting for the backlight (hardware/guition-jc1060f570c.yaml)

@@ -12,7 +12,12 @@
 #include <esp_memory_utils.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+// ESP-IDF 6 made the task snapshot API public and moved its header (the ESP32-S31 builds on 6.1); 5.5 keeps it private.
+#if __has_include(<freertos/freertos_debug.h>)
+#include <freertos/freertos_debug.h>
+#else
 #include <esp_private/freertos_debug.h>
+#endif
 #include <esp_system.h>
 
 namespace abort_record {
