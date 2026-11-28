@@ -36,7 +36,7 @@ PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'm
 DOOR = {'state': 'idle', 'attributes': {'friendly_name': 'Front door'}}
 CHOICE = {'show': True, 'media': PLAYER, 'camera': CAMERA, 'order': ['media', 'photos', 'camera', 'clock'], 'off': [], 'weather': 'auto', 'more': [], 'items': [],
           'face': 'digital', 'numerals': 4, 'seconds': True, 'look': 'dark',
-          'photos': {'source': '', 'every': 60, 'order': 'shuffle', 'fit': 'auto', 'motion': 'still'}, 'media_face': '', 'photos_face': '', 'plugins': {}}
+          'photos': {'source': '', 'every': 60, 'order': 'shuffle', 'fit': 'auto', 'motion': 'still'}, 'media_face': '', 'photos_face': '', 'plugins': {}, 'play_on': {}}
 
 
 class Choice(unittest.TestCase):
@@ -98,6 +98,44 @@ class Choice(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screensavers.json'
             path.write_text(json.dumps({'version': 1, 'screens': {'d1': {key: CHOICE[key] for key in CHOICE if key != 'more'}}}))
+            self.assertEqual(screen_saver.ScreenSavers(path).get('d1'), CHOICE)
+
+    def test_a_player_counts_only_on_the_devices_chosen_for_it(self):
+        """GitHub #182: the living room's screen shows Spotify while it plays on the television, not on a laptop or a
+        phone. `play_on` names the devices by the player's `source` (Spotify Connect's device); a player without names
+        counts anywhere, as before."""
+        spotify, tv = 'media_player.spotify', 'media_player.apple_tv'
+        on = lambda source: {**PLAYING, 'attributes': {**PLAYING['attributes'], 'source': source}}
+        poster = {'state': 'playing', 'attributes': {'friendly_name': 'Apple TV', 'entity_picture': '/api/media_player_proxy/tv?cache=2'}}
+        choice = screen_saver.validate({**CHOICE, 'media': spotify, 'play_on': {spotify: ['Living Room TV']}})
+        self.assertEqual(choice['play_on'], {spotify: ['Living Room TV']})
+        self.assertEqual(screen_saver.pick(choice, {spotify: on('Living Room TV'), CAMERA: DOOR}, True), 'media')
+        self.assertEqual(screen_saver.pick(choice, {spotify: on('Laptop'), CAMERA: DOOR}, True), 'camera')
+        self.assertEqual(screen_saver.pick(choice, {spotify: PLAYING, CAMERA: DOOR}, True), 'camera', 'no source, no device')
+        # Passed over, the next player of the step shows, and a player without names counts wherever it plays.
+        both = {**choice, 'more': [tv]}
+        self.assertEqual(screen_saver.player(both, {spotify: on('Phone'), tv: poster}), tv)
+        self.assertEqual(screen_saver.player({**both, 'play_on': {}}, {spotify: on('Phone'), tv: poster}), spotify)
+        # Paused or held on the glass, a player on another device counts no more than one that plays there.
+        now = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc).timestamp()
+        paused = lambda source: {**on(source), 'state': 'paused', 'last_changed': '2026-10-10T11:59:30+00:00'}
+        self.assertEqual(screen_saver.player(choice, {spotify: paused('Living Room TV')}, True, now, held=spotify), spotify)
+        self.assertEqual(screen_saver.player(choice, {spotify: paused('Phone')}, True, now, held=spotify), '')
+        self.assertEqual(screen_saver.player(choice, {spotify: paused('Phone')}, True, now), '')
+        # A player that leaves the step takes its names along; a player without names is not kept.
+        self.assertEqual(screen_saver.validate({**CHOICE, 'play_on': {spotify: ['TV']}})['play_on'], {})
+        self.assertEqual(screen_saver.validate({**CHOICE, 'play_on': {PLAYER: []}})['play_on'], {})
+        for wrong in ([], {PLAYER: 'TV'}, {PLAYER: ['TV', 'TV']}, {PLAYER: ['']}, {PLAYER: [1]}, {PLAYER: ['x' * 101]},
+                      {PLAYER: [f'd{i}' for i in range(screen_saver.PLAY_ON_NAMES + 1)]}):
+            with self.assertRaises(ValueError, msg=wrong):
+                screen_saver.validate({**CHOICE, 'play_on': wrong})
+        # Kept and read back, and a choice kept before has none.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'screensavers.json'
+            savers = screen_saver.ScreenSavers(path)
+            savers.set('d1', choice)
+            self.assertEqual(screen_saver.ScreenSavers(path).get('d1')['play_on'], {spotify: ['Living Room TV']})
+            path.write_text(json.dumps({'version': 1, 'screens': {'d1': {key: CHOICE[key] for key in CHOICE if key != 'play_on'}}}))
             self.assertEqual(screen_saver.ScreenSavers(path).get('d1'), CHOICE)
 
     def test_a_player_whose_cover_does_not_come_gives_way(self):

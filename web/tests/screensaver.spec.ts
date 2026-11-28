@@ -10,6 +10,7 @@ import type { Inventory, ScreensaverView } from "../src/types";
 import { useScreenStore } from "../src/stores/screen";
 import { useScreensaverStore } from "../src/stores/screensaver";
 import { useInventoryStore } from "../src/stores/inventory";
+import { useEntitiesStore } from "../src/stores/entities";
 import { useUiStore } from "../src/stores/ui";
 import { useInspectorStore } from "../src/stores/inspector";
 
@@ -90,6 +91,24 @@ describe("a step in the drawer", () => {
     expect(wrapper.findAll(".saver-rank").map((rank) => rank.text())).toEqual(["1", "2"]);
     await wrapper.findAll(".saver-player")[0].find("button.x").trigger("click");
     expect(useScreenStore().currentScreen!.screensaver).toMatchObject({ media: "media_player.speaker", more: [] });
+  });
+
+  it("chooses the devices a player counts on, and a player that leaves takes them along", async () => {
+    // GitHub #182: Spotify's sources are its Spotify Connect devices; a chosen one stays listed while it is offline.
+    useEntitiesStore().liveStates["media_player.tv"] = { state: "playing", a: { source_list: ["Living Room TV", "Phone"] } };
+    useScreenStore().currentScreen!.screensaver = saver({ play_on: { "media_player.tv": ["Laptop"] } });
+    const wrapper = mount(SaverInspector, { props: { step: "media" } });
+    const chips = () => wrapper.findAll(".saver-play-on .ui-chip");
+    expect(wrapper.findAll(".saver-play-on b").map((name) => name.text())).toEqual(["Apple TV"]);
+    expect(chips().map((chip) => `${chip.text()}:${chip.attributes("data-state")}`)).toEqual(["Living Room TV:off", "Phone:off", "Laptop:on"]);
+    expect(useScreensaverStore().summary("media").text).toBe("Apple TV on Laptop, Speaker");
+    await chips()[0].trigger("click");
+    expect(useScreenStore().currentScreen!.screensaver!.play_on).toEqual({ "media_player.tv": ["Laptop", "Living Room TV"] });
+    useScreensaverStore().setPlayOn("media_player.tv", []);
+    expect(useScreenStore().currentScreen!.screensaver!.play_on).toEqual({});
+    useScreensaverStore().setPlayOn("media_player.tv", ["Phone"]);
+    useScreensaverStore().removePlayer("media_player.tv");
+    expect(useScreenStore().currentScreen!.screensaver).toMatchObject({ media: "media_player.speaker", play_on: {} });
   });
 
   it("turns its step off and moves it a place later", async () => {

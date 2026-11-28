@@ -1,5 +1,10 @@
 ## Unreleased
 
+- **The screensaver's music only on the devices you choose (GitHub #182).** In the drawer of Music playing, **Only on
+  these devices** lists the devices each player plays on, as Home Assistant names its sources (Spotify Connect's
+  devices for Spotify). Choose some and the player shows on the screensaver only while it plays on one of them: the
+  living room's screen shows Spotify while it plays on the television, not on a laptop or a phone. With none chosen a
+  player shows wherever it plays, as before. No new firmware is needed.
 - **A page in the editor looks like the screen, on every board.** A page is now drawn with the proportions of the real screen and then shown as large as is comfortable. Before, a small screen's tiles looked roomier in the editor than on the wall, so a name that fitted in the editor was cut on the screen, and a tablet's tiles looked fuller than they are. The key that removes a tile and the handles that size it keep their own size on every board.
 
 - **A screen with an ESP32-P4 asks for ESPHome 2026.9.1.** This only matters when you build a screen with an ESPHome of your own, or with an app older than 0.4.85: the Guition JC8012P4A1, JC1060P470 and JC4880P443, the Waveshare ESP32-P4 panels, the reTerminal D1001, the M5Stack Tab5 and the CrowPanel Advanced 10.1 no longer build with ESPHome 2026.9.0, which now says so before it starts. Update ESPHome, or the app, and build again. ESPHome's display driver starts the newer ESP32-P4 chips (revision 3) from 2026.9.1 on, and a board of any of these models may carry one, so every one of these screens now runs ESPHome's own display driver and the project's copy of it for the newer chips is gone. The app's own ESPHome is 2026.11.1. After its update a screen with a revision 3 chip should start and show its pages as before.
