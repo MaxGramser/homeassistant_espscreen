@@ -72,7 +72,7 @@ which of the two holds:
 3. After a few page turns, what traces stay, and does the whole refresh as the screen goes to standby take them off?
 
 If the colours are the other way round or the picture is shifted, it is the driver, not the layout: report it with a
-photo.
+photo. docs/open-issues/reterminal-e1001-refresh.md keeps what is known.
 
 ## How it hangs
 
