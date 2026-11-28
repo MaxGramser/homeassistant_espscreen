@@ -17,7 +17,9 @@ esphome:
   # The panel watch reads the DPI panel's vsync callback (glass_dsi.cpp, esp_lcd_dpi_panel_event_callbacks_t on_vsync),
   # which the ESP-IDF of ESPHome 2026.6.2 does not have: this board builds on 2026.9.0, the add-on's ESPHome, as the
   # other ESP32-P4 boards do (CI's min_version build, 2026-10-29).
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 packages:
   # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, with this board's own pins below.
@@ -122,8 +124,7 @@ output:
 # EK79007 at 1024x600 with its timings and init sequence, the model Elecrow's own example uses. Its reset is GPIO41 on
 # this board.
 display:
-  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
-  - platform: ${DSI_PLATFORM}
+  - platform: mipi_dsi
     id: my_display
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     reset_pin: GPIO41

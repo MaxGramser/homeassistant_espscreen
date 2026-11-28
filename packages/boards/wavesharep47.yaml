@@ -6,8 +6,9 @@
 # and 10.1-inch boards of this series share its main board with other glass, and are not this file. The panel is
 # 720 x 1280 itself (portrait); LVGL turns the picture and the touch together.
 #
-# Run on pre-v3 silicon ("chip revision: v1.3" in the boot log); ESP Screen Manager reads the chip and builds for the revision it finds (CHIP_REVISION, docs/CHIP_REVISIONS.md): on rev3 that is
-# `engineering_sample: false` and mipi_dsi_v3, as the 10.1-inch and the 7B of the series run. Nobody has run this board
+# Run on pre-v3 silicon ("chip revision: v1.3" in the boot log); ESP Screen Manager reads the chip and builds for the
+# revision it finds (CHIP_REVISION, docs/CHIP_REVISIONS.md): on rev3 that is `engineering_sample: false`, with ESPHome's
+# display driver of 2026.9.1 or newer, as the 10.1-inch and the 7B of the series run. Nobody has run this board
 # on rev3 yet; docs/open-issues/waveshare-7-inch-rev3.md says what a report needs. A community member ran this file on the board
 # (picture, rotation, touch, backlight, Wi-Fi); the project has not tried it on one. The speaker (ES8311 and its
 # amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel (Waveshare's schematic), so they
@@ -70,7 +71,9 @@ esphome:
   # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
   # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
   # as on the Waveshare P4 86 panel. A board file's min_version wins over the core's.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 esp32:
   flash_size: 32MB
@@ -103,8 +106,7 @@ output:
 # ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-7-DSI-TOUCH-A` brings the ILI9881C's init
 # sequence and timings. The model does not bring the reset pin: GPIO27 on this board.
 display:
-  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
-  - platform: ${DSI_PLATFORM}
+  - platform: mipi_dsi
     id: my_display
     model: WAVESHARE-7-DSI-TOUCH-A
     reset_pin: GPIO27

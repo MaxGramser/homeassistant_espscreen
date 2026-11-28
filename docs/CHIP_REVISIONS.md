@@ -20,7 +20,7 @@ substitutions:
 
 The number is ESP-IDF's full revision, major x 100 + minor, so `302` is v3.2 and `103` is v1.3. It is a fact about the
 chip, not a choice. The packages decide what a revision needs, next to the setting each rule changes:
-`packages/hardware/esp32p4-core.yaml` turns it into the ESP32-P4's `engineering_sample` switch and the display driver
+`packages/hardware/esp32p4-core.yaml` turns it into the ESP32-P4's `engineering_sample` switch and what goes with it
 (below). Nothing else in the add-on, the editor or the firmware knows what a revision means.
 
 A screen's YAML without the line builds the board's own default. For most ESP32-P4 boards that is `"0"`, the earlier
@@ -59,16 +59,10 @@ no chip family: it holds for any revision rule ESP-IDF has or adds.
 
 ## The ESP32-P4
 
-`packages/hardware/esp32p4-core.yaml` holds both rules:
+`packages/hardware/esp32p4-core.yaml` holds the rules:
 
 - `engineering_sample: true` below revision 300, `false` from 300 on. This is ESP-IDF's
   `CONFIG_ESP32P4_SELECTS_REV_LESS_V3`.
-- `DSI_PLATFORM`: ESPHome's own `mipi_dsi` below 300, the repository's `mipi_dsi_v3` from 300 on. ESPHome's driver up to
-  2026.9.0 names a display clock that only the earlier silicon has, so on rev3 it aborts while the display starts and
-  the screen restarts until safe mode (GitHub #52, #462). `mipi_dsi_v3` is that driver with the clock left to ESP-IDF,
-  which picks the right one on either revision (esphome/esphome#18984, in ESPHome 2026.9.1). Every P4 board's display
-  says `platform: ${DSI_PLATFORM}`. Once the app and every P4 board's `min_version` are at 2026.9.1 or newer, the rule
-  goes and every board takes `mipi_dsi` again.
 - `P4_EV_BOARD`: ESPHome's name of Espressif's function EV board for the revision, for a hardware file that names a
   board (the Tab5's). ESPHome refuses a pre-v3 board name on a rev3 build, and the other way round. The other P4 boards
   name none.
@@ -80,7 +74,14 @@ no chip family: it holds for any revision rule ESP-IDF has or adds.
   refuses. Pre-v3 builds set neither.
 
 The CPU runs at 360 MHz on both, the most the earlier silicon takes. `tests/test_p4_core.py` keeps the rules in the core
-file alone: no board or hardware file sets `engineering_sample`, names a DSI driver or an ESP32-P4 board itself.
+file alone: no board or hardware file sets `engineering_sample` or names an ESP32-P4 board itself.
+
+The display driver follows from no revision: every P4 display is ESPHome's own `mipi_dsi`. That driver up to 2026.9.0
+names a display clock that only the earlier silicon has, so on rev3 it aborts while the display starts and the screen
+restarts until safe mode (GitHub #52, #462). From 2026.9.1 on it leaves the clock to ESP-IDF, which picks the right one
+on either revision (esphome/esphome#18984). Since a board of any P4 model may carry rev3 silicon, every P4 board file
+states `min_version: 2026.9.1` or newer, and an older ESPHome refuses the build before it starts. The same test keeps
+that floor, so a new P4 board cannot be added below it.
 
 ## A new revision rule
 
@@ -107,6 +108,7 @@ parts live once in a hardware file (`hardware/guition-jc8012p4a1-newer-lcd.yaml`
 ## The places a change of this kind touches
 
 - `packages/hardware/<chip>-core.yaml`: the rule, from `CHIP_REVISION`.
+- The `min_version` of the chip's board files, when the newer silicon needs a newer ESPHome (the P4's display driver).
 - `tests/test_p4_core.py`: the rule stays in the core.
 - `screen_manager/app/chip_revision.py`: only when the number comes from somewhere new.
 - `components/smart_display/chip_revision.h`, `web/src/flasher/`: only when reading the chip changes.

@@ -74,10 +74,11 @@ substitutions:
 # ============================================================
 
 esphome:
-  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its display platform,
-  # components/mipi_dsi_v3, is ESPHome 2026.9.0's mipi_dsi with one line changed, and this board has only been built
-  # on 2026.9.0. A board file's min_version wins over the core's.
-  min_version: 2026.9.0
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml), as every ESP32-P4 board
+  # does. A board file's min_version wins over the core's.
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 esp32:
   flash_size: 32MB
@@ -113,10 +114,10 @@ output:
     zero_means_zero: true
 
 # ESPHome's panel model drives the EK79007 at 1024 x 600 with its init sequence and timings; the reset is GPIO33.
-# On rev3 silicon the platform is the repository's mipi_dsi_v3 (DSI_PLATFORM, hardware/esp32p4-core.yaml): the stock
-# driver's fixed clock aborts there while the display starts (GitHub #52).
+# ESPHome's driver before 2026.9.1 sets a fixed clock that aborts on this board's rev3 silicon while the display starts
+# (GitHub #52), which is why this file asks for that ESPHome.
 display:
-  - platform: ${DSI_PLATFORM}
+  - platform: mipi_dsi
     id: my_display
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     dimensions: {width: 1024, height: 600}

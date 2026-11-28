@@ -22,10 +22,11 @@ Tessera:
 | Waveshare, ESP32-P4-WIFI6-Touch-LCD-10.1 V3 | rev3 ("chip revision: v3.x"), what Waveshare ships now | `packages/boards/waveshare101-v3.yaml` |
 
 The two differ in one line: the chip revision each assumes when nobody has read the chip. Tessera reads it when it
-installs a screen and builds for the revision it finds, whichever of the two was chosen ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)). On rev3 silicon two
-things change: the chip revision switch, and the display driver, the repository's `components/mipi_dsi_v3` in place of
-ESPHome's own, which stops the chip while the display starts. Everything else, the flash, the panel, the touch panel and
-the backlight, stands once in `packages/hardware/waveshare101.yaml`.
+installs a screen and builds for the revision it finds, whichever of the two was chosen
+([CHIP_REVISIONS.md](CHIP_REVISIONS.md)). On rev3 silicon two things matter: the chip revision switch, and ESPHome's
+display driver of 2026.9.1 or newer, since the driver before it stops the chip while the display starts (both board
+files ask for that ESPHome). Everything else, the flash, the panel, the touch panel and the backlight, stands once in
+`packages/hardware/waveshare101.yaml`.
 
 On rev3 silicon a firmware for the earlier one restarts straight after the bootloader; one with only the chip revision
 switch changed, without the other display driver, gets as far as "Performing bus recovery" and then stops in
@@ -114,7 +115,8 @@ same audio worked on the 7-inch of the series.
   - Backlight: GPIO26, PWM.
   - Audio: I2S MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10, speaker data GPIO9, microphone data GPIO11; amplifier enable
     GPIO53, high for on, with a pull-down that keeps it off at reset.
-- This board needs ESPHome 2026.9.0 or newer for its audio.
+- This board needs ESPHome 2026.9.1 or newer: its audio is built from 2026.9.0, and ESPHome's own display driver
+  starts a chip of revision 3 from 2026.9.1 on.
 
 ## What to report while testing
 

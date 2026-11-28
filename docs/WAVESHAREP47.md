@@ -23,12 +23,12 @@ builds for the revision it finds ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)): on re
 needed, so a rev3 board needs no board file or Override YAML of its own. What is known comes from those neighbours:
 
 - On the 10.1-inch of the same series, rev3 needed two changes, not one: the chip revision (`engineering_sample:
-  false`) and the repository's display driver, `components/mipi_dsi_v3`, in place of ESPHome's `mipi_dsi`
+  false`) and ESPHome's display driver of 2026.9.1 or newer in place of the one before it
   ([WAVESHARE101.md](WAVESHARE101.md), "Which board"). With the chip revision alone, a unit of chip revision v3.2 got
-  as far as "Performing bus recovery" in the USB log and then stopped in `esp_lcd_new_dsi_bus`, again and again. On
-  rev3 this board now takes `mipi_dsi_v3` as well.
+  as far as "Performing bus recovery" in the USB log and then stopped in `esp_lcd_new_dsi_bus`, again and again. This
+  board asks for that ESPHome as well.
 - The [7B](WAVESHAREP47B.md) (`packages/boards/wavesharep47b.yaml`) is the board to compare with: another panel, but
-  the same main board family, and it builds for rev3 with `mipi_dsi_v3`.
+  the same main board family, and it builds for rev3 the same way.
 
 If you have a rev3 board, please report how it runs (see [the open issue](open-issues/waveshare-7-inch-rev3.md) for
 what helps). A screen that stays dark has a USB log that tells which part it is: a restart straight after the
@@ -105,7 +105,8 @@ a long run.
 - Waveshare's board support package for the series
   ([Waveshare-ESP32-components](https://github.com/waveshareteam/Waveshare-ESP32-components),
   `esp32_p4_wifi6_touch_lcd_x`) has the same audio pins.
-- This board needs ESPHome 2026.9.0 or newer for its audio.
+- This board needs ESPHome 2026.9.1 or newer: its audio is built from 2026.9.0, and ESPHome's own display driver
+  starts a chip of revision 3 from 2026.9.1 on.
 
 ## What to report while testing
 
