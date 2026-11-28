@@ -399,7 +399,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -2294,6 +2294,152 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/reterminale1001.yaml": {
+  "alert": {
+   "line": 18,
+   "title_line": 23
+  },
+  "battery": true,
+  "board": "reterminale1001",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    285,
+    160
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.5,
+   "model": "Seeed reTerminal E1001",
+   "name": "reTerminal E1001",
+   "order": 26,
+   "recommended": false,
+   "settings": [
+    "tap_sound"
+   ],
+   "status": "experimental",
+   "touch": ""
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": false,
+  "dpi": 124,
+  "esphome": "2026.11.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 20,
+   "icon": 31,
+   "icon_home": 25,
+   "icon_mini": 19,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 12,
+   "sublabel_big": 15,
+   "watch_icon": 13,
+   "watch_value": 28
+  },
+  "height": 480,
+  "hotspot": true,
+  "inks": 2,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "own_icons": true,
+  "rows": 4,
+  "section": {
+   "band": 29,
+   "ink_top": 4,
+   "line": 15,
+   "title_top": 14
+  },
+  "spacing": {
+   "circle": 40,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 12,
+   "page_bar": 34,
+   "radius": 16,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/reterminalsticky.yaml": {
   "alert": {
    "line": 34,
@@ -2970,7 +3116,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": false,
    "settings": [
     "media_player",
@@ -3150,7 +3296,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": true,
    "settings": [
     "media_player",
@@ -3571,7 +3717,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 32,
+   "order": 33,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -4637,7 +4783,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -4817,7 +4963,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -4975,7 +5121,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -5495,7 +5641,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -7610,7 +7756,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 26,
+   "order": 27,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -9505,6 +9651,152 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/reterminale1001.yaml": {
+  "alert": {
+   "line": 18,
+   "title_line": 23
+  },
+  "battery": true,
+  "board": "reterminale1001",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    285,
+    160
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.5,
+   "model": "Seeed reTerminal E1001",
+   "name": "reTerminal E1001",
+   "order": 26,
+   "recommended": false,
+   "settings": [
+    "tap_sound"
+   ],
+   "status": "experimental",
+   "touch": ""
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": false,
+  "dpi": 124,
+  "esphome": "2026.11.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 20,
+   "icon": 31,
+   "icon_home": 25,
+   "icon_mini": 19,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 12,
+   "sublabel_big": 15,
+   "watch_icon": 13,
+   "watch_value": 28
+  },
+  "height": 480,
+  "hotspot": true,
+  "inks": 2,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "own_icons": true,
+  "rows": 4,
+  "section": {
+   "band": 29,
+   "ink_top": 4,
+   "line": 15,
+   "title_top": 14
+  },
+  "spacing": {
+   "circle": 40,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 12,
+   "page_bar": 34,
+   "radius": 16,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/reterminalsticky.yaml": {
   "alert": {
    "line": 34,
@@ -10181,7 +10473,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": false,
    "settings": [
     "media_player",
@@ -10361,7 +10653,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": true,
    "settings": [
     "media_player",
@@ -10782,7 +11074,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 32,
+   "order": 33,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -11848,7 +12140,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -12028,7 +12320,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -12186,7 +12478,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -12485,6 +12777,152 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1280
+ },
+ "reterminale1001": {
+  "alert": {
+   "line": 18,
+   "title_line": 23
+  },
+  "battery": true,
+  "board": "reterminale1001",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    285,
+    160
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.5,
+   "model": "Seeed reTerminal E1001",
+   "name": "reTerminal E1001",
+   "order": 26,
+   "recommended": false,
+   "settings": [
+    "tap_sound"
+   ],
+   "status": "experimental",
+   "touch": ""
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": false,
+  "dpi": 124,
+  "esphome": "2026.11.0",
+  "features": [],
+  "firmware": "0.68.0",
+  "fonts": {
+   "headline": 20,
+   "icon": 31,
+   "icon_home": 25,
+   "icon_mini": 19,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 12,
+   "sublabel_big": 15,
+   "watch_icon": 13,
+   "watch_value": 28
+  },
+  "height": 480,
+  "hotspot": true,
+  "inks": 2,
+  "label_weight": 700,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     7,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      285,
+      160
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "own_icons": true,
+  "rows": 4,
+  "section": {
+   "band": 29,
+   "ink_top": 4,
+   "line": 15,
+   "title_top": 14
+  },
+  "spacing": {
+   "circle": 40,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 12,
+   "page_bar": 34,
+   "radius": 16,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
  },
  "reterminalsticky": {
   "alert": {
@@ -13162,7 +13600,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "recommended": false,
    "settings": [
     "media_player",
@@ -13342,7 +13780,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "recommended": true,
    "settings": [
     "media_player",
@@ -13763,7 +14201,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 32,
+   "order": 33,
    "recommended": false,
    "settings": [],
    "status": "experimental",
@@ -14829,7 +15267,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "recommended": false,
    "settings": [
     "media_player",
@@ -15009,7 +15447,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "recommended": false,
    "settings": [
     "media_player",
@@ -15167,7 +15605,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 27,
+   "order": 28,
    "recommended": false,
    "settings": [],
    "status": "experimental",

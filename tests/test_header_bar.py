@@ -291,11 +291,12 @@ class MessageTests(unittest.TestCase):
 
     def test_a_board_with_a_battery_says_so(self):
         # boards.json `battery` (profiles.battery): a board file with a sensor in the battery device class. Today the Tab5
-        # and the reTerminal D1001, and the reTerminal Sticky once its fuel gauge's level states that class in its file.
+        # and the reTerminal D1001, the reTerminal Sticky once its fuel gauge's level states that class in its file, and the
+        # reTerminal E1001 from its voltage on a pin (features/battery-voltage.yaml).
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         with_battery = sorted(entry for entry, shape in shapes.items() if shape.get('battery'))
         self.assertTrue(with_battery)
-        self.assertTrue(all(any(board in entry for board in ('tab5', 'reterminald1001', 'reterminalsticky'))
+        self.assertTrue(all(any(board in entry for board in ('tab5', 'reterminald1001', 'reterminalsticky', 'reterminale1001'))
                             for entry in with_battery), with_battery)
         glyphs = re.search(r'WIFI_GLYPHS\[5\] = \{WIFI_OFF_GLYPH, (0x\w+), (0x\w+), (0x\w+), (0x\w+)\}', FIRMWARE).groups()
         self.assertIn('export const WIFI_GLYPHS = ["F092E", ' + ', '.join(f'"{g[2:].upper()}"' for g in glyphs) + ']', EDITOR)

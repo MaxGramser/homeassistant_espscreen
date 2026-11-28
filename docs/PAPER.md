@@ -4,7 +4,8 @@ A panel of e-paper is a glass that prints. It has a few inks instead of sixty th
 second to several seconds to change, and it keeps its picture without a light and without power. The firmware treats
 it as one more kind of panel: the pages, the tiles, the cards, the settings and the plugins are the same code as on a
 lit glass, and what differs is written in the few places this page names. The first board with such a glass is the
-Seeed reTerminal Sticky (docs/RETERMINAL_STICKY.md).
+Seeed reTerminal Sticky (docs/RETERMINAL_STICKY.md); the Seeed reTerminal E1001 (docs/RETERMINAL_E1001.md) is the
+second, with a glass that takes no finger.
 
 ## Why a layer
 
@@ -521,6 +522,11 @@ the picture and the touch together; and the ESPHome its panel needs as `esphome:
 file's `min_version` wins over the core's. `boards.json` carries the newest one of a board's files as `esphome`, and
 New screen leaves out a board that asks for a newer ESPHome than the app runs (`firmware.offered`,
 `tests/test_board_catalog.py`), so nobody starts a build that ends in ESPHome's refusal.
+
+A board whose glass takes no finger at all, as the reTerminal E1001's, includes `features/no-touch.yaml` in place of a
+touch file and names its touch panel with the platform `no_touch` (components/no_touch), which never reports a touch.
+The shared tree stays as it is: LVGL has an input device that is never pressed, the pages turn with the board's keys,
+and the settings are changed in the app and in Home Assistant.
 
 A board with keys the chip can read includes `features/page-keys.yaml` (the page before, the next, and home, which
 held sends the screen to standby) and names the three pins; one with a buzzer on a pin includes `features/buzzer.yaml`

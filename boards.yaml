@@ -246,6 +246,16 @@ reterminalsticky:
   # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
   settings: [wake_when_moved, tap_sound]
 
+reterminale1001:
+  file: seeed-reterminal-e1001.yaml
+  name: reTerminal E1001
+  model: Seeed reTerminal E1001
+  status: experimental
+  # Seeed's 7.5-inch e-paper display in black and white, without touch: a paper glass whose pages turn with its three
+  # keys (docs/RETERMINAL_E1001.md). Not yet tried on a unit of the project's own.
+  # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
+  settings: [tap_sound]
+
 freenovefnk0104s:
   file: freenove-fnk0104s.yaml
   name: Freenove

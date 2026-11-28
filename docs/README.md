@@ -67,6 +67,8 @@
 - [SENSECAP_INDICATOR.md](SENSECAP_INDICATOR.md): the Seeed SenseCAP Indicator D1 series with the GX panel, 4 inch.
 - [RETERMINAL_STICKY.md](RETERMINAL_STICKY.md): the Seeed reTerminal Sticky, 3.97 inch, 800 × 480, the first board
   whose glass is e-paper: its pins, its keys and buzzer, how it hangs and what has been tried.
+- [RETERMINAL_E1001.md](RETERMINAL_E1001.md): the Seeed reTerminal E1001, 7.5 inch, 800 × 480, e-paper without
+  touch: its pins, its keys, what a screen without a finger does and what is still unknown.
 - [SUNTON8048S070.md](SUNTON8048S070.md): the Sunton ESP32-8048S070, 7 inch.
 
 ## Recipes for changing the code

@@ -42,7 +42,7 @@ Then choose what the board includes:
 - one look: `looks/standard.yaml`, or `looks/compact.yaml` for glass too small for it;
 - how its touch panel is read: `features/capacitive-touch.yaml` (GT911, GSL3670: pixels, no calibration) or
   `features/resistive-touch.yaml` (XPT2046: calibrated on the glass, and the board states the raw range it measured,
-  `TOUCH_CAL_*`);
+  `TOUCH_CAL_*`), or `features/no-touch.yaml` for a board without a touch panel (docs/PAPER.md);
 - `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark.
   A board whose glass is e-paper includes `features/paper.yaml` instead: it has no light, and its panel is a display of
   ESPHome's `epaper_spi` named `paper_panel`, with no `gpio_backlight_pwm` (docs/PAPER.md, "What a board states");

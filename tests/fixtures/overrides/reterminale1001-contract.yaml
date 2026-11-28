@@ -1,0 +1,12 @@
+# Written by tools/new_board.py: the parts every board names the same way (docs/PROFILES.md, "What an override may
+# rely on"), extended the way a screen's Override YAML does it. The glass is paper, so there is no backlight here.
+# tools/check.sh --firmware has ESPHome read it on this board. Add the cases people with this board share, one file each.
+display:
+  - id: !extend my_display
+    partial: false
+touchscreen:
+  - id: !extend ts_touch
+    update_interval: 30ms
+i2c:
+  - id: !extend touch_bus
+    frequency: 100kHz

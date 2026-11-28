@@ -49,7 +49,7 @@ ON_I2C = re.compile(r'(?m)^    i2c_id: |\b(xl9535|pi4ioe5v6408): |^    (lsm6ds|m
 # class, and what reads a reading (a board's charging sensor, from the current) reads its state.
 FUEL_GAUGES = ('bq27220',)
 # How often the SDL touchscreen is read for a board whose own panel names no interval, because it is read on its
-# interrupt: the pace every polled panel here is read at. ESPHome's own default (50 ms) is slower than a finger's
+# interrupt or because the board has none (components/no_touch): the pace every polled panel here is read at. ESPHome's own default (50 ms) is slower than a finger's
 # interrupts, and LVGL's swipe would see reads without movement.
 INTERRUPT_TOUCH_INTERVAL = '20ms'
 # The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
@@ -304,7 +304,8 @@ def host_file(text, chain, rel):
             interval = re.search(r'(?m)^    update_interval: (\S+)', block)
             if interval:
                 chain.touch_interval = interval[1]
-            elif re.search(r'(?m)^    interrupt_pin:', block):
+            elif re.search(r'(?m)^    interrupt_pin:', block) or re.search(r'(?m)^  - platform: no_touch$', block):
+                # A panel read on its interrupt, or none at all (components/no_touch): the host's finger at the same pace.
                 chain.touch_interval = INTERRUPT_TOUCH_INTERVAL
             changes.append((start, end, ''))
             chain.notes.append(f'{rel}: dropped touchscreen: platform')

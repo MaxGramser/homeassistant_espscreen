@@ -1,0 +1,76 @@
+# ESP Screens - Seeed Studio reTerminal E1001, experimental: a 7.5-inch 800 x 480 panel of black and white e-paper (a
+# UC8179, ESPHome's epaper_spi model Seeed-reTerminal-E1001), without touch, on an ESP32-S3 with 32 MB of flash and
+# 8 MB of PSRAM, on a battery of 2000 mAh. A paper glass as the reTerminal Sticky's (docs/PAPER.md), and the first
+# board that takes no finger: its pages turn with the three keys on its top (features/no-touch.yaml).
+#
+# Around the chip: three keys, a buzzer, a green LED, the battery's voltage on a pin, an SHT40 for temperature and
+# humidity, a PCF8563 clock, a PDM microphone and a microSD slot. The pins come from Seeed's wiki for the board (its
+# getting started page and its ESPHome cookbooks); docs/RETERMINAL_E1001.md says what has been tried. The microphone,
+# the card, the clock and the LED are not used yet.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  # The chip, the buses, the panel and the sensors (hardware/seeed-reterminal-e1001.yaml).
+  hardware: !include ../hardware/seeed-reterminal-e1001.yaml
+  look: !include ../looks/standard.yaml
+  # No touch panel: a touchscreen that never reports (components/no_touch), and nothing to set up for a finger.
+  touch: !include ../features/no-touch.yaml
+  # The glass is paper: no backlight, a printer between LVGL and the panel (features/paper.yaml).
+  paper: !include ../features/paper.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The three keys on the top: the page before (left), the next page (right), and home (the green one; held: standby).
+  page_keys: !include ../features/page-keys.yaml
+  # The buzzer ticks under a key, which the glass answers a part of a second later.
+  buzzer: !include ../features/buzzer.yaml
+  # The battery's voltage on GPIO1 through a divider of two, and its level from it (docs/BATTERY.md).
+  battery_adc: !include ../features/battery-adc.yaml
+  battery: !include ../features/battery-voltage.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "reterminale1001"
+  DEVICE_NAME: "reterminale1001-new"
+  DEVICE_FRIENDLY_NAME: "My reTerminal E1001"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 7.5 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "124.4"
+  # The tile grid: columns and rows of cells lying down, and standing up, as on the other 7-inch 800 x 480 glass.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # LVGL draws the whole glass into one buffer in PSRAM: a refresh of the panel is one picture, never a row of strips.
+  LVGL_BUFFER_SIZE: "100%"
+  # No touch controller to name in ESP Screens (the platform no_touch is none).
+  TOUCH_CONTROLLER: ""
+
+  # The three keys, each low while pressed (features/page-keys.yaml), and the buzzer (features/buzzer.yaml). GPIO3 and
+  # GPIO45 are strapping pins of the ESP32-S3, wired to the green key and the buzzer on this board.
+  PAGE_KEY_PREVIOUS_PIN: GPIO5
+  PAGE_KEY_NEXT_PIN: GPIO4
+  HOME_KEY_PIN: GPIO3
+  BUZZER_PIN: GPIO45
+
+  # The battery: its voltage on GPIO1 through two equal resistors, read while GPIO21 is high (below).
+  BATTERY_PIN: GPIO1
+  BATTERY_FULL_VOLTS: "4.15"
+  BATTERY_UPDATE_INTERVAL: "60s"
+
+  # The board's own settings page (docs/SETTINGS.md, "A board's own settings"). Without a finger it is not opened on
+  # the glass; the row is still the switch's place under Screen settings in the app.
+  BOOT_BOARD_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_tap_sound,
+        []() -> int32_t { return id(tap_sound).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(tap_sound).turn_on(); else id(tap_sound).turn_off(); }));

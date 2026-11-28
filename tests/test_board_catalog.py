@@ -59,7 +59,8 @@ class Catalog(unittest.TestCase):
         self.assertEqual(SHAPES['guition']['esphome'], core_floor)
         older, newer = firmware_module.offered('2026.9.0'), firmware_module.offered('2026.11.0')
         self.assertNotIn('reterminalsticky', older)
-        self.assertEqual([board for board in profiles.CATALOG if board not in older], ['reterminalsticky'])
+        # The paper boards: the reTerminal Sticky, and the reTerminal E1001 whose paper glass needs the same driver.
+        self.assertEqual([board for board in profiles.CATALOG if board not in older], ['reterminalsticky', 'reterminale1001'])
         self.assertEqual(list(newer), list(profiles.CATALOG))
         self.assertEqual(list(firmware_module.offered('2027.1.0')), list(profiles.CATALOG))
         # Nobody can say which ESPHome this is (a test, a development run): every board.
