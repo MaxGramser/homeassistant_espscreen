@@ -46,15 +46,20 @@ export function shelfSizes(): Size[] {
   return [SHOWN[0][0], SHOWN[1][0], grid.columns >= 2 && grid.rows >= 2 ? "square" : "tall"];
 }
 /** The one tile of `samples` the shelf shows. Best: the size its type names (catalogue `shelf`), else the size the tile
- * starts at. A chosen size: that size, and where the entity does not take it the largest it takes under it, so nothing
+ * starts at, one row high where it can be. A chosen size: that size, and where the entity does not take it the largest it takes under it, so nothing
  * leaves the shelf for the size it is shown at. An entity that only comes larger stands at its smallest. */
 export function shelfSample(samples: Sample[], view: ShelfView, entity: string, start?: Size): Sample | undefined {
   if (!samples.length) return undefined;
-  const wanted = view === "best" ? (shelfOf(entity.split(".")[0]) ?? start ?? "single") : null;
-  if (wanted) {
+  const named = view === "best" ? shelfOf(entity.split(".")[0]) : undefined;
+  const wanted = view === "best" ? (named ?? start ?? "single") : null;
+  // At its best the shelf stays one row high, so its lines stand even and a low drawer shows two of them: a tile that
+  // starts at two rows (a bedside clock, the energy card) stands at the largest one-row size it takes, where it takes one.
+  const low = view === "best" && !named && samples.some((item) => item.rows === 1);
+  if (wanted && !(low && (samples.find((item) => item.size === wanted)?.rows ?? 1) > 1)) {
     const exact = samples.find((item) => item.size === wanted);
     if (exact) return exact;
   }
+  if (low) return [...samples].reverse().find((item) => item.rows === 1)!;
   const step = wanted ? stepOf(wanted) : STEP[view as Exclude<ShelfView, "best">];
   // A size outside the three steps (a calendar's own, the energy card's) has no step: it stands as it starts.
   if (step < 0) return samples[samples.length - 1];

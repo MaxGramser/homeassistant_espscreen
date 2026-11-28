@@ -1455,6 +1455,8 @@ describe("the library's shelf (docs/PAGES.md, \"The library\")", () => {
     // The mockup's own card, one an entity, without words under it.
     expect(shelf.findAll(".sample .tile").length).toBe(1);
     expect(shelf.find(".sample-foot").exists()).toBe(false);
+    // Its name stands under it, on a line of its own.
+    expect(shelf.find(".shelf-name").text().length).toBeGreaterThan(0);
     await library.findAll(".lib-view button").at(-1)!.trigger("click");
     expect(useUiStore().libraryView).toBe("list");
     expect(localStorage.getItem("esp-screens.library-view")).toBe("list");

@@ -47,22 +47,11 @@ export const useCanvasStore = defineStore("canvas", () => {
   // Whether the screen keeps room for its page bar under the tiles: on every page, once the layout has more than one
   // (page_protocol.h footer), so a card is lower on all of them.
   const pageBarShown = computed(() => Boolean(doc.document && pages.navigationFooter(doc.document, settings.navigationSettings())));
-  const deviceStyle = computed(() => {
-    const shape = doc.screenShape, grid = doc.documentGrid;
-    // To a tenth of a pixel, not a whole one: on a 1280 x 800 screen the nearest whole pixel of width would make the
-    // mockup a pixel taller than the rest. Every board lying down lands on a whole number anyway.
-    const across = (side: number) => (shape.width >= shape.height ? (side * shape.width) / shape.height : side);
-    const least = shape.width >= shape.height ? Math.min(560, across(MOCKUP_SIDE)) : MOCKUP_SIDE;
-    const life = "dpi" in shape && shape.dpi ? across((Math.min(shape.width, shape.height) / shape.dpi) * CSS_PER_INCH) : 0;
-    const fit = room.value && !room.value.cap ? Math.min(room.value.width, (room.value.height * shape.width) / shape.height) : Infinity;
-    const scale = ui.phone ? 1 : Math.min(2, Math.max(0.5, Number(zoom.value) || 1));
-    // A phone draws the page across its whole width, the same on every page (before, a page took the width of its
-    // contents there, and one with a long name stood wider than the next).
-    const width = ui.phone && room.value ? room.value.width
-      : Math.min(room.value?.cap ? room.value.width : Infinity, Math.max(least, Math.min(life, fit)) * scale);
-    const rounded = Math.round(width * 10) / 10;
-    // The glass in editor pixels, and the -/+ pill at the size the screen draws it (model/ui-scale.ts).
-    const glass = rounded / shape.width, pill = pillMetrics(shape);
+  // The glass's own sizes as CSS variables at a scale: `glass` editor pixels to one of the screen's, on a page `width` wide.
+  // The page mockup takes its scale from its room (deviceStyle); the library's shelf draws its tiles at a scale of its
+  // own (shelfGlass, styleFor), the same way.
+  function styleAt(glass: number, width: number) {
+    const shape = doc.screenShape, grid = doc.documentGrid, pill = pillMetrics(shape);
     const [watch, text] = [pill.faces[0] ?? 22, pill.faces[1] ?? pill.faces[0] ?? 14];
     // The page in the glass's proportions (app 0.4.74): the top bar from the top of the glass down to where the tile area
     // starts, the margins and gaps of the grid, and the page bar where the layout has one, so a card is as high against
@@ -94,8 +83,30 @@ export const useCanvasStore = defineStore("canvas", () => {
       "--screen-rows": String(grid?.rows ?? shape.rows),
       // A wide tile is two cells, or the only one on a single-column screen (layout.ts: spanOf).
       "--screen-wide-span": String(Math.min(2, grid?.columns ?? shape.columns)),
-      "--mockup-width": `${rounded}px`,
+      "--mockup-width": `${width}px`,
     };
+  }
+  /** The glass's sizes at a scale of the caller's own, as the page mockup has them at its scale. */
+  const styleFor = (glass: number) => styleAt(glass, Math.round(glass * doc.screenShape.width * 10) / 10);
+  /** The scale at which the glass is as large on this monitor as in the hand (96 CSS pixels to the inch), for a board that
+   * says its density; 0 for one that does not. The fonts of the mockup are drawn for about this scale. */
+  const lifeGlass = computed(() => { const shape = doc.screenShape; return "dpi" in shape && shape.dpi ? CSS_PER_INCH / shape.dpi : 0; });
+  const deviceStyle = computed(() => {
+    const shape = doc.screenShape;
+    // To a tenth of a pixel, not a whole one: on a 1280 x 800 screen the nearest whole pixel of width would make the
+    // mockup a pixel taller than the rest. Every board lying down lands on a whole number anyway.
+    const across = (side: number) => (shape.width >= shape.height ? (side * shape.width) / shape.height : side);
+    const least = shape.width >= shape.height ? Math.min(560, across(MOCKUP_SIDE)) : MOCKUP_SIDE;
+    const life = "dpi" in shape && shape.dpi ? across((Math.min(shape.width, shape.height) / shape.dpi) * CSS_PER_INCH) : 0;
+    const fit = room.value && !room.value.cap ? Math.min(room.value.width, (room.value.height * shape.width) / shape.height) : Infinity;
+    const scale = ui.phone ? 1 : Math.min(2, Math.max(0.5, Number(zoom.value) || 1));
+    // A phone draws the page across its whole width, the same on every page (before, a page took the width of its
+    // contents there, and one with a long name stood wider than the next).
+    const width = ui.phone && room.value ? room.value.width
+      : Math.min(room.value?.cap ? room.value.width : Infinity, Math.max(least, Math.min(life, fit)) * scale);
+    const rounded = Math.round(width * 10) / 10;
+    // The glass in editor pixels, and its sizes at that scale.
+    return styleAt(rounded / shape.width, rounded);
   });
   // The compact look: the board declares it (LOOK in its board file, served with the shape); a shape from an add-on that
   // does not say it is taken by its shorter side, the CYD being the only compact board there was. The shorter side and not
@@ -117,5 +128,5 @@ export const useCanvasStore = defineStore("canvas", () => {
     return cell >= Math.floor((shape.dpi * 30 + 12) / 25);
   });
 
-  return { barMetrics, pageBarShown, deviceStyle, isCompact, roomyNames, zoom, zoomBy, room };
+  return { barMetrics, pageBarShown, deviceStyle, styleFor, lifeGlass, isCompact, roomyNames, zoom, zoomBy, room };
 });

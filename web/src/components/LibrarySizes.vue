@@ -15,7 +15,7 @@ import LibrarySample from "./LibrarySample.vue";
 import type { Tile } from "../types";
 
 export type Anchor = { left: number; top: number; bottom: number };
-const props = defineProps<{ entity: Entry; name: string; detail: string; mark: string; disabled: boolean; zoom: number; maxHeight: number; anchor: Anchor }>();
+const props = defineProps<{ entity: Entry; name: string; detail: string; mark: string; disabled: boolean; glass: number; zoom: number; maxHeight: number; anchor: Anchor }>();
 const emit = defineEmits<{ add: [tile: Tile] }>();
 const entities = useEntitiesStore();
 
@@ -43,7 +43,7 @@ const place = computed(() => {
       <span v-if="mark !== '+'" class="sizes-mark">{{ mark === "✓" ? t("editor.library.tiles.placed") : mark }}</span>
     </header>
     <div class="sizes-row">
-      <LibrarySample v-for="sample in samples" :key="sample.size" :sample="sample" :name="name" :disabled="disabled" :zoom="zoom" :max-height="maxHeight" foot @add="(tile) => emit('add', tile)" />
+      <LibrarySample v-for="sample in samples" :key="sample.size" :sample="sample" :name="name" :disabled="disabled" :glass="glass" :zoom="zoom" :max-height="maxHeight" foot @add="(tile) => emit('add', tile)" />
     </div>
   </div>
 </template>
