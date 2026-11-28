@@ -20,4 +20,7 @@ The first finger is reported whenever there is one.
 `gsl_point_id.cpp` is Silead's code from the Linux driver (GPL-2.0 or later, header in the file).
 
 It goes away when ESPHome's own `gsl3670` works on the V3: then the hardware file goes back to `platform: gsl3670` with
-`model: GUITION-JC8012P4A1`.
+`model: GUITION-JC8012P4A1`. Read on 2026-11-28: ESPHome 2026.11.1's `gsl3670` starts the chip as 2026.9.0's did (the
+same order of steps, the same reset pulses of 1 ms low and 5 ms high through its new `pulse_reset` helper, no check
+that the chip answers), so nothing says it works there now. What decides is a V3's glass: a build with
+`platform: gsl3670` and a finger on it.

@@ -24,7 +24,7 @@ ESPHome-touch-display-mount (https://github.com/akuehlewind/ESPHome-touch-displa
   Copyright (c) 2023 Adrian Kuehlewind. MIT License (as above). The very first version of this project started from it.
 
 ESPHome components (https://github.com/esphome/esphome)
-  components/xpt2046, components/mipi_dsi_v3 and components/gsl3680_v3 are adapted from ESPHome and from an ESPHome
+  components/xpt2046 and components/gsl3680_v3 are adapted from ESPHome and from an ESPHome
   fork, under the ESPHome License kept in each folder (C++ code GPLv3, Python code MIT). Each folder's README describes
   the changes. components/gsl3680_v3/gsl_point_id.cpp is Copyright 2010-2016 Silead Inc., GPLv2 or later, used here
   under version 3.

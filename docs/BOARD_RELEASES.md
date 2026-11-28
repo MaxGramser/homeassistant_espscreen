@@ -29,7 +29,7 @@ How a path is sorted:
 | Changed path | Reaches |
 |---|---|
 | `packages/core.yaml`, `components/smart_display`, `fonts/` | every board |
-| a component under `components/` that some boards load as a platform (`xpt2046`, `mipi_dsi_v3`, `gsl3680_v3`) | the boards whose entry files load it |
+| a component under `components/` that some boards load as a platform (`xpt2046`, `gsl3680_v3`) | the boards whose entry files load it |
 | the `screen` section of a file in `screen_manager/translations/` (the texts the firmware compiles in) | every board |
 | a new file in `screen_manager/translations/` (a new language: no screen speaks it yet, and one set to it is offered its update anyway) | no firmware |
 | a board file under `packages/boards/`, or its entry files `packages/<board>.yaml` and `checkout/<board>.yaml` | that board |

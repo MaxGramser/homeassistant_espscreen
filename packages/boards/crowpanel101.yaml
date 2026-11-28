@@ -124,8 +124,7 @@ output:
 # EK79007 at 1024x600 with its timings and init sequence, the model Elecrow's own example uses. Its reset is GPIO41 on
 # this board.
 display:
-  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
-  - platform: ${DSI_PLATFORM}
+  - platform: mipi_dsi
     id: my_display
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     reset_pin: GPIO41

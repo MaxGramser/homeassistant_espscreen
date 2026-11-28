@@ -23,6 +23,10 @@ ESPHome supports many panels by name, and then one line sets the pins, the timin
 A board that is not in those lists needs its pins, its init sequence and its timings from the manufacturer's
 example, which is the one genuinely difficult part of a new board.
 
+A board with an ESP32-P4 states `min_version: 2026.9.1` or newer in its board file: ESPHome's `mipi_dsi` starts a chip
+of revision 3 from that version on, and a board of any P4 model may carry one ([CHIP_REVISIONS.md](CHIP_REVISIONS.md),
+"The ESP32-P4"). `tests/test_p4_core.py` fails without it.
+
 ## 3. A base configuration from ESPHome
 
 A board file is its hardware, the facts of its glass, and the packages it includes (docs/PROFILES.md). Step 4 writes

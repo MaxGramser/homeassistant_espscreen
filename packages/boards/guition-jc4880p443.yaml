@@ -85,8 +85,7 @@ esphome:
 # ESPHome's own mipi_dsi platform knows this panel by name (2026.6.2+): `model: JC4880P443` brings the ST7701's init
 # sequence, its timings and its reset pin. The panel is 480x800; LVGL turns it a quarter (LVGL_ROTATION).
 display:
-  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
-  - platform: ${DSI_PLATFORM}
+  - platform: mipi_dsi
     id: my_display
     model: JC4880P443
     update_interval: never

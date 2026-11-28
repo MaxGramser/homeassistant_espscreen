@@ -8,10 +8,10 @@
 # display, touch and backlight settings are the ones of packages/boards/waveshare101.yaml, the board with pre-v3
 # silicon, and everything but the chip revision it assumes is shared with it (packages/hardware/waveshare101.yaml).
 # A pre-v3 firmware does not start a rev3 chip, and the other way round; ESP Screen Manager reads the chip and builds
-# for the revision it finds (docs/CHIP_REVISIONS.md). On rev3 silicon ESPHome's own display driver aborts while the
-# display starts (seen on this board, 2026-11-16: `esp_lcd_new_dsi_bus`, at once after "Performing bus recovery", over
-# and over), so DSI_PLATFORM takes the repository's copy of it. With that copy the board starts, shows its pages and
-# takes touches (the same day, a unit of chip revision v3.2). The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
+# for the revision it finds (docs/CHIP_REVISIONS.md). On rev3 silicon ESPHome's display driver before 2026.9.1 aborts
+# while the display starts (seen on this board, 2026-11-16: `esp_lcd_new_dsi_bus`, at once after "Performing bus
+# recovery", over and over). With 2026.9.1's driver, then a copy of it in this repository, the board starts, shows its
+# pages and takes touches (the same day, a unit of chip revision v3.2). The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
 # 10.1-inch shares with the 7-inch ESP32-P4-WIFI6-Touch-LCD-7, wired as on the Waveshare P4 86 panel (Waveshare's
 # schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default. Experimental:
 # nobody has tried the audio on this board yet. The microSD slot and the MIPI-CSI camera port are not configured.
@@ -74,8 +74,7 @@ substitutions:
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
   # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
-  # as on the Waveshare P4 86 panel, and its display platform, components/mipi_dsi_v3, is ESPHome 2026.9.0's mipi_dsi
-  # with one line changed. A board file's min_version wins over the core's.
+  # as on the Waveshare P4 86 panel. A board file's min_version wins over the core's.
   # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
   # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
   min_version: 2026.9.1

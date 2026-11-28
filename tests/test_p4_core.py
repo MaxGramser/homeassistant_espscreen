@@ -51,12 +51,11 @@ class P4Core(unittest.TestCase):
 
     def test_what_differs_between_chip_revisions_is_decided_in_the_core_alone(self):
         """One number, CHIP_REVISION, and the rules that follow from it next to the setting each one changes
-        (docs/CHIP_REVISIONS.md): no board or hardware file sets the revision switch or names a DSI driver itself, so a
-        board sold with either silicon builds right for the chip the app read."""
+        (docs/CHIP_REVISIONS.md): no board or hardware file sets the revision switch or names an ESP32-P4 board itself,
+        so a board sold with either silicon builds right for the chip the app read."""
         core = CORE.read_text()
         self.assertIn('CHIP_REVISION: "0"', core)
         self.assertRegex(core, r"engineering_sample: '\$\{ .*CHIP_REVISION")
-        self.assertRegex(core, r"DSI_PLATFORM: '\$\{ .*CHIP_REVISION")
         # The image's lowest revision follows the same number: a chip read as v3.0 builds from v3.0, every other rev3
         # one from ESP-IDF's default v3.1, so the header never refuses the chip the build was made for.
         self.assertRegex(core, r"CONFIG_ESP32P4_REV_MIN_300: '\$\{ \"y\" if \(CHIP_REVISION \| int\) == 300")
@@ -67,7 +66,6 @@ class P4Core(unittest.TestCase):
             text = path.read_text()
             self.assertNotRegex(text, r'(?m)^\s*engineering_sample:', path.name)
             self.assertNotRegex(text, r'(?m)^\s*board:\s*esp32-p4', f'{path.name}: board: ${{P4_EV_BOARD}}')
-            self.assertNotRegex(text, r'(?m)^\s*-?\s*platform: mipi_dsi(_v3)?\s*$', f'{path.name}: platform: ${{DSI_PLATFORM}}')
             revision = re.search(r'(?m)^\s*CHIP_REVISION:\s*"(\d+)"', text)
             if revision:
                 self.assertIn(CORE.resolve(), includes(path), f'{path.name} states a chip revision but is no P4 board')
@@ -83,13 +81,24 @@ class P4Core(unittest.TestCase):
         for board in boards:
             floor = re.search(r'(?m)^  min_version: (\d+)\.(\d+)\.(\d+)', board.read_text())
             self.assertIsNotNone(floor, board.name)
-            self.assertGreaterEqual(tuple(map(int, floor.groups())), (2026, 9, 1), board.name)
+            self.assertGreaterEqual(tuple(map(int, floor.groups())), (2026, 9, 1),
+                                    f'{board.name}: min_version 2026.9.1 or newer (docs/CHIP_REVISIONS.md)')
 
-    def test_every_p4_board_takes_its_dsi_driver_from_the_chip_revision(self):
+    def test_every_p4_display_is_esphomes_own_driver(self):
+        """The repository kept a copy of ESPHome's mipi_dsi for rev3 silicon (components/mipi_dsi_v3) until every P4
+        board asked for the ESPHome that has the fix. No file picks a driver by revision or names that copy again."""
+        self.assertFalse((ROOT / 'components' / 'mipi_dsi_v3').exists())
         p4 = {p.resolve() for p in HARDWARE.glob('*.yaml') if re.search(r'^esp32_hosted:', p.read_text(), re.M)}
+        seen = 0
         for board in (ROOT / 'packages' / 'boards').glob('*.yaml'):
-            if includes(board) & p4 and re.search(r'(?m)^display:', board.read_text()):
-                self.assertIn('platform: ${DSI_PLATFORM}', board.read_text(), board.name)
+            if not includes(board) & p4:
+                continue
+            text = '\n'.join(path.read_text() for path in (board, *includes(board)))
+            self.assertNotIn('DSI_PLATFORM', text, board.name)
+            self.assertNotIn('mipi_dsi_v3', text, board.name)
+            self.assertEqual(len(re.findall(r'(?m)^  - platform: mipi_dsi\s*$', text)), 1, board.name)
+            seen += 1
+        self.assertGreaterEqual(seen, 14)
 
 
 if __name__ == '__main__':

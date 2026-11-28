@@ -7,8 +7,8 @@
 # Everything but the chip revision and the LCD is the first JC8012P4A1's (packages/hardware/guition-jc8012p4a1.yaml), so
 # this file differs from guition-jc8012p4a1.yaml only there. The first build's firmware restarts a V3 straight after
 # its bootloader, over and over (CHIP_LP_WDT_RESET, GitHub issue #52), which is how someone finds out which of the two
-# they have. docs/JC8012P4A1.md has what to check on the glass. On rev3 silicon ESPHome's own display driver aborts
-# while the display starts, so on rev3 the display takes the repository's copy (DSI_PLATFORM, docs/CHIP_REVISIONS.md).
+# they have. docs/JC8012P4A1.md has what to check on the glass. On rev3 silicon ESPHome's display driver before
+# 2026.9.1 aborts while the display starts, so this file asks for that ESPHome (min_version, docs/CHIP_REVISIONS.md).
 # The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml), experimental:
 # @Eugen417 runs the same wiring, both ways at once, on a V3 with a build of his own (pull request #259).
 #

@@ -219,7 +219,7 @@ std::string watch_said() { return said; }
 
 }  // namespace glass
 
-// ESP-IDF makes the DPI panel for ESPHome's display (mipi_dsi, or the repo's mipi_dsi_v3 copy): its handle and its
+// ESP-IDF makes the DPI panel for ESPHome's display (mipi_dsi): its handle and its
 // size are picked up here as they are made (-Wl,--wrap=esp_lcd_new_panel_dpi, smart_display/__init__.py on a P4).
 extern "C" esp_err_t __real_esp_lcd_new_panel_dpi(esp_lcd_dsi_bus_handle_t bus, const esp_lcd_dpi_panel_config_t *config,
                                                    esp_lcd_panel_handle_t *made);

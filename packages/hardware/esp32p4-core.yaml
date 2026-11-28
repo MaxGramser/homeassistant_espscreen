@@ -16,12 +16,11 @@ packages:
 # follows from this one number, here and nowhere else.
 substitutions:
   CHIP_REVISION: "0"
-  # The DSI driver for the panel. ESPHome's own mipi_dsi before 2026.9.1 names a PHY clock that only pre-v3 silicon
-  # has, so on rev3 it aborts while the display starts (GitHub #52, #462); the repository's copy, mipi_dsi_v3, leaves the
-  # clock to ESP-IDF, which picks the right one on either revision (esphome/esphome#18984). Pre-v3 boards keep the
-  # driver they have always run. Once the app and every board's min_version are at 2026.9.1 or newer, this goes back to
-  # mipi_dsi for all and components/mipi_dsi_v3 goes away.
-  DSI_PLATFORM: '${ "mipi_dsi" if (CHIP_REVISION | int) < 300 else "mipi_dsi_v3" }'
+  # The panel's driver follows from no revision: every P4 display is ESPHome's own mipi_dsi. Before 2026.9.1 that
+  # driver named a PHY clock that only pre-v3 silicon has, so on rev3 it aborted while the display started (GitHub #52,
+  # #462); from 2026.9.1 on it leaves the clock to ESP-IDF, which picks the right one on either revision
+  # (esphome/esphome#18984). So every P4 board file asks for ESPHome 2026.9.1 at least (min_version,
+  # tests/test_p4_core.py), and an older ESPHome refuses the build instead of making a firmware that shows no picture.
   # ESPHome's name of Espressif's function EV board for each revision, for a hardware file that names that board (the
   # Tab5's): ESPHome refuses a pre-v3 board name on a rev3 build, and the other way round.
   P4_EV_BOARD: '${ "esp32-p4-evboard" if (CHIP_REVISION | int) < 300 else "esp32-p4_r3-evboard" }'

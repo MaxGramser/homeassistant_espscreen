@@ -28,7 +28,7 @@ device); its other port, "USB TO UART", is behind a bridge chip. A screen flashe
 
 The remote package is `packages/wavesharep47b.yaml` and the checkout entry `checkout/wavesharep47b.yaml`. Both combine
 `packages/core.yaml` with the board file `packages/boards/wavesharep47b.yaml`. The board needs ESPHome 2026.9.1 or
-newer: its display platform is the repository's copy of that version's driver.
+newer: the display driver before it does not start this board's rev3 silicon.
 
 ## Layout and capabilities
 
@@ -42,8 +42,8 @@ newer: its display platform is the repository's copy of that version's driver.
   polled.
 - Camera tiles, full-screen snapshots and the live camera of the P4 boards, camera alerts and media artwork use the
   shared PSRAM implementation. The board has no camera of its own configured.
-- The display runs on `components/mipi_dsi_v3`, ESPHome's driver with the DSI clock left to ESP-IDF: the stock driver's
-  fixed clock stops rev3 silicon while the display starts, as on the Guition JC8012P4A1 V3.
+- The display runs on ESPHome's own `mipi_dsi` of 2026.9.1 or newer, which leaves the DSI clock to ESP-IDF: the fixed
+  clock of the driver before it stops rev3 silicon while the display starts, as on the Guition JC8012P4A1 V3.
 - The speaker and the two microphones are the screen's audio, experimental: a media player in Home Assistant for
   announcements and music, Volume, Microphone, Microphone gain, Automatic gain and Echo cancellation under Screen
   settings, and what audio plugins (a voice assistant) need. See "Speaker and microphones" below.

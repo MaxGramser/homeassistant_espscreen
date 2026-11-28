@@ -45,19 +45,15 @@ class WhatAChangeReaches(unittest.TestCase):
             self.assertEqual(reach(name)[name], EVERY, name)
 
     def test_a_component_some_boards_load_reaches_those_boards(self):
-        """The CYD's xpt2046 and the mipi_dsi_v3 of the ESP32-P4 boards (every P4 board takes it on rev3 silicon,
-        DSI_PLATFORM in hardware/esp32p4-core.yaml) are platforms of those boards alone: a fix in one is firmware for them,
-        not for every screen."""
+        """The CYD's xpt2046 and the gsl3680_v3 of the Guition JC8012P4A1 V2 and V3 (hardware/guition-jc8012p4a1.yaml)
+        are platforms of those boards alone: a fix in one is firmware for them, not for every screen."""
         for name, board in (('components/xpt2046/touchscreen/xpt2046.cpp', 'cyd'),
-                            ('components/mipi_dsi_v3/mipi_dsi.cpp', 'jc8012p4a1v3')):
+                            ('components/gsl3680_v3/gsl3680.cpp', 'jc8012p4a1v3')):
             boards = reach(name)[name]
             self.assertIn(board, boards, name)
             self.assertNotEqual(boards, EVERY, name)
-        p4 = {board for board in profiles.BOARDS
-              if (ROOT / 'packages/hardware/esp32p4-core.yaml').resolve() in
-              [p.resolve() for p in profiles.files(f'checkout/{board}.yaml')]}
-        self.assertGreaterEqual(len(p4), 14)
-        self.assertEqual(reach('components/mipi_dsi_v3/display.py')['components/mipi_dsi_v3/display.py'], p4)
+        self.assertEqual(reach('components/gsl3680_v3/touchscreen.py')['components/gsl3680_v3/touchscreen.py'],
+                         {'jc8012p4a1v2', 'jc8012p4a1v3'})
 
     def test_a_package_reaches_the_boards_that_include_it(self):
         """A feature, look, hardware or cells file reaches exactly the boards whose chain names it."""

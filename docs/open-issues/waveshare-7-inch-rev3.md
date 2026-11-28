@@ -46,7 +46,14 @@ silicon every P4 board, this one included, builds with `engineering_sample: fals
 without a board file of its own. So the experiment is now simply: install a rev3 7-inch from Tessera over USB, and
 report the "chip revision" line of the USB log and whether the picture, touch and backlight work. Not seen on glass yet.
 
+## 2026-11-28: the display driver is ESPHome's own again
+
+`components/mipi_dsi_v3` was ESPHome 2026.9.1's `mipi_dsi` under another name, and it is gone: every P4 board asks for
+ESPHome 2026.9.1 or newer and builds with `platform: mipi_dsi` on either silicon (docs/CHIP_REVISIONS.md, "The
+ESP32-P4"). Where the sections above say `mipi_dsi_v3`, read ESPHome's driver of 2026.9.1 or newer. The experiment is
+unchanged: install a rev3 7-inch from Tessera over USB and report what the glass does.
+
 ## Pointers
 
 docs/WAVESHAREP47.md ("Which silicon"), docs/WAVESHARE101.md, packages/boards/wavesharep47.yaml,
-packages/boards/waveshare101-v3.yaml, packages/boards/wavesharep47b.yaml, components/mipi_dsi_v3/.
+packages/boards/waveshare101-v3.yaml, packages/boards/wavesharep47b.yaml, packages/hardware/esp32p4-core.yaml.
