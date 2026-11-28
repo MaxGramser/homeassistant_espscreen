@@ -1991,7 +1991,12 @@
         "group_layout": "Макет",
         "group_advanced": "Дополнительно"
       },
-      "sending": "Отправка"
+      "sending": "Отправка",
+      "status": {
+        "full": "Заполнена · {n} %",
+        "close": "Память {n} %",
+        "changes": "Изменения"
+      }
     },
     "layout": {
       "removed": "Удалено: {name}",

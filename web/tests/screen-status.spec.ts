@@ -3,8 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
 import { homeView, SMALLEST } from "../src/model/overview";
-import { buildProgress, explainsItself, firmwareVersion, languageOnly, needsAttention, pendingText, rowStatus, screenBoardName, screenIcon, screenLight,
-  screenSubline, updateNotes, updateState, whatsNew, type StatusFacts } from "../src/model/screen-status";
+import { buildProgress, explainsItself, firmwareVersion, headStatus, languageOnly, needsAttention, pendingText, rowStatus, screenBoardName, screenIcon, screenLight,
+  screenSubline, updateNotes, updateState, whatsNew, type HeadFacts, type StatusFacts } from "../src/model/screen-status";
 import type { LineBuild, Screen } from "../src/types";
 import { screenFixture } from "./helpers/fixtures";
 
@@ -181,5 +181,33 @@ describe("a build that ends while the page is open", () => {
     expect(buildEndText([{ screen: hall, by: "update", outcome: "ready" }, { screen: desk, by: "plugins", outcome: "failed" }]))
       .toEqual({ text: t("editor.build.build_failed", { name: "Desk" }), failed: true });
     expect(buildEndText([{ screen: hall, by: "update", outcome: "failed" }])!.text).toBe(t("editor.build.update_failed", { name: "Hall" }));
+  });
+});
+
+describe("the pill in a screen's head", () => {
+  const calm: HeadFacts = { away: false, restarting: false, dirty: false, saved: false, memory: null, none: false };
+  const said = (more: Partial<HeadFacts> = {}, of: Partial<Screen> = {}) =>
+    headStatus(screen({ in_sync: true, ...of }), { ...calm, ...more });
+
+  it("is quiet while nothing is wrong, and says a save arrived", () => {
+    expect(said()).toEqual({ kind: "fine", text: "Online · All saved" });
+    expect(said({ saved: true })).toEqual({ kind: "good", text: "Saved · sent to screen" });
+    expect(said({}, { in_sync: false })).toEqual({ kind: "update", text: "Sending" });
+  });
+
+  it("says the worst that is going on: away before memory, memory before unsaved changes", () => {
+    const over = { level: "over" as const, share: 1.18 };
+    expect(said({ dirty: true })).toEqual({ kind: "warn", text: "Unsaved changes" });
+    expect(said({ dirty: true, memory: { level: "close", share: 0.86 } })).toEqual({ kind: "warn", text: "Memory 86 %" });
+    expect(said({ dirty: true, memory: over })).toEqual({ kind: "bad", text: "Full · 118 %" });
+    expect(said({ memory: over, none: true })).toEqual({ kind: "bad", text: "No room" });
+    expect(said({ dirty: true, memory: over, restarting: true })).toEqual({ kind: "update", text: "Updating" });
+    expect(said({ dirty: true, memory: over, restarting: true, away: true })).toEqual({ kind: "off", text: "Offline" });
+    expect(said({ memory: { level: "fine", share: 0.4 } }).kind).toBe("fine");
+  });
+
+  it("calls a preview a preview", () => {
+    expect(said({}, { virtual: true, in_sync: false }).kind).toBe("fine");
+    expect(said({ dirty: true }, { virtual: true })).toEqual({ kind: "warn", text: "Unsaved changes" });
   });
 });

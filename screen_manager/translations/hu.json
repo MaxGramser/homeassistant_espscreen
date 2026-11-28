@@ -1991,7 +1991,12 @@
         "group_layout": "Elrendezés",
         "group_advanced": "Haladó"
       },
-      "sending": "Küldés"
+      "sending": "Küldés",
+      "status": {
+        "full": "Megtelt · {n} %",
+        "close": "Memória {n} %",
+        "changes": "Változások"
+      }
     },
     "layout": {
       "removed": "{name} eltávolítva",

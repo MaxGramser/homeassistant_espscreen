@@ -1991,7 +1991,12 @@
         "group_layout": "Layout",
         "group_advanced": "Erweitert"
       },
-      "sending": "Wird gesendet"
+      "sending": "Wird gesendet",
+      "status": {
+        "full": "Zu voll · {n} %",
+        "close": "Speicher {n} %",
+        "changes": "Änderungen"
+      }
     },
     "layout": {
       "removed": "{name} entfernt",

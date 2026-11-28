@@ -4,7 +4,30 @@ App 0.3.1 stores each page as a complete unit: its tiles, top bar, navigation ch
 
 ## Editing
 
-The toolbar above the pages switches between two views, **Row** and **Map**, and holds Undo, Redo, **Preview**, **Add page** and a **?** with a short how-to.
+The toolbar above the pages holds **Add**, Undo, Redo and **Preview**, and on the right the two views, **Row** and **Map**, and a **?** with a short how-to.
+
+### The head and the toolbar
+
+A screen's page says what matters in one look, in two rows with one job each (`ScreenView.vue`, `LayoutView.vue`):
+
+- **The head** says where you are and whether it is well: the screen's name, the tabs **Layout**, **Screen settings**
+  and **Plugins**, one pill for the screen's state, and **Save & send**, the only filled key on the page, which is there
+  only while something is unsaved.
+- **The pill** says one thing, the worst that is going on (`headStatus` in `web/src/model/screen-status.ts`): the screen
+  away, restarting with its update, a layout larger than its memory for tiles, one that takes 80 % of it or more,
+  changes that are not sent, a layout on its way, one that just arrived. While none of that is so it is grey and says
+  the screen is online and all is saved. A click opens the rest (`ScreenStatus.vue`): the connection, the count of
+  pages and tiles, whether the changes are sent, and the memory the layout takes with the lines that explain it
+  (docs/TILE_MEMORY.md). A new fact about a screen goes behind the pill, and becomes what the pill says only when
+  someone has to act on it.
+- **The toolbar** is what you can do to the pages. **Add** is the one key with colour and holds everything that is
+  made: a tile (it opens the library with the cursor in its search), a section on a screen that draws them, a page, and
+  **Auto layout**. Undo, Redo and **Preview** stand beside it without a frame (`.btn.ghost`), the view and the **?** on
+  the right. A new thing to make goes under **Add**, a new view beside Row and Map; what is rare goes in the head's
+  **···** menu, never as one more key in the row.
+
+A phone keeps its own head and dock (app 0.4.40): the line under the screen's name says its state, and the dock holds
+Add tile and Save & send.
 
 **Row** is the default: the pages side by side, as you swipe through them on the screen. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Each page has a header with its number, its title, a **Home** label on the Home page and one **···** menu: **Page settings**, **Edit top bar**, **Set as Home**, **Duplicate page**, **New empty page with this top bar** and **Remove page**. Page settings hold the page title (the screen title, which every page without its own title shows, is one click under it), **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page**, the page order and the page's top bar. Every page can have different top-bar items. Copying a bar creates independent items on the chosen pages.
 
@@ -58,7 +81,7 @@ equally good match that is not an extra.
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
-**Auto layout** in the toolbar makes a whole layout from the home's areas and devices, and a screen without tiles
+**Auto layout**, under **Add** in the toolbar, makes a whole layout from the home's areas and devices, and a screen without tiles
 offers it at once; it lands as one edit to undo or change (docs/AUTO_LAYOUT.md).
 
 Explicitly adding a page opens a compact setup dialog for its title, Home control,

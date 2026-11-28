@@ -7,6 +7,7 @@ import { t } from "../i18n";
 import { boardTitle } from "./boards";
 import { versionAtLeast } from "./layout";
 import type { Build, BuildServerStep, ChangelogSection, LineBuild, Screen, ServerSide } from "../types";
+import type { MemoryUse } from "./memory";
 
 // The firmware version a screen's features go by, as the add-on works it out (firmware_known, app 0.2.78; null when it
 // can't tell). A screen entry without the field goes by the firmware text, as before.
@@ -207,4 +208,24 @@ export function buildEndText(ends: readonly BuildEnd[]): { text: string; failed:
   const names = ends.map((end) => end.screen.name);
   if (!names.length) return null;
   return { text: names.length === 1 ? t("editor.build.ready", { name: names[0] }) : t("editor.build.ready_several", { names: names.join(", ") }), failed: false };
+}
+
+// ---- The one pill in a screen's head (docs/PAGES.md, "The head and the toolbar") ----
+// The head says one thing about its screen, the worst that is going on, and is quiet while nothing is: the screen away,
+// restarting with its update, a layout larger than its memory, one that comes close, changes that are not sent, a
+// layout on its way, one that just arrived, or nothing at all. `none`: the screen has no memory to speak of
+// (model/memory.ts noRoom), which a share past ten times the room does not say.
+export type HeadFacts = { away: boolean; restarting: boolean; dirty: boolean; saved: boolean; memory: Pick<MemoryUse, "level" | "share"> | null; none: boolean };
+export type HeadStatus = { kind: "off" | "update" | "bad" | "warn" | "good" | "fine"; text: string };
+export function headStatus(screen: Screen, facts: HeadFacts): HeadStatus {
+  if (facts.away && !screen.virtual) return { kind: "off", text: t("editor.common.offline") };
+  if (facts.restarting && !screen.virtual) return { kind: "update", text: t("editor.update.restarting_short") };
+  const level = facts.memory?.level, n = facts.memory ? Math.min(999, Math.round(facts.memory.share * 100)) : 0;
+  if (level === "over" || level === "full") return { kind: "bad", text: facts.none ? t("editor.memory.none") : t("editor.screen_view.status.full", { n }) };
+  if (level === "close") return { kind: "warn", text: t("editor.screen_view.status.close", { n }) };
+  if (facts.dirty) return { kind: "warn", text: t("editor.common.unsaved") };
+  if (screen.virtual) return facts.saved ? { kind: "good", text: t("editor.preview.saved") } : { kind: "fine", text: t("editor.preview.virtual") };
+  if (!screen.in_sync) return { kind: "update", text: t("editor.screen_view.sending") };
+  if (facts.saved) return { kind: "good", text: t("editor.screen_view.sent") };
+  return { kind: "fine", text: `${t("editor.common.online")} · ${t("editor.screen_view.all_saved")}` };
 }

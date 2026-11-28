@@ -1991,7 +1991,12 @@
         "group_layout": "Layout",
         "group_advanced": "Advanced"
       },
-      "sending": "Sending"
+      "sending": "Sending",
+      "status": {
+        "full": "Full · {n} %",
+        "close": "Memory {n} %",
+        "changes": "Changes"
+      }
     },
     "layout": {
       "removed": "{name} removed",

@@ -2,7 +2,7 @@
 
 The editor can make a whole layout for a screen from the home's own Home Assistant: its areas, its devices and what each
 entity can do. It is offered at once on a screen that has no tiles yet ("Shall I make a first layout for you?"), and the
-toolbar's **Auto layout** makes one for any screen. The dialog draws every proposed page small, as the screen will show
+**Auto layout** under **Add** in the toolbar makes one for any screen. The dialog draws every proposed page small, as the screen will show
 it, before anything changes. On a screen that has tiles it asks whether the new pages replace its pages or come after
 them (then only with what is not on the screen yet, in the pages and tiles it has left). The layout goes into the draft
 as one edit: Undo takes it back, and nothing reaches the screen until Save.

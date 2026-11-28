@@ -89,7 +89,8 @@ The screen sends, in the reply to a hello and a ping (`memory`):
   and of a page's record (which holds its top bar). A board without PSRAM keeps all three inside the chip.
 
 The add-on and the editor count a layout as the screen does, the keys of a bedside clock included. The editor shows the
-share of the room in a thin bar beside the tile count, amber from 80 % and red when it is full. Past ten times the room,
+share of the room in a thin bar, amber from 80 % and red when it is full: behind the pill in the screen's head, which
+says so itself from 80 % (docs/PAGES.md, "The head and the toolbar"), and beside the count of a phone's pages. Past ten times the room,
 or with no room at all, it says "No room" in words instead of a share, and the pop-up says the same. The budget is a
 warning, not a rule (app 0.4.61): a tile that takes the layout past nine tenths of the room, or past all of it, asks
 first in a pop-up, and whoever answers yes gets it, from a click or a drag in the library alike. A paste asks the same,

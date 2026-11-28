@@ -1991,7 +1991,12 @@
         "group_layout": "Layout",
         "group_advanced": "Avanzate"
       },
-      "sending": "Invio"
+      "sending": "Invio",
+      "status": {
+        "full": "Pieno · {n} %",
+        "close": "Memoria {n} %",
+        "changes": "Modifiche"
+      }
     },
     "layout": {
       "removed": "Riquadro rimosso: {name}",

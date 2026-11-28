@@ -1,5 +1,7 @@
 <script setup lang="ts">
-// One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
+// One screen: the head with its name, the Layout, Settings and Plugins tabs, one pill for its state (ScreenStatus.vue)
+// and the one filled key, Save & send, while something is unsaved; under it the tab's view and the inspector in a column
+// on the right (docs/PAGES.md, "The head and the toolbar").
 import { useEventListener, useFileDialog } from "@vueuse/core";
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
@@ -9,6 +11,7 @@ import { useConfirm } from "../composables/useConfirm";
 import LayoutBotKey from "./LayoutBotKey.vue";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
+import ScreenStatus from "./ScreenStatus.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
 import Drawer from "./Drawer.vue";
 import FeedbackPanel from "./FeedbackPanel.vue";
@@ -51,7 +54,7 @@ const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
   : restarting(screen.value, builds.building(screen.value)) ? restartingText() : t("editor.screen_view.offline"));
-// The head says whether the screen is there in one word; the details of its delivery stay in the chip's tooltip.
+// The pill says whether the screen is there in one word; the details of its delivery stay in its tooltip.
 // A screen away because its update restarts it says so (model/screen-status.ts restarting), not "offline".
 const away = computed(() => !screen.value.online && !restarting(screen.value, builds.building(screen.value)));
 const statusKind = computed(() => away.value ? "off" : !screen.value.online ? "update" : screen.value.in_sync ? "good" : "update");
@@ -167,8 +170,7 @@ useEventListener(document, "keydown", onKey);
     </span>
     <div class="head-title">
       <h1 id="screen-name">{{ screen.name }}</h1>
-      <span v-if="!ui.phone" id="delivery" class="chip status" :class="statusKind" :title="statusText"><span class="dot"></span>{{ statusWord }}</span>
-      <p v-else class="phone-status" :class="{ dirty: doc.dirty }" :title="statusText"><span class="dot" :class="statusKind"></span>{{ phoneStatus }}</p>
+      <p v-if="ui.phone" class="phone-status" :class="{ dirty: doc.dirty }" :title="statusText"><span class="dot" :class="statusKind"></span>{{ phoneStatus }}</p>
     </div>
     <div v-if="!ui.phone" class="seg tabs" role="tablist" :aria-label="screen.name">
       <button type="button" id="tab-layout" role="tab" :aria-pressed="ui.tab === 'layout' ? 'true' : 'false'" :aria-selected="ui.tab === 'layout'" @click="ui.tab = 'layout'">
@@ -183,10 +185,8 @@ useEventListener(document, "keydown", onKey);
       </button>
     </div>
     <div class="head-right">
-      <template v-if="!ui.phone">
-      <span v-if="!doc.dirty" id="dirty" class="saved-note" :class="{ sent: doc.saved }"><Icon name="check" />{{ doc.saved ? t(screen.virtual ? "editor.preview.saved" : "editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
-      <span v-else id="dirty" class="chip dirty">{{ t("editor.common.unsaved") }}</span>
-      </template>
+      <!-- One pill for the screen's state, the worst that is going on; the rest is behind it (ScreenStatus.vue). -->
+      <ScreenStatus v-if="!ui.phone" :screen="screen" :away="away" :word="statusWord" :kind="statusKind" :detail="statusText" />
       <button v-if="doc.dirty && !ui.phone" id="save" type="button" class="btn primary" :disabled="doc.busy" title="⌘S" @click="doc.save()">
         <span v-if="doc.busy" class="spin small"></span>{{ doc.busy ? t("editor.common.saving") : t(screen.virtual ? "editor.preview.save" : "editor.common.save_send") }}
       </button>

@@ -1991,7 +1991,12 @@
         "group_layout": "Indeling",
         "group_advanced": "Geavanceerd"
       },
-      "sending": "Verzenden"
+      "sending": "Verzenden",
+      "status": {
+        "full": "Te vol · {n} %",
+        "close": "Geheugen {n} %",
+        "changes": "Wijzigingen"
+      }
     },
     "layout": {
       "removed": "{name} verwijderd",

@@ -1991,7 +1991,12 @@
         "group_layout": "Diseño",
         "group_advanced": "Avanzado"
       },
-      "sending": "Enviando"
+      "sending": "Enviando",
+      "status": {
+        "full": "Lleno · {n} %",
+        "close": "Memoria {n} %",
+        "changes": "Cambios"
+      }
     },
     "layout": {
       "removed": "Se ha eliminado {name}",

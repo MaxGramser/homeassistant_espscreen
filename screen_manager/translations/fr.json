@@ -1991,7 +1991,12 @@
         "group_layout": "Disposition",
         "group_advanced": "Avancé"
       },
-      "sending": "Envoi"
+      "sending": "Envoi",
+      "status": {
+        "full": "Plein · {n} %",
+        "close": "Mémoire {n} %",
+        "changes": "Modifications"
+      }
     },
     "layout": {
       "removed": "Tuile retirée : {name}",

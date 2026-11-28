@@ -1991,7 +1991,12 @@
         "group_layout": "Układ",
         "group_advanced": "Zaawansowane"
       },
-      "sending": "Wysyłanie"
+      "sending": "Wysyłanie",
+      "status": {
+        "full": "Pełna · {n} %",
+        "close": "Pamięć {n} %",
+        "changes": "Zmiany"
+      }
     },
     "layout": {
       "removed": "Usunięto: {name}",

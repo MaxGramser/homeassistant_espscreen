@@ -1991,7 +1991,12 @@
         "group_layout": "Disposição",
         "group_advanced": "Avançado"
       },
-      "sending": "A enviar"
+      "sending": "A enviar",
+      "status": {
+        "full": "Cheia · {n} %",
+        "close": "Memória {n} %",
+        "changes": "Alterações"
+      }
     },
     "layout": {
       "removed": "Removido: {name}",

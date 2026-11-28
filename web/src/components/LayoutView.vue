@@ -1,7 +1,8 @@
 <script setup lang="ts">
 
 // The pages side by side, like swiping on the screen, or as a map of where the page tiles lead; the library on the
-// right. One toolbar above both views: the view, undo and redo, the preview, a new page, and the how-to in one place.
+// right. One toolbar above both views (docs/PAGES.md, "The head and the toolbar"): Add, undo and redo, the preview, and
+// on the right the view and the how-to.
 import { useElementSize, useSwipe } from "@vueuse/core";
 import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from "vue";
 import { useAtMost } from "../composables/useWidths";
@@ -18,8 +19,10 @@ import Library from "./Library.vue";
 import PageMap from "./PageMap.vue";
 import NavigationPreview from './NavigationPreview.vue';
 import GridReview from './GridReview.vue';
-import MemoryMeter from './MemoryMeter.vue';
 import Icon from './ui/Icon.vue';
+import UiMenu from './ui/UiMenu.vue';
+import UiMenuItem from './ui/UiMenuItem.vue';
+import UiMenuSeparator from './ui/UiMenuSeparator.vue';
 import type { IconName } from '../model/ui-icons';
 import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
@@ -28,6 +31,7 @@ import { useScreenStore } from "../stores/screen";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
 import { pageReachWarning, pagesShown, pageTitleShown } from "../editor/pages";
+import { addSection, sectionsOffered } from "../editor/sections";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { useDraftsStore } from "../stores/drafts";
@@ -114,6 +118,13 @@ const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
 const focused = computed(() => doc.document?.pages.findIndex((page) => page.id === doc.focusedPageId) ?? -1);
+// Add in the toolbar. A tile comes from the library, so its item opens the drawer and puts the cursor in its search,
+// once the menu has handed the focus back to its key; a section lands on the chosen page's first free cells.
+const full = computed(() => layout.value.tiles.length >= doc.tileLimit);
+function addFromLibrary() {
+  ui.libraryOpen = true;
+  window.setTimeout(() => window.document.getElementById("search")?.focus(), 60);
+}
 // A screen without a single tile (a new one) is offered a first layout at once (docs/AUTO_LAYOUT.md); Start empty puts
 // the offer away for that screen while the editor is open.
 const offerSkipped = ref(new Set<string>());
@@ -149,21 +160,28 @@ function onCanvasClick(e: MouseEvent) {
     <template v-else>
     <!-- The firmware behind the pages: it draws the cards of the plugins' tiles, which the pages show (GlassFaces.vue). -->
     <GlassFaces />
+    <!-- One key for everything that is made (a tile, a section, a page, a first layout), the only one with colour; undo,
+         redo and the preview beside it without a frame; the view and the how-to on the right. The count of pages and
+         tiles and the memory they take are behind the pill in the screen's head (ScreenStatus.vue). -->
     <div v-if="!ui.phone" class="editor-toolbar">
+      <UiMenu align="start" width="236px">
+        <template #trigger>
+          <button type="button" id="toolbar-add" class="btn tonal"><Icon name="plus" />{{ t('editor.layout.help.add_label') }}<Icon name="chevron-down" class="btn-caret" /></button>
+        </template>
+        <UiMenuItem id="toolbar-add-tile" icon="view-dashboard-outline" :hint="t('editor.library.title')" :disabled="full" :title="full ? t('editor.library.full', doc.tileLimit) : ''" @select="addFromLibrary">{{ t('editor.inspector.kind.tile') }}</UiMenuItem>
+        <UiMenuItem v-if="sectionsOffered()" id="toolbar-add-section" icon="view-grid-outline" @select="addSection(selectedIndex)">{{ t('editor.sections.kind') }}</UiMenuItem>
+        <UiMenuItem id="toolbar-add-page" icon="file-plus-outline" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @select="ui.pageWizardOpen = true">{{ t('editor.inspector.kind.page') }}</UiMenuItem>
+        <UiMenuSeparator />
+        <UiMenuItem id="toolbar-auto-layout" icon="auto-fix" :title="t('editor.auto.button_title')" @select="ui.autoLayoutOpen = true">{{ t('editor.auto.button') }}</UiMenuItem>
+      </UiMenu>
+      <button type="button" id="undo" class="icon-btn" :disabled="!doc.undoCount" :aria-label="undoText" :title="`${undoText} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
+      <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
+      <button type="button" id="toolbar-preview" class="btn ghost" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
+      <span class="spacer"></span>
       <div class="seg views" role="group" :aria-label="t('editor.pages.mode')">
         <button type="button" :aria-pressed="doc.editorMode === 'simple'" @click="doc.setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
         <button type="button" :aria-pressed="doc.editorMode === 'advanced'" @click="doc.setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
       </div>
-      <div class="tool-group" role="group">
-        <button type="button" id="undo" class="icon-btn" :disabled="!doc.undoCount" :aria-label="undoText" :title="`${undoText} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
-        <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
-      </div>
-      <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
-      <button type="button" id="toolbar-auto-layout" class="btn quiet" :title="t('editor.auto.button_title')" @click="ui.autoLayoutOpen = true"><Icon name="auto-fix" />{{ t('editor.auto.button') }}</button>
-      <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
-      <span class="spacer"></span>
-      <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: doc.tileLimit }, pages) }}</span>
-      <MemoryMeter />
       <PopoverRoot>
         <PopoverTrigger as-child>
           <button type="button" id="layout-help" class="icon-btn" :aria-label="t('editor.layout.help.title')" :title="t('editor.layout.help.title')"><Icon name="help-circle-outline" /></button>

@@ -223,6 +223,14 @@ a:hover { text-decoration: underline; }
 .btn.primary:hover:not(:disabled) { filter: brightness(1.06); }
 .btn.quiet { color: var(--ink-2); border: 1px solid var(--line-strong); background: var(--surface); }
 .btn.quiet:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+/* Two quieter keys (docs/PAGES.md, "The head and the toolbar"): ghost has no frame until the pointer is on it, tonal is
+   the accent as a tint, for the one key of a row that makes something. Its ink leans to the text colour, so it reads on
+   the tint in the light look and the dark one. */
+.btn.ghost { color: var(--ink-2); padding-inline: 9px; }
+.btn.ghost:hover:not(:disabled) { background: var(--seg); color: var(--ink); }
+.btn.tonal { background: var(--accent-soft); color: color-mix(in srgb, var(--accent) 78%, var(--ink)); font-weight: 600; }
+.btn.tonal:hover:not(:disabled), .btn.tonal[data-state="open"] { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+.btn .btn-caret { font-size: 14px; margin: 0 -4px 0 -2px; opacity: 0.8; }
 .btn.danger { color: var(--danger); }
 .btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
 .btn.mini { padding: 4px 9px; font-size: 11.5px; border-radius: 8px; }
@@ -338,9 +346,23 @@ a:hover { text-decoration: underline; }
 .chip.status.update { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .chip.status.update .dot { background: var(--warn); }
 .chip .ui-icon { font-size: 14px; }
-.saved-note { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; white-space: nowrap; }
-.saved-note .ui-icon { color: var(--good); font-size: 16px; }
-.saved-note.sent { color: var(--good); }
+/* The one pill for a screen's state (ScreenStatus.vue): grey and small while nothing is wrong, tinted by what is. */
+.status-pill { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); font-size: 12px; font-weight: 500; white-space: nowrap; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+.status-pill:hover, .status-pill[data-state="open"] { background: var(--seg); color: var(--ink); }
+.status-pill .ui-icon { font-size: 15px; }
+.status-pill .dot, .status-row .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); flex: none; }
+.status-pill.off .dot, .status-row .dot.off { background: var(--line-strong); }
+.status-pill.update .dot, .status-pill.warn .dot, .status-row .dot.update { background: var(--warn); }
+.status-pill.update, .status-pill.warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+.status-pill.bad { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+.status-pill.good { color: var(--good); background: var(--good-soft); border-color: transparent; }
+.status-pill.update:hover, .status-pill.warn:hover, .status-pill.bad:hover, .status-pill.good:hover { filter: brightness(1.06); }
+.status-pop { width: 340px; padding: 12px 14px; display: grid; gap: 9px; }
+.status-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.status-row > span { color: var(--muted); white-space: nowrap; }
+.status-row > b { display: inline-flex; align-items: center; gap: 7px; font-weight: 500; text-align: right; }
+.status-row > b.warn { color: var(--warn); }
+.status-why { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.45; }
 .menu { position: absolute; top: 38px; right: 0; min-width: 210px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 6px; display: grid; z-index: 6; }
 .menu button { text-align: left; padding: 7px 10px; border-radius: 7px; color: var(--ink); display: flex; justify-content: space-between; gap: 12px; width: 100%; }
 .menu button small { color: var(--muted); display: inline; }
@@ -353,8 +375,9 @@ a:hover { text-decoration: underline; }
 .work > .settings { flex: 1; min-height: 0; overflow: auto; }
 .canvas { overflow: auto; padding: 20px 22px 24px; min-width: 0; flex: 1; min-height: 0; }
 .canvas { display: flex; flex-direction: column; }
-.editor-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-.toolbar-count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.editor-toolbar { display: flex; align-items: center; gap: 4px; margin-bottom: 14px; flex-wrap: wrap; }
+.editor-toolbar > .btn.tonal { margin-right: 6px; }
+.editor-toolbar > .seg { margin-right: 4px; }
 /* The screen's memory for tiles (firmware 0.34.0+, MemoryMeter.vue): a thin bar and a share, quiet until it fills. */
 .memory-meter { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; white-space: nowrap; cursor: default; font-variant-numeric: tabular-nums; }
 .memory-bar { position: relative; width: 44px; height: 4px; border-radius: 2px; background: var(--seg); overflow: hidden; }

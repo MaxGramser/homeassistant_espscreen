@@ -276,7 +276,7 @@ onto an empty slot and it stays there; drag it onto another tile and the two
 swap (the other tile takes the freed-up slot, or otherwise the nearest free
 slot); everything else stays put. While dragging, the preview already shows where
 everything will land; drop a tile on the page after the last one to start a new page.
-The pages stand side by side; **Add page** in the toolbar, or the empty page after the last one, creates
+The pages stand side by side; **Add** in the toolbar and then **Page**, or the empty page after the last one, creates
 an empty page that's kept, and the **···** menu of every page but the only one has **Remove page**
 (app 0.2.123): the page leaves with the tiles in its cells and with the **Go to page** tiles that led to
 it, the pages after it move up, and the message offers **Undo**. A page moves as a whole (app 0.2.121):
