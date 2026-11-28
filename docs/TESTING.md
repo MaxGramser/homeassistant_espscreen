@@ -162,7 +162,7 @@ arms, the rolling line of the media card's full view. Everything else is the sam
 change that should draw nothing new is held to. A host program without `KEPT_PAGES_HOST=1` keeps one download at a
 time, so on the media round's favourites page the tile that loaded last has its picture and the others have none,
 the same in every run. A tree from before 2026-11-28 loaded those pictures in turn, and there the favourites and the
-library's albums differ from run to run (docs/open-issues/pictured-tiles-take-turns-without-a-store.md).
+library's albums differ from run to run.
 
 `--tree` also shows that a new check fails before its fix: run this checkout's `run.py` with `--tree` set to a worktree
 of the commit before the fix and `--work` set to a folder of its own, so the two builds do not share one. The harness
