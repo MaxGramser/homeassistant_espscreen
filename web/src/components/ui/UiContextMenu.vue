@@ -27,7 +27,9 @@ function closeFocus(e: Event) { if (document.activeElement?.closest("[role='menu
 </script>
 
 <template>
-  <ContextMenuRoot v-model:open="open" :modal="false">
+  <!-- The finger's press is known before the menu's own long-press timer runs, but `disabled` only follows on the next
+       render: a menu asked to open after a finger's press says no here, so a hold that drags never opens one. -->
+  <ContextMenuRoot :open="open" :modal="false" @update:open="(value: boolean) => { if (!(value && finger)) open = value; }">
     <ContextMenuTrigger as-child :disabled="disabled || finger"><slot /></ContextMenuTrigger>
     <ContextMenuPortal>
       <ContextMenuContent class="ui-popover ui-menu" :style="width ? { minWidth: width } : undefined" :collision-padding="8" @close-auto-focus="closeFocus">

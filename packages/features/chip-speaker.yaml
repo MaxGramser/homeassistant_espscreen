@@ -1,0 +1,59 @@
+# ESP Screens - the sound output of a board's second chip as the screen's speaker (docs/SECOND_CHIP.md), for a board
+# file that names the pins of the serial line to that chip: CHIP_LINK_TX_PIN (out) and CHIP_LINK_RX_PIN (in).
+#
+# The chip plays what the screen sends it (components/chip_link), so the screen has what a board with a speaker has
+# under the id a plugin may count on (`ts_speaker`, plugin_manifest.FEATURES): the sounds chosen in the app
+# (docs/SOUNDS.md: an alert's sound, a doorbell's chime) and a plugin's sounds. It has no media player and no
+# microphone: Home Assistant plays no music on a buzzer, and a call needs both ends.
+#
+# The speaker works once the chip runs Tessera's firmware, which New screen writes to it in a step of its own
+# (docs/BOARD_STEPS.md). Until then the screen tells the app it has no sound, and nothing waits for the chip.
+#
+# Only boards with pictures include it (features/camera.yaml): a sound is a file the screen downloads.
+substitutions:
+  BOOT_AUDIO: |-
+    // Whether the chip answers decides whether this screen has sound (hw.h); the hello asks at every reply.
+    hw::speaker_works() = []() { return id(ts_chip).present(); };
+    // A buzzer carries one narrow band, so the app sends this screen the sounds it made for that band.
+    hw::buzzer() = true;
+    // A sound louder than the screen's volume (volume_lift.h, a plugin's alarm) lifts the chip's own volume; the
+    // Volume below stays what someone chose, so a restart comes back at it.
+    volume_lift::the().bind([]() { return id(ts_speaker).get_volume(); },
+                            [](float volume) { id(ts_speaker).set_volume(volume); });
+    // On the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings"): the volume.
+    settings_screen::board_rows.push_back(settings_screen::number(screen_text::txt::settings_volume,
+        []() -> int32_t { return static_cast<int32_t>(lroundf(id(ts_speaker_volume).state)); },
+        [](int32_t value) { id(ts_speaker_volume).make_call().set_value(value).perform(); }, 0, 100, 5, "%"));
+    // The doorbell's chime (module doorbell, where a board has it) and the sound that belongs to no module, an alert's
+    // (kept_sound.h, docs/SOUNDS.md).
+    runtime_tiles::doorbell_audio(id(ts_speaker));
+    kept_sound::bind_speaker(id(ts_speaker));
+
+# The line to the chip, and whether a chip with Tessera's firmware answers on it (components/chip_link).
+chip_link:
+  id: ts_chip
+  tx_pin: ${CHIP_LINK_TX_PIN}
+  rx_pin: ${CHIP_LINK_RX_PIN}
+
+speaker:
+  - platform: chip_link
+    id: ts_speaker
+    chip_link_id: ts_chip
+
+# How loud the screen plays, kept over a restart: the same number in Home Assistant, in the app (boards.yaml
+# `settings`) and on the screen's settings page. It starts at the top: a buzzer is not loud.
+number:
+  - platform: template
+    id: ts_speaker_volume
+    name: "Volume"
+    icon: "mdi:volume-high"
+    entity_category: config
+    unit_of_measurement: "%"
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 100
+    restore_value: true
+    optimistic: true
+    on_value:
+      - lambda: 'id(ts_speaker).set_volume(x / 100.0f);'

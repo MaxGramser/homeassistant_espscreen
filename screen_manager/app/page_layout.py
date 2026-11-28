@@ -23,6 +23,8 @@ INSTANCE_ID = re.compile(r"[a-zA-Z0-9_-]{1,64}\Z")
 APPEARANCE = {
     "display": "display", "icon": "icon", "background": "background",
     "historyHours": "history_hours", "refresh": "refresh", "subtitle": "sub", "fit": "fit", "overlay": "overlay",
+    # Whether the name and the second line roll by when too wide for their room (firmware dev): "off" ends them in dots.
+    "labelScroll": "name_scroll", "subtitleScroll": "sub_scroll",
     # A map card (app 0.4.33): who rides along and how it frames them. None of the three ever reaches a screen.
     "mapEntities": "map", "mapFraming": "framing", "mapDistance": "distance",
     # How a map looks and, on the map tile, whom it follows (app 0.4.36).
@@ -56,6 +58,12 @@ INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action
 
 class LayoutError(ValueError):
     """A document cannot be represented without losing the user's choices."""
+
+
+class GridAdaptationRequired(LayoutError):
+    """The grid a layout is stored for and the grid it is saved or sent for differ, and no adaptation from the one to
+    the other was asked for that matches (layout_store.save, page_service): the words are addon.errors.pages.adaptation,
+    which say what to do (GitHub #355). Its own kind, so a caller and a test hold the reason, not the sentence."""
 
 
 class CompiledLayouts(Mapping):

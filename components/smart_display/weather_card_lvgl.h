@@ -68,6 +68,14 @@ inline weather_chart::Chart weather_chart_of(const Tile &t,bool hourly){
   }
   const auto now=now_time?now_time():esphome::ESPTime{};
   c.now=now.is_valid()?now.hour:(c.hours.empty()?0:c.hours.front().at);
+  // The week's columns are the forecast's days: a list that starts tomorrow (or still yesterday) moves the hours and now
+  // to its first day's midnight, so today's line is not drawn under tomorrow (GitHub #280). The hourly strip keeps today.
+  const int shift=hourly?0:ww::first_day_from_today(x.forecast.empty()?-1:x.forecast[0].weekday,today);
+  if(shift){
+    for(auto &h:c.hours)h.at-=24*shift;
+    c.now=std::max(0,c.now-24*shift);
+    c.today=((c.today+shift)%7+7)%7;
+  }
   return c;
 }
 inline lv_obj_t *weather_chart_object(lv_obj_t *parent,int x,int y,int w,int h,weather_chart::Chart &&chart){
@@ -109,15 +117,16 @@ inline void weather_key(lv_obj_t *parent,int x,int y,bool hours){
   const int w=weather_key_w(),h=weather_key_h(),half=w/2,in=ui::px(3);
   auto *track=lv_obj_create(parent);lv_obj_remove_style_all(track);lv_obj_remove_flag(track,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(track,LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_pos(track,x,y);lv_obj_set_size(track,w,h);lv_obj_set_style_radius(track,LV_RADIUS_CIRCLE,0);
-  lv_obj_set_style_bg_color(track,theme::color(theme::TRACK),0);lv_obj_set_style_bg_opa(track,LV_OPA_COVER,0);
+  theme::ground(track,theme::TRACK);lv_obj_set_style_bg_opa(track,LV_OPA_COVER,0);
   for(int side=0;side<2;++side){
     const bool chosen=side==(hours?1:0);
     auto *k=lv_obj_create(track);lv_obj_remove_style_all(k);lv_obj_remove_flag(k,LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_pos(k,side?half:in,in);lv_obj_set_size(k,half-in,h-2*in);lv_obj_set_style_radius(k,LV_RADIUS_CIRCLE,0);
-    lv_obj_set_style_bg_color(k,theme::color(chosen?theme::CARD:theme::TRACK),0);lv_obj_set_style_bg_opa(k,LV_OPA_COVER,0);
+    const theme::Dress side_look=theme::half(chosen);
+    lv_obj_set_style_bg_color(k,lv_color_hex(side_look.ground),0);lv_obj_set_style_bg_opa(k,LV_OPA_COVER,0);
     lv_obj_set_style_bg_color(k,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
     auto *word=lv_label_create(k);lv_obj_set_style_text_font(word,f,0);lv_label_set_text(word,tr(side?txt::ha_weather_view_hourly:txt::ha_weather_view_daily));
-    lv_obj_set_style_text_color(word,theme::color(chosen?theme::INK:theme::MUTED),0);lv_obj_center(word);lv_obj_remove_flag(word,LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_text_color(word,lv_color_hex(side_look.ink),0);lv_obj_center(word);lv_obj_remove_flag(word,LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(k,LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(k,weather_key_event,LV_EVENT_CLICKED,(void*)(intptr_t)side);
   }

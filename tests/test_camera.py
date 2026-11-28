@@ -336,7 +336,7 @@ class Rules(unittest.TestCase):
         # glass: open a camera tile full screen on a board with pictures: the picture comes and refreshes every four
         # seconds, an alert with a camera shows it in its frame, and closing the cards or dimming closes the camera. These
         # are the screen's moments the camera takes part in, as one profile wires them; nothing on a PC runs that YAML.
-        for needle in ("- lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();',
+        for needle in ("- lambda: 'picture_fetch::tick(); file_fetch::tick(); kept_sound::loop(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();',
                        'runtime_tiles::alert_prepare();', 'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();',
                        'id: alert_image_frame'):
             self.assertIn(needle, PROFILE, needle)
@@ -1128,7 +1128,7 @@ class App(unittest.IsolatedAsyncioTestCase):
         subscribed = []
 
         async def request(kind, **data):
-            if kind == 'get_states':
+            if kind == 'subscribe_entities':
                 raise asyncio.CancelledError  # the subscriptions are made: stop here
             if kind == 'subscribe_events':
                 subscribed.append(data['event_type'])
@@ -1323,20 +1323,19 @@ class LiveTiles(unittest.TestCase):
             self.assertTrue([name for name, code in parts.items() if rule in code], f'the firmware asks {rule}...)')
 
     def test_a_dimmed_screens_backlight_goes_by_the_level_the_tiles_are_seen_at(self):
-        # The backlight of a dimmed screen, wherever a package sets it, goes by that same level, so the tiles count as seen
-        # exactly while they are lit enough to be.
-        dimmed = []
+        # The backlight of a screen in standby goes by that same level, so the tiles count as seen exactly while they
+        # are lit enough to be: the standby asks the glass for its level (screen_standby::show), and the one place that
+        # answers is runtime_tiles::standby_level().
         for path in sorted(PACKAGES.rglob('*.yaml')):
-            text = path.read_text()
-            self.assertNotIn('dim_level(', text, f'{path.relative_to(ROOT)}: a dimmed screen\'s level is '
+            self.assertNotIn('dim_level(', path.read_text(), f'{path.relative_to(ROOT)}: a dimmed screen\'s level is '
                              'runtime_tiles::standby_level(), the one camera_view::tiles_seen is asked with')
-            # A level is what a dimmed screen takes where an awake one takes its brightness.
-            dimmed += [(path.name, level.strip()) for level in
-                       re.findall(r'id\(display_dimmed\)\s*\?\s*([^?;]+?)\s*:\s*[\w:.]*brightness\b', text)]
-        self.assertTrue(dimmed, 'a package sets the backlight of a dimmed screen')
-        for name, level in dimmed:
-            self.assertEqual(level, 'runtime_tiles::standby_level()', f'{name}: a dimmed screen\'s backlight goes by '
-                             'runtime_tiles::standby_level(), the level camera_view::tiles_seen is asked with')
+        standby = (ROOT / 'components/smart_display/screen_standby.h').read_text()
+        self.assertIn('const int level = dimmed_ ? glass.standby_level() : static_cast<int>(screen_settings::current.brightness);',
+                      standby)
+        self.assertNotIn('dim_level(', standby)
+        core = (PACKAGES / 'core.yaml').read_text()
+        self.assertIn('glass.standby_level = []() { return runtime_tiles::standby_level(); };', core)
+        self.assertEqual(core.count('glass.standby_level ='), 1)
 
     def test_a_media_tile_may_show_its_cover_in_the_icons_place(self):
         from core import COVER_TILE_MIN_FIRMWARE, resolve_controls

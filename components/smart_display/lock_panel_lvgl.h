@@ -149,12 +149,12 @@ inline void lock_card_ring(const Tile &t,int cx,int cy,int size,int width){
     lv_arc_set_angles(arc,0,0);
     lv_anim_set_values(&a,0,360);lv_anim_set_duration(&a,500);lv_anim_set_exec_cb(&a,alarm_ring_close);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
     lv_anim_set_completed_cb(&a,[](lv_anim_t *done){lv_obj_add_flag(static_cast<lv_obj_t *>(done->var),LV_OBJ_FLAG_HIDDEN);});
-    lv_anim_start(&a);
+    screen_motion::start(&a);
     return;
   }
   lv_arc_set_angles(arc,0,70);
   lv_anim_set_values(&a,270,630);lv_anim_set_duration(&a,1600);lv_anim_set_exec_cb(&a,alarm_ring_turn);
-  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);lv_anim_start(&a);
+  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);screen_motion::start(&a);
   lock_ring=arc;
 #else
   (void)t;(void)cx;(void)cy;(void)size;(void)width;
@@ -222,8 +222,12 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   const uint32_t colour=asking&&!waits_open?lock_panel::ORANGE:lock_panel::color(t.state);
   auto *big=detail_button("",cx-d/2,cy-d/2,d,d,LOCK_KEY_FIRST+(int)(primary==lock_panel::NONE?lock_panel::LOCK:primary));
   lv_obj_set_style_radius(big,LV_RADIUS_CIRCLE,0);lv_obj_set_style_border_width(big,0,0);
-  const uint32_t ground=available?theme::tint(theme::state(colour),38):theme::hex(theme::TRACK);
+  // The key is the disc that says the state (theme::state_disc): shut, locked or jammed, is the one it stands for.
+  const bool shut=t.state=="locked"||t.state=="jammed";
+  const theme::Dress hero=theme::state_disc(colour,available,shut);
+  const uint32_t ground=hero.ground,face_ink=hero.ink;
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),0);
+  theme::rim(big,hero.rim>0);
   lv_obj_set_style_bg_color(big,lv_color_hex(theme::pressed(ground)),LV_STATE_PRESSED);
   lv_obj_set_style_bg_color(big,lv_color_hex(ground),LV_STATE_DISABLED);lv_obj_set_style_bg_opa(big,LV_OPA_COVER,LV_STATE_DISABLED);
   if(icons){
@@ -232,8 +236,8 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
     // The large icon face where the key has room for it and it carries the glyph.
     const lv_font_t *face_font=big_icon_font&&font_has(big_icon_font,glyph)&&lv_font_get_line_height(big_icon_font)<=d*3/5?big_icon_font:icons;
     lv_obj_set_style_text_font(face,face_font,0);lv_label_set_text(face,glyph);
-    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),0);
-    lv_obj_set_style_text_color(face,lv_color_hex(available?theme::icon(theme::state(colour)):theme::hex(theme::OFF)),LV_STATE_DISABLED);
+    lv_obj_set_style_text_color(face,lv_color_hex(face_ink),0);
+    lv_obj_set_style_text_color(face,lv_color_hex(face_ink),LV_STATE_DISABLED);
     lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
   }
   if(primary==lock_panel::NONE||!lock_panel::can(lock,primary,guard))lv_obj_add_state(big,LV_STATE_DISABLED);

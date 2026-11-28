@@ -1,9 +1,10 @@
 <script setup lang="ts">
 
 // The pages side by side, like swiping on the screen, or as a map of where the page tiles lead; the library on the
-// right. One toolbar above both views: the view, undo and redo, the preview, a new page, and the how-to in one place.
+// right. One toolbar above both views (docs/PAGES.md, "The head and the toolbar"): Add, undo and redo, the preview, and
+// on the right the view and the how-to.
 import { useElementSize, useSwipe } from "@vueuse/core";
-import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch, watchEffect } from "vue";
 import { useAtMost } from "../composables/useWidths";
 import { useBandSelect } from "../composables/useBandSelect";
 import { modifierKey, shortcut } from "../editor/clipboard";
@@ -18,8 +19,10 @@ import Library from "./Library.vue";
 import PageMap from "./PageMap.vue";
 import NavigationPreview from './NavigationPreview.vue';
 import GridReview from './GridReview.vue';
-import MemoryMeter from './MemoryMeter.vue';
 import Icon from './ui/Icon.vue';
+import UiMenu from './ui/UiMenu.vue';
+import UiMenuItem from './ui/UiMenuItem.vue';
+import UiMenuSeparator from './ui/UiMenuSeparator.vue';
 import type { IconName } from '../model/ui-icons';
 import { titleOf } from '../model/pages';
 import { useUiStore } from "../stores/ui";
@@ -28,14 +31,17 @@ import { useScreenStore } from "../stores/screen";
 import { useDragStore } from "../stores/drag";
 import { useCanvasStore } from "../stores/canvas";
 import { pageReachWarning, pagesShown, pageTitleShown } from "../editor/pages";
+import { addSection, sectionsOffered } from "../editor/sections";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { useDraftsStore } from "../stores/drafts";
 import GrowTip from "./GrowTip.vue";
 import LookTip from "./LookTip.vue";
 import LayoutBot from "./LayoutBot.vue";
+import GlassFaces from "./GlassFaces.vue";
 
 const ui = useUiStore();
+const docked = inject("libraryDock", false);
 const builds = useBuildsStore();
 const scr = useScreenStore();
 const dragging = useDragStore();
@@ -85,9 +91,10 @@ const { band } = useBandSelect(canvasView);
 const canvasSize = useElementSize(canvasView);
 watchEffect(() => {
   const width = canvasSize.width.value, height = canvasSize.height.value;
-  // A phone fills its width with the page (stores/canvas.ts); a narrow page that is not a phone keeps the sizes above.
-  canvas.room = width <= 0 || height <= 0 || (narrow.value && !ui.phone) ? null
-    : ui.phone ? { width, height } : { width: width - 10, height: height - 110 };
+  // A phone fills its width with the page (stores/canvas.ts).
+  // A narrow page that is not a phone keeps the sizes above, but never wider than the page (the full editor on a phone).
+  canvas.room = width <= 0 || height <= 0 ? null
+    : ui.phone ? { width, height } : narrow.value ? { width, height, cap: true } : { width: width - 10, height: height - 110 };
 });
 onBeforeUnmount(() => { canvas.room = null; });
 const zoomPercent = computed(() => `${Math.round(canvas.zoom * 100)}%`);
@@ -112,6 +119,13 @@ const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
 const focused = computed(() => doc.document?.pages.findIndex((page) => page.id === doc.focusedPageId) ?? -1);
+// Add in the toolbar. A tile comes from the library, so its item opens the drawer and puts the cursor in its search,
+// once the menu has handed the focus back to its key; a section lands on the chosen page's first free cells.
+const full = computed(() => layout.value.tiles.length >= doc.tileLimit);
+function addFromLibrary() {
+  ui.libraryOpen = true;
+  window.setTimeout(() => window.document.getElementById("search")?.focus(), 60);
+}
 // A screen without a single tile (a new one) is offered a first layout at once (docs/AUTO_LAYOUT.md); Start empty puts
 // the offer away for that screen while the editor is open.
 const offerSkipped = ref(new Set<string>());
@@ -145,21 +159,30 @@ function onCanvasClick(e: MouseEvent) {
       <button v-if="scr.currentScreen?.page_document?.format === 'legacy-v1' && scr.currentScreen.source_grid" type="button" class="btn quiet mini" @click="doc.startFreshLayout">{{ t('editor.pages.start_fresh') }}</button>
     </div>
     <template v-else>
+    <!-- The firmware behind the pages: it draws the cards of the plugins' tiles, which the pages show (GlassFaces.vue). -->
+    <GlassFaces />
+    <!-- One key for everything that is made (a tile, a section, a page, a first layout), the only one with colour; undo,
+         redo and the preview beside it without a frame; the view and the how-to on the right. The count of pages and
+         tiles and the memory they take are behind the pill in the screen's head (ScreenStatus.vue). -->
     <div v-if="!ui.phone" class="editor-toolbar">
+      <UiMenu align="start" width="236px">
+        <template #trigger>
+          <button type="button" id="toolbar-add" class="btn tonal"><Icon name="plus" />{{ t('editor.layout.help.add_label') }}<Icon name="chevron-down" class="btn-caret" /></button>
+        </template>
+        <UiMenuItem id="toolbar-add-tile" icon="view-dashboard-outline" :hint="t('editor.library.title')" :disabled="full" :title="full ? t('editor.library.full', doc.tileLimit) : ''" @select="addFromLibrary">{{ t('editor.inspector.kind.tile') }}</UiMenuItem>
+        <UiMenuItem v-if="sectionsOffered()" id="toolbar-add-section" icon="view-grid-outline" @select="addSection(selectedIndex)">{{ t('editor.sections.kind') }}</UiMenuItem>
+        <UiMenuItem id="toolbar-add-page" icon="file-plus-outline" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @select="ui.pageWizardOpen = true">{{ t('editor.inspector.kind.page') }}</UiMenuItem>
+        <UiMenuSeparator />
+        <UiMenuItem id="toolbar-auto-layout" icon="auto-fix" :title="t('editor.auto.button_title')" @select="ui.autoLayoutOpen = true">{{ t('editor.auto.button') }}</UiMenuItem>
+      </UiMenu>
+      <button type="button" id="undo" class="icon-btn" :disabled="!doc.undoCount" :aria-label="undoText" :title="`${undoText} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
+      <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
+      <button type="button" id="toolbar-preview" class="btn ghost" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
+      <span class="spacer"></span>
       <div class="seg views" role="group" :aria-label="t('editor.pages.mode')">
         <button type="button" :aria-pressed="doc.editorMode === 'simple'" @click="doc.setEditorMode('simple')"><Icon name="view-column-outline" />{{ t('editor.pages.view_row') }}</button>
         <button type="button" :aria-pressed="doc.editorMode === 'advanced'" @click="doc.setEditorMode('advanced')"><Icon name="sitemap-outline" />{{ t('editor.pages.view_map') }}</button>
       </div>
-      <div class="tool-group" role="group">
-        <button type="button" id="undo" class="icon-btn" :disabled="!doc.undoCount" :aria-label="undoText" :title="`${undoText} · ⌘Z`" @click="doc.undo"><Icon name="undo" /></button>
-        <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
-      </div>
-      <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
-      <button type="button" id="toolbar-auto-layout" class="btn quiet" :title="t('editor.auto.button_title')" @click="ui.autoLayoutOpen = true"><Icon name="auto-fix" />{{ t('editor.auto.button') }}</button>
-      <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
-      <span class="spacer"></span>
-      <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: doc.tileLimit }, pages) }}</span>
-      <MemoryMeter />
       <PopoverRoot>
         <PopoverTrigger as-child>
           <button type="button" id="layout-help" class="icon-btn" :aria-label="t('editor.layout.help.title')" :title="t('editor.layout.help.title')"><Icon name="help-circle-outline" /></button>
@@ -206,12 +229,13 @@ function onCanvasClick(e: MouseEvent) {
       <button type="button" id="kept-discard" class="btn quiet mini" @click="drafts.discard()">{{ t('editor.draft.discard') }}</button>
       <button type="button" id="kept-restore" class="btn primary mini" @click="drafts.restore()">{{ t('editor.draft.restore') }}</button>
     </div>
-    <div v-if="doc.conflict" class="notice warn" role="alert">
+    <!-- A notice with two keys wraps them under its words on a narrow glass (.notice.choice), as the kept draft's does. -->
+    <div v-if="doc.conflict" id="layout-conflict" class="notice warn choice" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>
       <button type="button" class="btn quiet mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('reload')">{{ t('editor.pages.reload_saved') }}</button>
       <button type="button" class="btn primary mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('keep')">{{ t('editor.pages.keep_mine') }}</button>
     </div>
-    <div v-if="doc.gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
+    <div v-if="doc.gridChanged" class="notice warn choice" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
     <!-- A new screen: the first layout offered at once (docs/AUTO_LAYOUT.md). -->
@@ -251,8 +275,9 @@ function onCanvasClick(e: MouseEvent) {
         </div>
       </div>
     </div>
-    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. -->
-    <div v-if="!ui.phone && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
+    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. Not on a narrow page,
+         where the glass already takes the page's width. -->
+    <div v-if="!narrow && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
       <button type="button" class="icon-btn" id="zoom-out" :aria-label="t('editor.pages.zoom_out')" :disabled="canvas.zoom <= 0.5" @click="canvas.zoomBy(-1)"><Icon name="magnify-minus-outline" /></button>
       <button type="button" class="zoom-value" id="zoom-reset" :title="t('editor.pages.zoom_reset')" @click="canvas.zoom = 1">{{ zoomPercent }}</button>
       <button type="button" class="icon-btn" id="zoom-in" :aria-label="t('editor.pages.zoom_in')" :disabled="canvas.zoom >= 2" @click="canvas.zoomBy(1)"><Icon name="magnify-plus-outline" /></button>
@@ -260,7 +285,9 @@ function onCanvasClick(e: MouseEvent) {
     </template>
   </div>
   <Teleport to="body"><div v-if="band" class="select-band" :style="{ left: `${band.left}px`, top: `${band.top}px`, width: `${band.width}px`, height: `${band.height}px` }"></div></Teleport>
-  <Library v-if="doc.layout" />
+  <!-- Under a screen's page the library is a pane of its own (ScreenView.vue's dock, docs/PAGES.md "The panes"); mounted
+       by itself, as in a test, it stays where it is written. -->
+  <Teleport defer to="#library-dock" :disabled="!docked"><Library v-if="doc.layout" /></Teleport>
   <GrowTip v-if="!ui.previewOpen" />
   <LookTip v-if="!ui.previewOpen" />
   <!-- Layoutbot (docs/LAYOUTBOT.md): on every page width; on a phone its key stands in the dock (ScreenView.vue). -->

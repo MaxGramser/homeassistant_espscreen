@@ -108,9 +108,9 @@ class Offers(unittest.TestCase):
         self.assertTrue(catalogue.offers('light.a', state(), ['light.turn_on'], fields=lambda action, field: True)['inline'])
 
     def test_displays_follow_what_the_entity_has(self):
-        self.assertEqual(self.offers('weather.a', 2)['displays'], ['standard', 'watch'])        # hourly only: no days
+        self.assertEqual(self.offers('weather.a', 2)['displays'], ['standard', 'watch', 'hourly'])  # hourly only: no days
         self.assertEqual(self.offers('weather.a', 1)['displays'], ['standard', 'watch', 'forecast'])
-        self.assertEqual(self.offers('weather.a')['displays'], ['standard', 'watch', 'forecast'])  # unavailable keeps it
+        self.assertEqual(self.offers('weather.a')['displays'], ['standard', 'watch', 'forecast', 'hourly'])  # unavailable keeps them
         line = catalogue.offers('sensor.t', state(), [], history=lambda entity, st: 'line')['displays']
         text = catalogue.offers('sensor.s', state(), [], history=lambda entity, st: 'state')['displays']
         self.assertEqual((line, text), (['standard', 'watch', 'graph', 'meter'], ['standard', 'watch']))
@@ -192,6 +192,15 @@ class Screens(unittest.TestCase):
         self.assertTrue(catalogue.device_holds('vacuum', 'rooms', 'vacuum.a', has()))       # the areas ask nothing of the device
         self.assertFalse(catalogue.device_holds('vacuum', 'map_rooms', 'vacuum.a', has()))  # the map with the rooms needs the map
         self.assertTrue(catalogue.device_holds('vacuum', 'buttons', 'vacuum.a', has()))
+
+    def test_the_hours_go_to_a_screen_whose_hello_says_it_draws_them(self):
+        sent = lambda display, features: catalogue.drawn_controls(
+            {'entity': 'weather.a', 'o': {'size': 'wide', 'display': display}, 'a': {}}, features)['o']['display']
+        self.assertEqual(sent('hourly', frozenset({'weather_week', 'weather_hours'})), 'hourly')
+        self.assertEqual(sent('hourly', frozenset({'weather_week'})), 'forecast')    # an older screen: the days
+        self.assertEqual(sent('hourly', None), 'hourly')                              # the editor's preview: as it is
+        self.assertEqual(sent('forecast', frozenset()), 'forecast')
+        self.assertEqual(catalogue.gates({'entity': 'weather.a', 'options': {'display': 'hourly'}}), [])  # no update asked
 
     def test_what_a_layout_asks_of_a_screens_firmware(self):
         gate = lambda entity, **options: sorted(version for version, _ in catalogue.gates({'entity': entity, 'options': options}))

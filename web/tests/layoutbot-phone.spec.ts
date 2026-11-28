@@ -3,6 +3,7 @@
 // the page above shows the change, rides on the on-screen keyboard, and is open while the address says so
 // (`?chat=layoutbot`): Back closes it, and it stays open while its Yes goes through the other screens and home again.
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import ScreenView from "../src/components/ScreenView.vue";
 import LayoutBot from "../src/components/LayoutBot.vue";
@@ -53,6 +54,12 @@ async function phone() {
   mounted.push(mount(ScreenView, { attachTo: document.body }), mount(LayoutBot, { attachTo: document.body }));
   await flushPromises();
 }
+/** What a stylesheet gives a selector, as written: the rule that starts a line with it. */
+function rule(css: string, selector: string) {
+  const found = new RegExp(`^${selector.replace(/[.\\]/g, "\\$&")} \\{([^}]*)\\}`, "m").exec(css);
+  expect(found, selector).not.toBeNull();
+  return found![1];
+}
 
 describe("Layoutbot on a phone", () => {
   it("is offered in the phone's dock, before Add tile, and floats nowhere", async () => {
@@ -62,6 +69,35 @@ describe("Layoutbot on a phone", () => {
     expect(document.querySelectorAll(".bot-fab")).toHaveLength(1);
     expect(dock.querySelector(".bot-fab")!.classList.contains("docked")).toBe(true);
     expect(sheet()).toBeNull();
+  });
+
+  it("keeps its ring and its z in its own box in the dock, where no tap is theirs", () => {
+    // jsdom lays nothing out and a test's click() asks no page what lies under a finger, so the rules themselves are
+    // held. A docked key without a place of its own (`static`) hands the ring to the dock: unseen until the bot thinks,
+    // it lay over Add tile and Save & send, and every tap there opened the chat (GitHub #438, #471). Only a bot an AI
+    // Task had woken did so: asleep, its `filter` happened to keep the ring in.
+    const css = readFileSync("src/components/LayoutBotKey.vue", "utf8");
+    expect(rule(css, ".bot-fab.docked")).toMatch(/position: relative; inset: auto;/);
+    expect(rule(css, ".bot-fab.asleep")).toMatch(/filter:/);
+    for (const part of [".bot-ring", ".bot-z"]) {
+      expect(rule(css, part)).toMatch(/position: absolute;/);
+      expect(rule(css, part)).toMatch(/pointer-events: none;/);
+    }
+  });
+
+  it("leaves the top of the window to a toast at its full height, as Add tile's sheet does", async () => {
+    // With a sheet open a toast goes to the top (app.css). A sheet that reached up there had the toast on its head, over
+    // the key that closes it, for as long as the toast stayed (GitHub #471).
+    const css = readFileSync("src/styles/app.css", "utf8");
+    const top = Number(/ top: (\d+)px;/.exec(rule(css, ".app.phone .library"))![1]);
+    expect(css).toMatch(/body:has\(\.ui-sheet\) \.app\.phone \.toast \{ top: calc\(12px \+ env\(safe-area-inset-top\)\);/);
+    await phone();
+    useLayoutbotStore().open = true;
+    await flushPromises();
+    expect(sheet()!.classList.contains("resting")).toBe(false);
+    expect(sheet()!.style.maxHeight).toBe(`${window.innerHeight - top}px`);
+    // The toast is under 50 px tall from 12 px down, and the sheet's head starts under its grab (22 px).
+    expect(top + 22).toBeGreaterThan(12 + 50);
   });
 
   it("opens as a sheet the address names, and Back closes it", async () => {
@@ -125,7 +161,7 @@ describe("Layoutbot on a phone", () => {
     await flushPromises();
     expect(sheet()!.classList.contains("typing")).toBe(true);
     expect(sheet()!.style.bottom).toBe("300px");
-    expect(sheet()!.style.maxHeight).toBe(`${window.innerHeight - 300 - 12}px`);
+    expect(sheet()!.style.maxHeight).toBe(`${window.innerHeight - 300 - 48}px`);
     Reflect.deleteProperty(window, "visualViewport");
   });
 

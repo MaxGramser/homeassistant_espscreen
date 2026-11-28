@@ -132,7 +132,9 @@
       "update_failed": "Update failed",
       "hint_key": "A connection from {address} was turned away: its key is not this screen's. Enter this screen's key in Home Assistant's ESPHome integration.",
       "no_answer_title": "No answer from Home Assistant",
-      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure."
+      "no_answer_text": "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure.",
+      "logbook_tile": "operated on {screen}, page {page}, tile {tile}",
+      "logbook_page": "operated on {screen}, page {page}"
     },
     "preparing": {
       "default": "Arranging your tiles",
@@ -156,9 +158,12 @@
       "screen": "Screen",
       "this_screen": "This screen",
       "extras": "Extras",
+      "display": "Display",
       "microphone": "Microphone",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Wake when moved",
+      "tap_sound": "Tap sound",
       "backlight_pwm": "Backlight PWM",
       "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
@@ -235,7 +240,18 @@
       "color_temperature": "Color temperature",
       "brightness": "Brightness",
       "waiting": "Waiting...",
-      "presets": "Presets"
+      "presets": "Presets",
+      "shade_warm": "Warm",
+      "shade_neutral": "Neutral",
+      "shade_cool": "Cool",
+      "color_red": "Red",
+      "color_orange": "Orange",
+      "color_yellow": "Yellow",
+      "color_green": "Green",
+      "color_cyan": "Cyan",
+      "color_blue": "Blue",
+      "color_purple": "Purple",
+      "color_pink": "Pink"
     },
     "effects": {
       "effect": "Effect",
@@ -712,6 +728,7 @@
       "not_paired": "This isn't a paired ESP screen. Refresh the overview.",
       "choose_icon": "Choose an icon from the list.",
       "skill_not_written": "Couldn't write the skill to {folder} ({reason}).",
+      "skill_no_home_assistant": "The skill cannot be installed from here: {folder} is not Home Assistant's configuration folder. Download it for claude.ai instead.",
       "settings": {
         "unknown": "Unknown screen settings; refresh the management page.",
         "invalid_value": "Invalid value for {setting}.",
@@ -816,6 +833,7 @@
         "no_small_slider": "{name} has nothing a small slider can change in Home Assistant.",
         "no_graph": "{name} has no numbers to draw a graph of.",
         "no_forecast": "{name} has no daily forecast in Home Assistant.",
+        "no_hourly": "{name} has no hourly forecast in Home Assistant.",
         "no_meter": "{name} has no numbers to show on a meter.",
         "no_control": "Home Assistant doesn't offer that direct control for {name}."
       },
@@ -866,7 +884,10 @@
         "unknown_action": "Unknown firmware action.",
         "host": "Enter the IP address or hostname of the intended screen.",
         "grid": "Choose a grid this screen takes.",
-        "build_gone": "This build is no longer known. The newest builds are under Firmware & USB."
+        "build_gone": "This build is no longer known. The newest builds are under Firmware & USB.",
+        "log_gone": "This build log is no longer kept.",
+        "friendly_name_quote": "A screen's name cannot hold \" or \\. Write 4 inch as 4in, for example.",
+        "chip_revision": "The chip revision must be a whole number, such as 302 for v3.2."
       },
       "updates": {
         "automatic": "Choose on or off for automatic updates.",
@@ -880,7 +901,8 @@
         "all_updated": "All reachable screens are already updated.",
         "reinstall_dev": "Reinstalling the same firmware is for the dev channel only.",
         "all_on_the_way": "Every screen with an update has it on its way already.",
-        "nothing_to_reinstall": "No screen can be reinstalled now: each is offline, already on its way, or has no profile in this app."
+        "nothing_to_reinstall": "No screen can be reinstalled now: each is offline, already on its way, or has no profile in this app.",
+        "hour": "Choose an hour from 0 to 23."
       },
       "remove": {
         "not_allowed": "This app may not remove an integration from Home Assistant. Remove the screen in Home Assistant itself, under Settings → Devices & services.",
@@ -923,7 +945,7 @@
         "workspace_position": "Invalid workspace position",
         "workspace_conflict": "Workspace changed in another editor",
         "layout_conflict": "Layout changed in another editor; reload and reconcile the draft",
-        "adaptation": "Screen grid changed; explicit layout adaptation is required",
+        "adaptation": "This change of grid could not be saved. Save the screen once on the grid it has now, then change the grid. If someone saved this screen in another window meanwhile, reload it first.",
         "normalization": "Tile options need normalization before saving the page document",
         "on_tile": "Page {page}, tile “{tile}”: {problem}",
         "ambiguous_tile": "Tile event has an ambiguous source; specify its page",
@@ -988,7 +1010,8 @@
         "rate_not_installed": "Put the plugin on one of your screens first, then you can rate it.",
         "rate_failed": "The stars did not go out. Try again in a moment.",
         "count_failed": "Counting could not be turned off: Tessera could not be reached. Try again in a moment.",
-        "forget_running": "A screen still runs this plugin. Take it off the screen first."
+        "forget_running": "A screen still runs this plugin. Take it off the screen first.",
+        "no_before": "There is no earlier version of this plugin to go back to."
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -1016,7 +1039,8 @@
       },
       "video": {
         "not_written": "Tessera video could not be written to {folder}: {reason}.",
-        "not_installed": "Install Tessera video first."
+        "not_installed": "Install Tessera video first.",
+        "no_home_assistant": "Tessera video cannot be installed from here: {folder} is not Home Assistant's configuration folder. Download the integration and unpack it there."
       },
       "report": {
         "depth": "Choose the basic or the full report.",
@@ -1042,6 +1066,21 @@
       "icons": {
         "request": "That is not a list of icons.",
         "too_many": "A screen takes at most {most} icons of its own."
+      },
+      "sounds": {
+        "name": "Give the sound a name.",
+        "many": "There are {most} sounds of your own already. Remove one first.",
+        "format": "A sound is a WAV file of 16 kHz, mono, 16 bits.",
+        "short": "A sound is at least a quarter of a second long.",
+        "long": "A sound is at most {seconds} seconds long.",
+        "unknown": "That sound does not exist.",
+        "volume": "A volume is a whole number of dB from -40 to 0.",
+        "none": "This screen plays no sound for this. Choose one first.",
+        "older": "This screen needs a firmware update for this.",
+        "busy": "This screen is in a call right now."
+      },
+      "steps": {
+        "request": "This step does not exist on this screen."
       }
     },
     "status": {
@@ -1073,10 +1112,15 @@
       "build_memory_limit": "Not enough memory to build the firmware, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
       "no_report": "Screen didn't report back with firmware {version}; check the screen.",
       "dropped_off": "Screen dropped off after the update; check the screen.",
-      "updated": "Updated to firmware {version}."
+      "updated": "Updated to firmware {version}.",
+      "round_stopped": "Not updated: a screen before it in the round failed its check, so the round stopped."
     },
     "notify": {
-      "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched."
+      "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched.",
+      "plugin_failed": "{names} did not build on {screen}: {reason} The screen still runs what it ran before. Open Tessera, then the screen's Plugins tab, for why and the log.",
+      "updates": "Updates are ready for your screens. Open Tessera to install them.",
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} is built for {screen}, but {screen} was not reachable. It installs by itself as soon as the screen is back."
     },
     "labels": {
       "built_into_screen": "Built into the screen",
@@ -1242,6 +1286,10 @@
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
         },
+        "tap_sound": {
+          "label": "Tap sound",
+          "hint": "A short tick the moment the screen hears a tap or a key, before its e-paper has printed the answer."
+        },
         "backlight_pwm": {
           "label": "Backlight PWM",
           "hint": "How fast the backlight switches on and off to dim. 150 Hz dims every unit of this board, but some whine below 20 kHz: choose 20 kHz when yours whines, 15 kHz when 20 kHz does not dim it evenly."
@@ -1273,6 +1321,10 @@
         "echo_cancellation": {
           "label": "Echo cancellation",
           "hint": "Reduce the screen speaker in microphone input. Off bypasses cancellation; it does not disable the microphone or full-duplex audio. Requires the AEC transport."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "How loud the buzzer plays: the doorbell's chime, the sounds of alerts and a plugin's sounds. The screen keeps it after a restart."
         }
       }
     },
@@ -1658,6 +1710,9 @@
         "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
       },
       "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
+    },
+    "sounds": {
+      "test": "Ringtone test"
     }
   },
   "editor": {
@@ -1690,7 +1745,8 @@
       "settings": "Settings",
       "new_screen_detail": "Connect and install",
       "plugins": "Plugins",
-      "manual": "Manual"
+      "manual": "Manual",
+      "overview": "Overview"
     },
     "api": {
       "failed": "That didn't work. Refresh the page and try again."
@@ -1731,6 +1787,10 @@
       "log": {
         "copied": "Log copied.",
         "selected": "Log is selected. Copy with Ctrl+C or Command+C."
+      },
+      "address": {
+        "copied": "Address copied.",
+        "selected": "Address is selected. Copy with Ctrl+C or Command+C."
       }
     },
     "sidebar": {
@@ -1796,7 +1856,11 @@
         "kept": "{name} is removed. Its profile {file} is still in the ESPHome folder."
       },
       "home": "Overview of your screens",
-      "dev_chip": "This is the dev version of the app: every screen it builds comes from the dev branch."
+      "dev_chip": "This is the dev version of the app: every screen it builds comes from the dev branch.",
+      "plugins": {
+        "failed": "A plugin did not build",
+        "updates": "{n} plugin update | {n} plugin updates"
+      }
     },
     "palette": {
       "groups": {
@@ -1928,7 +1992,12 @@
         "group_layout": "Layout",
         "group_advanced": "Advanced"
       },
-      "sending": "Sending"
+      "sending": "Sending",
+      "status": {
+        "full": "Full · {n} %",
+        "close": "Memory {n} %",
+        "changes": "Changes"
+      }
     },
     "layout": {
       "removed": "{name} removed",
@@ -2029,7 +2098,23 @@
       "resize": "Drag to resize the library",
       "filter_label": "Filter by type",
       "no_room": "No room",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "tiles": {
+        "view": "How the library shows entities",
+        "best": "Best fit",
+        "list": "List",
+        "best_title": "Show every entity as the tile that suits its kind best. Point at a tile to see all its sizes.",
+        "size_title": "Show every entity at {size}, or the largest it takes under that",
+        "list_title": "Show the entities as a list",
+        "placed": "On this screen",
+        "add_size": "Add {name} as a tile of {columns} × {rows}"
+      },
+      "extras": {
+        "title": "1 extra | {n} extras",
+        "config": "Settings",
+        "diagnostic": "Diagnosis",
+        "hidden": "Hidden in Home Assistant"
+      }
     },
     "memory": {
       "label": "Memory for tiles",
@@ -2087,7 +2172,8 @@
     "displays": {
       "standard": "standard",
       "watch": "large value",
-      "forecast": "weather forecast",
+      "forecast": "daily forecast",
+      "hourly": "hourly forecast",
       "graph": "graph",
       "meter": "meter",
       "digital": "digital clock",
@@ -2127,7 +2213,8 @@
         "flip": "Flip clock",
         "standard": "Name and status",
         "watch": "Large value",
-        "forecast": "Weather forecast",
+        "forecast": "Daily forecast",
+        "hourly": "Hourly forecast",
         "graph": "Graph",
         "meter": "Meter",
         "sunpath": "Sun path",
@@ -2142,6 +2229,7 @@
         "map_needs_firmware": "A map needs firmware 0.20.0 or newer: press Update on the screen after saving.",
         "no_graph": "Home Assistant has no numbers for this entity, so the graph stays empty. Choose another display.",
         "no_forecast": "This weather service has no daily forecast in Home Assistant. Choose another display.",
+        "no_hourly": "This weather service has no hourly forecast in Home Assistant. Choose another display.",
         "no_meter": "Home Assistant has no numbers for this entity, so the meter stays empty. Choose another display.",
         "meter_needs_firmware": "A meter needs firmware 0.56.0 or newer: press Update on the screen after saving.",
         "tall_cover_hint": "Uses the album cover as a dimmed background. Without artwork the normal tile remains visible.",
@@ -2320,7 +2408,19 @@
         "hint_auto": "What the screen works out itself: a brightness, a temperature, when a script last ran.",
         "hint_none": "The tile shows its name and nothing under it.",
         "hint_attr": "A value of this entity, named and written the way Home Assistant does.",
-        "hint_text": "The same words, whatever the entity does."
+        "hint_text": "The same words, whatever the entity does.",
+        "parts_aria": "What the thermostat's line says",
+        "part_mode": "Mode",
+        "part_action": "Action",
+        "part_target": "Set to",
+        "part_now": "Now",
+        "hint_parts": "Choose what the line says. Where the tile's own − and + show the temperature it is set to, the line leaves it out."
+      },
+      "scroll": {
+        "name": "Roll a long name",
+        "name_hint": "A name too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots.",
+        "line": "Roll a long second line",
+        "line_hint": "A second line too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots or a shorter wording."
       },
       "slider": {
         "label": "Small slider on the tile",
@@ -2944,6 +3044,35 @@
       "extras": {
         "title": "Extras",
         "note": "Settings only this screen has, from its board. The same switches are on the screen's own settings page and in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Display",
+          "grid": "{columns} × {rows} tiles"
+        },
+        "standby": {
+          "title": "Standby & night",
+          "after": "Standby after {time}",
+          "off": "No standby",
+          "night": "Night {start} to {end}"
+        },
+        "navigation": {
+          "title": "Navigation",
+          "home_after": "Back to Home after {time}"
+        },
+        "board": {
+          "title": "This board"
+        },
+        "help": {
+          "title": "Help",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Brightness and rotation",
+        "standby": "Standby",
+        "night": "Night",
+        "navigation": "Navigation"
       }
     },
     "update": {
@@ -2953,9 +3082,14 @@
       "phases": {
         "install": "Building and installing…",
         "verify": "Waiting for the screen to come back…",
-        "settle": "Checking that it stays stable…"
+        "settle": "Checking that it stays stable…",
+        "ready": "Built ahead: installs once the screens before it passed their check"
       },
-      "new_language": "New language: {name}"
+      "new_language": "New language: {name}",
+      "restarting": "Restarting with the new firmware, back in a minute or two",
+      "restarting_short": "Updating",
+      "editor_new": "A new version of the editor is ready. It loads by itself once you are done here.",
+      "editor_reload": "Reload now"
     },
     "settings": {
       "updates": {
@@ -2971,11 +3105,13 @@
         "all": "Update 1 screen | Update all {n} screens",
         "whats_new": "What's new in firmware {version}",
         "auto_label": "Update automatically every night",
-        "auto_hint": "Between 03:00 and 06:00, one screen at a time. Stops on an error and reports it in Home Assistant.",
         "reinstall_all": "Reinstall 1 screen from dev | Reinstall all {n} screens from dev",
         "reinstall_all_hint": "Builds the newest dev for every screen, one after the other, and installs it over Wi-Fi. On dev the version number stays the same, so a new dev is never offered as an update.",
         "reinstall_all_confirm": "Reinstall 1 screen from the newest dev? It restarts once its firmware is on. | Reinstall {n} screens from the newest dev? They are built one after the other, and each restarts once its firmware is on.",
-        "reinstall_all_go": "Reinstall"
+        "reinstall_all_go": "Reinstall",
+        "auto_hint_hour": "Between {from} and {to}, one screen at a time. Stops on an error and reports it in Home Assistant.",
+        "hour_label": "Start at",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -2992,7 +3128,9 @@
         "installed": "Tessera video installed. Restart Home Assistant once to load it.",
         "screens": "Screens with video: {names}",
         "no_screens": "No screen has video yet: add Screen camera to a P4 screen with a camera, with its part Video.",
-        "writes": "Writes the folder {path}; installing again replaces it. Tessera adds each screen with video by itself."
+        "writes": "Writes the folder {path}; installing again replaces it. Tessera adds each screen with video by itself.",
+        "no_home_assistant": "This app runs apart from Home Assistant, so it cannot put the integration in place itself. Download it, unpack the zip in Home Assistant's configuration folder (where configuration.yaml is) and restart Home Assistant.",
+        "download": "Download the integration"
       },
       "claude": {
         "installed": "Skill installed. Claude Code picks it up right away.",
@@ -3011,8 +3149,6 @@
       "title": "Everything around your screens.",
       "back": "← My screens",
       "screens": {
-        "title": "Screens",
-        "text": "Add a screen, or build and reinstall the firmware of one you already have.",
         "firmware_detail": "Build and install via USB or Wi-Fi"
       },
       "language": {
@@ -3123,6 +3259,40 @@
         "offer": "Free {size}",
         "not_now": "Not now",
         "large": "The build folders take {size}. Cleaning them up frees most of the room the builds take."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Updated every night",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Builds",
+          "server": "On build server {name}",
+          "server_pending": "Build server {name} waits to be accepted",
+          "no_server": "Built in this app"
+        },
+        "language": {
+          "auto": "{name}, from Home Assistant",
+          "auto_plain": "From Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Counted in the store",
+          "counting_off": "Not counted in the store",
+          "asking_on": "Asks for stars",
+          "asking_off": "Never asks for stars"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "running",
+          "not_installed": "not installed",
+          "installed": "installed",
+          "update": "update ready",
+          "restart": "restart needed"
+        }
       }
     },
     "firmware": {
@@ -3143,18 +3313,26 @@
       "host": "IP address or hostname",
       "download_file": "Download {name}",
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself.",
-      "waiting": "waiting its turn, 1 build first | waiting its turn, {n} builds first"
+      "waiting": "waiting its turn, 1 build first | waiting its turn, {n} builds first",
+      "kept_title": "Build logs",
+      "kept_note": "Every build's log stays here, also after the app restarts. The newest 40 are kept.",
+      "kept_none": "No build has run yet.",
+      "kept_download": "Download",
+      "kept_state": {
+        "success": "Succeeded",
+        "failed": "Failed",
+        "interrupted": "Stopped, the app restarted",
+        "running": "Building",
+        "other": "Ended",
+        "retry": "Again, at the end of the line"
+      }
     },
     "installer": {
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
-      "status": {
-        "new": "New",
-        "experimental": "Experimental"
-      },
       "status_hint": {
-        "new": "New: tried on only a few screens so far. Tell us how it goes.",
-        "experimental": "Experimental: not yet tried on this hardware. Tell us how it goes."
+        "new": "New: works on real screens, but not yet tested thoroughly. Tell us how it goes.",
+        "experimental": "Experimental: too little test data from real screens yet to know how well it works. Tell us how it goes."
       },
       "abilities": {
         "camera": "Camera pictures",
@@ -3186,40 +3364,20 @@
       "orientation_landscape": "Lying down",
       "orientation_portrait": "Standing up",
       "name": "Name",
-      "name_placeholder": "Living room screen",
       "device_name": "Device name",
-      "name_hint": "Every screen gets its own profile with its own keys. Four screens? Go through this four times with a different name.",
       "name_taken": "Another screen is already called this. Home Assistant would number this one’s entity names, so automations would point at the wrong screen.",
       "device_name_hint": "Lowercase letters, digits, and dashes. A different name for each screen.",
       "node_taken": "Another screen already has this device name. Home Assistant cannot tell two devices of one name apart.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi name (2.4 GHz)",
         "password": "Wi-Fi password",
-        "new": "Fill in once: Tessera saves this in ESPHome secrets.yaml, later screens use it automatically.",
-        "missing": "Your ESPHome secrets.yaml is still missing Wi-Fi details. Tessera only fills in the missing lines.",
         "ready": "Wi-Fi comes from your ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in the ESPHome folder isn't valid YAML. Fix the file first; it won't be overwritten.",
         "other": "Another network",
         "other_note": "Every screen builds with this Wi-Fi, so screens you already have take it at their next update."
       },
-      "install_via": "Install via",
-      "target": {
-        "usb": "Plug the screen into the Home Assistant machine with a USB data cable; it shows up here on its own. Is it plugged into the computer you are using now? Choose From this computer.",
-        "download": "Download the firmware and put it on the screen from your own computer, in Chrome or Edge. After that, updates go over Wi-Fi.",
-        "later": "The profile goes into the ESPHome folder. You can install later via Firmware & USB, or from ESPHome Device Builder.",
-        "several": "More than one board connected: choose this screen's port.",
-        "once": "Once over USB; after that, everything is wireless."
-      },
-      "install": "Install",
-      "save_profile": "Save profile",
       "no_cli": "The ESPHome CLI is missing from this installation; only saving the profile is possible.",
       "progress": {
-        "saved": "{file} is in the ESPHome folder",
-        "writing": "Writing firmware to {name}…",
-        "building": "Building firmware…",
-        "ready": "Firmware for {name} is ready",
-        "installed": "Firmware is on {name}",
         "build_failed": "Build failed",
         "install_failed": "Install failed",
         "waiting": "Waiting its turn…"
@@ -3253,20 +3411,12 @@
         "key": "{bold} below if Home Assistant asks for an encryption key.",
         "key_bold": "Paste the API key",
         "actions": "{bold} ESPHome integration → Configure → “Allow the device to perform Home Assistant actions”. Without this, the screen sees everything but controls nothing.",
-        "actions_bold": "Allow HA actions:",
-        "tiles": "{bold} Back in Tessera, the screen appears in the list on the left within about thirty seconds; until then it's shown there as “not yet in Home Assistant”.",
-        "tiles_bold": "Choose your tiles."
+        "actions_bold": "Allow HA actions:"
       },
       "retry": "Retry",
-      "another": "Install another screen",
       "start_over": "Start over",
       "done": "Done",
       "key_more": "Show the API key",
-      "steps": {
-        "board": "Screen",
-        "setup": "Set up",
-        "install": "Install"
-      },
       "pick_title": "Which screen do you have?",
       "pick_intro": "Pick your board. Search by brand, size or what is printed on it.",
       "search": "Search by brand, size or model",
@@ -3278,45 +3428,15 @@
       },
       "none_found": "No screen matches “{query}”.",
       "try_virtual": "No screen yet? Try a preview screen",
-      "setup_title": "Make it yours",
-      "install_title": "How do you want to install it?",
-      "next": "Next",
-      "advanced": "Advanced",
-      "ways": {
-        "ha_title": "USB on Home Assistant",
-        "ha_found": "Found: {port}",
-        "ha_waiting": "Plug the screen into the machine Home Assistant runs on",
-        "browser_title": "From this computer",
-        "browser_detail": "Chrome or Edge, with the screen on this computer's USB",
-        "download_title": "Download the file",
-        "download_detail": "Put it on the screen yourself with ESPHome Web",
-        "later_title": "Later",
-        "later_detail": "Only keep the settings for now"
-      },
-      "steps_done": {
-        "prepare": "Getting ready",
-        "build": "Building the firmware",
-        "write": "Putting it on the screen",
-        "restart": "Starting up",
-        "done": "Done",
-        "download": "Ready to download"
-      },
       "elapsed": "{time} so far",
       "show_log": "Show details",
       "hide_log": "Hide details",
-      "next_title": "What's next",
       "model": "Which model is it?",
-      "model_hint": "Printed on the back of the board. They look alike, but each needs its own firmware.",
-      "models": "{n} model | {n} models",
       "arrive": {
-        "waiting": "Waiting for {name} to join your Wi-Fi...",
-        "seen": "{name} is on your Wi-Fi. Getting it ready...",
-        "paired": "{name} is paired with Home Assistant.",
         "missing": "{name} is not on your Wi-Fi yet",
         "hotspot": "Look at the screen: it names a hotspot and its password. Join it with your phone and pick the right Wi-Fi there. Or set the right Wi-Fi here and install again.",
         "no_hotspot": "The Wi-Fi name or password is probably wrong. Set the right Wi-Fi here and install again, with the screen still on its cable.",
-        "change": "Change Wi-Fi and install again",
-        "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
+        "change": "Change Wi-Fi and install again"
       },
       "known": {
         "title": "This board is already in Home Assistant as {name}",
@@ -3338,11 +3458,134 @@
         "limit_title": "Not enough memory to build the firmware",
         "limit": "The build ran out of memory, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory, then try again."
       },
-      "pair_yourself": "Add it in Home Assistant yourself",
       "grid": "Grid",
       "grid_hint": "The suggested grid is the best for this screen. You can change it, and which way it hangs, later beside the pages in the editor, without a new build.",
       "grid_best": "Back to the best",
-      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after."
+      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after.",
+      "name_quote": "A name cannot hold \" or \\. Write 4 inch as 4in, for example.",
+      "flow": {
+        "back": "Back",
+        "step_of": "Step {step} of {steps}",
+        "continue": "Continue",
+        "go_install": "Install",
+        "go_download": "Build and download",
+        "more_options": "More options",
+        "fewer_options": "Fewer options",
+        "later": "No cable at hand? Save it and install later",
+        "download_instead": "Rather do it yourself? Download the file",
+        "pick_lead": "Pick the screen you have. We recommend these: they can do everything, and we test them every day.",
+        "more_soon": "More to come soon.",
+        "square": "Square",
+        "wide": "Widescreen",
+        "versions": "{n} version | {n} versions",
+        "other_screen": "I have another screen",
+        "which_is_it": "Which screen is it?",
+        "status": {
+          "stable": "Proven",
+          "new": "New",
+          "experimental": "Experimental"
+        },
+        "model_title": "Which version do you have?",
+        "model_lead": "The {name} comes in {n} versions. They look alike, but each needs its own software. The back of the board says which one you have.",
+        "choice_lead": "Boards sold under this name differ in a part. Most people can keep what is chosen.",
+        "model_usual": "The most common one. Not sure? Pick this one.",
+        "name_title": "What is this screen called?",
+        "name_lead": "Usually the room it will hang in.",
+        "name_placeholder": "Kitchen",
+        "rooms": "Rooms in Home Assistant",
+        "hang_title": "How will it hang?",
+        "hang_lead": "You can change this later, without installing it again.",
+        "tiles_a_page": "{n} tile per page | {n} tiles per page",
+        "plugins_title": "This screen can do more",
+        "plugins_lead": "Its hardware can do more with these. Turn on what you want to use.",
+        "plugins_later": "You can turn these on or off later on the Plugins page.",
+        "wifi_title": "Which Wi-Fi will it join?",
+        "wifi_lead": "The screen needs a 2.4 GHz network. You enter it once: every screen after this one uses it too.",
+        "wifi_once": "Saved in your ESPHome settings, never shown again.",
+        "wifi_ready": "The screen joins the same Wi-Fi as your other ESPHome devices.",
+        "cable_title": "Where is the cable plugged in?",
+        "cable_lead": "The screen gets its software once over a USB cable. After that, everything goes over Wi-Fi.",
+        "cable_here": "In this computer",
+        "cable_here_detail": "The computer you are reading this on. Works in Chrome and Edge.",
+        "cable_ha": "In your Home Assistant",
+        "cable_ha_detail": "The machine Home Assistant runs on, such as a Raspberry Pi or a Home Assistant Green.",
+        "here_title": "Plug the cable into this computer",
+        "here_plug": "Plug the screen into this computer with a USB data cable.",
+        "here_click": "Click Install below.",
+        "here_pick": "Your browser asks which device: choose the screen and click Connect.",
+        "file_title": "You'll get a file to put on it",
+        "file_lead": "Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
+        "ha_title": "Plug the cable into your Home Assistant",
+        "ha_lead": "Not into this computer, but into the machine Home Assistant runs on. We see it as soon as it is there.",
+        "ha_which": "Which one is the screen?",
+        "ha_which_lead": "More than one device is plugged into your Home Assistant. Pick the screen.",
+        "ha_waiting": "Waiting for the screen",
+        "ha_waiting_detail": "Plug in the cable. This updates by itself.",
+        "ha_found": "Screen found",
+        "ha_others": "Also plugged in: {n} other device | Also plugged in: {n} other devices",
+        "ha_not_screen": "Probably not a screen, such as a Zigbee stick",
+        "saved_title": "{name} is saved",
+        "ready_title": "{name} is ready",
+        "ready_lead": "It is on, on your Wi-Fi, and part of Home Assistant. Now choose what goes on it.",
+        "ha_ask_title": "Home Assistant asks you something about {name}",
+        "now": {
+          "build": "{name} is being prepared",
+          "write": "The software goes onto {name}",
+          "write_self": "Put the software on {name}",
+          "wifi": "{name} is starting",
+          "ha": "Adding {name} to Home Assistant"
+        },
+        "lead": {
+          "build": "This usually takes 5 to 20 minutes, the first time the longest. You can close this window: it keeps going.",
+          "build_browser": "This usually takes 5 to 20 minutes, the first time the longest. Keep this page open: it puts the software on the screen as soon as it is ready.",
+          "write": "Leave the cable in until this is done.",
+          "write_self": "Download the file and put it on the screen with ESPHome Web. This page sees the screen as soon as it is on your Wi-Fi.",
+          "wifi": "It starts up and joins your Wi-Fi. That usually takes less than a minute.",
+          "wifi_calibrate": "It starts up and joins your Wi-Fi. It first asks you to tap a few crosshairs on the screen: that teaches it where your finger is.",
+          "ha": "Tessera adds it to ESPHome in Home Assistant and allows it to control your home. You don't have to do anything."
+        },
+        "steps": {
+          "build": "Making the software",
+          "write": "Putting it on the screen",
+          "write_self": "You put it on the screen",
+          "wifi": "Starting and joining your Wi-Fi",
+          "ha": "Adding it to Home Assistant"
+        },
+        "may_close": "you can close this window",
+        "keep_open_title": "Keep this page open",
+        "keep_open": "This page puts the software on the screen itself, as soon as it is built. Close this tab, leave the page or let the computer sleep, and nothing is written. Leave the USB cable in too.",
+        "show_log": "What happens exactly",
+        "to_pages": "Make its pages",
+        "another": "Add another screen",
+        "close_follow": "Close, it keeps going",
+        "recap": {
+          "wifi": "On your Wi-Fi",
+          "ha": "In Home Assistant",
+          "actions": "Allowed to control your home"
+        }
+      },
+      "no_usb": {
+        "insecure_title": "This page is not on a secure address, so it cannot reach USB",
+        "insecure": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a page with a secure address (https). This page was opened over plain http, where a browser hides its USB ports.",
+        "browser_title": "This browser cannot reach USB",
+        "browser": "Installing from this computer is two clicks, without any file, but only in Chrome or Edge on a computer. Open Home Assistant there and start New screen again.",
+        "fix": "Two ways to make it work:",
+        "https": "Open Home Assistant over https in Chrome or Edge, for example through your Home Assistant Cloud address.",
+        "flag": "Or tell Chrome to treat this Home Assistant's address as secure:",
+        "flag_open": "Copy this into Chrome's address bar and press Enter. A page cannot open it for you.",
+        "flag_add": "In the box under \"Insecure origins treated as secure\", put this address, and set it to Enabled.",
+        "flag_relaunch": "Click Relaunch, open Home Assistant again and start New screen.",
+        "else": "Until then Tessera makes a file here that you put on the screen yourself."
+      },
+      "shops": {
+        "title": "Buy a recommended screen?",
+        "lead": "Buy one of these through Tessera and a small part of the sale goes to Tessera's development.",
+        "buy": "Buy",
+        "buy_discount": "Buy · {discount}",
+        "note": "Affiliate links: you pay the same or less.",
+        "code": "Shopping at {shop} another way? Use code {code}.",
+        "off": "{n}% off"
+      }
     },
     "alerts": {
       "intro": "Every screen has the {action} action. It places a card over everything, wakes the screen, and keeps the backlight at normal brightness until someone taps the button or the timeout runs out. Home Assistant itself shows no explanation or dropdowns for ESPHome actions; everything you can fill in is listed here.",
@@ -3720,7 +3963,8 @@
       "actions_allowed": "{name} may now control your devices.",
       "part_page": "The page: title and navigation",
       "part_page_hint": "Title, home page and how you get here",
-      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page."
+      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page.",
+      "place_on_new_page": "On a new page"
     },
     "feedback": {
       "question": "Does your screen work as you expect?",
@@ -3780,7 +4024,6 @@
     },
     "webflash": {
       "target": "Install from this browser (Chrome or Edge)",
-      "hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
       "firmware_hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
       "go": "Connect & install",
       "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",
@@ -3804,8 +4047,11 @@
         "blocked": "The browser doesn't let this page use USB ports. Check the site's permissions in the browser, or choose Download instead.",
         "busy": "The screen's port is in use by another program or tab, such as a serial monitor or ESPHome Web. Close it and try again.",
         "connect": "The board didn't answer. Hold the BOOT button on the board while you choose the port, until the installation starts, and try again. Unplugging and plugging in the cable can help too.",
+        "silent": "Nothing answered on that port within {seconds} seconds, so nothing was installed. If your browser listed more than one port for the screen, try again and choose the other one. Otherwise hold the BOOT button on the board while you choose the port, and try again.",
+        "other_chip": "That port belongs to the board's second chip (an RP2040), not to the chip the screen runs on. Nothing was installed. Try again and choose the board's other port; on a SenseCAP Indicator that is the one called USB Serial.",
         "wrong_chip": "The board on the cable has an {found} chip, but this screen's firmware is for an {expected}. Plug in the right screen, or choose its board.",
         "wrong_image": "The firmware Tessera built is for an {expected}, but the board on the cable has an {found}. Nothing was written.",
+        "wrong_revision": "The firmware Tessera built is for chip revisions {from} to {to}, but the chip on the cable is {found}. Nothing was written. Start again, so Tessera builds for this chip.",
         "disconnected": "The screen was disconnected. Plug it in again and try again.",
         "download": "Couldn't fetch the firmware from Tessera: {error}",
         "failed": "Installing didn't work: {error}"
@@ -4005,7 +4251,8 @@
         "failed": "Build failed",
         "not_running": "Not running on the screen",
         "runs_other": "Runs {version} on the screen",
-        "queued": "Waits its turn"
+        "queued": "Waits its turn",
+        "update_failed": "Update {version} failed"
       },
       "source": {
         "link": "From a link",
@@ -4137,8 +4384,6 @@
         "here": "On this screen",
         "add": "Add",
         "misfits": "Does not fit this screen ({n}) | Do not fit this screen ({n})",
-        "updates": "An update for {n} plugin | Updates for {n} plugins",
-        "updates_note": "One build for {screen}: {names}.",
         "updates_rights": "{names} asks for other rights than before. | {names} ask for other rights than before.",
         "update_all": "Update all on this screen"
       },
@@ -4167,7 +4412,7 @@
       },
       "folder_error": "The folder {folder} is no plugin yet: {why}",
       "rebuild": "Build again",
-      "failed": "The firmware for {screen} did not build with this plugin. Its log is under Firmware & USB.",
+      "failed": "The firmware for {screen} did not build with this plugin.",
       "retry": "Try again",
       "privacy": "Privacy",
       "consent": {
@@ -4237,6 +4482,7 @@
         "too_short": "At least {n} characters."
       },
       "tabs": {
+        "all": "All",
         "tiles": "Tiles",
         "screensavers": "Screensavers",
         "functions": "Functions",
@@ -4275,6 +4521,7 @@
         "used": "Most used"
       },
       "none_in_tab": {
+        "all": "No plugins yet.",
         "tiles": "No plugins with tiles yet.",
         "screensavers": "No screensaver plugins yet.",
         "functions": "No plugins for the whole screen yet.",
@@ -4338,7 +4585,7 @@
         "none": "The maker wrote no notes for this update.",
         "history": "All versions"
       },
-      "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs. Its log is under Firmware & USB.",
+      "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs.",
       "interrupted": "The app restarted during the build.",
       "stars": {
         "label": "Stars for {name}",
@@ -4392,6 +4639,43 @@
         "go": "Remove from the list",
         "note": "No screen runs this plugin. Remove it from the list to forget the link.",
         "note_folder": "No screen runs this plugin from its folder. Removing it moves the folder to config/tessera-plugins/.removed/{id}, where you can delete it for good."
+      },
+      "suggest": {
+        "why": {
+          "camera": "This board has a camera."
+        },
+        "question": "Add {name} to {screen}?",
+        "yes": "Add it",
+        "yes_update": "Add with the next update",
+        "no": "No, thanks",
+        "building": "{name} is being built for {screen}.",
+        "with_update": "{name} comes with {screen}'s next update.",
+        "declined": "Fine. {name} stays on the Plugins page if you want it later."
+      },
+      "download_log": "Download the log",
+      "failures": {
+        "update": "{name} {version} did not build on {screen}",
+        "added": "{name} did not build on {screen}",
+        "update_note": "The screen still runs version {current}. The log says why.",
+        "added_note": "It is not on the screen. The log says why.",
+        "no_log": "No log was kept of this build.",
+        "details": "Details",
+        "report": "Report to {maker}",
+        "report_hint": "Reporting opens an issue at the maker's GitHub, already filled in. Attach the log you downloaded.",
+        "why": {
+          "plugin": "It stopped in the plugin's own code, which its maker can fix.",
+          "memory": "This Home Assistant ran short of memory while building. A build server on another computer builds it without that limit.",
+          "offline": "It was built, but {screen} did not take it, also after it came back. Check that it is on and on Wi-Fi.",
+          "offline_wait": "It was built, but {screen} was not reachable. It installs by itself once the screen is back.",
+          "network": "A download it needs did not come, also on a second try. Try again in a moment.",
+          "build": "The log says why.",
+          "interrupted": "The app restarted during the build, and again during the try after it."
+        },
+        "build_server": "Set up a build server"
+      },
+      "back": {
+        "button": "Back to {version}",
+        "not_running": "{screen} came back without {name} after the update. Going back to the version before usually helps."
       }
     },
     "plugin_tile": {
@@ -4462,7 +4746,19 @@
           "bundle": "the YAML could not be packed"
         }
       },
-      "icons": "Building with its icons"
+      "icons": "Building with its icons",
+      "steps": {
+        "title": "Steps of the build",
+        "wait": "Waits its turn",
+        "build": "Builds",
+        "send": "Sends it to the screen",
+        "confirm": "Screen confirms",
+        "on": "on {name}",
+        "send_waits": "Waits for its turn to install"
+      },
+      "done": "{screen} is ready.",
+      "done_confirmed": "{screen} is ready, and says it runs what was built.",
+      "show_why": "Show why"
     },
     "grid": {
       "title": "Grid",
@@ -4496,7 +4792,11 @@
       "leave": "Leave {name} out",
       "copy": "Copy",
       "hint": "{copy} copies the tiles with every setting. Choose a page or a cell, here or on another screen, and press {paste}.",
-      "remove": "Remove tile | Remove {n} tiles"
+      "remove": "Remove tile | Remove {n} tiles",
+      "shared": {
+        "hint": "A change here is for all {n} tiles.",
+        "mixed": "Mixed"
+      }
     },
     "menu": {
       "cut": "Cut",
@@ -4649,6 +4949,14 @@
         "remove_confirm": "Remove \"{name}\" from Home Assistant?",
         "on": "On",
         "off": "Off"
+      },
+      "calls": "Calls",
+      "parts": {
+        "automations": "{n} automation | {n} automations",
+        "no_automation": "No automation yet",
+        "alarm_panels": "{n} alarm panel | {n} alarm panels",
+        "no_alarm": "No alarm panel in Home Assistant",
+        "rings_with": "Rings with {sound}"
       }
     },
     "doorbell": {
@@ -4996,6 +5304,152 @@
       "how_wrong": "Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up to 15 minutes. Home Assistant hears of each one as the event esphome.screen_alarm_code_refused, never with the code.",
       "how_code": "The code goes to Home Assistant with the action, as its own alarm card sends it, and is wiped on the screen at once. A screen never stores or logs it.",
       "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
+    },
+    "calls": {
+      "hero_title": "Calls",
+      "hero_text": "When one screen calls another, the screen that is called rings. Choose what it rings with below: a ring holds its own pause and plays over and over until someone answers. A new choice reaches a screen with its next ring, no update needed."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Ringtone",
+          "text": "What a screen rings with when another screen calls it."
+        },
+        "doorbell": {
+          "title": "Chime",
+          "text": "What a screen plays when the doorbell rings, on the screens that open the doorbell, and on the others with its alert."
+        },
+        "alert": {
+          "title": "Alert sound",
+          "text": "What a screen plays when an alert of yours comes up, sent with the esp_screens_show_alert event. No sound is what it was before. An alert can stay quiet with sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Classic",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Bell",
+        "chime": "Ding-dong",
+        "notice": "Notice"
+      },
+      "none": "No sound",
+      "play": "Play",
+      "stop": "Stop",
+      "seconds": "{seconds} s",
+      "chosen": "Sound chosen",
+      "saved": "Sound saved",
+      "removed": "Sound removed",
+      "own_add": "Add your own sound",
+      "own_choose": "Choose a sound file",
+      "own_unreadable": "This file could not be read as sound.",
+      "own_full": "There are {most} sounds of your own already. Remove one first.",
+      "own_drag_loop": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) loops it the way the screen will.",
+      "own_drag_once": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) plays it the way the screen will.",
+      "own_name": "Name",
+      "own_save": "Save sound",
+      "screens_title": "Per screen",
+      "screens_same": "Same as every screen",
+      "screens_none": "No screen that can play this has a speaker yet.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume set to {volume} dB",
+      "test": "Test",
+      "test_hint": "Plays it on this screen now, the way it will for real",
+      "test_sent": "Playing it on the screen",
+      "editor": {
+        "drop": "Drop a sound file here",
+        "drop_loop": "Any song or sound will do: you pick the part that rings, at most {seconds} seconds, with the pause you want before it rings again.",
+        "drop_once": "Any song or sound will do: you pick the part that plays, at most {seconds} seconds.",
+        "total": "{time} in all",
+        "other_file": "Another file",
+        "whole": "The whole file",
+        "part": "The part that plays",
+        "start": "Start",
+        "end": "End",
+        "of_most": "of at most {most} s",
+        "made": "What is done to the sound",
+        "no_bass": "Bass filtered out",
+        "soft_ends": "Soft ends",
+        "even_level": "Even volume",
+        "repeats": "Repeats"
+      }
+    },
+    "updates_card": {
+      "title": "{n} update for {screen} | {n} updates for {screen}",
+      "one": "One build of {screen}.",
+      "one_build": "All of it in one build of {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} is offline. It can be updated once it is back.",
+      "go_all": "Update everything"
+    },
+    "build_room": {
+      "title": "This Home Assistant may be short of memory for a build",
+      "text": "It has {free} GB free, and a build needs about {need} GB. A build may fail or slow Home Assistant down. A build server on another computer avoids that, and so does updating the screen from ESPHome Device Builder on a computer.",
+      "server": "Build server"
+    },
+    "history": {
+      "title": "Last build of this screen | Last {n} builds of this screen",
+      "by": {
+        "update": "Update",
+        "plugins": "Plugins",
+        "install": "Install",
+        "icons": "Icons",
+        "other": "Build"
+      }
+    },
+    "steps": {
+      "later": "Later",
+      "set_up": "Set it up",
+      "update": "Update it",
+      "not_now": "Not now",
+      "not_done": "not done",
+      "kept": "Fine. It waits in the menu of {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Write the firmware",
+          "again": "Try again",
+          "cable": "Put the screen's USB cable in this computer first.",
+          "phase": {
+            "port": "Choose the chip in the browser's list. It shows only this one.",
+            "restart": "The chip restarts as a USB drive.",
+            "drive": "The chip is a USB drive called {drive} now. Choose it, and let this page write to it.",
+            "write": "Writing the firmware.",
+            "wait": "The chip starts. Waiting for the screen to find it.",
+            "wait_chip": "The chip runs {version}. Waiting for the screen to find it."
+          },
+          "choose_drive": "Choose the drive {drive}",
+          "wrong_drive": "That is not the drive {drive}. Choose the drive itself, at the top of the list, not a folder on this computer.",
+          "no_window": "The browser did not open its window for the drive. Another of its file windows may still be open somewhere: close it, or reload this page, and click again.",
+          "drive_there": "The drive {drive} is there already",
+          "done": "Firmware {version} is on the chip, and the screen found it.",
+          "try": "Play a sound",
+          "errors": {
+            "no_port": "No port was chosen. With the screen's USB cable in this computer, the browser's list shows the chip.",
+            "port": "The chip's port did not open. Close any other program that uses it, then try again.",
+            "file": "The firmware did not arrive from Tessera. Try again.",
+            "write": "The file could not be written to the drive. Try again.",
+            "silent": "The screen did not find the chip. Take the USB cable out, put it back in, and try again."
+          },
+          "hand": {
+            "insecure": "This page was opened over plain http, so the browser gives it no USB port. Opened over https in Chrome or Edge (your Home Assistant Cloud address works), this is two clicks. It also goes by hand:",
+            "browser": "This browser cannot reach USB ports. In Chrome or Edge on a computer this is two clicks. It also goes by hand:",
+            "download": "Download {name}",
+            "drag": "A drive called {drive} appears. Drag the file onto it. The drive goes away by itself and the chip starts.",
+            "did": "I did that"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Buzzer firmware",
+        "title": "Give the buzzer its sound",
+        "lead": "A second chip in this screen drives its buzzer. With Tessera's firmware on that chip the buzzer plays the doorbell's chime and the sounds of your alerts. It takes half a minute.",
+        "note": "This replaces Seeed's firmware on that chip, which you can get back from Seeed. Tessera's does not read the sensors of a D1S or D1Pro.",
+        "button": "Take the USB cable out of the screen. Hold the button inside the small hole of its case with a paperclip, and put the cable back in with the other end in this computer.",
+        "done_title": "The buzzer has its sound",
+        "done_lead": "Choose what it plays for alerts and for the doorbell under Events.",
+        "update_title": "A newer firmware for the buzzer",
+        "update_lead": "Tessera has a newer firmware for the chip that drives this screen's buzzer than the one on it. It takes half a minute."
+      }
     }
   }
 }

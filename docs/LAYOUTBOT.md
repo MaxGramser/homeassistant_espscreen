@@ -40,7 +40,11 @@ true })`), so after it Back goes where the person was before, and never to a scr
 ### On a phone
 
 On a phone (the editor of everyday changes, `ui.phone`) nothing floats over the page. The bot's key stands in the dock
-at the bottom, before Add tile and Save & send, as tall as they are and within reach of a thumb. The chat is a sheet
+at the bottom, before Add tile and Save & send, as tall as they are and within reach of a thumb. The key is the box its
+ring and its z are placed in (`.bot-fab.docked` is `position: relative`), and neither takes a tap: a key without a
+place of its own hands them to the dock, where the ring, unseen until the bot thinks, lay over Add tile and Save & send
+and every tap there opened the chat. That showed only with an AI Task connected: a sleeping bot's `filter` happened to
+keep the ring in, which is why a test setup without an AI never saw it. The chat is a sheet
 from the bottom (`UiSheet`, Reka UI's Dialog, not modal), in the look of the phone's other sheets, with the safe area
 below it:
 
@@ -56,11 +60,16 @@ below it:
   viewport keeps its height). The sheet does not count on it: when the field takes focus the browser is also asked to
   bring the field into view (`scrollIntoView`, which works through the frame as for any field), and the conversation
   scrolls inside the sheet whatever its height.
+- At its full height it starts 48 px under the top of the window, where Add tile's sheet starts: a toast goes to the
+  top while a sheet is open, and never lies on the chat's head and the key that closes it.
 - Its texts and buttons are a size larger than on a wider page; the conversation, the choices and the connect hint
   are the same component (`LayoutBotChat`).
 
 What was tested and what was not: every control at 375 px wide in a desktop browser, light and dark, with the keyboard
-imitated by a shorter visual viewport (`web/tests/layoutbot-phone.spec.ts` holds the same). Not tested: a real phone,
+imitated by a shorter visual viewport (`web/tests/layoutbot-phone.spec.ts` holds the same), and the dock's keys and the
+chat's close key with touch taps in Chrome as a phone, with an AI Task connected. A test's `click()` asks no page what
+lies under a finger: a check of a key on a phone asks `document.elementFromPoint` at the key's middle, or taps it.
+Not tested: a real phone,
 and the editor inside Home Assistant's Companion app, where how the frame meets the keyboard is the phone's. That
 check is for a phone in the Companion app: open a screen, tap the bot, tap the field, and see that the field stays
 above the keyboard while typing.

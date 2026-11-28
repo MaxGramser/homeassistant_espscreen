@@ -4,6 +4,9 @@ struct FirmwareUi { lv_obj_t *room, *time, *prev, *next, *number; void (*bind)()
 namespace standard_118 {
 #include "standard_118/ui.h"
 }
+namespace standard_124 {
+#include "standard_124/ui.h"
+}
 namespace standard_133 {
 #include "standard_133/ui.h"
 }
@@ -40,6 +43,9 @@ namespace standard_210 {
 namespace standard_217 {
 #include "standard_217/ui.h"
 }
+namespace standard_235 {
+#include "standard_235/ui.h"
+}
 namespace standard_254 {
 #include "standard_254/ui.h"
 }
@@ -51,6 +57,8 @@ namespace standard_294 {
 }
 static FirmwareUi setup_firmware_ui(lv_obj_t *root, int dpi) {
 if (dpi == 118) { using namespace standard_118; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
+if (dpi == 124) { using namespace standard_124; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 133) { using namespace standard_133; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
@@ -75,6 +83,8 @@ return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui,
 if (dpi == 210) { using namespace standard_210; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 217) { using namespace standard_217; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
+if (dpi == 235) { using namespace standard_235; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 254) { using namespace standard_254; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }

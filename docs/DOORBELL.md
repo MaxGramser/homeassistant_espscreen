@@ -39,7 +39,7 @@ actions:
 | `timeout` | Seconds a ring stays when nobody touches it, 10 to 600. Empty is 60. |
 | `keep_minutes` | Minutes a missed ring stays in the top bar of the doorbell screens, counted from the moment it rang, 1 to 1440. Empty or 0 keeps it until someone opens it. The wizard offers 10 and 30 minutes, an hour, four hours and until someone opens it, and gives a new automation 30 minutes; an automation without the field keeps its missed rings until they are opened, as before. |
 | `sound` | Whether the view opens with **Sound** on, so the doorbell is heard at once. Empty or `true` is on; `false` opens it quiet, for a studio or a bedroom, and a tap on Sound turns it on. |
-| `chime` | Whether the screen plays its chime when it rings. Empty or `true` chimes; `false` rings without it, for someone who would rather not hear the ding-dong every time. |
+| `chime` | Whether the screen plays its chime when it rings. Empty or `true` chimes; `false` rings without it, for someone who would rather not hear the ding-dong every time. Which chime plays is chosen under Events, Doorbell (docs/SOUNDS.md). |
 | `lock` | A lock entity the view's **Door** key unlocks, after a second tap. The key shows the lock's state. Leave it out for no door key. |
 | `door_action` | Instead of a lock: a Home Assistant action the Door key performs after a second tap, such as `script.open_gate` or `button.press`. |
 | `door_data` | The fields of `door_action`, such as `entity_id: button.gate_open`. |
@@ -70,6 +70,10 @@ What starts the automation is yours to pick:
    or answers a later ring of that camera, or until its `keep_minutes` have passed since it rang. The screen counts
    those itself, by its own clock, in standby too: the item carries the moment it leaves (`x`), and a screen that
    wakes after it shows the bar without it.
+5. Someone sends the screen to standby by hand while it rings: **Sleep** in Home Assistant, the board's key or the home
+   button held. That closes the ring as **closed**, gives back the camera, the speaker and the microphone, and the
+   screen goes to standby. Closed counts as an answer, as the close key does, so the app closes the ring on the other
+   screens too. The standby time running out never takes a ringing screen.
 
 ## The keys
 

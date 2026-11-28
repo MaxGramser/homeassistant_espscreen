@@ -199,7 +199,7 @@ inline void render_cover_detail(Tile &t,bool large,int width,int height,int pad,
   cover_battery(t,large,width);
   // A cover group's key (firmware 0.57.0): in the top bar at the right, where a light group's lamps key stands, it opens
   // the group's page with a card per cover (group_page.h); after the battery where the cover has one.
-  if(group_page::available(t))climate_round_key(bar_key(std::isfinite(t.battery)?1:0),tile_controls::glyph::SLATS,mini_icon_font,theme::KEY,theme::INK,720);
+  if(group_page::available(t))climate_round_key(bar_key(std::isfinite(t.battery)?1:0),tile_controls::glyph::SLATS,mini_icon_font,theme::KEY,theme::INK,GROUP_PAGE);
   const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
   const lv_font_t *big=watch_font?watch_font:detail_font;
   cover_values[0]=cover_values[1]=nullptr;

@@ -23,11 +23,9 @@ namespace call {
 // Bound at boot (packages/core.yaml): what a finger did goes to ESP Screens (esphome.screen_call).
 extern std::function<void(const std::string &action, const std::string &to, bool video, const std::string &key)> report;
 void bind_speaker(esphome::speaker::Speaker *speaker);
-// The speaker's own volume: a ring goes to `ring_top` while it rings, and nothing of that reaches the media player, Home Assistant
-// or a preference (packages/features/audio-player.yaml).
+// The speaker's own volume: a ring lifts it to `ring_top` while it rings (volume_lift.h), and nothing of that reaches the
+// media player, Home Assistant or a preference (packages/features/audio-player.yaml).
 extern float ring_top;
-extern std::function<float()> volume_get;
-extern std::function<void(float)> volume_set;
 // The switch "Call ringtone": off, a call lights the screen up and shows who calls, without a sound.
 extern std::function<bool()> ring_on;
 // The switch "Call voice switching" (docs/CALLS.md, "Echo"): what this screen's calls start with. A small key in the
@@ -49,7 +47,7 @@ extern std::function<void(int)> echo_level;
 // for a house with many screens (`append` a later part, `more` a part still to come).
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
              const std::string &link, const std::string &talk, bool peer_camera, const std::string &why, int voice_switch = -1, int echo = -1,
-             const std::string &serve = "");
+             const std::string &serve = "", const std::string &ringtone = "");
 // Whether this screen can serve its own camera and voice to the other screen of a call (the hello's `call_direct`).
 bool direct();
 void on_contacts(const std::string &rows, bool append, bool more);

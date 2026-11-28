@@ -1,0 +1,25 @@
+# ESP Screens - a glass that takes no finger, for a board with no touch panel at all (the reTerminal E1001): a board
+# includes this file in place of features/capacitive-touch.yaml or features/resistive-touch.yaml.
+#
+# The shared tree reads a touch panel named `ts_touch` on every board, so the board file names one of the platform
+# `no_touch` (components/no_touch), which never reports a touch:
+#
+#   touchscreen:
+#     - platform: no_touch
+#       id: ts_touch
+#       display: my_display
+#
+# What follows for such a screen: its pages turn with its own keys (features/page-keys.yaml), its tiles show and are
+# not pressed, and its settings are changed in the app and in Home Assistant, since the hold on the top bar that opens
+# them on the glass needs a finger. These are the hooks packages/core.yaml takes from a touch file, with nothing to do.
+substitutions:
+  TOUCH_MOVE_LIMIT_PX: "0"
+  TOUCH_MIN_PRESS_MS: "0"
+  EDGE_SWIPE_BAND_PX: "0"
+  EDGE_SWIPE_TRAVEL_PX: "0"
+  SLIDER_EDGE_SNAP_PX: "0"
+  SETTINGS_HOLD_X: "0"
+  TOUCH_TEST_READY_LOG: "no touch panel; no touch test"
+  BOOT_TOUCH: |-
+    ESP_LOGI("touch", "no touch panel: the pages turn with the board's keys");
+  BOOT_PAGE_GESTURE: ""

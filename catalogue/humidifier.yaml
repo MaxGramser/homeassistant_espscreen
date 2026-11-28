@@ -5,6 +5,7 @@
 # The screen draws it with the thermostat's parts: the humidity it is set to between - and +, the modes as the mode bar,
 # the circle switches it on and off, as Home Assistant's tile does.
 domain: humidifier
+shelf: wide                 # the size the library shows it at
 firmware: 0.42.0
 memory: {bytes: 192, extras: true}
 displays:

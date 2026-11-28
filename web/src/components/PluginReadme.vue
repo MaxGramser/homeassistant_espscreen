@@ -1,21 +1,16 @@
 <script setup lang="ts">
 // A plugin's README, as the app shows it: markdown without HTML, so a plugin cannot put a script or a form on the page.
-// Links open in a new tab; a picture shows only from the plugin's own repository, at the commit the screen is pinned to.
+// Links open in a new tab; a picture shows only from the plugin's own folder, at the commit the screen is pinned to,
+// through the app (model/readme-pictures.ts: the editor's img-src is 'self').
 import MarkdownIt from "markdown-it";
 import { computed } from "vue";
+import { readmePicture } from "../model/readme-pictures";
 
-const props = defineProps<{ source: string; repo: string }>();
+const props = defineProps<{ source: string; repo: string; plugin: string; version?: string | null }>();
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: false, breaks: false });
-// Raw files of the plugin's repository: a relative picture resolves there, any other picture is left out.
-const raw = (repo: string) => {
-  const match = repo.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)(?:\/tree\/([^/]+)\/(.*))?$/);
-  return match ? `https://raw.githubusercontent.com/${match[1]}/${match[2]}/${match[3] || "HEAD"}/${match[4] ? `${match[4]}/` : ""}` : "";
-};
 md.renderer.rules.image = (tokens, index) => {
-  const src = tokens[index].attrGet("src") || "";
-  const base = raw(props.repo);
-  const url = /^[a-z]+:/i.test(src) ? (base && src.startsWith(base) ? src : "") : base && `${base}${src.replace(/^\.?\//, "")}`;
+  const url = readmePicture(tokens[index].attrGet("src") || "", props.repo, props.plugin, props.version);
   return url ? `<img src="${md.utils.escapeHtml(url)}" alt="${md.utils.escapeHtml(tokens[index].content)}" loading="lazy">` : "";
 };
 const linkOpen = md.renderer.rules.link_open || ((tokens, index, options, _env, self) => self.renderToken(tokens, index, options));

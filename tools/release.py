@@ -23,14 +23,22 @@ upgrade from main, and then moves main to it.
     tools/release.py candidate --delete    removes that branch again
     tools/release.py publish --notes FILE [--yes]
                                            main fast-forwards to HEAD, the tag screens-vX.Y.Z, the GitHub release with
-                                           FILE as its notes, and the candidate branch goes; from dev, dev then names
+                                           FILE as its notes, and the candidate branch goes (an app and editor
+                                           release: after tools/check.sh --app passed, which it runs itself); from dev, dev then names
                                            the app "(dev)" again in a commit of its own, and the plugins repository's
                                            dev goes to its main with its index built and checked against this release
+                                           and the editor's modules of its plugins there for this release's preview
                                            (tools/release_plugins.py). Only for a commit that is pushed, green in CI
-                                           and the one the candidate was made of, and plugins that fit it; without
+                                           and the one the candidate was made of (both only when a firmware source
+                                           changed), and plugins that fit it; without
                                            --yes it says what it would do and does nothing
     tools/release.py plugins [--yes]       the plugins repository's part alone, again after a step of it failed: what
                                            it brings, what stops it, and with --yes it does it
+
+A release that changes only the app and the editor takes a short route of its own (docs/RELEASING.md, "An app and
+editor release"), chosen by what changed and never by a flag: when nothing a screen's firmware is built from differs
+from main (affected_boards.firmware_sources), status and prepare say "app and editor only", prepare leaves every
+firmware number alone, and publish runs tools/check.sh --app in place of CI on every board and the upgrade test.
 
 Any refusal exits 1 with the reason. Standard library and PyYAML only; publish also needs gh.
 """
@@ -298,6 +306,25 @@ def the_release():
     return base, reach, new, affected_boards.release_of(reach, new, affected_boards.read_at(base))
 
 
+def app_only(reach):
+    """Whether the release is one of the app and the editor alone: no changed path is one a screen's firmware or the
+    editor's preview of it is built from. What changed decides the route, so nobody has to remember a flag."""
+    return not affected_boards.firmware_sources(reach)
+
+
+def app_checks():
+    """tools/check.sh --app on this tree, its output on the terminal as it runs: True when every check passed. It
+    asks once more whether a firmware source changed, and stops there when one did."""
+    return subprocess.run(['bash', 'tools/check.sh', '--app'], cwd=ROOT, env={**os.environ, 'PYTHON': sys.executable}).returncode == 0
+
+
+def lint_problem():
+    """What tests/test_release_lint.py says against this tree, or None."""
+    lint = subprocess.run([sys.executable, '-m', 'unittest', '-q', 'tests.test_release_lint'], cwd=ROOT,
+                          capture_output=True, text=True)
+    return 'tests/test_release_lint.py fails:\n' + lint.stderr.strip()[-1500:] if lint.returncode else None
+
+
 def plugins_clone():
     """A clone of the plugins repository of its own (release_plugins.Clone), beside this one's origin."""
     return release_plugins.Clone(release_plugins.remote_of(git('remote', 'get-url', 'origin')))
@@ -308,7 +335,7 @@ def plugins_report():
     api, fits = release_plugins.core_api(ROOT)
     try:
         with plugins_clone() as plugins:
-            return release_plugins.report(plugins, api, fits)
+            return release_plugins.report(plugins, api, fits, release_plugins.preview_number(ROOT))
     except release_plugins.Problem as problem:
         return [f'tessera-plugins: could not look ({problem})']
 
@@ -333,7 +360,7 @@ def status(_args):
     for line in (notes or '').splitlines()[:30]:
         print(f'  {line}')
     base, reach, new, _release = the_release()
-    print(f'\nThe firmware, against {base[:12]}:\n')
+    print(f'\nApp and editor only, against {base[:12]}:\n' if app_only(reach) else f'\nThe firmware, against {base[:12]}:\n')
     print(affected_boards.plan(reach, new, affected_boards.read_at(base)))
     print('\nThe plugins, which go to their main with the release (publish):')
     for line in plugins_report():
@@ -385,6 +412,24 @@ def prepare(args):
     print(f'Release {line[3:]}')
     print('Changed: ' + ', '.join(dict.fromkeys(touched)))
     firmware = release['kind'] != 'app'
+    if app_only(reach):
+        # Nothing a screen builds changed: the short route, with the checks that can say something about it.
+        print('\nApp and editor only: no firmware number moved, and no screen is offered an update.')
+        print('\nNext (docs/RELEASING.md, "An app and editor release"):')
+        for number, step in enumerate([
+                'Read the CHANGELOG section once more: it is what Home Assistant shows under the update.',
+                'tools/check.sh --app: the Python tests, the generated files, the texts, the editor and its bundle. No '
+                'firmware builds, no preview rebuild, no renders.',
+                f'Commit as "Release {version} (firmware {release["firmware"]}): <what it brings>" and push to {here}.',
+                'Write the GitHub release notes in English in a file, then tools/release.py publish --notes <file> --yes. '
+                'It runs tools/check.sh --app on the pushed commit itself, in place of CI on every board and the upgrade '
+                'test, and takes the plugins repository along as in every release.'], 1):
+            print(f'{number}. {step}')
+        if here == WORK:
+            print('\nThe plugins:')
+            for line in plugins_report():
+                print(f'  {line}')
+        return 0
     steps = [
         'Read the CHANGELOG section once more: it is what Home Assistant shows under the update.',
         *(['The firmware number changed, so the editor\'s preview is stale: sh web/wasm/build.sh, then cd web && '
@@ -395,7 +440,8 @@ def prepare(args):
         'upgrade test can run meanwhile.',
         'tools/release.py candidate, then the upgrade test (docs/TESTING.md, "6. The upgrade").',
         'Write the GitHub release notes in English in a file, then tools/release.py publish --notes <file> --yes. '
-        'It also takes the plugins repository\'s dev to its main and checks its index against this release (below).',
+        'It also takes the plugins repository\'s dev to its main, checks its index against this release and sees '
+        'that the editor has the plugins\' modules for it (below).',
     ]
     print('\nNext:')
     for number, step in enumerate(steps, 1):
@@ -501,16 +547,20 @@ def publish(args):
     tag = tag_of(version)
     if has(f'refs/tags/{tag}') or git('ls-remote', '--tags', 'origin', f'refs/tags/{tag}'):
         problems.append(f'the tag {tag} exists already')
-    lint = subprocess.run([sys.executable, '-m', 'unittest', '-q', 'tests.test_release_lint'], cwd=ROOT,
-                          capture_output=True, text=True)
-    if lint.returncode:
-        problems.append('tests/test_release_lint.py fails:\n' + lint.stderr.strip()[-1500:])
-    if not args.without_ci:
+    lint = lint_problem()
+    if lint:
+        problems.append(lint)
+    # What changed since main picks the route (docs/RELEASING.md, "An app and editor release"): with no firmware source
+    # among it, CI on every board and the upgrade test prove nothing, and tools/check.sh --app runs below instead.
+    sources = affected_boards.firmware_sources(the_release()[1])
+    short = not sources
+    proven = len(problems)
+    if not short and not args.without_ci:
         state = ci_state(head)
         if any(value != 'success' for value in state.values()):
             problems.append('CI is not green on HEAD (tools/release.py ci starts it): '
                             + ', '.join(f'{job} {value}' for job, value in state.items()))
-    if not args.without_upgrade_test:
+    if not short and not args.without_upgrade_test:
         tested = git('ls-remote', '--heads', 'origin', CANDIDATE).split('\t')[0]
         if not tested:
             problems.append(f'there is no {CANDIDATE}: make it from this commit and run the upgrade test '
@@ -520,6 +570,9 @@ def publish(args):
             if git('rev-parse', f'{tested}^') != head:
                 problems.append(f'{CANDIDATE} was made of another commit than HEAD: the upgrade test ran on something '
                                 'else; make it again and test this one')
+    if len(problems) > proven:
+        problems.insert(proven, f'this is no app and editor release, a firmware source changed since main '
+                                f'({affected_boards.named(sources)}): it takes CI on every board and the upgrade test')
     notes = Path(args.notes)
     if not notes.is_file() or not notes.read_text(encoding='utf-8').strip():
         problems.append(f'no release notes in {notes}')
@@ -542,10 +595,16 @@ def publish(args):
         plan.append(f'name the app "{name_of(with_name(read(CONFIG), dev=True))}" on {WORK} again, in a commit pushed to {WORK}')
     if with_plugins:
         plan.append('merge the plugins repository\'s dev into its main, build its index against this release and check '
-                    'it (every plugin fits, every one dev offered is there, its check green), then move its dev up to main')
+                    'it (every plugin fits, every one dev offered is there, its check green), move its dev up to main, '
+                    'and see that the editor has every plugin\'s module for this release\'s preview (built when missing)')
+    if short:
+        plan.insert(0, 'run tools/check.sh --app first (app and editor only: nothing a screen\'s firmware is built from '
+                       'changed since main, so no CI on every board and no upgrade test), and stop when a check fails')
     if not args.yes:
         print('Would:\n- ' + '\n- '.join(plan) + '\nNothing done: run again with --yes.')
         return 0
+    if short and not app_checks():
+        raise Refusal('Not published: tools/check.sh --app failed (above). Nothing moved.')
     # main and the tag together or neither (app 0.4.85): a stable app builds its screens from the tag of its own version
     # (core.ref), so main with a newer app but without its tag would leave every build of that app without firmware.
     git('tag', tag, head)
@@ -582,7 +641,7 @@ def plugins_step(version):
     api, fits = release_plugins.core_api(ROOT)
     try:
         with plugins_clone() as plugins:
-            release_plugins.release(plugins, api, fits, version)
+            release_plugins.release(plugins, api, fits, version, release_plugins.preview_number(ROOT))
         return True
     except release_plugins.Problem as problem:
         print(f'\nThe release is out, but the plugins are not done: {problem}\n'
@@ -596,14 +655,15 @@ def plugins(args):
     api, fits = release_plugins.core_api(ROOT)
     version = version_of(read(CONFIG))
     with plugins_clone() as clone:
-        for line in release_plugins.report(clone, api, fits):
+        for line in release_plugins.report(clone, api, fits, release_plugins.preview_number(ROOT)):
             print(line)
         problems = release_plugins.preflight(clone, api, fits)
     if problems:
         raise Refusal('The plugins cannot go along:\n- ' + '\n- '.join(problems))
     if not args.yes:
         print(f'Would merge the plugins\' dev into their main for Tessera {version} (plugin API '
-              f'{release_plugins.api_text(api)}), build and check the index, and move their dev up. Run again with --yes.')
+              f'{release_plugins.api_text(api)}), build and check the index, move their dev up, and see that the '
+              'editor has every plugin\'s module. Run again with --yes.')
         return 0
     return 0 if plugins_step(version) else 1
 
@@ -621,7 +681,7 @@ def main(argv=None):
     out = commands.add_parser('publish', help='main, the tag and the GitHub release')
     out.add_argument('--notes', required=True, help='a file with the GitHub release notes, in English')
     out.add_argument('--yes', action='store_true', help='do it (without: say what it would do)')
-    out.add_argument('--without-ci', action='store_true', help='publish while CI is not green on HEAD')
+    out.add_argument('--without-ci', action='store_true', help='publish while CI is not green on HEAD (a firmware release; an app and editor release asks no CI)')
     out.add_argument('--without-upgrade-test', action='store_true', help=f'publish without a {CANDIDATE} of HEAD')
     out.add_argument('--without-plugins', action='store_true', help='publish without taking the plugins repository along')
     plug = commands.add_parser('plugins', help="the plugins repository's part of the release alone")

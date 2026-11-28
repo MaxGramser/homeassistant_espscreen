@@ -38,7 +38,10 @@ inline lv_draw_buf_t *overlay = nullptr;
 inline int snapshot_row = 0;
 // The image's size and the source's step, set at the begin.
 inline int image_w = 0, image_h = 0, image_step = 1;
+// Where the image starts in its source: the whole surface starts at its corner, a part of the glass (glass_part) not.
+inline int image_x0 = 0, image_y0 = 0;
 inline void image_size(int w, int h) {
+  image_x0 = image_y0 = 0;
   image_step = (std::max(w, h) + 239) / 240;
   image_w = (w + image_step - 1) / image_step;
   image_h = (h + image_step - 1) / image_step;
@@ -76,6 +79,22 @@ inline void glass_begin() {
   ESP_LOGI("ui_image", "IMAGE BEGIN %d %d of the frame buffer, step %d, panel %d x %d", image_w, image_h, image_step, panel.w, panel.h);
 #else
   ESP_LOGE("ui_image", "IMAGE FAIL no frame buffer to read");
+#endif
+}
+// A part of the frame buffer at its own size (glass_part): `w` by `h` of the panel's pixels from (`x`, `y`), at most 240
+// each way, every one of them. A picture of the whole glass steps over a line one pixel wide (a seam between what LVGL
+// drew and what was laid on the glass past it); this shows it. In the panel's own coordinates, as glass_snapshot.
+inline void glass_part(int x, int y, int w, int h) {
+  glass_begin();
+  if (!frame) return;
+#ifdef USE_ESP32
+  const glass::Panel panel = glass::panel();
+  image_step = 1;
+  image_w = std::clamp(w, 1, std::min(240, panel.w));
+  image_h = std::clamp(h, 1, std::min(240, panel.h));
+  image_x0 = std::clamp(x, 0, panel.w - image_w);
+  image_y0 = std::clamp(y, 0, panel.h - image_h);
+  ESP_LOGI("ui_image", "IMAGE BEGIN %d %d of the frame buffer from %d,%d, every pixel", image_w, image_h, image_x0, image_y0);
 #endif
 }
 // A burst of the frame buffer (glass_burst): the glass now and after each of LVGL's refreshes that follow, at least
@@ -179,13 +198,14 @@ inline uint16_t layered(uint16_t pixel, int x, int y) {
 inline bool streaming() { return snapshot != nullptr || frame != nullptr; }
 inline void snapshot_next_row() {
   if (!snapshot && !frame) return;
-  const int y = snapshot_row * image_step;
+  const int y = image_y0 + snapshot_row * image_step;
   const auto *row = frame ? frame + static_cast<size_t>(y) * frame_w
                           : reinterpret_cast<const uint16_t *>(snapshot->data + y * snapshot->header.stride);
   static constexpr char hex[] = "0123456789abcdef";
   char line[961];
   for (int x = 0; x < image_w; ++x) {
-    uint16_t pixel = frame ? row[x * image_step] : layered(row[x * image_step], x * image_step, y);
+    const int at = image_x0 + x * image_step;
+    uint16_t pixel = frame ? row[at] : layered(row[at], at, y);
     for (int digit = 0; digit < 4; ++digit)
       line[x * 4 + digit] = hex[(pixel >> (12 - digit * 4)) & 15];
   }

@@ -24,12 +24,17 @@ packages:
   snapshot: !include ../features/snapshot.yaml
   # The ES8311, its speaker and its microphone, on the pins of the module board below.
   audio: !include ../hardware/guition-p4-audio.yaml
+  # The BOOT key, GPIO35 (in a window on the back of the black case), as the standby key: a press puts the screen
+  # in standby or wakes it.
+  # GPIO35 also reaches the Ethernet chip's TXD1, which no board file drives; Ethernet would take the pin from the key.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc1060p470v2"
   DEVICE_NAME: "jc1060p470v2-new"
   DEVICE_FRIENDLY_NAME: "My Guition 7 V2"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives, and its density: 1187 diagonal
   # pixels over 7 inches. The look scales its sizes by the exact density, the firmware by the nearest whole number.
@@ -79,7 +84,8 @@ esphome:
 # esp_lcd_jd9165), as that pull request carries them. ESPHome adds the pixel format, the orientation and the
 # display-on commands itself.
 display:
-  - platform: mipi_dsi
+  # mipi_dsi, or mipi_dsi_v3 on rev3 silicon: the chip revision decides (hardware/esp32p4-core.yaml).
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: CUSTOM
     update_interval: never

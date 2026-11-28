@@ -42,7 +42,8 @@ inline lv_obj_t *detail_shape(lv_obj_t *parent,int x,int y,int w,int h,theme::Ro
 //   `shorter`  another wording of the whole line, taken when the full one doesn't fit ("Yest. 9:15 PM");
 //   `tail`     the end that has to stay readable (a robot's battery): the words in front of it take the dots,
 //              "Angedockt / 10 %" becomes "Angedo… / 10 %".
-// A line that fits, or a room too small for the tail itself, is left to LVGL as before.
+// A line that fits, or a room too small for the tail itself, is left to LVGL as before. A line that rolls (`roll`,
+// Tile::sub_scroll) keeps all its words: it moves to show them, so no other wording and no dots are needed.
 // True when `face` has a glyph for every character of `text`: a board's fonts carry listed glyphs only, and a
 // letter outside the list draws as nothing.
 inline bool face_covers(const lv_font_t *face,const std::string &text){
@@ -50,10 +51,17 @@ inline bool face_covers(const lv_font_t *face,const std::string &text){
   while(uint32_t cp=header_bar::next_codepoint(text,i))if(!lv_font_get_glyph_dsc(face,&dsc,cp,0))return false;
   return true;
 }
-inline void fit_value(lv_obj_t *obj,const std::string &value,const std::string &shorter,const std::string &tail,int room){
+inline void fit_value(lv_obj_t *obj,const std::string &value,const std::string &shorter,const std::string &tail,int room,bool roll=false){
   const lv_font_t *font=lv_obj_get_style_text_font(obj,LV_PART_MAIN);
-  if(!font||room<=0||text_width(value,font)<=room)return;
-  if(!shorter.empty()&&shorter!=value&&text_width(shorter,font)<=room){label(obj,shorter);return;}
+  if(roll||!font||room<=0||text_width(value,font)<=room)return;
+  // `shorter` may hold several lines, a line break between them, each shorter than the one before: the first that fits.
+  for(size_t at=0;at<shorter.size();){
+    size_t end=shorter.find('\n',at);
+    if(end==std::string::npos)end=shorter.size();
+    const std::string candidate=shorter.substr(at,end-at);
+    if(!candidate.empty()&&candidate!=value&&text_width(candidate,font)<=room){label(obj,candidate);return;}
+    at=end+1;
+  }
   if(tail.empty()||value.size()<=tail.size())return;
   static const std::string dots="…";
   const int head_room=room-text_width(dots+tail,font);
@@ -83,6 +91,8 @@ inline lv_obj_t *button_words(lv_obj_t *button,const lv_font_t *font,uint32_t co
 // so a segmented row on a short panel is still hittable (overlay_card::touchable).
 // A segment's look, chosen or not.
 inline void segment_paint(lv_obj_t *segment,bool selected){
+  // A segment is a part of its row: on paper the row has the rim, and a segment that is not chosen is its word alone.
+  theme::rim(segment,false);
   set_number(segment,LV_STYLE_BG_OPA,selected?LV_OPA_COVER:LV_OPA_TRANSP);
   set_color(segment,LV_STYLE_BG_COLOR,theme::color(selected?theme::ACCENT:theme::ACCENT_TINT),LV_STATE_PRESSED);
   if(auto *words=lv_obj_get_child(segment,0))set_color(words,LV_STYLE_TEXT_COLOR,theme::color(selected?theme::ON_ACCENT:theme::INK));
@@ -152,7 +162,7 @@ inline bool detail_status_brief=false;
 inline lv_obj_t *climate_round_key(const climate_card::Rect &r,const char *icon,const lv_font_t *font,theme::Role fill,theme::Role ink,int command){
   auto *key=detail_button("",r.x,r.y,r.w,r.h,command);
   lv_obj_set_style_radius(key,LV_RADIUS_CIRCLE,0);
-  lv_obj_set_style_bg_color(key,theme::color(fill),0);
+  theme::ground(key,fill);
   lv_obj_set_style_bg_color(key,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
   auto *glyph=lv_obj_get_child(key,0);
   if(font)lv_obj_set_style_text_font(glyph,font,0);

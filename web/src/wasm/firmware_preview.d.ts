@@ -14,10 +14,17 @@ export type FirmwarePreviewModule = {
   _preview_render(): void;
   _preview_frame(): number;
   _preview_page(): number;
+  // Another page on the glass, as a swipe brings it (the editor reads a page's cards from the frame).
+  _preview_show?(page: number): number;
   _preview_image_buffer(id: number, size: number): number;
   _preview_image_ready(id: number, success: number): number;
   ccall(name: string, returns: string | null, types: string[], args: unknown[]): any;
   HEAPU8: Uint8Array;
+  // A plugin's own code (load.ts): its module is written into the preview's file system and loaded from there.
+  FS?: { writeFile(path: string, data: Uint8Array): void };
+  loadDynamicLibrary?(path: string, flags: { loadAsync: boolean; global: boolean; nodelete: boolean }): Promise<unknown>;
+  // The plugins whose module this preview loaded (load.ts), started after _preview_init (startPlugins).
+  plugins?: { id: string; path: string }[];
 };
 declare const createModule: (options?: Record<string, unknown>) => Promise<FirmwarePreviewModule>;
 export default createModule;

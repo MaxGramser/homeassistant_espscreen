@@ -39,11 +39,11 @@ constexpr bool tiles_seen(bool awake, bool screensaver, int standby_level) {
 constexpr bool pictures_on_glass(bool tiles_seen, bool card_open, bool view_open) {
   return tiles_seen && !card_open && !view_open;
 }
-// Those of a kept page out of sight, fetched ahead: only while the screen is in use, no pages are being prepared, the
-// store has room to spare (under three quarters of its budget: over it a page out of sight lets its pictures go, and
-// fetching them again would only send them round) and the screen is not busy (the governor's background, pressure.h).
-constexpr bool pictures_ahead(bool awake, bool kept, bool preparing, size_t used, size_t budget, int background_pressure) {
-  return awake && kept && !preparing && used < budget / 4 * 3 && background_pressure == 0;
+// Those of a kept page out of sight, fetched ahead: only while the screen is in use, no pages are being prepared and the
+// screen is not busy (the governor's background, pressure.h). Whether each picture fits is the store's spare room, asked
+// per picture where its fetch would start (picture_loader room_ahead, picture_store fits_ahead, GitHub #415).
+constexpr bool pictures_ahead(bool awake, bool kept, bool preparing, int background_pressure) {
+  return awake && kept && !preparing && background_pressure == 0;
 }
 
 // Where a picture card's name lies (render_camera_card) and where the live picture's copy of it lies (live_name): left,

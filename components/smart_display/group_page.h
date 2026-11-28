@@ -358,13 +358,13 @@ inline void paint(Card &c, const Lamp &l, bool fresh_card) {
   const lv_color_t track = color == theme::ha::AMBER ? theme::color(theme::AMBER_TRACK) : lv_color_hex(theme::tint(color, 51));
   if (c.icon) {
     lv_label_set_text(c.icon, on ? "\U000F0335" : "\U000F0E4F");
-    lv_obj_set_style_text_color(c.icon, on ? lv_color_hex(color) : theme::color(theme::MUTED), 0);
+    lv_obj_set_style_text_color(c.icon, on ? lv_color_hex(theme::mark(color)) : theme::color(theme::MUTED), 0);
   }
   // A lamp that only switches: the settings page's switch, in the lamp's colour while it is on like the other lamps' fill.
   if (c.knob) {
     auto *track = lv_obj_get_parent(c.knob);
     const int w = lv_obj_get_style_width(track, LV_PART_MAIN), h = lv_obj_get_style_height(track, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(track, on ? lv_color_hex(color) : theme::color(theme::TOGGLE_OFF), 0);
+    theme::toggle(track, c.knob, on, color);
     lv_obj_set_x(c.knob, settings_screen::knob_x(w, h, on));
   }
   if (c.slider && (fresh_card || (!c.dirty && !lv_obj_has_state(c.slider, LV_STATE_PRESSED)))) {

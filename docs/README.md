@@ -25,6 +25,13 @@
   recipe for the code).
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
+- [CALLS.md](CALLS.md): calls between screens, the Call tile, echo and Do not disturb.
+- [BOARD_STEPS.md](BOARD_STEPS.md): what there is to do with a board beyond its firmware, once (a second chip that takes
+  a firmware of its own), as a page of New screen and a card above the screen; the recipe for a step and for a new kind
+- [SECOND_CHIP.md](SECOND_CHIP.md): Tessera's firmware for a board's second chip (the SenseCAP Indicator's RP2040), the
+  line between the two chips, and the buzzer as the screen's speaker
+- [SOUNDS.md](SOUNDS.md): the ringtone, the doorbell's chime and the alert sound a screen plays, chosen under Events
+  or cut from a sound file of your own, and adding a kind of sound (also a recipe).
 - [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
   recipe for the code).
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
@@ -58,6 +65,10 @@
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
 - [FREENOVEFNK0104S.md](FREENOVEFNK0104S.md): the Freenove FNK0104S, 4 inch.
 - [SENSECAP_INDICATOR.md](SENSECAP_INDICATOR.md): the Seeed SenseCAP Indicator D1 series with the GX panel, 4 inch.
+- [RETERMINAL_STICKY.md](RETERMINAL_STICKY.md): the Seeed reTerminal Sticky, 3.97 inch, 800 × 480, the first board
+  whose glass is e-paper: its pins, its keys and buzzer, how it hangs and what has been tried.
+- [RETERMINAL_E1001.md](RETERMINAL_E1001.md): the Seeed reTerminal E1001, 7.5 inch, 800 × 480, e-paper without
+  touch: its pins, its keys, what a screen without a finger does and what is still unknown.
 - [SUNTON8048S070.md](SUNTON8048S070.md): the Sunton ESP32-8048S070, 7 inch.
 
 ## Recipes for changing the code
@@ -70,6 +81,8 @@
 - [RESPONSIVE.md](RESPONSIVE.md): how one firmware fits every glass: looks, grids, the font set and card design rules.
 - [MODULES.md](MODULES.md): tiers and modules, the parts of the UI only boards with 8 MB of flash or more get (a recipe).
 - [ADDING_A_BOARD.md](ADDING_A_BOARD.md): adding a board, from its datasheet to the glass.
+- [CHIP_REVISIONS.md](CHIP_REVISIONS.md): why a screen's firmware is built for its chip's silicon revision, where Tessera
+  reads it, and adding a rule when a chip changes its silicon (a recipe).
 - [BOARD_RELEASES.md](BOARD_RELEASES.md): which boards a change reaches, and the firmware number it gets.
 - [PROFILES.md](PROFILES.md): how a screen's YAML is put together from the core, looks, features and board files.
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
@@ -82,6 +95,11 @@
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
+- [GLASS_KINDS.md](GLASS_KINDS.md): where a glass that is lit and a glass of ink part: the one fact, the parts a
+  card asks for and their two stylesheets, the rules for a card, and the ink audit that holds them (also a recipe).
+- [PAPER.md](PAPER.md): a glass of e-paper as a kind of panel: the paper glass between LVGL and ESPHome's driver, how
+  a colour becomes an ink, when the panel prints, a slider as a level that fills in steps, standby as rest, what a board states
+  and what is not built yet (also a recipe).
 - [CARD_PARTS.md](CARD_PARTS.md): a card built once and painted in place when a value changes, instead of built again.
 - [KEYBOARD.md](KEYBOARD.md): the screens' own keyboard: what a caller asks of it, how it tells the caller what was
   typed, and adding a layout (a recipe).
@@ -94,6 +112,8 @@
 - [FLASH_LAYOUT.md](FLASH_LAYOUT.md): the partition table of a board with 4 MB of flash, and how a screen gets it
   without losing its settings (the technical side of UPDATING_4MB_SCREENS.md).
 - [CAMERA.md](CAMERA.md): camera pictures and album covers, from Home Assistant to the screen.
+- [SCREEN_FILES.md](SCREEN_FILES.md): the files a screen downloads from the app (the sounds first), named by their
+  content on the port of the pictures, and adding a kind of file (a recipe).
 - [PICTURE_ARCHITECTURE.md](PICTURE_ARCHITECTURE.md): the building blocks under pictures and cameras in the firmware,
   the app and the Screen camera plugin, their seams, and the layers they are moved into (a design with its recipe).
 - [PLATFORM_PLAN.md](PLATFORM_PLAN.md): what Tessera builds next on the ESP32-P4 and in what order: the hardware layer

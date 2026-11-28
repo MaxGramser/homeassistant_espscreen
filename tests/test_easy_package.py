@@ -163,8 +163,14 @@ class PackageTests(unittest.TestCase):
             # What a feature brings (the resistive panel's calibration, the capacitive one's edge swipe, camera images,
             # a battery's voltage, a board's audio parts and their wiring, packages/hardware/parts/) and the
             # hardware a screen's own YAML may change on the board that has it (the pins of an ESP32-P4's Wi-Fi link
-            # and touch bus, hardware/esp32p4-c6.yaml).
-            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$)', n) for n in own), f'{board}: {sorted(own)}')
+            # and touch bus, hardware/esp32p4-c6.yaml), and an ESP32-P4's chip revision with what follows
+            # from it, the DSI driver and the name of Espressif's EV board the Tab5 names (hardware/esp32p4-core.yaml,
+            # docs/CHIP_REVISIONS.md). And how a board reaches its standby key (a pin of
+            # the chip, or of an expander through STANDBY_KEY, features/standby-key.yaml, docs/ADDING_A_BOARD.md).
+            # And the pins of the serial line to a board's second chip (features/chip-speaker.yaml, docs/SECOND_CHIP.md).
+            # And a board's own keys for its pages with how long home is held (features/page-keys.yaml), and its buzzer on
+            # a pin with the tick it gives (features/buzzer.yaml).
+            self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$|CHIP_REVISION$|DSI_PLATFORM$|P4_EV_BOARD$|STANDBY_KEY(?:_PIN|_INVERTED|_PULLUP)?$|CHIP_LINK_[TR]X_PIN$|PAGE_KEY_(?:PREVIOUS|NEXT)_PIN$|HOME_KEY_(?:PIN|HOLD)$|BUZZER_(?:PIN|FREQUENCY|TICK)$|WAKE_WHEN_MOVED_AT_FIRST$)', n) for n in own), f'{board}: {sorted(own)}')
 
 
 class BoardRules(unittest.TestCase):

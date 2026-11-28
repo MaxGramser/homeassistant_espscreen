@@ -1,0 +1,15 @@
+{
+  "name": "indicator-rp2040",
+  "version": "1.0.0",
+  "file": "indicator-rp2040.uf2",
+  "size": 70144,
+  "sha256": "b6af7162ebef0e1fbc2f994c5f922bf9bb8a43777768779fa3f2238cee1dc079",
+  "usb": [
+    {
+      "vendor": 10374,
+      "product": 80
+    }
+  ],
+  "drive": "RPI-RP2",
+  "source": "816471ee32a9e5bcd182123a8351ff3a1d84699fa70b5ae6bd015468b0c3bf83"
+}

@@ -7,6 +7,7 @@
 // App.vue chooses what to draw from the route's name and the stores (a screen route draws the screen once its layout
 // is there, the overview when there are screens, else the empty page), so every route carries the same empty component.
 import { createRouter, createWebHashHistory, START_LOCATION, type RouteLocationRaw } from "vue-router";
+import { APP_SETTINGS_PARTS } from "./model/settings-parts";
 
 const Nothing = { render: () => null };
 
@@ -16,12 +17,13 @@ export const router = createRouter({
     { path: "/", name: "home", component: Nothing },
     // A screen by its inbox entity id (text.kitchen_tile_settings): what the inventory calls it.
     { path: "/screens/:id", name: "screen", component: Nothing },
-    { path: "/settings", name: "settings", component: Nothing },
+    // Settings opens on the list of its parts; a part (model/settings-parts.ts) is a page of its own.
+    { path: `/settings/:part(${APP_SETTINGS_PARTS.join("|")})?`, name: "settings", component: Nothing },
     { path: "/new-screen", name: "new-screen", component: Nothing },
     { path: "/firmware", name: "firmware", component: Nothing },
     // Events (app 0.4.91): what an automation in Home Assistant can fire at the screens, an alert or a doorbell's ring,
     // each one a part of the page (`kind`). The address of the Alerts page before it still opens the alerts.
-    { path: "/events/:kind(alerts|doorbell|alarm)?", name: "events", component: Nothing },
+    { path: "/events/:kind(alerts|doorbell|alarm|calls)?", name: "events", component: Nothing },
     { path: "/alerts", redirect: "/events/alerts" },
     { path: "/plugins", name: "plugins", component: Nothing },
     // The Override YAML of a screen's ESPHome profile (kitchen.yaml); without a profile the page says so.

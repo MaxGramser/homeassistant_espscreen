@@ -9,6 +9,7 @@
 // is told about the new size by the slot's `done`, as it always was.
 #include "picture_fetch.h"
 #include "picture_engine.h"
+#include "picture_store.h"
 // Only a board with pictures builds this (SCREEN_PICTURES, packages/features/camera.yaml): the CYD keeps its flash.
 #ifdef SCREEN_PICTURES
 #include "esphome/core/hal.h"
@@ -35,7 +36,6 @@
 
 namespace picture_fetch {
 static const char *const TAG = "picture";
-constexpr uint32_t CONNECT_MS = 4000;   // as ESPHome's http_request timeout was
 constexpr uint32_t RECV_MS = 4000;      // a chunk that does not come in this long ends the download
 constexpr uint32_t WHOLE_MS = 30000;    // and a picture that takes longer than this altogether
 constexpr size_t CHUNK = 8192;          // what one recv takes at most
@@ -91,46 +91,6 @@ Slot &live() { return slots[2]; }
 // Pixels and the read buffer take PSRAM first (roomy.h): only this file's code reads them, never a DMA.
 
 // ---- the task ----
-int connect_to(const Address &a, uint32_t wait_ms) {
-  addrinfo hints{};
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_STREAM;
-  addrinfo *found = nullptr;
-  const std::string port = std::to_string(a.port);
-  if (getaddrinfo(a.host.c_str(), port.c_str(), &hints, &found) != 0 || !found) return -1;
-  int fd = socket(found->ai_family, found->ai_socktype, found->ai_protocol);
-  if (fd < 0) { freeaddrinfo(found); return -1; }
-  const int flags = fcntl(fd, F_GETFL, 0);
-  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-  int r = connect(fd, found->ai_addr, found->ai_addrlen);
-  freeaddrinfo(found);
-  if (r < 0 && errno != EINPROGRESS) { close(fd); return -1; }
-  if (r < 0) {
-    fd_set writable;
-    FD_ZERO(&writable);
-    FD_SET(fd, &writable);
-    timeval wait{static_cast<time_t>(CONNECT_MS / 1000), static_cast<suseconds_t>((CONNECT_MS % 1000) * 1000)};
-    if (select(fd + 1, nullptr, &writable, nullptr, &wait) <= 0) { close(fd); return -1; }
-    int error = 0;
-    socklen_t len = sizeof(error);
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 || error != 0) { close(fd); return -1; }
-  }
-  fcntl(fd, F_SETFL, flags);
-  timeval chunk{static_cast<time_t>(wait_ms / 1000), static_cast<suseconds_t>((wait_ms % 1000) * 1000)};
-  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &chunk, sizeof(chunk));
-  setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &chunk, sizeof(chunk));
-  return fd;
-}
-bool send_all(int fd, const std::string &text) {
-  size_t sent = 0;
-  while (sent < text.size()) {
-    const auto n = send(fd, text.data() + sent, text.size() - sent, 0);
-    if (n <= 0) return false;
-    sent += static_cast<size_t>(n);
-  }
-  return true;
-}
-
 // The whole download; `slot.ok`/`slot.cached` tell how it went.
 static void download(Slot &slot) {
   const Address a = split(slot.task_url);
@@ -153,7 +113,7 @@ static void download(Slot &slot) {
   Head answer;
   size_t body = 0;
   Decoder decoder([&](int width, int height) -> uint16_t * {
-    const size_t needed = static_cast<size_t>(width) * height * 2;
+    const size_t needed = picture_store::bytes_of(width, height);  // what the store books for it
     // In place, the size on the glass (rows without the padding a JPEG's whole MCUs leave).
     if (slot.pixels && slot.bytes == needed && slot.dsc.header.stride == static_cast<uint32_t>(width) * 2) return slot.pixels;
     slot.fresh = static_cast<uint16_t *>(roomy::allocate(needed));

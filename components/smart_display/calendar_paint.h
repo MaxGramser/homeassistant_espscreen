@@ -16,6 +16,8 @@ inline uint32_t colour(cc::Paint p, const std::vector<uint32_t> &colors) {
   // The room's state (calendar_card FREE_COLOUR, BUSY_COLOUR): Home Assistant's green and red, painted as a calendar's.
   const uint32_t key = p.cal == cc::FREE_COLOUR ? theme::ha::GREEN : p.cal == cc::BUSY_COLOUR ? theme::ha::RED
                        : p.cal < colors.size() ? colors[p.cal] : theme::ha::BLUE;
+  // Every role as a part of the theme: the head's circle is a disc that says a state (an event running or none),
+  // now is a mark, and a calendar's own colour is the theme's calendar parts.
   switch (p.role) {
     case cc::INK: return theme::hex(theme::INK);
     case cc::MUTED: return theme::hex(theme::MUTED);
@@ -25,24 +27,24 @@ inline uint32_t colour(cc::Paint p, const std::vector<uint32_t> &colors) {
     case cc::SOFT: return theme::hex(theme::PAGE_SOFT);
     case cc::CARD: return theme::hex(theme::CARD);
     case cc::KEY: return theme::hex(theme::KEY);
-    case cc::NOW: return theme::ha::RED;
+    case cc::NOW: return theme::mark(theme::ha::RED);
     case cc::ON_NOW: return theme::hex(theme::ON_ACCENT);
     case cc::RAISED: return theme::hex(theme::RAISED);
     case cc::RAISED_LINE: return theme::hex(theme::RAISED_LINE);
-    case cc::SCRIM: return theme::hex(theme::SCRIM);
+    case cc::SCRIM: return theme::scrim();
     case cc::ACCENT: return theme::hex(theme::ACCENT);
     case cc::ACCENT_TINT: return theme::hex(theme::ACCENT_TINT);
-    case cc::ON_TINT: return theme::tint(theme::ha::AMBER, 40);
-    case cc::ON_ICON: return theme::icon(theme::ha::AMBER);
-    case cc::OFF_TINT: return theme::tint(theme::STATE_OFF, 40);
-    case cc::OFF_ICON: return theme::icon(theme::STATE_OFF);
-    case cc::CAL_KEY: return key;
+    case cc::ON_TINT: return theme::state_disc(theme::ha::AMBER, true, true, 40).ground;
+    case cc::ON_ICON: return theme::state_disc(theme::ha::AMBER, true, true, 40).ink;
+    case cc::OFF_TINT: return theme::state_disc(theme::STATE_OFF, true, false, 40).ground;
+    case cc::OFF_ICON: return theme::state_disc(theme::STATE_OFF, true, false, 40).ink;
+    case cc::CAL_KEY: return theme::calendar_key(key);
     case cc::CAL_BLOCK: return theme::calendar_block(key);
     case cc::CAL_INK: return theme::calendar_ink(key);
     case cc::CAL_TRACK: return theme::calendar_track(key);
-    case cc::CAL_KEY_PAST: return theme::calendar_past(key);
-    case cc::CAL_BLOCK_PAST: return theme::calendar_past(theme::calendar_block(key));
-    case cc::CAL_INK_PAST: return theme::mix(theme::calendar_ink(key), theme::hex(theme::CARD), 150);
+    case cc::CAL_KEY_PAST: return theme::calendar_key_past(key);
+    case cc::CAL_BLOCK_PAST: return theme::calendar_block_past(key);
+    case cc::CAL_INK_PAST: return theme::calendar_ink_past(key);
     default: return theme::hex(theme::INK);
   }
 }
@@ -60,9 +62,24 @@ inline void paint(lv_layer_t *layer, const cc::Scene &sc, int ox, int oy, const 
     lv_draw_rect_dsc_t d;
     lv_draw_rect_dsc_init(&d);
     d.bg_color = lv_color_hex(colour(b.paint, colors));
-    d.bg_opa = b.opa;
+    // A ground that lets what is under it through, at the strength the glass shows that (theme::solid), and a line in
+    // a colour of its own (theme::line).
+    d.bg_opa = theme::solid(b.opa);
     d.radius = b.radius;
-    if (b.border) { d.border_width = b.border; d.border_color = lv_color_hex(colour(b.line, colors)); d.border_opa = LV_OPA_COVER; }
+    if (b.border) { d.border_width = b.border; d.border_color = lv_color_hex(theme::line(colour(b.line, colors))); d.border_opa = LV_OPA_COVER; }
+    // A ground whose colour is the card's own needs a line to be a shape, where the glass gives it none
+    // (theme::shape_rim): an event's block, a track, a key, the head's circle while nothing runs, a colour its giver
+    // made the card's, and the accent's pale share, which marks what is chosen (a row of the view choice, the
+    // keyboard's shift).
+    if (const int rim = theme::shape_rim(); rim && !b.border && b.radius > 0 && d.bg_opa) {
+      const auto role = b.paint.role;
+      const bool own_blank = (role == cc::CAL_KEY || role == cc::CAL_KEY_PAST) && colour(b.paint, colors) == theme::hex(theme::CARD);
+      if (own_blank || role == cc::ACCENT_TINT || role == cc::CAL_BLOCK || role == cc::CAL_BLOCK_PAST || role == cc::OFF_TINT || role == cc::TRACK || role == cc::KEY) {
+        d.border_width = rim;
+        d.border_color = lv_color_hex(theme::hex(theme::INK));
+        d.border_opa = LV_OPA_COVER;
+      }
+    }
     lv_area_t a{x1, y1, x2, y2};
     if (b.cw > 0) {
       // Cut to its strip: the shape keeps its corners, only the part inside the strip is drawn.

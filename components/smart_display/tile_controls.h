@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,13 @@ constexpr uint32_t MEDIA_SEEK = ha::media_player::SEEK, MEDIA_SHUFFLE = ha::medi
 constexpr uint32_t VACUUM_TURN_ON = ha::vacuum::TURN_ON, VACUUM_TURN_OFF = ha::vacuum::TURN_OFF, VACUUM_PAUSE = ha::vacuum::PAUSE, VACUUM_STOP = ha::vacuum::STOP,
                    VACUUM_RETURN = ha::vacuum::RETURN_HOME, VACUUM_START = ha::vacuum::START, VACUUM_LOCATE = ha::vacuum::LOCATE;
 constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE;
+// What climate.turn_off and climate.turn_on ask for: Home Assistant registers each with its flag as a required
+// feature (homeassistant/components/climate/services.py), so a call without it is refused.
+constexpr uint32_t CLIMATE_OFF = ha::climate::TURN_OFF, CLIMATE_ON = ha::climate::TURN_ON;
+// The climate card's fan and swing rows: Home Assistant shows each only with its flag (more-info-climate).
+constexpr uint32_t CLIMATE_FAN = ha::climate::FAN_MODE, CLIMATE_SWING = ha::climate::SWING_MODE;
+// The lists of the other types that go with a flag: a humidifier's modes, a vacuum's suction speeds, a remote's activities.
+constexpr uint32_t HUMIDIFIER_MODES = ha::humidifier::MODES, VACUUM_FAN_SPEED = ha::vacuum::FAN_SPEED, REMOTE_ACTIVITY = ha::remote::ACTIVITY;
 constexpr uint32_t FAN_SPEED = ha::fan::SET_SPEED;
 }
 // Material Design Icons glyphs the icon fonts carry (tile_icons.py FIXED).
@@ -52,6 +60,8 @@ constexpr const char *SNOWFLAKE = "\U000F0717", *HEAT_COOL = "\U000F1A79", *AUTO
 constexpr const char *BLINDS_OPEN = "\U000F1011", *BLINDS = "\U000F00AC", *MORE = "\U000F01D8";
 // A cover card's swap key and a cover group's key (firmware 0.57.0): the slats (blinds-horizontal), the blind (roller-shade).
 constexpr const char *SLATS = "\U000F1A2B", *SHADE = "\U000F1A6B";
+// A light group's key (lightbulb-group), on the colour card and, for a group that only dims or switches, the light card.
+constexpr const char *LAMPS = "\U000F1253";
 }
 enum Command {
   NONE = 0, COVER_OPEN, COVER_STOP, COVER_CLOSE, VACUUM_START, VACUUM_PAUSE, VACUUM_STOP, VACUUM_DOCK,
@@ -68,6 +78,16 @@ using runtime_tiles::Tile;
 // modes as the mode bar and the card's mode keys, and its circle or power key switches it. `thermostat` names both.
 inline bool humidifier(const Tile &t) { return t.domain() == "humidifier"; }
 inline bool thermostat(const Tile &t) { return t.domain() == "climate" || humidifier(t); }
+// Whether a list of choices Home Assistant sends is one its own cards show: the flag that goes with the list must be in
+// supported_features (more-info-humidifier, more-info-vacuum, more-info-remote). An integration may keep sending a
+// list for a feature the device lacks or that is switched off; the screen then keeps none of it (page_receiver.cpp),
+// so no tile, row or card offers it. `list` is Home Assistant's name of the attribute.
+inline bool list_supported(const std::string &list, uint32_t supported) {
+  if (list == "available_modes") return supported & feature::HUMIDIFIER_MODES;
+  if (list == "fan_speed_list") return supported & feature::VACUUM_FAN_SPEED;
+  if (list == "activity_list") return supported & feature::REMOTE_ACTIVITY;
+  return true;
+}
 // A text of Home Assistant (text, input_text; docs/TEXT_ENTITY.md): its state is its value, any text up to 255
 // characters, an empty one included. The tile shows it as it is, never as a state word, and a password as a dot per
 // character, as Home Assistant's own field does. "unknown" (no value yet) and "unavailable" are state words as anywhere.
@@ -425,6 +445,31 @@ inline bool climate_off(const Tile &t) {
   const std::string mode = lower_case(t.state);
   return mode == "off" || mode.empty() || mode == "unknown" || mode == "unavailable";
 }
+// What the power key of a thermostat does now (the card's key in the top bar and the circle of its tile), and whether
+// there is one: a key exists only while it can do something. While the device runs it turns it off, with
+// climate.turn_off where the entity has TURN_OFF, else by the mode "off" where hvac_modes lists it (what Home
+// Assistant's own turn_off falls back to); while it is off it turns it on with climate.turn_on, which needs TURN_ON,
+// since which mode to start is Home Assistant's to know (the mode keys switch it on otherwise). A humidifier's on and
+// off have no flag.
+enum class ClimatePower : uint8_t { NONE, TURN_OFF, MODE_OFF, TURN_ON };
+inline ClimatePower climate_power(const Tile &t) {
+  if (humidifier(t)) return climate_off(t) ? ClimatePower::TURN_ON : ClimatePower::TURN_OFF;
+  if (climate_off(t)) return (t.supported & feature::CLIMATE_ON) ? ClimatePower::TURN_ON : ClimatePower::NONE;
+  if (t.supported & feature::CLIMATE_OFF) return ClimatePower::TURN_OFF;
+  for (unsigned i = 0; i < 8; ++i) {
+    const std::string mode = lower_case(screen_input::list_item(t.extra().hvac_modes, i));
+    if (mode.empty()) break;
+    if (mode == "off") return ClimatePower::MODE_OFF;
+  }
+  return ClimatePower::NONE;
+}
+// Whether the card has its box with the temperature between - and +: only where there is a temperature to set, one
+// (TARGET_TEMPERATURE) or a range (TARGET_TEMPERATURE_RANGE), as Home Assistant's card draws its keys
+// (ha-state-control-climate-temperature). Without either, the line under the name says what the device does and the
+// temperature it measures, which is what Home Assistant shows in that case, and the modes and rows close up.
+inline bool climate_setpoint(const Tile &t) {
+  return humidifier(t) || (t.supported & (feature::CLIMATE_TEMPERATURE | feature::CLIMATE_RANGE));
+}
 // The icon of a mode, as Home Assistant's own thermostat card draws it.
 inline const char *climate_mode_icon(const std::string &mode) {
   if (mode == "heat") return glyph::FIRE;
@@ -503,7 +548,9 @@ inline std::vector<std::string> climate_modes(const Tile &t) {
   return modes;
 }
 // One row of settings under the modes: the fan and the swing, each with the entity's own choices, in its own
-// order and in Home Assistant's words. 'f' and 's' are what a tap reports back.
+// order and in Home Assistant's words. 'f' and 's' are what a tap reports back. A row needs its flag in
+// supported_features and a list with something in it, as Home Assistant's own card asks: an integration may keep
+// listing swing_modes for a device without louvres, or have the feature switched off.
 struct ClimateRow {
   char kind = 0;
   const char *icon = "";
@@ -526,11 +573,12 @@ inline std::vector<ClimateRow> climate_rows(const Tile &t) {
     rows.push_back(std::move(out));
     return rows;
   }
-  const struct { char kind; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
-      {'f', glyph::FAN, x.fan_modes, x.fan_mode},
-      {'s', "\U000F1C91", x.swing_modes, x.swing_mode},
+  const struct { char kind; uint32_t flag; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
+      {'f', feature::CLIMATE_FAN, glyph::FAN, x.fan_modes, x.fan_mode},
+      {'s', feature::CLIMATE_SWING, "\U000F1C91", x.swing_modes, x.swing_mode},
   };
   for (const auto &row : wanted) {
+    if (!(t.supported & row.flag)) continue;
     auto values = list_values(row.modes, 6);
     if (values.empty()) continue;
     ClimateRow out;
@@ -573,6 +621,72 @@ inline std::string climate_card_status(const Tile &t, bool brief = false) {
   }
   if (!brief && std::isfinite(t.humidity)) status += " · " + screen_text::percent(static_cast<int>(std::lround(t.humidity)));
   return status;
+}
+// ---- A thermostat tile's own line (firmware 0.68.0) ----
+// What a thermostat tile says under its name while its second line is Automatic: the parts the tile names
+// ("show:mode,target,now" in its second line, the inspector's switches), in this order, joined by " · ": its mode
+// (Cool), what it is doing (Home Assistant's hvac_action: Cooling), the temperature it is set to (19°, or a range) and
+// the room's ("Now 22.5°"). Without a choice it says the mode, the target and the room's temperature. An airco that is
+// off says Off and, when chosen, the room's temperature: a temperature to reach means nothing then. Where the tile's own
+// -/+ shows the target, the line leaves it out. A screen before 0.68.0 reads "show:" as Automatic: its own line.
+constexpr unsigned CLIMATE_PART_MODE = 1, CLIMATE_PART_ACTION = 2, CLIMATE_PART_TARGET = 4, CLIMATE_PART_NOW = 8;
+constexpr unsigned CLIMATE_PARTS_DEFAULT = CLIMATE_PART_MODE | CLIMATE_PART_TARGET | CLIMATE_PART_NOW;
+inline unsigned climate_parts(const std::string &choice) {
+  if (choice.compare(0, 5, "show:") != 0) return CLIMATE_PARTS_DEFAULT;
+  unsigned parts = 0;
+  size_t at = 5;
+  while (at <= choice.size()) {
+    size_t end = choice.find(',', at);
+    if (end == std::string::npos) end = choice.size();
+    const std::string part = choice.substr(at, end - at);
+    if (part == "mode") parts |= CLIMATE_PART_MODE;
+    else if (part == "action") parts |= CLIMATE_PART_ACTION;
+    else if (part == "target") parts |= CLIMATE_PART_TARGET;
+    else if (part == "now") parts |= CLIMATE_PART_NOW;
+    at = end + 1;
+  }
+  return parts;
+}
+// The temperature a thermostat is set to, as its tile line writes it: one number (19°), or a range (18 - 22°).
+inline std::string climate_target_text(const Tile &t) {
+  if (climate_range(t)) {
+    std::string low = temperature_text(range_end(t, RANGE_LOW));
+    low.resize(low.size() - std::strlen("°"));
+    return low + " - " + temperature_text(range_end(t, RANGE_HIGH));
+  }
+  return std::isfinite(t.target) ? temperature_text(t.target) : std::string();
+}
+// The line itself. `stepper`: the tile's -/+ shows the target. `drop`: parts to leave out where the whole line has no
+// room (a narrow tile: the room's temperature first, then the mode).
+inline std::string climate_tile_line(const Tile &t, unsigned parts, bool stepper, unsigned drop = 0) {
+  parts &= ~drop;
+  std::string line;
+  auto add = [&line](const std::string &part) { if (!part.empty()) line += (line.empty() ? "" : " · ") + part; };
+  if (climate_off(t)) {
+    add(climate_mode_text("off"));
+  } else {
+    if (parts & CLIMATE_PART_MODE) add(climate_mode_text(lower_case(t.state)));
+    if (parts & CLIMATE_PART_ACTION) add(climate_action_text(lower_case(t.extra().hvac_action)));
+    if ((parts & CLIMATE_PART_TARGET) && !stepper) add(climate_target_text(t));
+  }
+  if ((parts & CLIMATE_PART_NOW) && std::isfinite(t.current))
+    add(screen_text::fill(screen_text::txt::climate_now, "value", temperature_text(t.current)));
+  return line;
+}
+// What the line gives up where the whole of it has no room, each on a line of its own for the tile to try in turn
+// (fit_value): first without the room's temperature, then without the mode as well, so the temperature it is set to
+// stays readable beside a long word for the mode ("Verwarmen/koelen · 20°" on a narrow tile reads "20°"). Empty when
+// there is nothing shorter to say.
+inline std::string climate_tile_shorter(const Tile &t, unsigned parts, bool stepper) {
+  const std::string whole = climate_tile_line(t, parts, stepper);
+  std::string shorter, last = whole;
+  for (unsigned drop : {CLIMATE_PART_NOW, CLIMATE_PART_NOW | CLIMATE_PART_MODE}) {
+    const std::string line = climate_tile_line(t, parts, stepper, drop);
+    if (line.empty() || line == last) continue;
+    shorter += (shorter.empty() ? "" : "\n") + line;
+    last = line;
+  }
+  return shorter;
 }
 inline const char *cover_state_text(const std::string &state) {
   if (state == "open") return screen_text::tr(screen_text::txt::ha_cover_open);

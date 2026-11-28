@@ -1,0 +1,77 @@
+# ESP Screens - a board's own keys for its pages: one for the page before, one for the next and a home key, for a
+# board that has three keys the chip can read (the reTerminal Sticky's, on its side).
+#
+# The two page keys turn one page, as a swipe from the edge does. The home key, pressed, brings the first page with
+# everything closed; held for most of a second, it sends the screen to standby, as the home key on the glass does
+# (screen_standby.h, hold_home). A screen in standby under a screensaver or in the dark is woken by any of the three,
+# and that press does nothing more; a paper page at rest is simply used (screen_standby.h, act). The keys work while
+# the touch panel is off to save power.
+#
+# The board file names the pins, each low while pressed, with a pull-up:
+#
+#   substitutions:
+#     PAGE_KEY_PREVIOUS_PIN: GPIO5
+#     PAGE_KEY_NEXT_PIN: GPIO6
+#     HOME_KEY_PIN: GPIO4
+#
+# Each key is an entity in Home Assistant too, for an automation of its own.
+substitutions:
+  # How long the home key is held before it means standby.
+  HOME_KEY_HOLD: "700ms"
+
+binary_sensor:
+  - platform: gpio
+    id: board_key_previous
+    name: "Key previous"
+    pin:
+      number: ${PAGE_KEY_PREVIOUS_PIN}
+      inverted: true
+      mode: {input: true, pullup: true}
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - lambda: |-
+          glass_moment::key(millis());
+          touch_feedback::press();
+          if (screen_standby::the().act(millis())) runtime_tiles::touch_input::step_page(-1);
+  - platform: gpio
+    id: board_key_next
+    name: "Key next"
+    pin:
+      number: ${PAGE_KEY_NEXT_PIN}
+      inverted: true
+      mode: {input: true, pullup: true}
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - lambda: |-
+          glass_moment::key(millis());
+          touch_feedback::press();
+          if (screen_standby::the().act(millis())) runtime_tiles::touch_input::step_page(1);
+  - platform: gpio
+    id: board_key_home
+    name: "Key home"
+    pin:
+      number: ${HOME_KEY_PIN}
+      inverted: true
+      mode: {input: true, pullup: true}
+    filters:
+      - delayed_on_off: 20ms
+    on_multi_click:
+      # Pressed and let go: home.
+      - timing:
+          - ON for at most ${HOME_KEY_HOLD}
+          - OFF for at least 20ms
+        then:
+          - lambda: |-
+              glass_moment::key(millis());
+              touch_feedback::press();
+              if (screen_standby::the().act(millis())) id(go_home).execute();
+      # Held: standby, unless something holds the screen lit; then it is a press home after all.
+      - timing:
+          - ON for at least ${HOME_KEY_HOLD}
+        then:
+          - lambda: |-
+              glass_moment::key(millis());
+              touch_feedback::press();
+              if (!screen_standby::the().hold_home(millis()) && screen_standby::the().act(millis())) id(go_home).execute();

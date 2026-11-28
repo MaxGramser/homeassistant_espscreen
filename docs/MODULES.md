@@ -57,7 +57,8 @@ the add-on and the editor offer a module's options only on boards that have it.
   card's block (`vc`); lite keeps the card it had (`render_vacuum_detail`). The same module draws a robot's larger tile
   (`module_vacuum_tile.cpp`): its hello says `vacuum_tile` too, and any other screen gets the tile's keys instead.
 - **cover_groups** (full): a cover group's page, a card per cover (`module_cover_groups.h`, included by
-  `group_page.h`), behind a key on the group's cover card where a light group's lamps key stands (docs/RESPONSIVE.md,
+  `group_page.h`), behind a key on the group's cover card where a light group's lamps key stands (on its colour card,
+  or beside the power key on its light card when the group only dims or switches, GitHub #458) (docs/RESPONSIVE.md,
   "A cover's controls by its room"). Its screens say `group_covers` in their hello and ESP Screens sends them the
   group's covers (`covers`, `cover_groups.py`); lite keeps the cover card alone.
 - **clock_faces** (full): the screensaver's clock faces Glass, Classic and Bauhaus beside the digital clock
@@ -70,7 +71,7 @@ the add-on and the editor offer a module's options only on boards that have it.
 - **light_presets** (full): a light's presets, round keys on its tile and its card that set a colour or a white shade
   and a brightness (docs/LIGHT_PRESETS.md, `module_light_presets.h`). Its screens say `light_presets` in their hello and
   ESP Screens sends them the controls `presets` and `brightness_presets`; the editor offers them where `boards.json`
-  lists the module, and lite draws the brightness slider.
+  lists the module, and lite draws the brightness slider. The editor's firmware preview draws them too.
 - **call** (full): calls between screens (docs/CALLS.md, `module_call.cpp` with its header). Its screens say `call` in their hello
   when they stream and have a microphone and a speaker, and ESP Screens sends them the ops `call` and `contacts`; the Call tile
   `screen.call` is offered where `boards.json` lists the module.

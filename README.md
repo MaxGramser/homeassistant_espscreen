@@ -109,11 +109,15 @@ A screen looks best on a stand that was made for it. These are free to download 
 ready Bambu Studio print profile and no supports needed.
 
 <p align="center">
-  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="32%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
-  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="32%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
-  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="32%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
+  <a href="https://makerworld.com/en/@maxgramser/upload"><img src="docs/images/stand-guition-10.jpg" width="24%" alt="The 10.1-inch Guition in a round black printed base on a wooden table, showing a living room page with the lights, music, the airco, a temperature graph and the weather"></a>
+  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="24%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
+  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="24%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
+  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="24%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
 </p>
 
+- **[Home Assistant tablet base, 10.1 inch](https://makerworld.com/en/@maxgramser/upload)** for the Guition 10.1" JC8012P4A1
+  (every version, V3 included): a round base tilted 30 degrees, one part, no supports. Set the screen in, no screws.
+  Live cameras, music and Assist on the ESP32-P4, with 25 tiles on a page.
 - **[Home Assistant tablet base](https://makerworld.com/en/models/3485702)** for the Seeed reTerminal D1001 (8 inch): a
   round base with a dock, tilted 30 degrees. Two printed rails hold the screen by its VESA holes, with four M4 x 8 mm
   screws. The ESP32-P4 inside plays your cameras live and talks to Assist.
@@ -435,7 +439,7 @@ while it keeps your country's clock and numbers.
 | Sunton ESP32-8048S070, 7 inch (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/SUNTON8048S070.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-4B](https://tessera-maxgramser.on-forge.com/screens/waveshare4b), 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4B.md)) |
 | Waveshare ESP32-S3-Touch-LCD-4 V4.0, 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911, CH32V003 expander, revision 4.0 only; dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE4V4.md)) |
-| Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro, GX panel, 4 inch (experimental) | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive FT6336U; dimmable backlight, no camera pictures, LoRa and sensors unused, hardware acceptance pending ([details](docs/SENSECAP_INDICATOR.md)) |
+| Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro, GX panel, 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive FT6336U; dimmable backlight, the buzzer as its speaker, no camera pictures, LoRa and sensors unused ([details](docs/SENSECAP_INDICATOR.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-3.5](https://tessera-maxgramser.on-forge.com/screens/waveshare35) (new) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures ([details](docs/WAVESHARE35.md)) |
 | Freenove FNK0104S, 4 inch (experimental) | 480 × 320, 2 × 2 tiles | ST7796 SPI / capacitive FT6336; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/FREENOVEFNK0104S.md)) |
 | [Hosyond ESP32-32E](https://tessera-maxgramser.on-forge.com/screens/hosyond40), 4 inch (experimental) | 480 × 320, 2 × 3 tiles | ST7796 SPI / resistive XPT2046; dimmable backlight, no camera pictures, hardware acceptance pending ([details](docs/HOSYOND40.md)) |

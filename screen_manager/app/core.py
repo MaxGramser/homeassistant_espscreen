@@ -8,6 +8,8 @@ import math
 import os
 import re
 import secrets
+from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from i18n import english, screen_t, t
 import calendar_feed
@@ -17,6 +19,7 @@ import meter
 import text_tile
 import catalogue
 import tile_icons
+import chip_revision
 
 # The entity types a tile shows, as the tile catalogue has them (catalogue/*.yaml, catalogue.py): a type exists here only
 # where it has a file there, which comes after the firmware's UI for it (docs/CATALOGUE.md).
@@ -83,6 +86,8 @@ NIGHTSTAND_KEYS = 3
 KEY_HOLDERS = {NIGHTSTAND: NIGHTSTAND_KEYS}
 # A key's name under its circle can be hidden (`overlay`: "none", firmware 0.17.0+), as a picture's name on it can.
 KEY_OPTIONS = ('icon', 'tap', 'action', 'guard', 'overlay')
+# A tile's name and its second line roll by when they are too wide for their room (firmware dev); "off" ends them in dots.
+SCROLL_OPTIONS = ('name_scroll', 'sub_scroll')
 KEY_DOMAINS = catalogue.key_domains()
 
 def is_key(tile):
@@ -173,7 +178,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.62.0'
+FIRMWARE_VERSION = '0.68.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -569,9 +574,12 @@ NAME_SCREEN_FEATURES = ('Screen features',)
 # components/flash_layout, docs/FLASH_LAYOUT.md): "wide", ready for the wide one ("widen", or "widen_next" when it
 # takes one more update first), or "old" and "other" when it keeps what it has. No other board has the sensor.
 NAME_SCREEN_FLASH = ('Screen flash',)
+# The chip and its silicon revision (firmware after 0.63.0), "ESP32-P4 v3.2": every build of the screen is made for that
+# revision (chip_revision.py, docs/CHIP_REVISIONS.md). Older firmware says nothing.
+NAME_SCREEN_CHIP = ('Screen chip',)
 SCREEN_ENTITY_NAMES = frozenset(NAME_TILE_SETTINGS + NAME_SCREEN_FIRMWARE + NAME_GUITION_TYPE + NAME_DEVICE_NAME + NAME_IP_ADDRESS
                                 + NAME_SCREEN_LANGUAGE + NAME_SCREEN_LAYOUT + NAME_SCREEN_BOARD + NAME_SCREEN_FEATURES
-                                + NAME_SCREEN_FLASH)
+                                + NAME_SCREEN_FLASH + NAME_SCREEN_CHIP)
 
 # What a board looks like: the glass it draws on and the cells of one page, for each way the board can hang. These
 # come straight from the board files (tools/generate_board_shapes.py writes boards.json from PANEL_W, GRID_COLS and
@@ -754,6 +762,25 @@ def has_module(screen, name):
     out from the board's flash as the firmware does. A board this app does not know has none."""
     return name in SHAPES.get(board_of(screen), {}).get('modules', ())
 
+# A glass of ink (docs/PAPER.md): the word a screen says for it (settings_screen::features), and the settings such a
+# glass has no use for. It is read by the light of the room, so it has no brightness and no night; standby stays, as
+# the picture it keeps while it rests, and so does its dark look (ink and paper traded).
+PAPER_FEATURE = 'paper'
+PAPER_KEYS = ('brightness', 'standby_brightness', 'night_enabled', 'night_start', 'night_end', 'night_brightness')
+
+def inks_of(screen):
+    """The inks this screen's glass prints with: 0 for a glass that is lit, 2 for black and white, 4 for four greys.
+    Its board's `inks` in boards.json; a screen that says `paper` on a board this app has no inks for prints black and
+    white. A board this app does not know is a glass that is lit."""
+    inks = SHAPES.get(board_of(screen), {}).get('inks') or 0
+    if not inks and PAPER_FEATURE in (features_of(screen) or ()):
+        inks = 2
+    return int(inks)
+
+def is_paper(screen):
+    """Whether this screen's glass is ink without a light."""
+    return inks_of(screen) > 0
+
 def dimmable(screen):
     """Whether this screen's backlight takes levels: no normal brightness without it, and standby and night as the
     switch they really are."""
@@ -850,6 +877,10 @@ def tile_limit(version, grid=DEFAULT_GRID):
     return grid.legacy_pages * grid.slots if version >= FULL_PAGE_MIN_FIRMWARE else LEGACY_MAX_TILES if version >= TWENTY_TILES_MIN_FIRMWARE else FIRST_MAX_TILES
 
 CLIMATE_RANGE_MIN_FIRMWARE = (0, 19, 0)
+# The parts a thermostat tile's own line may say, in the order it says them, and the ones it says without a choice
+# (firmware 0.68.0, tile_controls::climate_tile_line; web/src/model/tile-text.ts CLIMATE_PARTS).
+CLIMATE_LINE_PARTS = ('mode', 'action', 'target', 'now')
+CLIMATE_LINE_DEFAULT = 'show:mode,target,now'
 
 def tile_cost(tile, memory):
     """What one tile takes inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md), by the tile catalogue's
@@ -1382,6 +1413,8 @@ TILE_RESULT_EVENT = 'esp_screens_tile_result'
 TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'display', 'icon': 'icon',
                       'color': 'background', 'background': 'background', 'tap': 'tap', 'inline': 'inline',
                       'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay',
+                      # Whether a name or a second line too wide for its room rolls by: "off" ends it in dots.
+                      'name_scroll': 'name_scroll', 'sub_scroll': 'sub_scroll',
                       # Where a cover's slats stand open: 100 (Home Assistant's rule) or 50.
                       'tilt_open': 'tilt_open',
                       # A light's presets: a list of at most four, each {"b": 1-100} with "k" kelvin or "h" and "s".
@@ -1981,7 +2014,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'sub_scroll', 'name_scroll', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -2015,7 +2048,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             domain = tile['entity'].split('.')[0]
             # The bedside clock is the whole page, always, and the only tile with keys.
             if tile['entity'] == NIGHTSTAND:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 options['size'] = 'full'
             # A key takes what a tile of its own takes, but no size, face or control: its clock decides its shape.
             if is_key(tile) and set(options) - set(KEY_OPTIONS):
@@ -2024,10 +2057,10 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             # The map tile (app 0.4.36) is a map and nothing else, and has no slider or controls of its own.
             if tile['entity'] == MAP_TILE:
                 displays = ('map',)
-                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub')}, 'display': 'map'}
+                options = {**{k: v for k, v in options.items() if k not in ('inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}, 'display': 'map'}
             # The energy card draws its diagram on every size it takes, with no face, slider or second line of its own.
             if tile['entity'] == ENERGY_TILE:
-                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')}
+                options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')}
                 if 'flow' in options and options['flow'] not in ENERGY_FLOWS:
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='flow'))
                 if options.get('flow') == ENERGY_FLOWS[0]:
@@ -2041,7 +2074,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     template = text_tile.validate(options.get(text_tile.OPTION))
                 except ValueError:
                     raise ValueError(t('addon.errors.layout.text_template')) from None
-                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')},
+                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub', 'sub_scroll')},
                            text_tile.OPTION: template}
                 if options.get('tap') not in (None, 'none'):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
@@ -2095,10 +2128,27 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     words = sub[5:].strip()
                     sub = f'text:{words}' if words else 'none'
                     options = {**options, 'sub': sub}
-                if sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
+                # A thermostat's own line names the parts it says (firmware 0.68.0, tile_controls::climate_tile_line),
+                # kept in one order; its mode, target and the room's temperature are the line it says without a choice.
+                if sub.startswith('show:') and domain == 'climate':
+                    parts = sub[5:].split(',') if sub[5:] else []
+                    if any(part not in CLIMATE_LINE_PARTS for part in parts):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
+                    sub = 'show:' + ','.join(part for part in CLIMATE_LINE_PARTS if part in parts)
+                    sub = 'auto' if sub == CLIMATE_LINE_DEFAULT else sub
+                    options = {**options, 'sub': sub}
+                elif sub not in ('auto', 'none') and not re.fullmatch(r'text:.+|attr:[a-z_0-9]+', sub):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting='sub'))
                 if sub == 'auto':
                     options = {k: v for k, v in options.items() if k != 'sub'}
+            # Whether a name or a second line too wide for its room rolls by (firmware dev, Tile::name_scroll and
+            # sub_scroll): on unless "off", so only "off" is kept. Older firmware reads neither and ends them in dots.
+            for key in SCROLL_OPTIONS:
+                if key in options:
+                    if options[key] not in ('on', 'off'):
+                        raise ValueError(t('addon.errors.layout.invalid_setting', setting=key))
+                    if options[key] == 'on':
+                        options = {k: v for k, v in options.items() if k != key}
             # The five-day strip and the sun path only fit a double-width card (or the whole page).
             if options.get('display') in WIDE_ONLY and options.get('size') not in ('wide', 'square', 'full') and size_columns(options.get('size')) < 2:
                 options = {**options, 'size': 'wide'}
@@ -2349,6 +2399,10 @@ VACUUM_ROLES = {'vacuum': 'v', 'sweeping': 'v', 'mop': 'm', 'mopping': 'm', 'cus
 MODE_COVERED = frozenset(('off', 'off_raise_main_brush', 'custom', 'custom_water_flow', 'smart_mode', 'vac_followed_by_mop'))
 VACUUM_CHOICES = 6
 
+# VacuumEntityFeature.FAN_SPEED, from Home Assistant's source through the tile catalogue (catalogue/_ha.json).
+VACUUM_FAN_SPEED = catalogue.bits('vacuum', 'FAN_SPEED')
+
+
 def vacuum_label(value):
     key = VACUUM_LABELS.get(value)
     return short(screen_t(key) if key else str(value).replace('_', ' ').capitalize(), 24)
@@ -2429,7 +2483,10 @@ def vacuum_extras(tile, states, device):
     water = select(related['water'], lambda o, current: o not in covered) if 'water' in related else None
     if water:
         result['water'] = water
-    speeds = attrs.get('fan_speed_list')
+    # The suction speeds only with the vacuum's FAN_SPEED flag, as Home Assistant's card: an integration may list
+    # speeds for a feature that is off.
+    features = attrs.get('supported_features')
+    speeds = attrs.get('fan_speed_list') if isinstance(features, int) and features & VACUUM_FAN_SPEED else None
     fan = row([s for s in speeds if isinstance(s, str) and s not in covered]) if isinstance(speeds, list) else None
     if fan:
         result['fan'] = fan
@@ -2438,6 +2495,25 @@ def vacuum_extras(tile, states, device):
     if isinstance(room, str) and room not in ('', 'unknown', 'unavailable', 'none'):
         result['room'] = short(room, 32)
     return result or None
+
+SIGNATURES = frozenset(('token', 'authSig'))
+
+
+def unsigned(address):
+    """An address of Home Assistant without the signature in its query (`token`, `authSig`), the rest of the query
+    as it was, wherever the signature stood (GitHub #456: Lyrion's `?token=...&media_image_id=...`)."""
+    parts = urlsplit(address)
+    query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in SIGNATURES]
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
+def home_assistant_config(folder):
+    """Whether `folder` is a Home Assistant configuration (configuration.yaml, or Home Assistant's .storage): what this app
+    writes there on request (the video integration, the Claude skill) reaches Home Assistant only then. An app in Docker on
+    its own has a /homeassistant that is no such folder (GitHub #357)."""
+    folder = Path(folder)
+    return (folder / 'configuration.yaml').is_file() or (folder / '.storage').is_dir()
+
 
 def media_cover(attrs):
     """The address a media player's cover is fetched from, or '' without one. Home Assistant's own proxy for the player
@@ -2479,7 +2555,7 @@ def media_extras(attrs):
         # Without Home Assistant's access token (app 0.3.7): it changes every few minutes on its own while the picture
         # stays, and each new token made every screen fetch the same cover again. The link's `cache` part is the
         # picture's own hash, so the mark still changes with the picture.
-        stable = re.sub(r'([?&])token=[^&]*(&|$)', lambda m: m.group(1) if m.group(2) else '', picture)
+        stable = unsigned(picture)
         result['pic'] = hashlib.sha1(stable.encode()).hexdigest()[:10]
     return result or None
 
@@ -3025,6 +3101,7 @@ def discover_screens(registry, states, devices, areas):
     features = diagnostic(NAME_SCREEN_FEATURES, FEATURES_TEXT)
     # What a screen with 4 MB of flash says about its partition table (app 0.4.56); nothing for every other screen.
     flash = diagnostic(NAME_SCREEN_FLASH, r'[a-z][a-z_]{0,15}')
+    chips = diagnostic(NAME_SCREEN_CHIP, r'ESP32(-[A-Z0-9]+)? v\d{1,2}\.\d{1,2}')
     addresses = diagnostic(NAME_IP_ADDRESS, r'\d{1,3}(\.\d{1,3}){3}')
     languages = diagnostic(NAME_SCREEN_LANGUAGE, r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})?')
     # Firmware from before the languages (0.2.75 and older) has no such sensor: it speaks English, with fewer letters.
@@ -3053,6 +3130,7 @@ def discover_screens(registry, states, devices, areas):
                         # What this screen can do with its backlight, in its own words (firmware 0.2.99).
                         'features': features.get(item.get('device_id')),
                         'flash': flash.get(item.get('device_id')),
+                        'chip': chips.get(item.get('device_id')),
                         'node': nodes.get(item.get('device_id')), 'ip': addresses.get(item.get('device_id')),
                         'language': languages.get(item.get('device_id')),
                         'language_sensor': item.get('device_id') in speaks,
@@ -3099,7 +3177,11 @@ def discover(registry, states, devices, areas, word_sets=()):
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
                          **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
-                         **({} if tile else {'tile': False}), **unavailable_since(state)})
+                         **({} if tile else {'tile': False}), **unavailable_since(state),
+                         # What Home Assistant's device page puts apart from the controls: a setting (Configuration) or
+                         # a reading for diagnosis, and an entity hidden there. The library shows them as extras.
+                         **({'category': category} if (category := item.get('entity_category')) in ('config', 'diagnostic') else {}),
+                         **({'hidden': True} if item.get('hidden_by') else {})})
     # YAML entities may not have an entity-registry entry. Their icon is the one the screen gets (tile_icon): Home
     # Assistant's own, else the one its frontend shows for the state, as for a registered entity (app 0.4.90; before, a
     # player or a lock of YAML showed the power icon on the mockup and its cast or lock icon on the glass).
@@ -3136,6 +3218,10 @@ def installation_yaml(data):
         raise ValueError(t('addon.errors.firmware.board_and_name'))
     if not isinstance(friendly, str) or not friendly.strip() or len(friendly) > 60:
         raise ValueError(t('addon.errors.firmware.friendly_name'))
+    # The name goes into C++ strings of the firmware (packages/core.yaml), where " or \ ends or breaks the string and
+    # the build fails far from here (#453): said now, before a build.
+    if '"' in friendly or '\\' in friendly:
+        raise ValueError(t('addon.errors.firmware.friendly_name_quote'))
     quote = lambda s: json.dumps(s, ensure_ascii=False)
     # The language of the screen's texts (app 0.2.90): Settings -> Language & region, which ESP Screens passes in.
     language = data.get('language') if isinstance(data.get('language'), str) and re.fullmatch(r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})?', data.get('language')) else 'en'
@@ -3174,6 +3260,13 @@ def installation_yaml(data):
     if not isinstance(chosen, dict) or any(key not in offered or value not in offered[key] for key, value in chosen.items()):
         raise ValueError(t('addon.errors.firmware.choice'))
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
+    # The revision of the chip the screen goes on, when the installer read it from the chip on the cable (app after
+    # 0.4.100): the packages build what that revision needs (chip_revision.py, docs/CHIP_REVISIONS.md). Unknown, the
+    # line is left out and the board's own default builds, as before.
+    revision = chip_revision.valid(data.get('chip_revision'))
+    if 'chip_revision' in data and data['chip_revision'] is not None and revision is None:
+        raise ValueError(t('addon.errors.firmware.chip_revision'))
+    chip_line = f'  {chip_revision.KEY}: {quote(str(revision))}\n' if revision is not None else ''
     # Swipe between pages is on for a screen set up here: the line is the screen's start value until it stores a choice
     # of its own (packages/core.yaml, SWIPE_PAGES_DEFAULT). A profile written before has no line and keeps the core's off,
     # so an update never turns swiping on for a screen that is out there.
@@ -3204,7 +3297,7 @@ substitutions:
   DEVICE_FRIENDLY_NAME: {quote(friendly.strip())}
   LANGUAGE: {quote(language)}
   SWIPE_PAGES_DEFAULT: "1"
-{rotation_line}{grid_lines}{choice_lines}{branch_line}
+{rotation_line}{grid_lines}{choice_lines}{chip_line}{branch_line}
 esphome:
   name: {quote(name)}
   friendly_name: {quote(friendly.strip())}

@@ -5,8 +5,15 @@
 #   tools/check.sh                   the Python tests, every tests/*.cpp, the package check, the icon generator's --check, the editor's
 #                                    tests, its sizes against the firmware's, types and build, and whether the editor bundle in Git
 #                                    equals that build
+#   tools/check.sh --app             the short list of an app and editor release (docs/RELEASING.md, "An app and editor release"):
+#                                    first that nothing a screen's firmware is built from changed since main
+#                                    (tools/affected_boards.py --app-only; it stops there when something did), then the Python
+#                                    tests, the generated files, tools/i18n.py check, the editor's tests, lint, types, sizes and
+#                                    build, the bundle in Git, and that the firmware preview in Git is current. No C++ tests,
+#                                    no preview tests or rebuild, no firmware builds, no renders; it goes alone
 #   tools/check.sh --firmware        compiles every board profile (tools/profiles.py) and applies the flash budget to every
-#                                    board with 4 MB of flash (the CYD's rule, docs/RELEASING.md step 2)
+#                                    board with 4 MB of flash (the CYD's rule, docs/RELEASING.md step 2) and the Xtensa
+#                                    literal margin to every build (tools/literal_margin.py, LITERAL_FLOOR)
 #   --board KEY                      with --firmware: only this board (repeat for more); a fix for one board builds one
 #   --affected                       with --firmware: only the boards a build of the change needs (affected_boards.py --build-keys);
 #                                    nothing to build when it reaches none (docs/BOARD_RELEASES.md); a change that reaches
@@ -42,9 +49,10 @@ read -r -a ESPHOME_CMD <<< "${ESPHOME:-esphome}"
 
 usage() { sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed '$d; s/^# \{0,1\}//'; }
 
-want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline="" only=() affected=0 sample=0 every_board=0
+want_app=0 want_fast=1 want_firmware=0 want_render=0 saw_firmware=0 saw_all=0 saw_render=0 baseline="" only=() affected=0 sample=0 every_board=0
 while (($#)); do
   case $1 in
+    --app) want_app=1 ;;
     --firmware) saw_firmware=1 ;;
     --all) saw_all=1 ;;
     --render) saw_render=1 ;;
@@ -64,6 +72,12 @@ while (($#)); do
   esac
   shift
 done
+if ((want_app)); then
+  if ((saw_firmware || saw_all || saw_render || affected || sample || every_board || ${#only[@]})) || [[ -n $baseline ]]; then
+    echo "--app goes alone: it is the list of a release that changes no firmware" >&2; exit 2
+  fi
+  want_fast=0
+fi
 if ((saw_firmware || saw_all)); then want_firmware=1; fi
 if ((saw_firmware && !saw_all)); then want_fast=0; fi
 if ((saw_render)); then want_render=1; if ((!saw_all && !saw_firmware)); then want_fast=0; fi; fi
@@ -191,6 +205,20 @@ firmware_numbers_raised() {
 }
 # The translations (app 0.2.90, docs/TRANSLATING.md): every language against English, the key header the firmware
 # builds against, and no English left in the firmware's code.
+# An app and editor release (--app): nothing a screen's firmware or its preview is built from changed since main.
+app_only() {
+  local out status=0
+  cd "$ROOT" || return 1
+  out=$("$PYTHON" tools/affected_boards.py --app-only 2>&1) || status=$?
+  echo "$out"
+  ((status != 1)) || echo "This is a firmware release: run tools/check.sh, and take the steps of docs/RELEASING.md, \"The release\"."
+  return "$status"
+}
+# The texts alone (--app): every language against English. The key header and the firmware's own code are the
+# firmware's, and a changed screen text is no app and editor release.
+translations_texts() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt"; }
+# The preview in Git is the one the firmware sources build to (--app): asked, never rebuilt or tested here.
+preview_current() { cd "$ROOT" && "$PYTHON" web/wasm/generate_renderer_manifest.py --check; }
 translations_check() { cd "$ROOT" && "$PYTHON" tools/i18n.py check > "$WORK/i18n.txt" && "$PYTHON" tools/i18n.py header --check && "$PYTHON" tools/i18n.py lint; }
 editor_install() { cd "$ROOT/web" && npm ci --no-audit --no-fund; }
 editor_tests() { cd "$ROOT/web" && npm test; }
@@ -199,47 +227,12 @@ editor_lint() { cd "$ROOT/web" && npm run lint; }
 # Python tests above run before, so it runs here again, where a missing piece is a failure and not a skip.
 editor_parity() { cd "$ROOT" && EDITOR_PARITY=1 "$PYTHON" -m unittest tests.test_editor_parity; }
 editor_types() { cd "$ROOT/web" && npm run check; }
+# The preview is the one the firmware sources build to, and its tests pass: web/wasm/test.sh is the one list of them,
+# which the job that rebuilds the preview runs too (.github/workflows/preview.yml).
 firmware_preview() {
   cd "$ROOT" || return 1
   "$PYTHON" web/wasm/generate_renderer_manifest.py --check || return 1
-  node web/wasm/test_profiles.mjs || return 1
-  node web/wasm/test_runtime.mjs || return 1
-  node web/wasm/test_card_parts.mjs || return 1
-  node web/wasm/test_card_paint.mjs || return 1
-  node web/wasm/test_card_labels.mjs || return 1
-  node web/wasm/test_page_keys.mjs || return 1
-  node web/wasm/test_quiet_resync.mjs || return 1
-  node web/wasm/test_settings_hold.mjs || return 1
-  node web/wasm/test_settings_tile.mjs || return 1
-  node web/wasm/test_state_look.mjs || return 1
-  node web/wasm/test_binary_words.mjs || return 1
-  node web/wasm/test_tile_icons.mjs || return 1
-  node web/wasm/test_remote_card.mjs || return 1
-  node web/wasm/test_media_library.mjs || return 1
-  node web/wasm/test_history_card.mjs || return 1
-  node web/wasm/test_tile_shapes.mjs || return 1
-  node web/wasm/test_lock_card.mjs || return 1
-  node web/wasm/test_alarm_card.mjs || return 1
-  node web/wasm/test_media_card.mjs || return 1
-  node web/wasm/test_automation_tile.mjs || return 1
-  node web/wasm/test_dark_switch.mjs || return 1
-  node web/wasm/test_cover_card.mjs || return 1
-  node web/wasm/test_page_frame.mjs || return 1
-  node web/wasm/test_look.mjs || return 1
-  node web/wasm/test_colour_card.mjs || return 1
-  node web/wasm/test_cover_keys.mjs || return 1
-  node web/wasm/test_top_bar_cards.mjs || return 1
-  node web/wasm/test_images.mjs || return 1
-  PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs || return 1
-  PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs || return 1
-  PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs || return 1
-  PREVIEW_WIDTH=480 PREVIEW_HEIGHT=800 node web/wasm/test_runtime.mjs || return 1
-  node web/wasm/test_weather_detail.mjs || return 1
-  node web/wasm/test_climate_detail.mjs || return 1
-  # The grid a layout brings (firmware 0.53.0+): begin changes it, a card per cell, a grid it does not take refused.
-  node web/wasm/test_grid.mjs || return 1
-  # The firmware's own Settings page in the preview: hold, Extras, a write only with Taps control devices, Back.
-  node web/wasm/test_settings.mjs || return 1
+  PYTHON="$PYTHON" sh web/wasm/test.sh
 }
 editor_build() { cd "$ROOT/web" && npm run build; }
 
@@ -431,6 +424,19 @@ EOF
 
 flash_budget() { flash_report "$1" budget; }
 
+# literal_margin BOARD: on the ESP32 and the ESP32-S3, the room left before a function of main.cpp falls out of an
+# l32r's reach of its literals (docs/RELEASING.md, "The Xtensa literal range"; tools/literal_margin.py). Under LITERAL_FLOOR
+# KB it fails, before the link does: 2026-11-24 the S3 boards stood at about 25 KB after the picture loader left main.cpp,
+# the link having failed at -16 KB before. An ESP32-P4 (RISC-V) has no literals and passes.
+LITERAL_FLOOR=8
+literal_margin() {
+  # Where the build leaves its map: ESP-IDF's own build folder, or PlatformIO's with an older ESPHome (2026.6).
+  local map="$ESPHOME_DATA_DIR/build/check-$1/build/check-$1.map"
+  [[ -f $map ]] || map="$ESPHOME_DATA_DIR/build/check-$1/.pioenvs/check-$1/firmware.map"
+  [[ -f $map ]] || { echo "no map: $map"; return 1; }
+  "$PYTHON" "$ROOT/tools/literal_margin.py" "$map" --floor "$LITERAL_FLOOR"
+}
+
 # The bridge (packages/bridge.yaml, app 0.4.56): the firmware a screen with ESPHome's own table for 4 MB runs for a
 # minute while ESP Screen Manager replaces that table, when its own firmware no longer fits the old slot
 # (docs/FLASH_LAYOUT.md). It builds from checkout/bridge.yaml with this tree's component, and it has to fit that old
@@ -539,6 +545,34 @@ if ((want_fast)); then
   fi
 fi
 
+if ((want_app)); then
+  run "App and editor only" app_only
+  if ((last_ok)); then
+    run "Python packages" python_packages
+    run "Python tests" python_tests
+    run "Board shapes for the manager" shapes_current
+    run "Entry files of every board" entries_current
+    run "Issue template boards" issue_templates_current
+    run "Icons match tile_icons.py" icons_current
+    run "Tile catalogue" catalogue_current
+    run "Translations: every language" translations_texts
+    run "Firmware preview in Git is current" preview_current
+    run "Editor: npm ci" editor_install
+    if ((last_ok)); then
+      run "Editor: tests (Vitest)" editor_tests
+      run "Editor: lint (ESLint)" editor_lint
+      run "Editor: the firmware's numbers" editor_parity
+      run "Editor: types (vue-tsc)" editor_types
+      run "Editor: build" editor_build
+      if ((last_ok)); then run "Editor: bundle in Git is fresh" editor_bundle; else skip "Editor: bundle in Git is fresh" "no build"; fi
+    else
+      skip "Editor: tests, types, build" "npm ci failed"
+    fi
+  else
+    skip "The checks of an app and editor release" "a firmware source changed"
+  fi
+fi
+
 if ((want_firmware && affected)); then
   # The boards a build of the change needs (tools/affected_boards.py --build-keys: the boards it reaches, and every board
   # when the build's own tools, entries, fixtures or ESPHome changed); none means nothing needs a build. A tool that
@@ -598,6 +632,7 @@ if ((want_firmware)); then
         continue
       fi
       run "Firmware: $board" compile_board "$board"
+      if ((last_ok)); then run "Literal margin: $board" literal_margin "$board"; fi
       if [[ $board == guition ]]; then
         if ((last_ok)); then run "Firmware: a plugin in the Guition" compile_plugin; else skip "Firmware: a plugin in the Guition" "no build"; fi
       fi

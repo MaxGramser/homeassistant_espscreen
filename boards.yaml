@@ -1,11 +1,12 @@
-# The boards ESP Screens ships, in the order New screen offers them (docs/ADDING_A_BOARD.md).
+# The boards ESP Screens ships, in the order New screen offers them within its two sections: the recommended boards first
+# and apart, then every other one (docs/ADDING_A_BOARD.md).
 #
 # One entry per board, keyed by the word ESP Screens knows it by (the BOARD_ID its firmware reports, and the name of
 # packages/<key>.yaml, the entry a screen installed from ESP Screens builds from over GitHub, and of checkout/<key>.yaml,
 # the one a build from a clone of this repository uses). An entry says only what
 # the hardware files cannot: what the board is called, what is printed on it, how far it has been tried, the
-# choices someone makes when a screen of it is built, and its own settings (`settings`, docs/SETTINGS.md, "A board's own
-# settings"). Everything else ESP Screens shows about a board is worked out
+# choices someone makes when a screen of it is built, its own settings (`settings`, docs/SETTINGS.md, "A board's own
+# settings") and its own steps (`steps`, docs/BOARD_STEPS.md). Everything else ESP Screens shows about a board is worked out
 # from its file under packages/boards/ by tools/generate_board_shapes.py, into screen_manager/app/boards.json: the
 # glass and its size in inches, the grid lying down and standing up, the touch controller, and what it can do
 # (camera pictures, dimming, standby, a touch calibration on the first start).
@@ -13,14 +14,22 @@
 #   file      the board file under packages/boards/
 #   name      what people call the board; New screen shows it with its size in inches
 #   model     what is printed on the board or its box, to tell it from its neighbours
-#   status    stable (tried on the glass by the project), new (tried, few screens out there yet) or experimental
-#             (built and rendered, not yet tried on the hardware)
+#   status    stable (proven, on the project's own glass or by many screens out there), new (tried on real screens,
+#             not yet thoroughly) or experimental (built and rendered, too little test data from real screens to know
+#             how well it works)
+#   recommended  optional, true for a stable board the project recommends: New screen shows it first, in a section of
+#             its own. A stable board without it is proven but not promoted (a CYD does too little to start with).
 #   choices   optional: a substitution the board file offers for a part that differs between boards sold under the same
 #             name, with the values someone may pick when the screen is built. The first is the board file's own
 #             default and writes nothing; another is written into the screen's own YAML. Only values that people with
 #             that board confirmed work belong here. The grid is no choice of the board's: every screen takes the
 #             grids its glass holds (packages/looks/shared/grid.yaml), New screen offers them under Advanced and the
 #             editor changes them later without a build.
+#   steps     optional: what there is to do with the board beyond its firmware, once, in order (docs/BOARD_STEPS.md).
+#             New screen offers each after the screen works, and the screen's page until it is done. A step has an
+#             `id` (its words are the translations' editor.steps.<id>), a `kind` (the code that does it:
+#             screen_manager/app/board_steps.py KINDS) and what that kind needs. `chip_firmware` writes Tessera's
+#             firmware to a second chip of the board and needs `chip`, its folder under chips/.
 
 cyd:
   file: cyd-2432s028.yaml
@@ -43,6 +52,7 @@ guition:
   name: Guition
   model: ESP32-S3-4848S040
   status: stable
+  recommended: true
   # Its extras under Screen settings (docs/SETTINGS.md, "A board's own settings"): the backlight's PWM and its floor,
   # which differ between batches of this board (GitHub #5, #327, #337).
   settings: [backlight_pwm, dimmest_level]
@@ -68,7 +78,8 @@ jc8012p4a1v3:
   file: guition-jc8012p4a1-v3.yaml
   name: Guition
   model: JC8012P4A1 V3
-  status: experimental
+  status: stable
+  recommended: true
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
@@ -76,7 +87,7 @@ waveshare7:
   file: waveshare-esp32s3-7.yaml
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7
-  status: experimental
+  status: stable
 
 waveshare4b:
   file: waveshare-esp32s3-4b.yaml
@@ -94,7 +105,7 @@ jc1060p470:
   file: guition-jc1060p470.yaml
   name: Guition
   model: JC1060P470
-  status: experimental
+  status: new
   choices:
     # In a black case or on a yellow board without one (GitHub #289): the yellow one's touch lies half a turn round.
     BOARD_VARIANT: [black, yellow]
@@ -105,7 +116,7 @@ jc1060p470v2:
   file: guition-jc1060p470-v2.yaml
   name: Guition
   model: JC1060P470 V2
-  status: experimental
+  status: stable
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
@@ -113,25 +124,25 @@ hosyond40:
   file: hosyond40.yaml
   name: Hosyond
   model: ESP32-32E E32R40T
-  status: experimental
+  status: new
 
 jc3248w535:
   file: guition-jc3248w535.yaml
   name: Guition
   model: JC3248W535
-  status: new
+  status: stable
 
 waveshare7b:
   file: waveshare-esp32s3-7b.yaml
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7B
-  status: experimental
+  status: new
 
 sunton8048s070:
   file: sunton-8048s070.yaml
   name: Sunton
   model: ESP32-8048S070
-  status: experimental
+  status: new
 
 jc8012p4a1v2:
   file: guition-jc8012p4a1-v2.yaml
@@ -168,7 +179,7 @@ wavesharep4:
   file: wavesharep4.yaml
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
-  status: experimental
+  status: new
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
@@ -176,7 +187,8 @@ reterminald1001:
   file: reterminald1001.yaml
   name: reTerminal D1001
   model: reTerminal D1001
-  status: experimental
+  status: stable
+  recommended: true
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, wake_when_moved, echo_cancellation]
 
@@ -210,9 +222,39 @@ sensecapd1:
   file: seeed-sensecap-indicator-d1.yaml
   name: SenseCAP
   model: Indicator D1, D1S, D1L, D1Pro (GX)
-  status: experimental
+  status: stable
+  recommended: true
   # Seeed's SenseCAP Indicator D1 series with the GX panel (GitHub #277): the four models share the ESP32-S3 side.
-  # Tried on a D1L; the DX panel is not covered.
+  # Tested by the project on its own units, buzzer included; the DX panel is not covered.
+  # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings"): how loud its buzzer plays.
+  settings: [volume]
+  # Its own step in New screen (docs/BOARD_STEPS.md): Tessera's firmware for its second chip, the RP2040 that drives
+  # the buzzer, which makes the buzzer the screen's speaker. The screen says when it is done (HELLO_BOARD_STEPS).
+  steps:
+    - id: buzzer
+      kind: chip_firmware
+      chip: indicator-rp2040
+
+reterminalsticky:
+  file: seeed-reterminal-sticky.yaml
+  name: reTerminal Sticky
+  model: Seeed reTerminal Sticky
+  status: experimental
+  # Seeed's 3.97-inch magnetic e-paper display: the first board whose glass is paper (docs/PAPER.md). Tried by the
+  # project on its own unit with the SSD1677 panel; Seeed also ships the board with an SSD2677, which ESPHome does not
+  # drive yet.
+  # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
+  settings: [wake_when_moved, tap_sound]
+
+reterminale1001:
+  file: seeed-reterminal-e1001.yaml
+  name: reTerminal E1001
+  model: Seeed reTerminal E1001
+  status: experimental
+  # Seeed's 7.5-inch e-paper display in black and white, without touch: a paper glass whose pages turn with its three
+  # keys (docs/RETERMINAL_E1001.md). Not yet tried on a unit of the project's own.
+  # Its extra under Screen settings (docs/SETTINGS.md, "A board's own settings").
+  settings: [tap_sound]
 
 freenovefnk0104s:
   file: freenove-fnk0104s.yaml
@@ -262,9 +304,10 @@ waveshare101v3:
   file: waveshare101-v3.yaml
   name: Waveshare
   model: ESP32-P4-WIFI6-Touch-LCD-10.1 V3
-  status: new
+  status: stable
+  recommended: true
   # The same board with rev3 silicon ("chip revision: v3.x" in the USB log), which Waveshare ships now: it starts only
-  # with the repository's display driver (docs/WAVESHARE101.md). Seen on glass on one unit: picture, touch, pages.
+  # with the repository's display driver (docs/WAVESHARE101.md). Tested at length by the project on its own glass.
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 

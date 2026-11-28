@@ -1,0 +1,76 @@
+# ESP Screens - the hardware of the Seeed Studio reTerminal E1001 (packages/boards/seeed-reterminal-e1001.yaml names it
+# with its sizes and features): the chip, its flash and PSRAM, the buses, the panel, the touch panel that is not there,
+# the battery's enable line and the air sensor. docs/RETERMINAL_E1001.md has the pins and where they come from.
+esphome:
+  # The paper glass asks the panel for a whole refresh between partial ones (request_full_update), which ESPHome has
+  # from 2026.11.0. A board's min_version wins over the core's.
+  min_version: 2026.11.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 32MB
+  cpu_frequency: 240MHz
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The log goes out over the board's USB bridge (a CH340K on UART0), which is also how it is flashed. The ESP32-S3's
+# own USB would take GPIO19 and GPIO20, the board's I2C bus.
+logger:
+  hardware_uart: UART0
+
+# The panel's bus, shared with the microSD slot.
+spi:
+  clk_pin: GPIO7
+  mosi_pin: GPIO9
+  miso_pin: GPIO8
+
+# The bus the air sensor and the clock share. There is no touch panel on it, but it keeps the name every board's bus has
+# (docs/PROFILES.md, "What an override may rely on"), so a plugin with a chip on the board's bus finds it here too.
+i2c:
+  - id: touch_bus
+    sda: GPIO19
+    scl: GPIO20
+    frequency: 400kHz
+
+switch:
+  # The battery's voltage reaches its pin only while this line is high.
+  - platform: gpio
+    id: board_battery_enable
+    pin: GPIO21
+    restore_mode: ALWAYS_ON
+    setup_priority: 1100
+    internal: true
+
+# No touch panel (features/no-touch.yaml).
+touchscreen:
+  - platform: no_touch
+    id: ts_touch
+    display: my_display
+
+# The panel as ESPHome drives it: the model carries its pins (CS GPIO10, DC GPIO11, reset GPIO12, busy GPIO13), its size
+# and its init sequence. Its partial refresh is on, with no whole one of the driver's own between: the paper glass asks
+# for those (features/paper.yaml).
+display:
+  - platform: epaper_spi
+    id: paper_panel
+    model: Seeed-reTerminal-E1001
+    full_update_every: 255
+    update_interval: never
+
+sensor:
+  # The air around the board.
+  - platform: sht4x
+    i2c_id: touch_bus
+    address: 0x44
+    update_interval: 60s
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"

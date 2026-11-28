@@ -296,13 +296,19 @@ inline void climate_mode_wish(Tile &t, const std::string &mode) {
 }
 // A thermostat's or humidifier's power key: off shows at once; on restores the mode Home Assistant remembers, which the
 // screen cannot know, so that one waits for it.
+// What the key does follows what the entity supports (tile_controls::climate_power): without TURN_OFF it sets the mode
+// "off", and a key that can do nothing does nothing.
 inline void climate_power(Tile &t) {
-  if (!tile_controls::climate_off(t)) {
+  using P = tile_controls::ClimatePower;
+  const P does = tile_controls::climate_power(t);
+  if (does == P::TURN_OFF) {
     wish(t, t.domain() == "humidifier" ? optimistic::Field::ON_OFF : optimistic::Field::HVAC_MODE, "off", t.domain() + ".turn_off");
-    return;
+  } else if (does == P::MODE_OFF) {
+    climate_mode_wish(t, "off");
+  } else if (does == P::TURN_ON) {
+    t.begin(esphome::millis());
+    action(t.domain() + ".turn_on", t.entity);
   }
-  t.begin(esphome::millis());
-  action(t.domain() + ".turn_on", t.entity);
 }
 // A cover's command (cover_travel.h): every tile and the card of the cover show where it goes and which way at once,
 // and the action goes out without the busy sheet, so a finger can send the cover elsewhere while it is on its way.

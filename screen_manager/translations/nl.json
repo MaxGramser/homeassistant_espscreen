@@ -132,7 +132,9 @@
       "update_failed": "Bijwerken mislukt",
       "hint_key": "Een verbinding van {address} is geweigerd: de sleutel hoort niet bij dit scherm. Vul de sleutel van dit scherm in bij de ESPHome-integratie van Home Assistant.",
       "no_answer_title": "Geen antwoord van Home Assistant",
-      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren."
+      "no_answer_text": "Vaak mag dit scherm nog geen acties uitvoeren. Zet dat aan in Home Assistant: ESPHome > dit scherm > Configureren.",
+      "logbook_tile": "bediend op {screen}, pagina {page}, tegel {tile}",
+      "logbook_page": "bediend op {screen}, pagina {page}"
     },
     "preparing": {
       "default": "Je tegels schikken",
@@ -156,9 +158,12 @@
       "screen": "Scherm",
       "this_screen": "Dit scherm",
       "extras": "Extra's",
+      "display": "Weergave",
       "microphone": "Microfoon",
       "media_player": "Volume",
+      "volume": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "tap_sound": "Tikgeluid",
       "backlight_pwm": "Achtergrondlicht-PWM",
       "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
@@ -235,7 +240,18 @@
       "color_temperature": "Kleurtemperatuur",
       "brightness": "Helderheid",
       "waiting": "Wachten...",
-      "presets": "Presets"
+      "presets": "Presets",
+      "shade_warm": "Warm",
+      "shade_neutral": "Neutraal",
+      "shade_cool": "Koel",
+      "color_red": "Rood",
+      "color_orange": "Oranje",
+      "color_yellow": "Geel",
+      "color_green": "Groen",
+      "color_cyan": "Cyaan",
+      "color_blue": "Blauw",
+      "color_purple": "Paars",
+      "color_pink": "Roze"
     },
     "effects": {
       "effect": "Effect",
@@ -712,6 +728,7 @@
       "not_paired": "Dit is geen gekoppeld ESP-scherm. Vernieuw het overzicht.",
       "choose_icon": "Kies een icoon uit de lijst.",
       "skill_not_written": "Kon de skill niet naar {folder} schrijven ({reason}).",
+      "skill_no_home_assistant": "De skill kan hiervandaan niet worden geïnstalleerd: {folder} is niet de configuratiemap van Home Assistant. Download hem in plaats daarvan voor claude.ai.",
       "settings": {
         "unknown": "Onbekende scherminstellingen; vernieuw de beheerpagina.",
         "invalid_value": "Ongeldige waarde voor {setting}.",
@@ -816,6 +833,7 @@
         "no_small_slider": "{name} heeft in Home Assistant niets wat een kleine slider kan aanpassen.",
         "no_graph": "{name} heeft geen getallen om een grafiek van te tekenen.",
         "no_forecast": "{name} heeft geen dagverwachting in Home Assistant.",
+        "no_hourly": "{name} heeft geen uurverwachting in Home Assistant.",
         "no_meter": "{name} heeft geen getallen om op een meter te tonen.",
         "no_control": "Home Assistant biedt die directe bediening niet voor {name}."
       },
@@ -866,7 +884,10 @@
         "unknown_action": "Onbekende firmwareactie.",
         "host": "Vul het IP-adres of de hostnaam van het bedoelde scherm in.",
         "grid": "Kies een raster dat dit scherm aanneemt.",
-        "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB."
+        "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB.",
+        "log_gone": "Dit build-log wordt niet meer bewaard.",
+        "friendly_name_quote": "De naam van een scherm mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in.",
+        "chip_revision": "De chipversie moet een heel getal zijn, zoals 302 voor v3.2."
       },
       "updates": {
         "automatic": "Kies aan of uit voor automatisch bijwerken.",
@@ -880,7 +901,8 @@
         "all_updated": "Alle bereikbare schermen zijn al bijgewerkt.",
         "reinstall_dev": "Dezelfde firmware opnieuw installeren kan alleen in het dev-kanaal.",
         "all_on_the_way": "Elk scherm met een update heeft die al onderweg.",
-        "nothing_to_reinstall": "Er is nu geen scherm opnieuw te installeren: elk is offline, al onderweg, of heeft geen profiel in deze app."
+        "nothing_to_reinstall": "Er is nu geen scherm opnieuw te installeren: elk is offline, al onderweg, of heeft geen profiel in deze app.",
+        "hour": "Kies een uur van 0 tot 23."
       },
       "remove": {
         "not_allowed": "Deze app mag geen integratie uit Home Assistant verwijderen. Verwijder het scherm in Home Assistant zelf, onder Instellingen → Apparaten & diensten.",
@@ -923,7 +945,7 @@
         "workspace_position": "Ongeldige positie op de kaart",
         "workspace_conflict": "De kaart is gewijzigd in een andere editor",
         "layout_conflict": "De indeling is gewijzigd in een andere editor; laad opnieuw en vergelijk je wijzigingen",
-        "adaptation": "Het schermraster is gewijzigd; beoordeel en bevestig de aangepaste indeling",
+        "adaptation": "Deze rasterwijziging kon niet worden opgeslagen. Sla het scherm eerst één keer op met het raster dat het nu heeft en wijzig daarna het raster. Heeft iemand dit scherm intussen in een ander venster opgeslagen, laad het dan eerst opnieuw.",
         "normalization": "De tegelinstellingen moeten worden aangepast voordat de pagina kan worden opgeslagen",
         "on_tile": "Pagina {page}, tegel “{tile}”: {problem}",
         "ambiguous_tile": "De tegelopdracht heeft meerdere mogelijke bronnen; geef de pagina op",
@@ -988,7 +1010,8 @@
         "rate_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem beoordelen.",
         "rate_failed": "De sterren zijn niet verstuurd. Probeer het zo nog eens.",
         "count_failed": "Meetellen kon niet uit: Tessera was niet bereikbaar. Probeer het zo nog eens.",
-        "forget_running": "Een scherm gebruikt deze plugin nog. Haal hem eerst van het scherm."
+        "forget_running": "Een scherm gebruikt deze plugin nog. Haal hem eerst van het scherm.",
+        "no_before": "Er is geen eerdere versie van deze plugin om naar terug te gaan."
       },
       "extras": {
         "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
@@ -1016,7 +1039,8 @@
       },
       "video": {
         "not_written": "Tessera video kon niet naar {folder} worden geschreven: {reason}.",
-        "not_installed": "Installeer eerst Tessera video."
+        "not_installed": "Installeer eerst Tessera video.",
+        "no_home_assistant": "Tessera video kan hiervandaan niet worden geïnstalleerd: {folder} is niet de configuratiemap van Home Assistant. Download de integratie en pak hem daar uit."
       },
       "report": {
         "depth": "Kies het basisrapport of het volledige rapport.",
@@ -1042,6 +1066,21 @@
       "icons": {
         "request": "Dat is geen lijst met iconen.",
         "too_many": "Een scherm kan hooguit {most} eigen iconen hebben."
+      },
+      "sounds": {
+        "name": "Geef het geluid een naam.",
+        "many": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
+        "format": "Een geluid is een WAV-bestand van 16 kHz, mono, 16 bits.",
+        "short": "Een geluid duurt minstens een kwart seconde.",
+        "long": "Een geluid duurt hoogstens {seconds} seconden.",
+        "unknown": "Dat geluid bestaat niet.",
+        "volume": "Een volume is een heel aantal dB van -40 tot 0.",
+        "none": "Dit scherm speelt hier geen geluid voor. Kies er eerst een.",
+        "older": "Dit scherm heeft hiervoor een firmware-update nodig.",
+        "busy": "Dit scherm is nu in gesprek."
+      },
+      "steps": {
+        "request": "Deze stap bestaat niet op dit scherm."
       }
     },
     "status": {
@@ -1073,10 +1112,15 @@
       "build_memory_limit": "Te weinig geheugen om de firmware te bouwen, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen; zie Firmware & USB.",
       "no_report": "Scherm meldde zich niet met firmware {version}; controleer het scherm.",
       "dropped_off": "Scherm viel weg na de update; controleer het scherm.",
-      "updated": "Bijgewerkt naar firmware {version}."
+      "updated": "Bijgewerkt naar firmware {version}.",
+      "round_stopped": "Niet bijgewerkt: een scherm eerder in de ronde haalde zijn controle niet, dus de ronde stopte."
     },
     "notify": {
-      "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt."
+      "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt.",
+      "plugin_failed": "{names} bouwde niet op {screen}: {reason} Het scherm draait nog wat het draaide. Open Tessera en dan de Plugins-tab van het scherm voor de reden en het log.",
+      "updates": "Er staan updates klaar voor je schermen. Open Tessera om ze te installeren.",
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} is gebouwd voor {screen}, maar {screen} was niet bereikbaar. Het installeert vanzelf zodra het scherm terug is."
     },
     "labels": {
       "built_into_screen": "Ingebouwd in het scherm",
@@ -1242,6 +1286,10 @@
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
         },
+        "tap_sound": {
+          "label": "Tikgeluid",
+          "hint": "Een korte tik zodra het scherm een aanraking of toets hoort, nog voor het e-paper het antwoord heeft gedrukt."
+        },
         "backlight_pwm": {
           "label": "Achtergrondlicht-PWM",
           "hint": "Hoe snel het achtergrondlicht aan en uit schakelt om te dimmen. 150 Hz dimt elk exemplaar van dit bord, maar sommige piepen onder 20 kHz: kies 20 kHz als dat van jou piept, 15 kHz als 20 kHz niet gelijkmatig dimt."
@@ -1273,6 +1321,10 @@
         "echo_cancellation": {
           "label": "Echo-onderdrukking",
           "hint": "Verminder de eigen speaker in het microfoonsignaal. Uit omzeilt de verwerking; microfoon en full-duplex blijven werken. Vereist het AEC-audiopad."
+        },
+        "volume": {
+          "label": "Volume",
+          "hint": "Hoe hard de zoemer speelt: de chime van de deurbel, de geluiden van alerts en de geluiden van een plugin. Het scherm onthoudt het na een herstart."
         }
       }
     },
@@ -1658,6 +1710,9 @@
         "kept": "Layoutbot is {count} van je tegels vergeten: ze staan los op de laatste pagina."
       },
       "nothing_to_restructure": "Op deze pagina staan nog geen tegels van apparaten om te herstructureren. Voeg er een paar toe en vraag het dan nog eens."
+    },
+    "sounds": {
+      "test": "Beltoontest"
     }
   },
   "editor": {
@@ -1690,7 +1745,8 @@
       "settings": "Instellingen",
       "new_screen_detail": "Aansluiten en installeren",
       "plugins": "Plugins",
-      "manual": "Handleiding"
+      "manual": "Handleiding",
+      "overview": "Overzicht"
     },
     "api": {
       "failed": "Dat lukte niet. Vernieuw de pagina en probeer het opnieuw."
@@ -1731,6 +1787,10 @@
       "log": {
         "copied": "Log gekopieerd.",
         "selected": "Log is geselecteerd. Kopieer met Ctrl+C of Command+C."
+      },
+      "address": {
+        "copied": "Adres gekopieerd.",
+        "selected": "Adres is geselecteerd. Kopieer met Ctrl+C of Command+C."
       }
     },
     "sidebar": {
@@ -1796,7 +1856,11 @@
         "kept": "{name} is verwijderd. Het profiel {file} staat nog in de ESPHome-map."
       },
       "home": "Overzicht van je schermen",
-      "dev_chip": "Dit is de dev-versie van de app: elk scherm dat hij bouwt komt van de dev-branch."
+      "dev_chip": "Dit is de dev-versie van de app: elk scherm dat hij bouwt komt van de dev-branch.",
+      "plugins": {
+        "failed": "Een plugin bouwde niet",
+        "updates": "{n} plugin-update | {n} plugin-updates"
+      }
     },
     "palette": {
       "groups": {
@@ -1928,7 +1992,12 @@
         "group_layout": "Indeling",
         "group_advanced": "Geavanceerd"
       },
-      "sending": "Verzenden"
+      "sending": "Verzenden",
+      "status": {
+        "full": "Te vol · {n} %",
+        "close": "Geheugen {n} %",
+        "changes": "Wijzigingen"
+      }
     },
     "layout": {
       "removed": "{name} verwijderd",
@@ -2029,7 +2098,23 @@
       "resize": "Sleep om de bibliotheek groter of kleiner te maken",
       "filter_label": "Filter op soort",
       "no_room": "Zonder ruimte",
-      "plugins": "Plugins"
+      "plugins": "Plugins",
+      "tiles": {
+        "view": "Hoe de bibliotheek entities toont",
+        "best": "Mooist",
+        "list": "Lijst",
+        "best_title": "Toon elke entity als de tegel die het best bij zijn soort past. Wijs een tegel aan om al zijn maten te zien.",
+        "size_title": "Toon elke entity op {size}, of op de grootste maat die hij daaronder heeft",
+        "list_title": "Toon de entities als lijst",
+        "placed": "Op dit scherm",
+        "add_size": "Voeg {name} toe als tegel van {columns} × {rows}"
+      },
+      "extras": {
+        "title": "1 extra | {n} extra's",
+        "config": "Instellingen",
+        "diagnostic": "Diagnose",
+        "hidden": "Verborgen in Home Assistant"
+      }
     },
     "memory": {
       "label": "Geheugen voor tegels",
@@ -2087,7 +2172,8 @@
     "displays": {
       "standard": "standaard",
       "watch": "grote waarde",
-      "forecast": "weersverwachting",
+      "forecast": "verwachting per dag",
+      "hourly": "verwachting per uur",
       "graph": "grafiek",
       "meter": "meter",
       "digital": "digitale klok",
@@ -2127,7 +2213,8 @@
         "flip": "Flipklok",
         "standard": "Naam en status",
         "watch": "Grote waarde",
-        "forecast": "Weersverwachting",
+        "forecast": "Verwachting per dag",
+        "hourly": "Verwachting per uur",
         "graph": "Grafiek",
         "meter": "Meter",
         "sunpath": "Zonnebaan",
@@ -2142,6 +2229,7 @@
         "map_needs_firmware": "Een kaart heeft firmware 0.20.0 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
         "no_graph": "Home Assistant heeft geen getallen voor deze entiteit, dus de grafiek blijft leeg. Kies een andere weergave.",
         "no_forecast": "Deze weerdienst heeft geen dagverwachting in Home Assistant. Kies een andere weergave.",
+        "no_hourly": "Deze weerdienst heeft geen uurverwachting in Home Assistant. Kies een andere weergave.",
         "no_meter": "Home Assistant heeft geen getallen voor deze entiteit, dus de meter blijft leeg. Kies een andere weergave.",
         "meter_needs_firmware": "Een meter heeft firmware 0.56.0 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
         "tall_cover_hint": "Gebruikt de albumhoes als donkere achtergrond. Zonder afbeelding blijft de normale tegel zichtbaar.",
@@ -2320,7 +2408,19 @@
         "hint_auto": "Wat het scherm zelf uitrekent: een helderheid, een temperatuur, wanneer een script voor het laatst liep.",
         "hint_none": "De tegel toont zijn naam en niets eronder.",
         "hint_attr": "Een waarde van deze entiteit, met de naam en de schrijfwijze van Home Assistant.",
-        "hint_text": "Dezelfde woorden, wat de entiteit ook doet."
+        "hint_text": "Dezelfde woorden, wat de entiteit ook doet.",
+        "parts_aria": "Wat de regel van de thermostaat zegt",
+        "part_mode": "Modus",
+        "part_action": "Actie",
+        "part_target": "Ingesteld",
+        "part_now": "Nu",
+        "hint_parts": "Kies wat de regel zegt. Staat de ingestelde temperatuur al tussen de − en + van de tegel, dan laat de regel die weg."
+      },
+      "scroll": {
+        "name": "Lange naam laten rollen",
+        "name_hint": "Een naam die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes.",
+        "line": "Lange tweede regel laten rollen",
+        "line_hint": "Een tweede regel die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes of een kortere tekst."
       },
       "slider": {
         "label": "Kleine slider op de tegel",
@@ -2944,6 +3044,35 @@
       "extras": {
         "title": "Extra's",
         "note": "Instellingen die alleen dit scherm heeft, van zijn bord. Dezelfde schakelaars staan op de instellingenpagina van het scherm zelf en in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Beeld",
+          "grid": "{columns} × {rows} tegels"
+        },
+        "standby": {
+          "title": "Stand-by & nacht",
+          "after": "Stand-by na {time}",
+          "off": "Geen stand-by",
+          "night": "Nacht {start} tot {end}"
+        },
+        "navigation": {
+          "title": "Navigatie",
+          "home_after": "Terug naar Thuis na {time}"
+        },
+        "board": {
+          "title": "Dit bord"
+        },
+        "help": {
+          "title": "Hulp",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Helderheid en rotatie",
+        "standby": "Stand-by",
+        "night": "Nacht",
+        "navigation": "Navigatie"
       }
     },
     "update": {
@@ -2953,9 +3082,14 @@
       "phases": {
         "install": "Bouwen en installeren…",
         "verify": "Wachten tot het scherm terug is…",
-        "settle": "Controleren of het stabiel blijft…"
+        "settle": "Controleren of het stabiel blijft…",
+        "ready": "Vooruit gebouwd: installeert zodra de schermen ervoor hun controle hebben gehaald"
       },
-      "new_language": "Nieuwe taal: {name}"
+      "new_language": "Nieuwe taal: {name}",
+      "restarting": "Start opnieuw met de nieuwe firmware, over een minuut of twee terug",
+      "restarting_short": "Bijwerken",
+      "editor_new": "Er staat een nieuwe versie van de editor klaar. Die laadt vanzelf zodra je hier klaar bent.",
+      "editor_reload": "Nu herladen"
     },
     "settings": {
       "updates": {
@@ -2971,11 +3105,13 @@
         "all": "1 scherm bijwerken | Alle {n} schermen bijwerken",
         "whats_new": "Nieuw in firmware {version}",
         "auto_label": "Elke nacht automatisch bijwerken",
-        "auto_hint": "Tussen 03:00 en 06:00, één scherm tegelijk. Stopt bij een fout en meldt die in Home Assistant.",
         "reinstall_all": "1 scherm opnieuw installeren van dev | Alle {n} schermen opnieuw installeren van dev",
         "reinstall_all_hint": "Bouwt voor elk scherm de nieuwste dev, de een na de ander, en zet die via Wi-Fi op het scherm. Op dev blijft het versienummer gelijk, dus een nieuwe dev wordt nooit als update aangeboden.",
         "reinstall_all_confirm": "1 scherm opnieuw installeren van de nieuwste dev? Het herstart zodra de firmware erop staat. | {n} schermen opnieuw installeren van de nieuwste dev? Ze worden een voor een gebouwd, en elk herstart zodra de firmware erop staat.",
-        "reinstall_all_go": "Opnieuw installeren"
+        "reinstall_all_go": "Opnieuw installeren",
+        "auto_hint_hour": "Tussen {from} en {to}, één scherm tegelijk. Stopt bij een fout en meldt die in Home Assistant.",
+        "hour_label": "Beginnen om",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -2992,7 +3128,9 @@
         "installed": "Tessera video geïnstalleerd. Herstart Home Assistant één keer om hem te laden.",
         "screens": "Schermen met video: {names}",
         "no_screens": "Nog geen scherm heeft video: voeg Schermcamera toe aan een P4-scherm met camera, met het onderdeel Video.",
-        "writes": "Schrijft de map {path}; opnieuw installeren vervangt hem. Tessera voegt elk scherm met video zelf toe."
+        "writes": "Schrijft de map {path}; opnieuw installeren vervangt hem. Tessera voegt elk scherm met video zelf toe.",
+        "no_home_assistant": "Deze app draait los van Home Assistant en kan de integratie dus niet zelf op zijn plek zetten. Download hem, pak de zip uit in de configuratiemap van Home Assistant (waar configuration.yaml staat) en herstart Home Assistant.",
+        "download": "Integratie downloaden"
       },
       "claude": {
         "installed": "Skill geïnstalleerd. Claude Code vindt hem meteen.",
@@ -3011,8 +3149,6 @@
       "title": "Alles rond je schermen.",
       "back": "← Mijn schermen",
       "screens": {
-        "title": "Schermen",
-        "text": "Voeg een scherm toe, of bouw en installeer de firmware van een bestaand scherm opnieuw.",
         "firmware_detail": "Bouwen en installeren via USB of Wi-Fi"
       },
       "language": {
@@ -3123,6 +3259,40 @@
         "offer": "{size} vrijmaken",
         "not_now": "Niet nu",
         "large": "De buildmappen nemen {size} in beslag. Opruimen maakt het grootste deel van de ruimte vrij die de builds innemen."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Elke nacht bijgewerkt",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Bouwen",
+          "server": "Op buildserver {name}",
+          "server_pending": "Buildserver {name} wacht op goedkeuring",
+          "no_server": "Gebouwd in deze app"
+        },
+        "language": {
+          "auto": "{name}, van Home Assistant",
+          "auto_plain": "Van Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Meegeteld in de store",
+          "counting_off": "Niet meegeteld in de store",
+          "asking_on": "Vraagt om sterren",
+          "asking_off": "Vraagt nooit om sterren"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "draait",
+          "not_installed": "niet geïnstalleerd",
+          "installed": "geïnstalleerd",
+          "update": "update klaar",
+          "restart": "herstart nodig"
+        }
       }
     },
     "firmware": {
@@ -3143,18 +3313,26 @@
       "host": "IP-adres of hostnaam",
       "download_file": "{name} downloaden",
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf.",
-      "waiting": "wacht op zijn beurt, 1 build eerst | wacht op zijn beurt, {n} builds eerst"
+      "waiting": "wacht op zijn beurt, 1 build eerst | wacht op zijn beurt, {n} builds eerst",
+      "kept_title": "Build-logs",
+      "kept_note": "Het log van elke build blijft hier, ook na een herstart van de app. De nieuwste 40 worden bewaard.",
+      "kept_none": "Er heeft nog geen build gedraaid.",
+      "kept_download": "Downloaden",
+      "kept_state": {
+        "success": "Gelukt",
+        "failed": "Mislukt",
+        "interrupted": "Gestopt, de app herstartte",
+        "running": "Bezig",
+        "other": "Afgelopen",
+        "retry": "Opnieuw, achteraan in de rij"
+      }
     },
     "installer": {
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
-      "status": {
-        "new": "Nieuw",
-        "experimental": "Experimenteel"
-      },
       "status_hint": {
-        "new": "Nieuw: tot nu toe op maar een paar schermen geprobeerd. Laat ons weten hoe het gaat.",
-        "experimental": "Experimenteel: nog niet op deze hardware geprobeerd. Laat ons weten hoe het gaat."
+        "new": "Nieuw: werkt op echte schermen, maar is nog niet grondig getest. Laat ons weten hoe het gaat.",
+        "experimental": "Experimenteel: nog te weinig testdata van echte schermen om te weten hoe goed het werkt. Laat ons weten hoe het gaat."
       },
       "abilities": {
         "camera": "Camerabeelden",
@@ -3186,40 +3364,20 @@
       "orientation_landscape": "Liggend",
       "orientation_portrait": "Staand",
       "name": "Naam",
-      "name_placeholder": "Scherm woonkamer",
       "device_name": "Apparaatnaam",
-      "name_hint": "Elk scherm krijgt een eigen profiel met eigen sleutels. Vier schermen? Doorloop dit vier keer met een andere naam.",
       "name_taken": "Een ander scherm heet al zo. Home Assistant zou de entiteitsnamen van dit scherm nummeren, waardoor automatiseringen het verkeerde scherm aanspreken.",
       "device_name_hint": "Kleine letters, cijfers en streepjes. Elk scherm een andere naam.",
       "node_taken": "Een ander scherm heeft deze apparaatnaam al. Home Assistant kan twee apparaten met dezelfde naam niet uit elkaar houden.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi-naam (2,4 GHz)",
         "password": "Wi-Fi-wachtwoord",
-        "new": "Eén keer invullen: Tessera bewaart dit in ESPHome secrets.yaml, volgende schermen gebruiken het automatisch.",
-        "missing": "Je ESPHome secrets.yaml mist nog Wi-Fi-gegevens. Tessera vult alleen de ontbrekende regels aan.",
         "ready": "Wi-Fi komt uit je ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in de ESPHome-map is geen geldige YAML. Herstel het bestand eerst; het wordt niet overschreven.",
         "other": "Ander netwerk",
         "other_note": "Elk scherm bouwt met deze wifi, dus schermen die je al hebt nemen hem over bij hun volgende update."
       },
-      "install_via": "Installeren via",
-      "target": {
-        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; het verschijnt hier vanzelf. Zit het aan de computer waar je nu achter zit? Kies Via deze computer.",
-        "download": "Download de firmware en zet die vanaf je eigen computer op het scherm, in Chrome of Edge. Daarna gaan updates via Wi-Fi.",
-        "later": "Het profiel komt in de ESPHome-map. Installeren kan later via Firmware & USB, of vanuit ESPHome Device Builder.",
-        "several": "Meer dan één bord aangesloten: kies de poort van dit scherm.",
-        "once": "Eén keer via USB; daarna gaat alles draadloos."
-      },
-      "install": "Installeren",
-      "save_profile": "Profiel bewaren",
       "no_cli": "De ESPHome CLI ontbreekt in deze installatie; alleen het profiel bewaren kan.",
       "progress": {
-        "saved": "{file} staat in de ESPHome-map",
-        "writing": "Firmware naar {name} schrijven…",
-        "building": "Firmware bouwen…",
-        "ready": "Firmware voor {name} is klaar",
-        "installed": "Firmware staat op {name}",
         "build_failed": "Bouwen mislukt",
         "install_failed": "Installeren mislukt",
         "waiting": "Wacht op zijn beurt…"
@@ -3253,20 +3411,12 @@
         "key": "{bold} hieronder als Home Assistant om een versleutelingssleutel vraagt.",
         "key_bold": "Plak de API-sleutel",
         "actions": "{bold} ESPHome-integratie → Configureren → “Allow the device to perform Home Assistant actions”. Zonder dit ziet het scherm alles, maar bedient het niets.",
-        "actions_bold": "Sta HA-acties toe:",
-        "tiles": "{bold} Terug in Tessera verschijnt het scherm binnen een halve minuut in de lijst links; tot die tijd staat het daar als “nog niet in Home Assistant”.",
-        "tiles_bold": "Kies je tegels."
+        "actions_bold": "Sta HA-acties toe:"
       },
       "retry": "Opnieuw proberen",
-      "another": "Nog een scherm installeren",
       "start_over": "Opnieuw beginnen",
       "done": "Klaar",
       "key_more": "Toon de API-sleutel",
-      "steps": {
-        "board": "Scherm",
-        "setup": "Instellen",
-        "install": "Installeren"
-      },
       "pick_title": "Welk scherm heb je?",
       "pick_intro": "Kies je bord. Zoek op merk, maat of wat erop staat.",
       "search": "Zoek op merk, maat of model",
@@ -3278,45 +3428,15 @@
       },
       "none_found": "Geen scherm gevonden voor “{query}”.",
       "try_virtual": "Nog geen scherm? Probeer een voorbeeldscherm",
-      "setup_title": "Maak hem van jou",
-      "install_title": "Hoe wil je installeren?",
-      "next": "Verder",
-      "advanced": "Geavanceerd",
-      "ways": {
-        "ha_title": "USB aan Home Assistant",
-        "ha_found": "Gevonden: {port}",
-        "ha_waiting": "Sluit het scherm aan op de computer waar Home Assistant op draait",
-        "browser_title": "Via deze computer",
-        "browser_detail": "Chrome of Edge, met het scherm aan de USB van deze computer",
-        "download_title": "Bestand downloaden",
-        "download_detail": "Zet het er zelf op met ESPHome Web",
-        "later_title": "Later",
-        "later_detail": "Alleen de instellingen bewaren"
-      },
-      "steps_done": {
-        "prepare": "Voorbereiden",
-        "build": "Firmware bouwen",
-        "write": "Op het scherm zetten",
-        "restart": "Opstarten",
-        "done": "Klaar",
-        "download": "Klaar om te downloaden"
-      },
       "elapsed": "{time} bezig",
       "show_log": "Details tonen",
       "hide_log": "Details verbergen",
-      "next_title": "Wat nu",
       "model": "Welk model is het?",
-      "model_hint": "Staat op de achterkant van het bord. Ze lijken op elkaar, maar elk heeft zijn eigen firmware nodig.",
-      "models": "{n} model | {n} modellen",
       "arrive": {
-        "waiting": "Wachten tot {name} op je wifi verschijnt...",
-        "seen": "{name} is op je wifi. Wordt klaargezet...",
-        "paired": "{name} is gekoppeld met Home Assistant.",
         "missing": "{name} is nog niet op je wifi",
         "hotspot": "Kijk op het scherm: het noemt een hotspot met wachtwoord. Verbind je telefoon ermee en kies daar het juiste wifi-netwerk. Of zet hier de juiste wifi en installeer opnieuw.",
         "no_hotspot": "Waarschijnlijk klopt de wifi-naam of het wachtwoord niet. Zet hier de juiste wifi en installeer opnieuw, met het scherm nog aan de kabel.",
-        "change": "Wifi wijzigen en opnieuw installeren",
-        "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
+        "change": "Wifi wijzigen en opnieuw installeren"
       },
       "known": {
         "title": "Dit bord staat al in Home Assistant als {name}",
@@ -3338,11 +3458,134 @@
         "limit_title": "Te weinig geheugen om de firmware te bouwen",
         "limit": "Het geheugen was op, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen en probeer het dan opnieuw."
       },
-      "pair_yourself": "Zelf toevoegen in Home Assistant",
       "grid": "Raster",
       "grid_hint": "Het voorgestelde raster is het beste voor dit scherm. Je kunt het, en hoe het hangt, later naast de pagina’s in de editor aanpassen, zonder opnieuw te bouwen.",
       "grid_best": "Terug naar het beste",
-      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf."
+      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf.",
+      "name_quote": "Een naam mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in.",
+      "flow": {
+        "back": "Terug",
+        "step_of": "Stap {step} van {steps}",
+        "continue": "Ga verder",
+        "go_install": "Installeren",
+        "go_download": "Maken en downloaden",
+        "more_options": "Meer opties",
+        "fewer_options": "Minder opties",
+        "later": "Geen kabel bij de hand? Bewaar het en installeer later",
+        "download_instead": "Liever zelf? Download het bestand",
+        "pick_lead": "Kies het scherm dat je hebt. Deze raden we aan: ze kunnen alles en we testen ze elke dag.",
+        "more_soon": "Binnenkort volgen er meer.",
+        "square": "Vierkant",
+        "wide": "Breedbeeld",
+        "versions": "{n} uitvoering | {n} uitvoeringen",
+        "other_screen": "Ik heb een ander scherm",
+        "which_is_it": "Welk scherm is het?",
+        "status": {
+          "stable": "Bewezen",
+          "new": "Nieuw",
+          "experimental": "Experimenteel"
+        },
+        "model_title": "Welke uitvoering heb je?",
+        "model_lead": "De {name} is er in {n} uitvoeringen. Ze lijken op elkaar, maar elk heeft zijn eigen software nodig. Achterop het bord staat welke je hebt.",
+        "choice_lead": "Borden met deze naam verschillen in een onderdeel. De meeste mensen kunnen laten staan wat gekozen is.",
+        "model_usual": "De meest verkochte. Weet je het niet? Kies deze.",
+        "name_title": "Hoe heet dit scherm?",
+        "name_lead": "Meestal de ruimte waar hij komt te hangen.",
+        "name_placeholder": "Keuken",
+        "rooms": "Ruimtes in Home Assistant",
+        "hang_title": "Hoe hangt hij?",
+        "hang_lead": "Je kunt dit later nog veranderen, zonder opnieuw te installeren.",
+        "tiles_a_page": "{n} tegel per pagina | {n} tegels per pagina",
+        "plugins_title": "Dit scherm kan meer",
+        "plugins_lead": "Met deze doet zijn hardware meer. Zet aan wat je wilt gebruiken.",
+        "plugins_later": "Je kunt dit later aan- of uitzetten op de pagina Plugins.",
+        "wifi_title": "Op welk Wi-Fi komt hij?",
+        "wifi_lead": "Het scherm heeft een 2,4 GHz-netwerk nodig. Je vult het één keer in: elk volgend scherm gebruikt het ook.",
+        "wifi_once": "Bewaard in je ESPHome-instellingen, en nergens meer getoond.",
+        "wifi_ready": "Het scherm komt op hetzelfde Wi-Fi als je andere ESPHome-apparaten.",
+        "cable_title": "Waar zit de kabel in?",
+        "cable_lead": "Het scherm krijgt zijn software één keer via een USB-kabel. Daarna gaat alles via Wi-Fi.",
+        "cable_here": "In deze computer",
+        "cable_here_detail": "De computer waarop je dit nu leest. Werkt in Chrome en Edge.",
+        "cable_ha": "In je Home Assistant",
+        "cable_ha_detail": "Het apparaat waar Home Assistant op draait, zoals een Raspberry Pi of een Home Assistant Green.",
+        "here_title": "Steek de kabel in deze computer",
+        "here_plug": "Sluit het scherm met een USB-datakabel aan op deze computer.",
+        "here_click": "Klik hieronder op Installeren.",
+        "here_pick": "Je browser vraagt welk apparaat: kies het scherm en klik op Verbinden.",
+        "file_title": "Je krijgt een bestand om erop te zetten",
+        "file_lead": "Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
+        "ha_title": "Steek de kabel in je Home Assistant",
+        "ha_lead": "Niet in deze computer, maar in het apparaat waar Home Assistant op draait. We zien vanzelf wanneer hij er is.",
+        "ha_which": "Welke is het scherm?",
+        "ha_which_lead": "Er zit meer dan één apparaat aan je Home Assistant. Kies het scherm.",
+        "ha_waiting": "We wachten op het scherm",
+        "ha_waiting_detail": "Steek de kabel erin. Dit werkt zichzelf bij.",
+        "ha_found": "Scherm gevonden",
+        "ha_others": "Ook aangesloten: {n} ander apparaat | Ook aangesloten: {n} andere apparaten",
+        "ha_not_screen": "Waarschijnlijk geen scherm, zoals een Zigbee-stick",
+        "saved_title": "{name} is bewaard",
+        "ready_title": "{name} is klaar",
+        "ready_lead": "Hij staat aan, zit op je Wi-Fi en hoort bij Home Assistant. Nu kies je wat erop komt.",
+        "ha_ask_title": "Home Assistant vraagt je iets over {name}",
+        "now": {
+          "build": "{name} wordt klaargemaakt",
+          "write": "De software gaat op {name}",
+          "write_self": "Zet de software op {name}",
+          "wifi": "{name} start op",
+          "ha": "{name} wordt toegevoegd aan Home Assistant"
+        },
+        "lead": {
+          "build": "Dit duurt meestal 5 tot 20 minuten, de eerste keer het langst. Je mag dit venster sluiten: het gaat gewoon door.",
+          "build_browser": "Dit duurt meestal 5 tot 20 minuten, de eerste keer het langst. Laat deze pagina open: hij zet de software op het scherm zodra die klaar is.",
+          "write": "Laat de kabel erin zitten tot dit klaar is.",
+          "write_self": "Download het bestand en zet het met ESPHome Web op het scherm. Deze pagina ziet het scherm zodra het op je Wi-Fi zit.",
+          "wifi": "Hij start op en maakt verbinding met je Wi-Fi. Dat duurt meestal minder dan een minuut.",
+          "wifi_calibrate": "Hij start op en maakt verbinding met je Wi-Fi. Eerst vraagt hij je op een paar kruisjes op het scherm te tikken: zo leert hij waar je vinger is.",
+          "ha": "Tessera voegt hem toe aan ESPHome in Home Assistant en geeft hem toestemming om je huis te bedienen. Je hoeft niets te doen."
+        },
+        "steps": {
+          "build": "Software maken",
+          "write": "Op het scherm zetten",
+          "write_self": "Jij zet het op het scherm",
+          "wifi": "Opstarten en verbinden met je Wi-Fi",
+          "ha": "Toevoegen aan Home Assistant"
+        },
+        "may_close": "je mag dit venster sluiten",
+        "keep_open_title": "Laat deze pagina open",
+        "keep_open": "Deze pagina zet de software zelf op het scherm, zodra die gebouwd is. Sluit je dit tabblad, verlaat je de pagina of gaat de computer in slaap, dan wordt er niets geschreven. Laat ook de USB-kabel erin.",
+        "show_log": "Wat er precies gebeurt",
+        "to_pages": "Pagina's maken",
+        "another": "Nog een scherm toevoegen",
+        "close_follow": "Sluiten, het gaat gewoon door",
+        "recap": {
+          "wifi": "Op je Wi-Fi",
+          "ha": "In Home Assistant",
+          "actions": "Mag je huis bedienen"
+        }
+      },
+      "no_usb": {
+        "insecure_title": "Deze pagina staat niet op een veilig adres en kan daardoor niet bij USB",
+        "insecure": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een pagina met een veilig adres (https). Deze pagina is geopend over gewoon http, en daar verbergt een browser zijn USB-poorten.",
+        "browser_title": "Deze browser kan niet bij USB",
+        "browser": "Installeren vanaf deze computer is twee klikken, zonder bestand, maar alleen in Chrome of Edge op een computer. Open Home Assistant daar en begin Nieuw scherm opnieuw.",
+        "fix": "Twee manieren om het te laten werken:",
+        "https": "Open Home Assistant over https in Chrome of Edge, bijvoorbeeld via je Home Assistant Cloud-adres.",
+        "flag": "Of laat Chrome het adres van deze Home Assistant als veilig behandelen:",
+        "flag_open": "Kopieer dit naar de adresbalk van Chrome en druk op Enter. Een pagina kan dit niet voor je openen.",
+        "flag_add": "Zet dit adres in het vak onder \"Insecure origins treated as secure\" en zet het op Enabled.",
+        "flag_relaunch": "Klik op Relaunch, open Home Assistant opnieuw en begin Nieuw scherm.",
+        "else": "Tot die tijd maakt Tessera hier een bestand dat je zelf op het scherm zet."
+      },
+      "shops": {
+        "title": "Een aanbevolen scherm kopen?",
+        "lead": "Koop er een via Tessera en een klein deel van de verkoop gaat naar de ontwikkeling van Tessera.",
+        "buy": "Kopen",
+        "buy_discount": "Kopen · {discount}",
+        "note": "Affiliatelinks: je betaalt hetzelfde of minder.",
+        "code": "Koop je op een andere manier bij {shop}? Gebruik code {code}.",
+        "off": "{n}% korting"
+      }
     },
     "alerts": {
       "intro": "Elk scherm heeft de actie {action}. Die legt een kaart over alles heen, wekt het scherm en houdt de backlight op de normale helderheid tot iemand op de knop tikt of de timeout verstrijkt. Home Assistant toont bij ESPHome-acties zelf geen uitleg of keuzelijsten; alles wat je kunt invullen staat hier.",
@@ -3720,7 +3963,8 @@
       "actions_allowed": "{name} mag je apparaten nu bedienen.",
       "part_page": "De pagina: titel en navigatie",
       "part_page_hint": "Titel, startpagina en hoe je hier komt",
-      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina."
+      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina.",
+      "place_on_new_page": "Op een nieuwe pagina"
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",
@@ -3780,7 +4024,6 @@
     },
     "webflash": {
       "target": "Installeren vanuit deze browser (Chrome of Edge)",
-      "hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Updates gaan daarna via wifi.",
       "firmware_hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Het scherm houdt zijn instellingen en aanraakkalibratie. Zo red je ook een scherm dat steeds herstart en nooit online komt.",
       "go": "Verbinden & installeren",
       "building": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Houd dit tabblad open en het scherm aangesloten: deze pagina installeert de firmware zodra hij klaar is.",
@@ -3804,8 +4047,11 @@
         "blocked": "De browser laat deze pagina geen USB-poorten gebruiken. Controleer de sitemachtigingen in de browser, of kies Downloaden.",
         "busy": "De poort van het scherm is in gebruik door een ander programma of tabblad, zoals een seriële monitor of ESPHome Web. Sluit dat en probeer het opnieuw.",
         "connect": "Het bord reageerde niet. Houd de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, tot de installatie begint, en probeer het opnieuw. De kabel los en weer vast maken helpt soms ook.",
+        "silent": "Op die poort kwam binnen {seconds} seconden geen antwoord, dus er is niets geïnstalleerd. Liet je browser meer dan één poort voor het scherm zien, probeer het dan opnieuw en kies de andere. Houd anders de BOOT-knop op het bord ingedrukt terwijl je de poort kiest, en probeer het opnieuw.",
+        "other_chip": "Die poort hoort bij de tweede chip van het bord (een RP2040), niet bij de chip waarop het scherm draait. Er is niets geïnstalleerd. Probeer het opnieuw en kies de andere poort van het bord; op een SenseCAP Indicator is dat de poort die USB Serial heet.",
         "wrong_chip": "Het bord aan de kabel heeft een {found}-chip, maar de firmware van dit scherm is voor een {expected}. Sluit het juiste scherm aan, of kies het juiste bord.",
         "wrong_image": "De firmware die Tessera bouwde is voor een {expected}, maar het bord aan de kabel heeft een {found}. Er is niets geschreven.",
+        "wrong_revision": "De firmware die Tessera bouwde is voor chipversies {from} tot en met {to}, maar de chip aan de kabel is {found}. Er is niets geschreven. Begin opnieuw, dan bouwt Tessera voor deze chip.",
         "disconnected": "Het scherm is losgekoppeld. Sluit het opnieuw aan en probeer het nog eens.",
         "download": "Kon de firmware niet ophalen bij Tessera: {error}",
         "failed": "Installeren is niet gelukt: {error}"
@@ -4005,7 +4251,8 @@
         "failed": "Bouwen mislukt",
         "not_running": "Draait niet op het scherm",
         "runs_other": "Draait {version} op het scherm",
-        "queued": "Wacht op zijn beurt"
+        "queued": "Wacht op zijn beurt",
+        "update_failed": "Update {version} mislukt"
       },
       "source": {
         "link": "Via een link",
@@ -4137,8 +4384,6 @@
         "here": "Op dit scherm",
         "add": "Toevoegen",
         "misfits": "Past niet op dit scherm ({n}) | Passen niet op dit scherm ({n})",
-        "updates": "Een update voor {n} plugin | Updates voor {n} plugins",
-        "updates_note": "Eén build voor {screen}: {names}.",
         "updates_rights": "{names} vraagt om andere rechten dan eerst. | {names} vragen om andere rechten dan eerst.",
         "update_all": "Alles bijwerken op dit scherm"
       },
@@ -4167,7 +4412,7 @@
       },
       "folder_error": "De map {folder} is nog geen plugin: {why}",
       "rebuild": "Opnieuw bouwen",
-      "failed": "De firmware voor {screen} bouwde niet met deze plugin. Het log staat onder Firmware & USB.",
+      "failed": "De firmware voor {screen} bouwde niet met deze plugin.",
       "retry": "Opnieuw proberen",
       "privacy": "Privacy",
       "consent": {
@@ -4237,6 +4482,7 @@
         "too_short": "Minstens {n} tekens."
       },
       "tabs": {
+        "all": "Alles",
         "tiles": "Tegels",
         "screensavers": "Screensavers",
         "functions": "Functies",
@@ -4275,6 +4521,7 @@
         "used": "Meest gebruikt"
       },
       "none_in_tab": {
+        "all": "Nog geen plugins.",
         "tiles": "Nog geen plugins met tegels.",
         "screensavers": "Nog geen screensaver-plugins.",
         "functions": "Nog geen plugins voor het hele scherm.",
@@ -4338,7 +4585,7 @@
         "none": "De maker schreef geen notities bij deze update.",
         "history": "Alle versies"
       },
-      "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait. Het log staat onder Firmware & USB.",
+      "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait.",
       "interrupted": "De app startte opnieuw tijdens de build.",
       "stars": {
         "label": "Sterren voor {name}",
@@ -4392,6 +4639,43 @@
         "go": "Uit de lijst halen",
         "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten.",
         "note_folder": "Geen enkel scherm gebruikt deze plugin vanuit zijn map. Als je hem verwijdert, gaat de map naar config/tessera-plugins/.removed/{id}, waar je hem voorgoed kunt wissen."
+      },
+      "suggest": {
+        "why": {
+          "camera": "Dit bord heeft een camera."
+        },
+        "question": "{name} toevoegen aan {screen}?",
+        "yes": "Toevoegen",
+        "yes_update": "Toevoegen bij de volgende update",
+        "no": "Nee, bedankt",
+        "building": "{name} wordt gebouwd voor {screen}.",
+        "with_update": "{name} komt mee met de volgende update van {screen}.",
+        "declined": "Prima. {name} blijft op de pagina Plugins staan als je hem later wilt."
+      },
+      "download_log": "Download het log",
+      "failures": {
+        "update": "{name} {version} bouwde niet op {screen}",
+        "added": "{name} bouwde niet op {screen}",
+        "update_note": "Het scherm draait nog versie {current}. In het log staat waarom.",
+        "added_note": "Hij staat niet op het scherm. In het log staat waarom.",
+        "no_log": "Van deze build is geen log bewaard.",
+        "details": "Details",
+        "report": "Meld bij {maker}",
+        "report_hint": "Melden opent een issue op de GitHub van de maker, al ingevuld. Voeg het gedownloade log toe.",
+        "why": {
+          "plugin": "Hij stopte in de eigen code van de plugin; de maker kan dat oplossen.",
+          "memory": "Deze Home Assistant had te weinig geheugen tijdens het bouwen. Een build server op een andere computer bouwt hem zonder die grens.",
+          "offline": "Hij is gebouwd, maar {screen} nam hem niet aan, ook niet nadat hij terug was. Kijk of hij aan staat en op wifi zit.",
+          "offline_wait": "Hij is gebouwd, maar {screen} was niet bereikbaar. Hij installeert vanzelf zodra het scherm terug is.",
+          "network": "Een download die hij nodig heeft kwam niet, ook niet bij een tweede poging. Probeer het zo nog eens.",
+          "build": "In het log staat waarom.",
+          "interrupted": "De app herstartte tijdens de build, en opnieuw tijdens de poging daarna."
+        },
+        "build_server": "Build server instellen"
+      },
+      "back": {
+        "button": "Terug naar {version}",
+        "not_running": "{screen} kwam na de update terug zonder {name}. Terug naar de vorige versie helpt meestal."
       }
     },
     "plugin_tile": {
@@ -4462,7 +4746,19 @@
           "bundle": "de YAML kon niet worden ingepakt"
         }
       },
-      "icons": "Bouwt met zijn iconen"
+      "icons": "Bouwt met zijn iconen",
+      "steps": {
+        "title": "Stappen van de build",
+        "wait": "Wacht op zijn beurt",
+        "build": "Bouwt",
+        "send": "Stuurt naar het scherm",
+        "confirm": "Scherm bevestigt",
+        "on": "op {name}",
+        "send_waits": "Wacht op zijn beurt om te installeren"
+      },
+      "done": "{screen} is klaar.",
+      "done_confirmed": "{screen} is klaar en meldt dat hij draait wat er gebouwd is.",
+      "show_why": "Toon waarom"
     },
     "grid": {
       "title": "Raster",
@@ -4496,7 +4792,11 @@
       "leave": "{name} weglaten",
       "copy": "Kopiëren",
       "hint": "{copy} kopieert de tegels met al hun instellingen. Kies een pagina of een cel, hier of op een ander scherm, en druk op {paste}.",
-      "remove": "Tegel verwijderen | {n} tegels verwijderen"
+      "remove": "Tegel verwijderen | {n} tegels verwijderen",
+      "shared": {
+        "hint": "Een wijziging hier geldt voor alle {n} tegels.",
+        "mixed": "Verschillend"
+      }
     },
     "menu": {
       "cut": "Knippen",
@@ -4649,6 +4949,14 @@
         "remove_confirm": "\"{name}\" verwijderen uit Home Assistant?",
         "on": "Aan",
         "off": "Uit"
+      },
+      "calls": "Bellen",
+      "parts": {
+        "automations": "{n} automatisering | {n} automatiseringen",
+        "no_automation": "Nog geen automatisering",
+        "alarm_panels": "{n} alarmpaneel | {n} alarmpanelen",
+        "no_alarm": "Geen alarmpaneel in Home Assistant",
+        "rings_with": "Belt met {sound}"
       }
     },
     "doorbell": {
@@ -4996,6 +5304,152 @@
       "how_wrong": "Drie foute codes zetten het toetsenblok 30 seconden op slot, en elke foute code daarna verdubbelt die tijd, tot 15 minuten. Home Assistant hoort van elke foute code via het event esphome.screen_alarm_code_refused, nooit met de code.",
       "how_code": "De code gaat met de actie naar Home Assistant, zoals zijn eigen alarmkaart hem stuurt, en wordt op het scherm meteen gewist. Een scherm bewaart of logt hem nooit.",
       "how_tile": "Zet het alarm ook op een pagina, dan opent een tik op zijn tegel altijd de kaart met een knop per stand."
+    },
+    "calls": {
+      "hero_title": "Bellen",
+      "hero_text": "Als een scherm een ander scherm belt, gaat het gebelde scherm over. Kies hieronder waarmee: een beltoon heeft zijn eigen pauze en speelt steeds opnieuw tot iemand opneemt. Een nieuwe keuze komt met de volgende keer bellen op het scherm, zonder update."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Beltoon",
+          "text": "Waarmee een scherm overgaat als een ander scherm het belt."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "Wat een scherm speelt als de deurbel gaat, op de schermen die de deurbel openen, en op de andere met de melding."
+        },
+        "alert": {
+          "title": "Meldingsgeluid",
+          "text": "Wat een scherm speelt als er een melding van je komt, verstuurd met het event esp_screens_show_alert. Geen geluid is zoals het was. Een melding kan stil blijven met sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Klassiek",
+        "marimba": "Marimba",
+        "digital": "Digitaal",
+        "bell": "Bel",
+        "chime": "Ding-dong",
+        "notice": "Seintje"
+      },
+      "none": "Geen geluid",
+      "play": "Afspelen",
+      "stop": "Stop",
+      "seconds": "{seconds} s",
+      "chosen": "Geluid gekozen",
+      "saved": "Geluid bewaard",
+      "removed": "Geluid verwijderd",
+      "own_add": "Eigen geluid toevoegen",
+      "own_choose": "Kies een geluidsbestand",
+      "own_unreadable": "Dit bestand kon niet als geluid gelezen worden.",
+      "own_full": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
+      "own_drag_loop": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) herhaalt het zoals het scherm het doet.",
+      "own_drag_once": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) speelt het zoals het scherm het doet.",
+      "own_name": "Naam",
+      "own_save": "Geluid bewaren",
+      "screens_title": "Per scherm",
+      "screens_same": "Zoals elk scherm",
+      "screens_none": "Nog geen scherm dat dit kan spelen heeft een speaker.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume op {volume} dB gezet",
+      "test": "Test",
+      "test_hint": "Speelt het nu op dit scherm, zoals het straks echt klinkt",
+      "test_sent": "Speelt op het scherm",
+      "editor": {
+        "drop": "Sleep een geluidsbestand hierheen",
+        "drop_loop": "Elk nummer of geluid kan: je kiest het stuk dat belt, hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt.",
+        "drop_once": "Elk nummer of geluid kan: je kiest het stuk dat speelt, hoogstens {seconds} seconden.",
+        "total": "{time} in totaal",
+        "other_file": "Ander bestand",
+        "whole": "Het hele bestand",
+        "part": "Het stuk dat speelt",
+        "start": "Begin",
+        "end": "Einde",
+        "of_most": "van hoogstens {most} s",
+        "made": "Wat er met het geluid gebeurt",
+        "no_bass": "Bas eruit",
+        "soft_ends": "Zachte randen",
+        "even_level": "Gelijk volume",
+        "repeats": "Herhaalt"
+      }
+    },
+    "updates_card": {
+      "title": "{n} update voor {screen} | {n} updates voor {screen}",
+      "one": "Eén build van {screen}.",
+      "one_build": "Alles in één build van {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} is offline. Bijwerken kan zodra hij terug is.",
+      "go_all": "Alles bijwerken"
+    },
+    "build_room": {
+      "title": "Deze Home Assistant heeft mogelijk te weinig geheugen om te bouwen",
+      "text": "Er is {free} GB vrij, en een build heeft ongeveer {need} GB nodig. Een build kan mislukken of Home Assistant traag maken. Een build server op een andere computer voorkomt dat, en het scherm bijwerken vanuit ESPHome Device Builder op een computer ook.",
+      "server": "Build server"
+    },
+    "history": {
+      "title": "Laatste build van dit scherm | Laatste {n} builds van dit scherm",
+      "by": {
+        "update": "Update",
+        "plugins": "Plugins",
+        "install": "Installatie",
+        "icons": "Iconen",
+        "other": "Build"
+      }
+    },
+    "steps": {
+      "later": "Later",
+      "set_up": "Instellen",
+      "update": "Bijwerken",
+      "not_now": "Niet nu",
+      "not_done": "niet gedaan",
+      "kept": "Prima. Het wacht in het menu van {screen}.",
+      "kinds": {
+        "chip_firmware": {
+          "go": "Firmware schrijven",
+          "again": "Opnieuw proberen",
+          "cable": "Steek eerst de USB-kabel van het scherm in deze computer.",
+          "phase": {
+            "port": "Kies de chip in de lijst van de browser. Die toont alleen deze.",
+            "restart": "De chip herstart als USB-schijf.",
+            "drive": "De chip is nu een USB-schijf met de naam {drive}. Kies die, en laat deze pagina erop schrijven.",
+            "write": "Firmware schrijven.",
+            "wait": "De chip start. Wachten tot het scherm hem vindt.",
+            "wait_chip": "Op de chip draait {version}. Wachten tot het scherm hem vindt."
+          },
+          "choose_drive": "Kies de schijf {drive}",
+          "wrong_drive": "Dat is niet de schijf {drive}. Kies de schijf zelf, bovenaan de lijst, niet een map op deze computer.",
+          "no_window": "De browser opende zijn venster voor de schijf niet. Misschien staat er nog ergens een ander bestandsvenster open: sluit dat, of herlaad deze pagina, en klik opnieuw.",
+          "drive_there": "De schijf {drive} is er al",
+          "done": "Firmware {version} staat op de chip, en het scherm heeft hem gevonden.",
+          "try": "Geluid afspelen",
+          "errors": {
+            "no_port": "Er is geen poort gekozen. Met de USB-kabel van het scherm in deze computer toont de lijst van de browser de chip.",
+            "port": "De poort van de chip ging niet open. Sluit elk ander programma dat hem gebruikt en probeer het opnieuw.",
+            "file": "De firmware kwam niet aan vanaf Tessera. Probeer het opnieuw.",
+            "write": "Het bestand kon niet naar de schijf worden geschreven. Probeer het opnieuw.",
+            "silent": "Het scherm vond de chip niet. Haal de USB-kabel eruit, steek hem er weer in en probeer het opnieuw."
+          },
+          "hand": {
+            "insecure": "Deze pagina is geopend over gewoon http, dus de browser geeft haar geen USB-poort. Geopend over https in Chrome of Edge (je Home Assistant Cloud-adres werkt) is dit twee klikken. Het kan ook met de hand:",
+            "browser": "Deze browser kan niet bij USB-poorten. In Chrome of Edge op een computer is dit twee klikken. Het kan ook met de hand:",
+            "download": "{name} downloaden",
+            "drag": "Er verschijnt een schijf met de naam {drive}. Sleep het bestand erop. De schijf verdwijnt vanzelf en de chip start.",
+            "did": "Dat heb ik gedaan"
+          }
+        }
+      },
+      "buzzer": {
+        "menu": "Zoemerfirmware",
+        "title": "Geef de zoemer zijn geluid",
+        "lead": "Een tweede chip in dit scherm stuurt de zoemer aan. Met de firmware van Tessera op die chip speelt de zoemer de chime van de deurbel en de geluiden van je alerts. Het duurt een halve minuut.",
+        "note": "Dit vervangt de firmware van Seeed op die chip, die je bij Seeed kunt terughalen. Die van Tessera leest de sensoren van een D1S of D1Pro niet.",
+        "button": "Haal de USB-kabel uit het scherm. Houd met een paperclip de knop in het kleine gaatje van de behuizing ingedrukt en steek de kabel er weer in, met het andere eind in deze computer.",
+        "done_title": "De zoemer heeft zijn geluid",
+        "done_lead": "Kies onder Events wat hij speelt bij alerts en bij de deurbel.",
+        "update_title": "Een nieuwere firmware voor de zoemer",
+        "update_lead": "Tessera heeft een nieuwere firmware voor de chip die de zoemer van dit scherm aanstuurt dan die erop staat. Het duurt een halve minuut."
+      }
     }
   }
 }

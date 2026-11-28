@@ -215,7 +215,7 @@ static uint32_t accent() { return theme::hex(theme::ACCENT); }
 static lv_obj_t *round_key(lv_obj_t *parent, int x, int y, int size, const char *mark, lv_event_cb_t handler, intptr_t user, bool enabled = true) {
   auto *key = plain(parent, x, y, size, size);
   lv_obj_set_style_bg_opa(key, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(key, theme::color(theme::KEY), 0);
+  theme::ground(key, theme::KEY);
   lv_obj_set_style_bg_color(key, theme::color(theme::KEY_PRESSED), LV_STATE_PRESSED);
   lv_obj_set_style_radius(key, LV_RADIUS_CIRCLE, 0);
   auto *label = glyph(key, 0, mark, icons(), theme::hex(enabled ? theme::INK : theme::SUBTLE));
@@ -330,7 +330,8 @@ static void cell(size_t index, const Rect &at, const Rect &cover_at) {
     const Rect local{cover_at.x - at.x, cover_at.y - at.y, cover_at.w, cover_at.h};
     auto *frame = plain(holder, local.x, local.y, local.w, local.h);
     lv_obj_set_style_bg_opa(frame, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(frame, theme::rgb(theme::tint(theme::ha::LIGHT_BLUE, 51)), 0);
+    lv_obj_set_style_bg_color(frame, theme::rgb(theme::field(theme::ha::LIGHT_BLUE, 51)), 0);
+    theme::rim(frame, true);
     lv_obj_set_style_radius(frame, media_card::radius_for(local.w), 0);
     // The big icon font carries only the tiles' own glyphs: an item's icon it lacks takes the small one.
     const std::string wanted = item.icon ? tile_icon::utf8(item.icon) : std::string("\U000F0387");
@@ -369,12 +370,26 @@ static void cell(size_t index, const Rect &at, const Rect &cover_at) {
   const int inset = effects_page::screen_metrics().inset, badge = std::min(at.h - 2 * ui::px(6), std::max(ui::px(24), at.h * 3 / 5));
   auto *circle = plain(holder, inset, (at.h - badge) / 2, badge, badge);
   lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, 0);
-  lv_obj_set_style_bg_color(circle, theme::rgb(theme::tint(theme::ha::LIGHT_BLUE, 51)), 0);
+  lv_obj_set_style_bg_color(circle, theme::rgb(theme::field(theme::ha::LIGHT_BLUE, 51)), 0);
+  theme::rim(circle, true);
   lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
   auto *icon = glyph(circle, item.icon, "\U000F024B", icons(), theme::icon(theme::ha::LIGHT_BLUE));
   lv_obj_center(icon);
   const lv_font_t *font = name_font();
-  const int text_x = inset + badge + ui::px(ui::large() ? 12 : 8), text_w = at.w - text_x - inset;
+  int text_x = inset + badge + ui::px(ui::large() ? 12 : 8), text_w = at.w - text_x - inset;
+  // A name whose longest word does not fit beside the badge would be broken in the middle of that word ("Playlis",
+  // "ts" on a narrow glass): the badge goes and the name takes the card.
+  int longest = 0;
+  for (size_t from = 0; from <= item.title.size();) {
+    const size_t to = std::min(item.title.find(' ', from), item.title.size());
+    longest = std::max(longest, rt::text_width(item.title.substr(from, to - from), font));
+    from = to + 1;
+  }
+  if (longest > text_w) {
+    lv_obj_add_flag(circle, LV_OBJ_FLAG_HIDDEN);
+    text_x = inset;
+    text_w = at.w - 2 * inset;
+  }
   // Two lines for a name that needs them and has the room, one in the middle of the card for the rest.
   const int lines = rt::text_width(item.title, font) > text_w && at.h >= 2 * lv_font_get_line_height(font) + ui::px(8) ? 2 : 1;
   auto *name = words(holder, item.title, font, theme::INK, LV_TEXT_ALIGN_LEFT, text_x, 0, text_w, lines);

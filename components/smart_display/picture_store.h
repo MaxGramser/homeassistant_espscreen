@@ -59,6 +59,11 @@ inline Cap cap_for(size_t budget) {
   else if (budget > 0 && budget < cap.bytes) cap.bytes = budget;
   return cap;
 }
+// What a picture of `width` by `height` takes in memory: RGB565, two bytes a pixel, the only form a download is decoded
+// into (picture_fetch) and the store keeps. The one way a picture is sized, before it is fetched and when it is booked.
+constexpr size_t bytes_of(int width, int height) {
+  return width > 0 && height > 0 ? static_cast<size_t>(width) * static_cast<size_t>(height) * 2 : 0;
+}
 // A scale in 1/SCALE_ONE, so the screen and its request round a picture's frames the same way.
 constexpr int SCALE_ONE = 4096;
 // The scale that brings a picture of `width` by `height` within the cap, SCALE_ONE when it fits already.
@@ -90,6 +95,17 @@ template <class Image> struct Store {
   std::function<void(const char *what, const Entry &)> log;
   size_t budget = 0;         // bytes; 0 keeps nothing, so a board without the room stores no picture
   uint32_t uses = 0;
+
+  // Pictures out of sight use spare room and nothing else (GitHub #415). Over the budget, the picture that only a page
+  // out of sight draws goes (collect); a picture fetched ahead for such a page is taken only when the store, with it in,
+  // stays at or under AHEAD_LEVEL of the budget. So a picture fetched ahead never makes another picture go, and the two
+  // rules cannot feed each other whatever the sizes: two large pictures on two kept pages took turns before, each
+  // fetched ahead as the other was let go, every second or two while the screen was awake.
+  static constexpr size_t AHEAD_LEVEL_QUARTERS = 3;
+  size_t ahead_level() const { return budget / 4 * AHEAD_LEVEL_QUARTERS; }
+  // Whether a picture of `bytes` (bytes_of) may come in for a page out of sight now. `coming`: what is on its way
+  // already and not yet in the store.
+  bool fits_ahead(size_t bytes, size_t coming = 0) const { return size() + coming + bytes <= ahead_level(); }
 
   size_t size() const {
     size_t total = 0;

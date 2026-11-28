@@ -109,7 +109,8 @@ cut square with the tile's rounded corners, delivered as described below.
   corners) or a changed tile asks for a new picture.
 - **Kept pages.** On a board with PSRAM (`picture_store.h`) every tile's picture is kept under its own key, so turning
   back shows them at once, and each camera loads its next picture at its own pace. A cover, a favourite or a map of a
-  kept page is fetched ahead while the screen is in use; a camera of a kept page is not.
+  kept page is fetched ahead while the screen is in use, in spare room only (docs/KEPT_PAGES.md); a camera of a kept
+  page is not.
 - **Until the next one comes** a card keeps the picture it shows of the same place: the last track's cover, a map
   before someone moved. Until the first picture arrives, a camera card shows a spinner.
 - **A camera without a picture** keeps its icon: the app answers with an empty link.
@@ -640,6 +641,10 @@ through, how much it matters, and how the app is asked for it. One loader decide
   owner still holds stays, so a page that comes back has its pictures at once; when the store is full, by bytes or by
   places, the picture used longest ago that nothing draws makes way (`picture_store.h`). The screen's log says what
   the store holds whenever that changes (`store: 5 pictures, 578 of 1638 KB (cover tile tile cover tile), 0 to go`).
+- **A picture without a place in the store has one turn.** When every place of the store holds a picture a card still
+  draws, the next picture stays its slot's own download and goes when that slot loads another. One that left its slot
+  that way stands aside while the other owner's picture is drawn from it, so the last one stays and nothing loads twice;
+  a picture for a page out of sight never takes a slot from the glass (docs/PICTURES.md, "Memory").
 
 ## The screen's own camera as video in Home Assistant
 
@@ -705,16 +710,39 @@ integration, so a camera that named the screen by its MAC got a second device wi
 lets go once the camera has moved, and the camera keeps its entity id. The app reads which screen an entry is for from
 the entity registry, through the camera's device.
 
-**What changes on the screen.** The camera runs from boot, in its raw mode. Its JPEG pictures are gone, and so is the
+**What changes on the screen.** The camera works in its raw mode, and only while something uses it (Screen camera
+0.7.0, below). Its JPEG pictures are gone, and so is the
 camera "Camera" of the screen's device: "Video" gives the stills now. Light level and motion of Screen camera keep
 working: they read the same frames the video gets. The dot in the top right corner is solid while anyone watches and a
-ring while the camera only senses (light level, motion; plugin API 0.20). While nobody watches, for sensing alone or
-for nothing at all, the sensor makes 5 frames a second, and full speed again the moment someone opens the video or
+ring while the camera only senses (light level, motion; plugin API 0.20). While nobody watches and light level and motion are on, the sensor makes 5 frames a second, and full speed again the moment someone opens the video or
 Home Assistant asks for a picture (Screen camera 0.6.5, its `frame_rate.h`; what a sensor can, its driver tells the
 camera through `camera_sensor.h`, on any board). Measured on 2026-10-27 on a Guition 10.1 (OV02C10) and a reTerminal
 D1001 (SC202CS): 4.9 frames a second counted at 5, the light level kept coming every ten seconds; motion at 5 a
 second was not tried yet, since nobody walked past. The microphone listens only while someone watches, and the voice
 assistant can listen at the same time.
+
+**A camera nobody uses** (Screen camera 0.7.0). Everything that wants the camera's frames asks the frame hub
+(`frame_hub.h`): the video while a viewer plays, which is also how a call's picture is read, a tile of the camera while
+it is on the glass, light level and motion while their switch is on. The camera runs while any of them is on and stops
+five seconds after the last. So with nobody watching and light level and motion off, the sensor makes no frame and no
+task wakes for it; the video's server waits in `select()` for a viewer. Memory follows use the same way. The capture
+buffers and the video's own (three slots of 1 MB and the send batch) are taken when the camera or the first viewer
+starts and given back after a minute of rest; within that minute they stay, so a viewer who comes back has a picture
+at once and short sessions do not carve up PSRAM. The two encoders are made for the first viewer and kept: making one
+again later is where a P4 can fall short of internal RAM, and a video that started once has to start again. Measured
+on a Guition 10.1 (OV02C10) two minutes after boot, light level and motion off, against the same firmware without the
+plugin (2026-11-21):
+
+| | Without the plugin | 0.6.17 | 0.7.0, never used | 0.7.0, used and rested |
+|---|---|---|---|---|
+| Internal RAM free | 383 KB | 245 KB | 348 KB | 245 KB |
+| PSRAM free | 25.6 MB | 15.5 MB | 24.9 MB | 24.2 MB |
+| Core 0 idle | 99.3 % | 97.9 % | 99.3 % | 99.3 % |
+
+The first picture came 0.4 seconds after a viewer asked with the camera still warm and 0.6 to 0.7 from rest, on the
+Guition and on a reTerminal D1001 (SC202CS, 1280x720) alike, and the first viewer ever, who waits for the encoder as
+well, 0.7. Sixty rounds of one or two viewers coming and going left the internal RAM where it was and gave the PSRAM
+back whole.
 
 **What it takes, measured on a reTerminal D1001.** Each of these cost a build to find, and each is kept in the code:
 
@@ -725,8 +753,8 @@ assistant can listen at the same time.
   it, in bursts a second late at the app. Since Screen camera 0.6.10 a picture that finds the connection more than
   half full is left behind and the sound goes between the packets of a long one; since 0.6.12 and plugin API 0.23
   the screen keeps its live tiles at half at least while anyone hears its microphone (the governor, PLATFORM_PLAN 4.10).
-- Internal RAM is what a P4 runs short of. The encoder keeps about 104 KB of it and Opus about 25 KB, for as long as
-  the screen runs. What every connection holds unsent or unread lived there too: with live camera tiles on the glass
+- Internal RAM is what a P4 runs short of. The encoder keeps about 104 KB of it and Opus about 25 KB, from the first
+  viewer on. What every connection holds unsent or unread lived there too: with live camera tiles on the glass
   and the video playing, free internal RAM fell from 160 KB to 13 KB in two seconds and the C6's driver aborted the
   chip. So on every P4 the network's buffers go to PSRAM first (`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`, the option
   ESPHome's `wifi: use_psram` sets), and the video skips frames while less than 80 KB is free, starting again with a
@@ -741,9 +769,12 @@ assistant can listen at the same time.
   panel never ran dry and laying out stayed at 50 to 70 ms, but encoding took 105 to 130 ms a frame and the video fell
   to 6 to 7 fps: a smaller burst saves the panel and halves the video, so the strip stays inside and the test's wraps
   are gone. The video's line every minute gives the encoder's time a frame (48 to 50 ms there, at
-  12 to 13 fps) and what it holds of internal RAM. It is made once, at the camera's first frame, on the camera's
-  own task, with the camera started at boot. Made when someone starts watching, after the pages were built, there was
-  no memory left for it. Made in `setup()`, before the camera driver ran, the first frame hung the whole chip.
+  12 to 13 fps) and what it holds of internal RAM. It is made once, on the camera's own task, at the first frame
+  of the first viewer, and kept from then on (Screen camera 0.7.0). Until 0.7.0 the camera ran from boot so that it
+  could be made early: made when someone started watching, after the pages were built, there was no memory left for
+  it then. Since the network's buffers live in PSRAM that no longer holds: with a full layout a Guition 10.1 had 321 KB
+  of internal RAM free, 278 KB of it in one block, when its first viewer came (2026-11-21). Made in `setup()`, before
+  the camera driver ran, the first frame hung the whole chip.
 - An encoder whose output did not fit stays stuck, so its output buffer holds 1 MB (a key frame of a dark room is over
   200 KB), it is never closed and opened again, and a viewer never chooses another size.
 - The server's own buffers (a 64 KB send batch, a second of sound) live in PSRAM, and so does its task's 32 KB stack

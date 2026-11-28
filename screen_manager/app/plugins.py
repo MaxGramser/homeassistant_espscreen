@@ -16,6 +16,7 @@ app's own (firmware.build_environment), and the plugins repository holds a liste
 needs (its tools/check.py).
 """
 import asyncio
+import hashlib
 import json
 import logging
 import math
@@ -23,20 +24,25 @@ import re
 import time
 from copy import deepcopy
 from pathlib import Path
+from urllib.parse import quote
 
 import yaml
 
 import build_cache
+import ha_notice
 import core
 import entity_settings
 import feedback
 import page_delivery
+import plugin_defaults
 import plugin_fetch
 import plugin_likes
 import plugin_manifest as pm
+import plugin_module
 import plugin_pictures
 import tile_icons
-from i18n import t
+from build_failures import build_reason, failed_components, failure_kind  # noqa: F401 (also read from here)
+from i18n import screen_t, t
 from plugin_store import PluginSecrets, PluginStore
 
 LOG = logging.getLogger('plugins')
@@ -70,6 +76,36 @@ STORE_IMAGE = 'store.png'
 STORE_IMAGE_MAX = 1024 * 1024
 STORE_IMAGE_SIZE = (2560, 1440)   # the largest it takes; the tool makes 1280 x 720
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+# A plugin's own code for the editor's preview (plugin_module.py, docs/EMULATOR_ARCHITECTURE.md "Plugins"): a module
+# per plugin release and preview. A folder someone is making has it where web/wasm/build_plugin.py writes it; the app
+# keeps the ones it was given or fetched under data/plugins/modules, named after the plugin, its version and the
+# preview's number.
+MODULE_FOLDER = '.preview'
+MODULES = 'modules'
+PREVIEW_NUMBER = re.compile(r'[0-9a-f]{16}')
+# A plugin's own example of its tiles (plugin_examples.py): preview.yaml beside its manifest, read from its folder or
+# fetched once at the plugin's commit and kept under data/plugins/examples.
+EXAMPLES_FILE = 'preview.yaml'
+EXAMPLES = 'examples'
+# The modules the plugins repository publishes (its branch `modules`, written by its own build for every release the
+# index lists, for the preview of main and of dev): modules/<number>/index.json says what there is for the preview of
+# that number ({"format": 1, "modules": {"<id>": {"<version>": {"sha256": "...", "bytes": N}}}}), and
+# modules/<number>/<id>-<version>.wasm is the module. The app reads the list with the index (INDEX_TTL, its ETag),
+# fetches a module once, when an editor first asks for it, checks it against the list and by itself (plugin_module)
+# and keeps it; nothing is built or drawn where the app runs.
+MODULES_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/modules/modules/{abi}/{name}'
+MODULES_LIST_MAX = 512 * 1024
+
+# The pictures of a plugin's README: a relative path in its markdown, a file of the plugin's own folder. The editor's
+# img-src is 'self' as for store.png, so the app fetches them at the plugin's commit and serves them (readme_image).
+# Raster pictures only (an SVG can carry script), each under README_IMAGE_MAX and README_IMAGE_SIZE.
+README_IMAGE_TYPES = {'.png': 'PNG', '.jpg': 'JPEG', '.jpeg': 'JPEG', '.gif': 'GIF', '.webp': 'WEBP'}
+README_IMAGE_MIME = {'PNG': 'image/png', 'JPEG': 'image/jpeg', 'GIF': 'image/gif', 'WEBP': 'image/webp'}
+README_IMAGE_MAX = 2 * 1024 * 1024
+README_IMAGE_SIZE = (4096, 4096)
+# Folders and a file name of the plugin's folder: no segment starts with a dot, so nothing climbs out or reads .git.
+README_IMAGE_PATH = re.compile(r'[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*){0,7}')
+README_IMAGE_PATH_MAX = 200
 PLUGIN_ICON = 'F0A66'         # puzzle-outline, for a plugin whose icon is not in Tessera's set
 X_BUDGET = 2600               # bytes of a tile's data on the wire: the message carries more and stays under 4 KB
 # What a tile's message holds besides its own fields on the way (session, sequence, revision, slot, the "x" key): its
@@ -113,35 +149,6 @@ def origin_of(repo, path='.'):
 def record_origin(record):
     """The origin of a plugin on a screen, from its record."""
     return 'folder' if record.get('source') == 'folder' else origin_of(record.get('repo'), record.get('path'))
-
-
-def build_reason(logs):
-    """Why a build failed, in one line of its log. The app's own last line says it in words (memory that ran short, a
-    screen that did not answer); only when that line points to the log, the last error the compiler or ESPHome named.
-    The whole log stays under Firmware & USB until the next build."""
-    lines = [str(line).strip() for line in list(logs or [])[-60:] if str(line).strip()]
-    if not lines:
-        return 'build'
-    if 'see the log' not in lines[-1]:
-        return lines[-1][:200]
-    errors = [line for line in lines if re.search(r'\berror\b|ERROR', line) and 'see the log' not in line]
-    return (errors or lines)[-1][:200]
-
-
-# A compiler error in a file of an external component: `../src/esphome/components/tap_sound/tap_sound.h:19:8: error: ...`.
-COMPONENT_ERROR = re.compile(r'components/([a-z0-9_]+)/[^\s:]+:\d+(?::\d+)?:\s*(?:fatal\s+)?error:')
-# A plugin the core refused while ESPHome read the configuration, before any compiler ran (smart_display.register_plugin):
-# `Plugin tap_sound wants plugin API 0.11; this firmware offers 0.10.` or `Plugin tap_sound was written for plugin API ...`.
-API_REFUSAL = re.compile(r'Plugin ([a-z0-9_]+) (?:wants|was written for) plugin API')
-
-
-def failed_components(logs):
-    """The components a build's compiler errors lie in, and the plugins the core refused by their API, Tessera's own
-    components left out."""
-    lines = [str(line) for line in logs or []]
-    found = {match.group(1) for line in lines for match in [COMPONENT_ERROR.search(line)] if match}
-    found |= {match.group(1) for line in lines for match in [API_REFUSAL.search(line)] if match}
-    return found - {'smart_display', 'flash_layout'}
 
 
 # After a build went on, the screen reboots and says hello again within this many seconds; until then whether it runs
@@ -329,6 +336,23 @@ def store_image_ok(body):
         return False
 
 
+
+def readme_image_type(body, kind):
+    """The media type of `body` when it is a picture of `kind` (README_IMAGE_TYPES) the README may show, else None: at most
+    README_IMAGE_MAX bytes and README_IMAGE_SIZE, as Pillow reads its header (nothing is decoded)."""
+    if not body or len(body) > README_IMAGE_MAX:
+        return None
+    try:
+        from io import BytesIO
+        from PIL import Image
+        with Image.open(BytesIO(body)) as image:
+            width, height = image.size
+            ok = image.format == kind and 0 < width <= README_IMAGE_SIZE[0] and 0 < height <= README_IMAGE_SIZE[1]
+    except Exception:
+        return None
+    return README_IMAGE_MIME[kind] if ok else None
+
+
 class Entry:
     """One plugin the app knows, from the index, a snapshot of an installed release, or a folder."""
 
@@ -410,6 +434,13 @@ def read_folder(folder):
 class Plugins:
     def __init__(self, manager, data_dir, config_dir, session_factory=None):
         self.manager = manager
+        # When this app started: a plugin build the app restarted during is started once more (settle) as soon as its
+        # screen has an address again, and only failed when it still has none this long after the start.
+        self.started_at = time.time()
+        self._waited = set()   # (inbox, plugin, version) built again once after its screen came back (_after_offline)
+        # The app's loops of this service, started and stopped by server.py: counting its plugins in the store, and settling
+        # what a restart or an absent screen left (resume_after_start).
+        self.counting_task = self.resume_task = None
         self.data = Path(data_dir) / 'plugins'
         self.config = Path(config_dir)
         self.store = PluginStore(Path(data_dir) / 'plugins.json')
@@ -439,6 +470,13 @@ class Plugins:
         self.saver_cache = {}       # (inbox, key) -> the fetch's answer for a plugin's step of the screensaver (0.14)
         self.fetch_asks = {}        # (inbox, plugin) -> the moments of its fetches the screen asked for (0.27), a minute
         self.http = None            # the session that reads the index: never the one that holds Home Assistant's token
+        # A plugin's own code for the editor's preview (plugin_module.py): what the plugins repository publishes for the
+        # preview of one number ((id, version) -> {sha256, bytes}), and what each module file on disk came to when it
+        # was checked ((path, time, size) -> why not, or None), so a file is read and checked once, not at every ask.
+        self.published = {'abi': None, 'modules': {}, 'etag': None, 'checked': 0.0}
+        self.module_checks = {}
+        # A plugin's preview.yaml as read ((id, ref or the file's time) -> its mapping, or None for a plugin without one).
+        self.example_specs = {}
         self.ready = False
         self._load_cached_index()
         self.scan_folders()
@@ -679,9 +717,9 @@ class Plugins:
             numbers.update(rating=fresh[0]['rating'], ratings=fresh[0]['ratings'])
         return numbers
 
-    async def _read_repository_file(self, url, kept):
-        """A JSON file of the plugins repository (likes.json, stats.json) with its ETag: the data, or None when it did
-        not change or could not be read."""
+    async def _read_repository_file(self, url, kept, limit=LIKES_MAX):
+        """A JSON file of the plugins repository (likes.json, stats.json, a list of modules) with its ETag: the data, or
+        None when it did not change or could not be read."""
         import aiohttp
         try:
             if self.http is None or self.http.closed:
@@ -692,7 +730,7 @@ class Plugins:
                 if response.status == 304:
                     return None
                 response.raise_for_status()
-                data = json.loads(await read_whole(response, LIKES_MAX))
+                data = json.loads(await read_whole(response, limit))
                 kept['etag'] = response.headers.get('ETag')
                 return data
         except Exception as error:
@@ -1206,23 +1244,445 @@ class Plugins:
             LOG.warning('Plugin %s: picture not kept (%s)', entry.id, error)
         return body
 
+    async def example_spec(self, entry):
+        """A plugin's preview.yaml as a mapping, or None: from its folder (read again when the file changed), or
+        fetched once from GitHub at the plugin's commit and kept, as its picture is."""
+        import plugin_examples
+        if entry.folder is not None:
+            path = Path(entry.folder) / EXAMPLES_FILE
+            try:
+                key = (entry.id, path.stat().st_mtime_ns)
+            except OSError:
+                return None
+            if key not in self.example_specs:
+                try:
+                    self.example_specs[key] = plugin_examples.read(path.read_bytes())
+                except OSError:
+                    self.example_specs[key] = None
+            return self.example_specs[key]
+        found = GITHUB_LINK.match(entry.repo or '')
+        if not found or not re.fullmatch(r'[0-9a-f]{40}', entry.ref or ''):
+            return None
+        key = (entry.id, entry.ref)
+        if key in self.example_specs:
+            return self.example_specs[key]
+        kept = self.data / EXAMPLES / f'{entry.id}-{entry.ref}.yaml'
+        try:
+            body = kept.read_bytes()
+        except OSError:
+            body = None
+        if body is None:
+            base = '' if entry.path in ('', '.') else entry.path.strip('/') + '/'
+            url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + EXAMPLES_FILE)
+            import aiohttp
+            try:
+                if self.http is None or self.http.closed:
+                    self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                      headers={'User-Agent': self.fetcher.user_agent})
+                async with self.http.get(url) as response:
+                    # A plugin without the file is remembered as without, for as long as the app runs.
+                    body = bytes(await read_whole(response, plugin_examples.MAX_BYTES)) if response.status == 200 else b''
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+                LOG.info('Plugin %s: example not read (%s)', entry.id, error)
+                return None
+            if body:
+                try:
+                    kept.parent.mkdir(parents=True, exist_ok=True)
+                    for old in kept.parent.glob(f'{entry.id}-*.yaml'):
+                        old.unlink(missing_ok=True)
+                    kept.write_bytes(body)
+                except OSError as error:
+                    LOG.warning('Plugin %s: example not kept (%s)', entry.id, error)
+        self.example_specs[key] = plugin_examples.read(body) if body else None
+        return self.example_specs[key]
+
+    async def example_message(self, index, tile, span=None, inbox=None):
+        """The state message of a plugin tile as its plugin's own example shows it (plugin_examples.message), or None:
+        for the editor's library, where a tile nobody set up would only say that it waits. Never an error: a plugin
+        without an example, or one whose example does not read, keeps the message of the tile as it is."""
+        import plugin_examples
+        plugin, _ = core.plugin_tile(tile['entity'])
+        entry = self.known(plugin, inbox)
+        if entry is None:
+            return None
+        try:
+            spec = await self.example_spec(entry)
+            return await plugin_examples.message(entry, spec, index, tile, span) if spec else None
+        except Exception as error:   # a preview.yaml is a maker's file: whatever is wrong in it, the tile stays as it was
+            LOG.info('Plugin %s: its example was not shown (%s: %s)', entry.id, type(error).__name__, error)
+            return None
+
+    def module_files(self, entry, abi):
+        """Where the module of a plugin for the preview of this number may be: its own folder first (the one being
+        made), then what the app keeps."""
+        files = []
+        if entry.folder is not None:
+            files.append(Path(entry.folder) / MODULE_FOLDER / f'{entry.id}.wasm')
+        files.append(self.data / MODULES / f'{entry.id}-{entry.version}-{abi}.wasm')
+        return files
+
+    def module_file(self, entry, abi):
+        """The module file of this plugin that fits the preview of this number, with its time of writing, or (None, 0).
+        A file is read and checked once (plugin_module.fits) and remembered by its time and size: asking which modules
+        a screen has costs a look at each file, not a reading of it."""
+        for path in self.module_files(entry, abi):
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            key = (str(path), stat.st_mtime_ns, stat.st_size, entry.version, abi)
+            if key not in self.module_checks:
+                try:
+                    why = plugin_module.fits(path.read_bytes(), entry.id, entry.version, abi)
+                except OSError as error:
+                    why = str(error)
+                if len(self.module_checks) > 256:
+                    self.module_checks.clear()
+                self.module_checks[key] = why
+                if why:
+                    LOG.info('Plugin %s: the module %s is not loaded (%s)', entry.id, path.name, why)
+            if self.module_checks[key] is None:
+                return path, int(stat.st_mtime)
+        return None, 0
+
+    async def refresh_published(self, abi):
+        """What the plugins repository has for the preview of this number, at most every INDEX_TTL, with its ETag; the
+        last list stays while GitHub cannot be reached."""
+        kept = self.published
+        if kept['abi'] != abi:
+            kept.update(abi=abi, modules={}, etag=None, checked=0.0)
+        if kept['checked'] and time.monotonic() - kept['checked'] < INDEX_TTL:
+            return
+        kept['checked'] = time.monotonic()
+        data = await self._read_repository_file(MODULES_URL.format(abi=abi, name='index.json'), kept, MODULES_LIST_MAX)
+        found = (data or {}).get('modules') if isinstance(data, dict) and data.get('format') == 1 else None
+        if isinstance(found, dict):
+            kept['modules'] = {
+                (plugin, version): {'sha256': item['sha256'], 'bytes': item['bytes']}
+                for plugin, versions in found.items() if isinstance(plugin, str) and isinstance(versions, dict)
+                for version, item in versions.items()
+                if isinstance(version, str) and isinstance(item, dict) and re.fullmatch(r'[0-9a-f]{64}', str(item.get('sha256')))
+                and isinstance(item.get('bytes'), int) and 0 < item['bytes'] <= plugin_module.MAX_BYTES}
+
+    def published_for(self, entry, record):
+        """What the plugins repository published for this plugin as this screen runs it, or None: only for a release
+        of the index, which is the plugin its build made the module of. A link, a branch or a folder is someone's own
+        code under the same id."""
+        if entry.source != 'index' or (record or {}).get('source') not in (None, 'index'):
+            return None
+        return self.published['modules'].get((entry.id, entry.version))
+
+    async def fetch_module(self, entry, abi, listed):
+        """The published module of a plugin, fetched once and kept: the bytes the list names (their size and SHA-256),
+        which say themselves that they are this plugin at this version for this preview. The modules of versions no
+        screen runs any more go."""
+        import hashlib
+        import aiohttp
+        url = MODULES_URL.format(abi=abi, name=f'{entry.id}-{entry.version}.wasm')
+        try:
+            if self.http is None or self.http.closed:
+                self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                  headers={'User-Agent': self.fetcher.user_agent})
+            async with self.http.get(url) as response:
+                if response.status != 200:
+                    return None
+                body = bytes(await read_whole(response, plugin_module.MAX_BYTES))
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+            LOG.info('Plugin %s: module not read (%s)', entry.id, error)
+            return None
+        why = (None if len(body) == listed['bytes'] and hashlib.sha256(body).hexdigest() == listed['sha256']
+               else 'it is not the file the list names') or plugin_module.fits(body, entry.id, entry.version, abi)
+        if why:
+            LOG.info('Plugin %s: the published module is not loaded (%s)', entry.id, why)
+            return None
+        kept = self.data / MODULES / f'{entry.id}-{entry.version}-{abi}.wasm'
+        try:
+            kept.parent.mkdir(parents=True, exist_ok=True)
+            running = {str(record.get('version')) for records in self.store.everywhere().values()
+                       for record in records if record.get('id') == entry.id}
+            for old in kept.parent.glob(f'{entry.id}-*.wasm'):
+                version, _, number = old.stem[len(entry.id) + 1:].rpartition('-')
+                if number != abi or version not in running | {entry.version}:
+                    old.unlink(missing_ok=True)
+            kept.write_bytes(body)
+        except OSError as error:
+            LOG.warning('Plugin %s: module not kept (%s)', entry.id, error)
+        return body
+
+    async def module(self, plugin_id, abi, inbox=None):
+        """A plugin's own code as the editor's preview loads it, or None: the module of the plugin this screen runs
+        (`inbox`), at its version, built for the preview of this number, and checked. From its folder or what the app
+        keeps, else fetched once from what the plugins repository published. A plugin without one keeps its drawn
+        placeholder in the editor; nothing on a screen depends on it."""
+        entry = self.known(plugin_id, inbox)
+        if entry is None or not PREVIEW_NUMBER.fullmatch(str(abi or '')):
+            return None
+        path, _ = self.module_file(entry, abi)
+        if path is not None:
+            try:
+                return path.read_bytes()
+            except OSError:
+                return None
+        await self.refresh_published(abi)
+        listed = self.published_for(entry, self.store.get(inbox, plugin_id) if inbox else None)
+        return await self.fetch_module(entry, abi, listed) if listed else None
+
+    async def modules_on(self, inbox, abi):
+        """The plugins of a screen whose own code the editor's preview can load: [{id, version, url}]. The address
+        names the version and the preview's number (for a folder being made, the file's time), so it is the same
+        bytes for as long as it is the same address and a browser may keep them."""
+        if not inbox or not PREVIEW_NUMBER.fullmatch(str(abi or '')):
+            return []
+        await self.refresh_published(abi)
+        found = []
+        for record in self.store.of(inbox):
+            entry = self.entry_for(record)
+            if entry is None or record.get('state') == 'failed' or self.blocked_record(record):
+                continue
+            path, written = self.module_file(entry, abi)
+            if path is None and not self.published_for(entry, record):
+                continue
+            mark = f'{entry.version}-{written}' if path is not None and entry.folder is not None else entry.version
+            found.append({'id': entry.id, 'version': entry.version,
+                          'url': f'api/plugins/{entry.id}/module?abi={abi}&screen={quote(str(inbox), safe="")}'
+                                 f'&v={quote(str(mark), safe="")}'})
+        return found
+
+    # How long after its start the app waits for a screen's address before a plugin build it restarted during counts as
+    # failed: Home Assistant names the screens' addresses within a minute of a start.
+    RESUME_WAIT = 600
+
+    async def readme_image(self, plugin_id, path):
+        """(body, media type) of a picture a listed plugin's README names by the relative `path`, or None: from its
+        folder, or fetched from GitHub at the plugin's commit from the plugin's own folder and kept under
+        data/images/readme (one commit per plugin). Only a path of README_IMAGE_PATH with an extension of
+        README_IMAGE_TYPES, and only a picture of that kind (readme_image_type)."""
+        entry = self.listed().get(plugin_id)
+        if entry is None or not isinstance(path, str) or len(path) > README_IMAGE_PATH_MAX \
+                or not README_IMAGE_PATH.fullmatch(path):
+            return None
+        suffix = Path(path).suffix.lower()
+        kind = README_IMAGE_TYPES.get(suffix)
+        if kind is None:
+            return None
+        if entry.folder is not None:
+            folder = Path(entry.folder).resolve()
+            try:
+                file = (folder / path).resolve()
+                if not file.is_relative_to(folder):
+                    return None
+                body = file.read_bytes()
+            except OSError:
+                return None
+            media = readme_image_type(body, kind)
+            return (body, media) if media else None
+        found = GITHUB_LINK.match(entry.repo or '')
+        if not found or not re.fullmatch(r'[0-9a-f]{40}', entry.ref or ''):
+            return None
+        kept_in = self.data / 'images' / 'readme' / f'{entry.id}-{entry.ref}'
+        kept = kept_in / (hashlib.sha256(path.encode()).hexdigest()[:32] + suffix)
+        try:
+            body = kept.read_bytes()
+        except OSError:
+            body = None
+        if body is not None:
+            media = readme_image_type(body, kind)
+            return (body, media) if media else None
+        base = '' if entry.path in ('', '.') else entry.path.strip('/') + '/'
+        url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + path)
+        import aiohttp
+        try:
+            if self.http is None or self.http.closed:
+                self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                  headers={'User-Agent': self.fetcher.user_agent})
+            async with self.http.get(url) as response:
+                if response.status != 200:
+                    return None
+                body = bytes(await read_whole(response, README_IMAGE_MAX))
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+            LOG.info('Plugin %s: README picture %s not read (%s)', entry.id, path, error)
+            return None
+        media = readme_image_type(body, kind)
+        if media is None:
+            LOG.info('Plugin %s: README picture %s is not a picture the README shows', entry.id, path)
+            return None
+        try:
+            kept_in.mkdir(parents=True, exist_ok=True)
+            # One commit per plugin: the pictures of an older commit go.
+            older = re.compile(re.escape(entry.id) + r'-[0-9a-f]{40}')
+            for old in kept_in.parent.iterdir():
+                if old != kept_in and older.fullmatch(old.name):
+                    for file in old.iterdir():
+                        file.unlink(missing_ok=True)
+                    old.rmdir()
+            kept.write_bytes(body)
+        except OSError as error:
+            LOG.warning('Plugin %s: README picture %s not kept (%s)', entry.id, path, error)
+        return body, media
+
     def settle(self):
         """What a plugin's record says squared with what its screen runs, for a screen without a build on its way: a
-        plugin the screen reports at that version is active (built elsewhere: ESPHome Device Builder, a computer), and one
-        still building without a build is failed (the app restarted during it), so the editor offers to build again
-        instead of waiting for ever."""
+        plugin the screen reports at that version is active (built elsewhere: ESPHome Device Builder, a computer). One
+        still building without a build lost its build to a restart of the app (an update of the app, a restart of Home
+        Assistant): it is built once more, by itself (`resumed`), since its plugins file already holds it. Only a build
+        that was started again and lost again, or a screen without an address long after the start, counts as failed,
+        so the editor offers to build again instead of waiting for ever."""
         running = self.running()
         line = getattr(self.manager, 'build_queue', None)
         for inbox, records in self.store.everywhere().items():
             if line and line.on_the_way(screen=inbox):
                 continue
             reported = {item['id']: item.get('version') for item in running.get(inbox) or []}
+            again = []
             for record in records:
                 state = record.get('state', 'active')
                 if state in ('building', 'failed') and reported.get(record['id']) == record.get('version'):
                     self._settle_build(inbox, [record['id']], True, None)
+                elif state == 'building' and not record.get('resumed') and line is not None:
+                    again.append(record)
                 elif state == 'building':
-                    self._settle_build(inbox, [record['id']], False, 'interrupted')
+                    # The app restarted during its build (twice): the log that build wrote until then is kept on disk.
+                    self._settle_build(inbox, [record['id']], False, 'interrupted', self._last_log(inbox))
+            if again:
+                self._resume(inbox, again)
+            self._after_offline(inbox, records)
+
+    def _resume(self, inbox, records):
+        """Build a screen once more for the plugins a restart of the app cut off. Its plugins file holds them already; the
+        build is the one the person asked for, and ends as any plugin build does (_built), back to what worked when it
+        fails. A screen without an address waits until it has one, or fails once RESUME_WAIT has passed."""
+        screen = self.manager.screen(inbox)
+        profile, host = self.manager.updates.resolve(screen) if screen else (None, None)
+        if not profile or not host:
+            if time.time() - self.started_at > self.RESUME_WAIT:
+                self._settle_build(inbox, [r['id'] for r in records], False, 'interrupted', self._last_log(inbox))
+            return
+        for record in records:
+            self.store.put(inbox, dict(record, resumed=int(time.time())))
+        LOG.info('Plugins of %s: the build a restart cut off starts once more (%s)', screen.get('name') or inbox,
+                 ', '.join(r['id'] for r in records))
+        self._queue(inbox, profile, host, add=[r['id'] for r in records])
+
+    def _after_offline(self, inbox, records):
+        """A build that was good but found no screen to take it (kind 'offline') goes once more by itself as soon as the
+        screen is back: the editor says it waits for the screen, not that it failed. Once only (`waited`)."""
+        back = []
+        for record in records:
+            failure = record.get('failed_update') if record.get('state', 'active') == 'active' else record
+            if not failure or failure.get('kind') != 'offline':
+                continue
+            once = (inbox, record['id'], failure.get('version') or record.get('version'))
+            if failure.get('waited') or once in self._waited:
+                continue
+            back.append((record, once))
+        if not back:
+            return
+        screen = self.manager.screen(inbox)
+        if not screen or not screen.get('online') or not all(self.manager.updates.resolve(screen)):
+            return
+        self._waited.update(once for _, once in back)
+        back = [record for record, _ in back]
+        add = []
+        for record in back:
+            failure = record.get('failed_update') or {}
+            if record.get('failed_update'):
+                self.store.put(inbox, dict(record, failed_update=dict(failure, waited=int(time.time()))))
+                add.append({'id': record['id'], 'source': failure.get('source') or record.get('source', 'index'),
+                            'parts': failure.get('parts') or record.get('parts') or [],
+                            'values': failure.get('values') or record.get('values') or {}})
+            else:
+                self.store.put(inbox, dict(record, waited=int(time.time())))
+                add.append({'id': record['id'], 'source': record.get('source', 'index'),
+                            'parts': record.get('parts') or [], 'values': record.get('values') or {}})
+        LOG.info('Plugins of %s: the screen is back, its build goes once more (%s)', screen.get('name') or inbox,
+                 ', '.join(item['id'] for item in add))
+        task = asyncio.get_event_loop().create_task(self.apply(inbox, {'add': add}))
+        task.add_done_callback(lambda done: done.exception() and LOG.warning(
+            'Plugins of %s: building again after the screen came back failed: %s', inbox, done.exception()))
+
+    # ---- Back to the version before (one tap in the editor) ----
+    def go_back(self, inbox, plugin):
+        """Build a screen again with the version of a plugin it ran before the last update (`before`, its files kept as
+        its snapshot): for a version that does not run well on it. Like an update, a build that fails keeps what runs."""
+        screen = self.screen_of(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        inbox = screen['id']
+        record = self.store.get(inbox, plugin)
+        before = (record or {}).get('before')
+        if not record or not before or not self.snapshot_of(plugin, before.get('ref')) and before.get('source') != 'folder':
+            raise ValueError(t('addon.errors.plugins.no_before'))
+        profile, host = self.manager.updates.resolve(screen)
+        if not profile or not host:
+            raise ValueError(t('addon.errors.plugins.offline', screen=screen.get('name') or inbox))
+        now = {k: v for k, v in record.items() if k not in ('before', 'previous', 'failed_update', 'verified')}
+        fresh = sorted(before.get('parts') or []) != sorted(now.get('parts') or [])
+        self.store.put(inbox, dict(before, state='building', previous=now, changed=int(time.time())))
+        self.manager.firmware.save_plugins(profile, self.sidecar(inbox))
+        build = self._queue(inbox, profile, host, add=[plugin], fresh=fresh)
+        return {'written': True, 'built': True, 'queued': self.manager.build_queue.place(build)}
+
+    # ---- Everything for one screen in one build ----
+    async def update_everything(self, inbox, body):
+        """A screen's firmware update and its plugin updates in one build: the plugins file is written with the new
+        versions, and the firmware update builds it (an update builds the screen's plugins file too), settling the
+        plugins as a plugin build would. Without a firmware update it is a plugin build."""
+        screen = self.screen_of(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        inbox = screen['id']
+        updates = self.manager.updates
+        firmware = updates.state_for(screen).get('available') and screen.get('online') and not updates.build_of(inbox)
+        if not firmware:
+            return await self.apply(inbox, body) if (body or {}).get('add') else updates.start(inbox)
+        result = await self.apply(inbox, body, queue=False) if (body or {}).get('add') else {}
+        building = [r['id'] for r in self.store.of(inbox) if r.get('state') == 'building']
+        updates.start(inbox)
+        build = updates.build_of(inbox)
+        if build is not None and building:
+            build.plugins['add'] = sorted(set(build.plugins['add']) | set(building))
+            # A plugin whose parts changed builds from an empty build folder: before its steps start (the build line
+            # starts them in a task of their own).
+            build.fresh = build.fresh or bool(result.get('fresh'))
+            if self._built not in build.ends:
+                build.ends.append(self._built)
+        self.manager.notify()
+        return {**{k: v for k, v in result.items() if k != 'fresh'}, 'built': True, 'firmware': True}
+
+    # How often a screen that came back is looked at for what waited for it (settle, _after_offline): a minute, so a
+    # screen that was away gets its build soon after it is back. settle only reads the records and the screens' hellos.
+    SETTLE_EVERY = 60
+
+    async def resume_after_start(self):
+        """After a start: what a restart cut off is built once more as soon as its screen has an address (settle), also
+        while nobody opens the editor; from then on, every SETTLE_EVERY seconds, a screen that came back gets what
+        waited for it."""
+        while time.time() - self.started_at <= self.RESUME_WAIT + 60:
+            await asyncio.sleep(30)
+            try:
+                self.settle()
+            except Exception:   # the next look, or the editor's, settles it
+                LOG.exception('Plugins: settling after the start')
+            if not any(r.get('state') == 'building' for records in self.store.everywhere().values() for r in records):
+                break
+        while True:
+            await asyncio.sleep(self.SETTLE_EVERY)
+            try:
+                self.settle()
+            except Exception:
+                LOG.exception('Plugins: settling')
+
+    def updates_on(self, inbox):
+        """The plugins of a screen with a newer release in the index than it runs, from the same origin:
+        [(plugin, version, name)] (update_notice.py; the editor works it out the same way, plugins.hasUpdate)."""
+        out = []
+        for record in self.store.of(inbox):
+            if record.get('state', 'active') != 'active' or record.get('source', 'index') != 'index':
+                continue
+            offer = self.index.get(record['id'])
+            if offer and offer.version != record.get('version') and offer.origin == record_origin(record):
+                out.append((record['id'], offer.version, offer.text('name')))
+        return out
 
     def payload(self, language='en'):
         self.settle()
@@ -1244,6 +1704,16 @@ class Plugins:
                                          'parts': record.get('parts', []), 'values': record.get('values', {}),
                                          'consent': (record.get('consent') or {}).get('permissions'),
                                          'state': record.get('state', 'active'), 'reason': record.get('reason'),
+                                         'log': record.get('log'),
+                                         # Why it failed (build_failures.failure_kind), also for a failure kept before
+                                         # kinds were: the editor reads the kind alone.
+                                         'kind': record.get('kind') or (('interrupted' if record.get('reason') == 'interrupted'
+                                                                         else 'build') if record.get('state') == 'failed' else None),
+                                         'waited': record.get('waited'),
+                                         # The version it ran before its last update, to go back to (go_back).
+                                         'before': (record.get('before') or {}).get('version'),
+                                         # Whether the screen said after the build that it runs it (_verify).
+                                         'verified': record.get('verified'),
                                          # Whether the screen runs it (runs): the editor says so when it does not.
                                          'running': runs(inbox, record, running),
                                          # The version it runs instead, when it was built elsewhere: the editor names it.
@@ -1285,12 +1755,13 @@ class Plugins:
 
     # ---- A screen's plugins file ----
 
-    def sidecar(self, inbox, records=None):
+    def sidecar(self, inbox, records=None, screen=None):
         """The text of `<name>.plugins.yaml` for this screen's records (or the ones it is about to have). A plugin whose
         first build failed is left out, so the screen's next build (an update of the core) does not fail on it."""
         packages, components = [], []
         records = [r for r in (self.store.of(inbox) if records is None else records) if r.get('state') != 'failed']
-        screen = self.screen_of(inbox) or {'id': inbox}
+        # `screen`: one that is still being made (start_with), which has a board and no inbox yet.
+        screen = screen or self.screen_of(inbox) or {'id': inbox}
         have = self.features_on(screen, records)
         for record in records:
             entry = self.entry_for(record)
@@ -1325,7 +1796,7 @@ class Plugins:
             components += ['  - source:', '      type: git', f'      url: {entry.repo}', f'      ref: {entry.ref}',
                            f'      path: {folder}components', '    refresh: never']
         lines = ['# Written by Tessera. Change plugins and icons in Tessera, not here.']
-        fonts = self.manager.icons.font_lines(inbox) if getattr(self.manager, 'icons', None) else []
+        fonts = self.manager.icons.font_lines(inbox) if inbox and getattr(self.manager, 'icons', None) else []
         if packages:
             lines += ['packages:', *packages, 'external_components:', *components]
         if fonts:
@@ -1400,6 +1871,138 @@ class Plugins:
                 if feature not in have and not self.providers(feature, screen):
                     return 'feature'
         return None
+
+    # ---- Plugins the app suggests for a board (plugin_defaults.py) ----
+
+    def _suggestion(self, rule, entry):
+        # Its texts in every language it has, as the stars card gives them: the editor picks.
+        words = lambda key: dict(entry.texts.get(key) or {'en': key})
+        return {'id': entry.id, 'name': words('name'), 'summary': words('summary'), 'version': entry.version,
+                'why': rule['why'], 'image': self.image_url(entry)}
+
+    def _suggested(self, screen):
+        """[(rule, entry)]: the rules this screen's board meets whose plugin the index offers, at a version worth
+        suggesting, and that fits the screen. `screen` may be one that is still being made: {'id': None, 'board': key}."""
+        if not self.ready or not core.plugins_enabled():
+            return []
+        found = []
+        for rule in plugin_defaults.rules_for(core.SHAPES.get(core.board_of(screen), {}).get('features')):
+            entry = self.index.get(rule['plugin'])
+            if entry is None or version_tuple(entry.version) < rule['since'] or self.fits(entry, screen):
+                continue
+            found.append((rule, entry))
+        return found
+
+    def suggest_for_board(self, board):
+        """New screen's Plugins step: what this board's rules suggest, each with the key of its reason."""
+        return [self._suggestion(rule, entry) for rule, entry in self._suggested({'id': None, 'board': board})]
+
+    def suggested(self, screen):
+        """[(rule, entry)] for a screen that is there: as _suggested, and not on the screen (a plugin that failed to
+        build stays listed there), nothing on it bringing the same already, and not said no to."""
+        inbox = screen['id']
+        have, declined = self.features_on(screen), set(self.store.declined(inbox))
+        return [(rule, entry) for rule, entry in self._suggested(screen)
+                if entry.id not in declined and not self.store.get(inbox, entry.id)
+                and not set(entry.manifest['provides']) & have]
+
+    def suggest_card(self, screen):
+        """The card above a screen that suggests a plugin for its board's hardware, or None: what is suggested and not
+        answered yet. `update`: an update waits for this screen, so a yes comes with it instead of a build now."""
+        screen = self.known_board(screen)
+        accepted = set(self.store.accepted(screen['id']))
+        open_ = [self._suggestion(rule, entry) for rule, entry in self.suggested(screen) if entry.id not in accepted]
+        if not open_:
+            return None
+        return {'plugins': open_, 'update': bool(self.manager.updates.state_for(screen)['available'])}
+
+    async def answer_suggestion(self, inbox, plugin, yes):
+        """A person's answer on the card. No: kept, never suggested for this screen again. Yes: with the update that
+        waits for the screen, or built now as when a person adds it on the Plugins page."""
+        screen = self.screen_of(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        inbox = screen['id']
+        if plugin not in {entry.id for _, entry in self.suggested(screen)}:
+            raise ValueError(t('addon.errors.plugins.request'))
+        if not yes:
+            self.store.answer(inbox, plugin, False)
+            return {'declined': True}
+        state = self.manager.updates.state_for(screen)
+        if state['profile'] and state['available']:
+            self.store.answer(inbox, plugin, True)
+            return {'with_update': True}
+        return await self.apply(inbox, {'add': [{'id': plugin, 'source': 'index', 'suggested': True}]})
+
+    async def join_accepted(self, inbox):
+        """Before an update's build of this screen: the suggested plugins a person said yes to go into its plugins file,
+        so the update brings them and the screen is built once. The ids that joined; settle them with settle_joined."""
+        screen = self.screen_of(inbox)
+        accepted = set(self.store.accepted(inbox)) if screen else set()
+        due = [entry.id for _, entry in self.suggested(screen) if entry.id in accepted] if accepted else []
+        if not due:
+            return []
+        try:
+            await self.apply(inbox, {'add': [{'id': plugin, 'source': 'index', 'suggested': True} for plugin in due]}, queue=False)
+        except ValueError as error:
+            LOG.info('%s does not get %s with this update: %s', inbox, ', '.join(due), error)
+            return []
+        LOG.info('%s gets %s with this update, as asked on its card', inbox, ', '.join(due))
+        return due
+
+    def settle_joined(self, inbox, joined, ok, reason=None, logs=None):
+        """The end of the build join_accepted wrote for: on, or failed and out of the plugins file again."""
+        if joined:
+            running = getattr(getattr(self.manager, 'build_queue', None), 'running', None)
+            self._settle_build(inbox, joined, ok, None if ok else reason or (build_reason(logs) if logs else 'build'),
+                               getattr(running, 'log', None))
+
+    def start_with(self, file, node, board, chosen):
+        """New screen made the profile `file` of a screen called `node`: what its wizard kept ticked of the plugins
+        suggested for its board goes into its plugins file before the first build, and is kept with what was unticked
+        until Home Assistant has the screen (adopt_started). Only what suggest_for_board offers is taken."""
+        chosen = chosen if isinstance(chosen, dict) else {}
+        offered = dict((entry.id, entry) for _, entry in self._suggested({'id': None, 'board': board}))
+        listed = lambda key: [item for item in chosen.get(key) or [] if isinstance(item, str) and item in offered] \
+            if isinstance(chosen.get(key), list) else []
+        add = listed('add')
+        declined = [plugin for plugin in listed('declined') if plugin not in add]
+        records = []
+        for plugin in add:
+            entry = offered[plugin]
+            records.append({'id': entry.id, 'source': entry.source, 'repo': entry.repo, 'path': entry.path, 'ref': entry.ref,
+                            'version': entry.version, 'values': {}, 'suggested': True, 'state': 'active',
+                            'parts': [part['id'] for part in entry.manifest['parts'] if part['default']],
+                            **({'repo_id': entry.repo_id} if entry.repo_id else {}),
+                            'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())}})
+            self.keep_snapshot(entry)
+        if records:
+            self.manager.firmware.save_plugins(file, self.sidecar(None, records, screen={'id': None, 'board': board}))
+        self.store.start(node, records, declined)
+        return [record['id'] for record in records]
+
+    def adopt_started(self):
+        """A screen New screen made is in Home Assistant now: what its wizard chose becomes the screen's own."""
+        if not self.store.starting:
+            return
+        nodes = {meta.get('node') for meta in self.manager.firmware.profile_names().values()}
+        screens = {screen.get('node'): screen for screen in self.screens()}
+        for node in list(self.store.starting):
+            if node not in nodes:
+                self.store.forget_start(node)   # its profile was removed before the screen ever came
+                continue
+            screen = screens.get(node)
+            if screen is None:
+                continue
+            found = self.store.started(node)
+            for record in found['plugins']:
+                if not self.store.get(screen['id'], record['id']):
+                    self.store.put(screen['id'], dict(record, settled=int(time.time())))
+            for plugin in found['declined']:
+                if not self.store.get(screen['id'], plugin):
+                    self.store.answer(screen['id'], plugin, False)
+            self.store.forget_start(node)
+            self._know_tiles()
 
     def providers(self, feature, screen):
         """The plugins of the list that bring `feature` and fit this screen, Tessera's own first."""
@@ -1536,8 +2139,9 @@ class Plugins:
                          'permission_hash': pm.permission_hash(step['entry'].manifest)} for step in plan['add']],
                 'remove': plan['remove'], 'choose': plan['choose'], 'orphans': plan['orphans']}
 
-    async def apply(self, inbox, body):
-        """Add and remove plugins on one screen, write its plugins file and build it. `body`:
+    async def apply(self, inbox, body, queue=True):
+        """Add and remove plugins on one screen, write its plugins file and build it (`queue` False: written and not
+        built, for a build that is about to run anyway, join_accepted). `body`:
         {"add": [{"id", "source": "index"|"folder"|"link"|"branch", "parts": [...], "values": {...}, "secrets": {...},
         "consent": bool, "switch": bool, "auto": bool}], "remove": [id], "providers": {feature: id}}. What the plugins
         asked for need comes along in the same build (_plan), marked as come along; `switch` replaces a plugin of the same
@@ -1613,6 +2217,8 @@ class Plugins:
                 **({'repo_id': entry.repo_id} if entry.repo_id else {}),
                 **({'branch': entry.branch} if entry.branch else {}),
                 **({'auto': True} if came else {}),
+                # Suggested for the board's own hardware (plugin_defaults.py) and said yes to.
+                **({'suggested': True} if item.get('suggested') is True and not (had and not had.get('suggested')) else {}),
                 **({'previous': {k: v for k, v in previous.items() if k not in ('previous', 'failed_update')}}
                    if previous and profile else {}),
                 'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())},
@@ -1634,6 +2240,9 @@ class Plugins:
         for plugin in removes:
             gone = self.store.get(inbox, plugin)
             self.store.remove(inbox, plugin)
+            # Taken off by a person: the app does not suggest it for this screen again.
+            if plugin in plugin_defaults.suggested_ids():
+                self.store.answer(inbox, plugin, False)
             origin = record_origin(gone) if gone else None
             if gone and not any(record_origin(r) == origin for screen_records in self.store.everywhere().values()
                                 for r in screen_records if r['id'] == plugin):
@@ -1644,40 +2253,106 @@ class Plugins:
             # A screen built from its own YAML: the app cannot build it, so the page shows the file and the line.
             return {'own_yaml': True, 'file': f'{screen.get("node") or "screen"}.plugins.yaml', 'content': text,
                     'line': self.attach_line(f'{screen.get("node") or "screen"}.yaml')}
-        # The screen's build waits its turn in the app's one build line (build_queue, docs/BUILDS.md): ticking three
-        # screens on the Plugins page builds them one after the other. A screen asked again while its build waits builds
-        # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
-        # once more after it, since that build may have read its YAML before this change.
-        line = self.manager.build_queue
         # A plugin whose parts changed builds from an empty build folder (BuildQueue, Build.fresh).
         before = {r['id']: r for r in had_records}
         fresh = any(c['record']['id'] in before and
                     sorted(before[c['record']['id']].get('parts') or []) != sorted(c['record']['parts'] or [])
                     for c in changes)
-        build = line.add('plugins', profile, self._build, screen=inbox, target=host,
-                         plugins={'add': [c['record']['id'] for c in changes], 'remove': list(removes), 'fresh': fresh})
-        if self._built not in build.ends:
-            build.ends.append(self._built)
-        self.manager.notify()
+        if not queue:
+            return {'written': True, 'built': False, 'fresh': fresh}
+        # The screen's build waits its turn in the app's one build line (build_queue, docs/BUILDS.md): ticking three
+        # screens on the Plugins page builds them one after the other. A screen asked again while its build waits builds
+        # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
+        # once more after it, since that build may have read its YAML before this change.
+        line = self.manager.build_queue
+        build = self._queue(inbox, profile, host, add=[c['record']['id'] for c in changes], remove=list(removes), fresh=fresh)
         return {'written': True, 'built': True, 'queued': line.place(build)}
 
+    def _queue(self, inbox, profile, host, add, remove=(), fresh=False):
+        """A plugin build of a screen in the build line, settled by `_built` once it ends (the one way every plugin build is
+        asked for: a change, a build a restart cut off, the version before). Joins a build of the screen that waits."""
+        build = self.manager.build_queue.add('plugins', profile, self._build, screen=inbox, target=host,
+                                             plugins={'add': list(add), 'remove': list(remove), 'fresh': fresh})
+        if self._built not in build.ends:
+            build.ends.append(self._built)
+        notify = getattr(self.manager, 'notify', None)
+        if notify:
+            notify()
+        return build
+
+    # How long a screen gets after a plugin build to restart and say it runs what was built (verify).
+    VERIFY_WAIT = 240
+    VERIFY_POLL = 5
+
     async def _build(self, build):
-        """A plugin build's turn: the screen's firmware with its plugins file, installed over Wi-Fi."""
-        ok = await self.manager.build_queue.step({'file': build.file, 'action': 'install', 'target': build.target})
-        return 'success' if ok else 'failed'
+        """A plugin build's turn: the screen's firmware with its plugins file, installed over Wi-Fi. A build that stopped on
+        the network (a download that did not come) goes once more by itself. Then the screen restarts, and the build waits
+        until it says it runs what was built (`verify`): only then is it done."""
+        line = self.manager.build_queue
+        step = {'file': build.file, 'action': 'install', 'target': build.target}
+        ok = await line.step(step)
+        logs = list(getattr(self.manager.firmware, 'logs', None) or [])
+        stage = ((getattr(self.manager.firmware, 'job', None) or {}).get('stage'))
+        if not ok and stage != 'upload' and failure_kind(logs) == 'network':
+            self.manager.firmware.logs.append('A download did not come: the build goes once more.')
+            build.retried = True
+            ok = await line.step(step)
+        if not ok:
+            return 'failed'
+        build.verified = await self._verify(build)
+        return 'success'
+
+    async def _verify(self, build):
+        """Whether the screen, after its restart, says it runs the plugins this build brought at their versions: True,
+        False when it came back without them (one crashed at boot: the editor offers the version before), None when it
+        cannot tell (a firmware without plugins, a screen that stays away)."""
+        inbox = build.screen
+        wanted = {}
+        for plugin in build.plugins['add']:
+            record = self.store.get(inbox, plugin)
+            if record:
+                wanted[plugin] = record.get('version')
+        if not wanted or inbox not in getattr(self.manager, 'page_senders', {}):
+            return None
+        build.phase = 'verify'
+        # The screen restarts and is checked: that is waiting, not building, so the slot goes to the next build.
+        self.manager.build_queue.handoff(build)
+        # The screen restarts with the new firmware: it drops off (no hello) and says hello again with what it runs.
+        gone = False
+        deadline = time.monotonic() + self.VERIFY_WAIT
+        while time.monotonic() < deadline:
+            await asyncio.sleep(self.VERIFY_POLL)
+            running = self.running()
+            if inbox not in running:
+                gone = True
+                continue
+            reported = {item.get('id'): item.get('version') for item in running[inbox] or []}
+            if all(reported.get(p) == v for p, v in wanted.items()):
+                return True
+            if gone:
+                return False   # back after its restart, without them
+        return None
 
     def _built(self, build):
         """What the end of a build of this screen (a plugin build, or the update it became one with) means for the
         plugins it brought: whether the screen's firmware with them went on. A plugin asked for again while it built is
         settled by the build that waits for it."""
+        if build.state in ('interrupted', 'retry'):
+            # The app stops (BuildQueue.close), or the build goes once more at the end of the line (Updater.run_build,
+            # which hands its plugins on): the plugins stay `building` until a build of them ends for real.
+            return
         later = self.manager.build_queue.waiting(build.file)
         again = set(later.plugins['add']) if later else set()
         ok = build.installed
-        reason = None if ok else ('interrupted' if build.state == 'interrupted'
-                                  else build_reason(build.logs) if build.logs else str(build.reason or build.state))
-        self._settle_build(build.screen, [p for p in build.plugins['add'] if p not in again], ok, reason)
+        reason = None if ok else (build_reason(build.logs) if build.logs else str(build.reason or build.state))
+        kind = None
+        if not ok:
+            blamed = bool(build.logs and self.blame(build.screen, build.logs))
+            kind = failure_kind(build.logs, build.memory, blamed)
+        self._settle_build(build.screen, [p for p in build.plugins['add'] if p not in again], ok, reason, build.log,
+                           kind=kind, verified=build.verified)
 
-    def _settle_build(self, inbox, added, ok, reason):
+    def _settle_build(self, inbox, added, ok, reason, log=None, kind=None, verified=None):
         """What a build's end means for the plugins it added. Built: they are active and what came before is forgotten.
         Failed: the screen still runs what it ran, so the plugins file goes back to that, and the next build of this screen
         (an update of the core, Device Builder) does not fail on the same plugin. A new plugin stays listed as failed,
@@ -1689,21 +2364,68 @@ class Plugins:
             if not record:
                 continue
             if ok:
-                for key in ('previous', 'failed_update', 'reason'):
+                # What ran before stays known (`before`), so a version that does not run well goes back with one tap
+                # (go_back); its files are kept as its snapshot.
+                before = record.get('previous')
+                for key in ('previous', 'failed_update', 'reason', 'log', 'resumed', 'kind', 'before', 'verified'):
                     record.pop(key, None)
+                if before and before.get('version') != record.get('version'):
+                    record['before'] = {k: v for k, v in before.items() if k not in ('before', 'previous', 'failed_update')}
+                if verified is not None:
+                    record['verified'] = verified
                 # `settled`: when it went on, so the screen gets its reboot before its hello is held against it (runs).
                 self.store.put(inbox, dict(record, state='active', settled=int(time.time())))
             elif record.get('previous'):
-                back = dict(record['previous'], state='active',
-                            failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason})
+                back = dict({k: v for k, v in record['previous'].items() if k != 'resumed'}, state='active',
+                            failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason,
+                                           'log': log, 'kind': kind or ('interrupted' if reason == 'interrupted' else None),
+                                           'source': record.get('source'), 'parts': record.get('parts'),
+                                           'values': record.get('values')})
                 self.store.put(inbox, back)
                 rewrite = True
             else:
-                self.store.set_state(inbox, plugin, 'failed', reason)
+                # The build's log kept on disk (build_logs.py): the editor offers it with the failure.
+                self.store.put(inbox, {**{k: v for k, v in record.items() if k != 'resumed'}, 'state': 'failed',
+                                       'reason': reason, 'log': log,
+                                       'kind': kind or ('interrupted' if reason == 'interrupted' else None)})
                 rewrite = True
         if rewrite:
             self._know_tiles()
             self.rewrite_sidecar(inbox)
+        self._tell_home_assistant(inbox, ok, added, reason, kind)
+
+    def _tell_home_assistant(self, inbox, ok, added, reason, kind=None):
+        """A plugin build that failed is said in Home Assistant too (a notification, one per screen), for whoever does not
+        have the editor open; one that built takes it away again. A restart of the app is no failure: its build goes once
+        more by itself."""
+        if not added or reason == 'interrupted':
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        ha = getattr(self.manager, 'ha', None)
+        key = f'tessera_plugins_{re.sub(r"[^a-z0-9_]+", "_", str(inbox).lower())}'
+        if ok:
+            loop.create_task(ha_notice.dismiss(ha, key))
+            return
+        screen = self.manager.screen(inbox) or {}
+        names = ', '.join(self.known(p, inbox).text('name') if self.known(p, inbox) else p for p in added)
+        name = screen.get('name') or inbox
+        # Built, but the screen was away: it waits for the screen and installs by itself (_after_offline), no failure.
+        message = (screen_t('addon.notify.plugin_waits', names=names, screen=name) if kind == 'offline' else
+                   screen_t('addon.notify.plugin_failed', names=names, screen=name, reason=str(reason or '').split('\n')[0]))
+        loop.create_task(ha_notice.show(ha, key, message))
+
+    def _last_log(self, inbox):
+        """The newest kept build log of a screen's profile (build_logs.py), or None."""
+        logs = getattr(self.manager, 'build_logs', None)
+        try:
+            screen = self.manager.screen(inbox)
+            profile = self.manager.updates.resolve(screen)[0] if screen and logs else None
+            return logs.latest(Path(str(profile)).name) if profile else None
+        except Exception:   # no log is no reason to keep a plugin building
+            return None
 
     def blame(self, inbox, logs):
         """The plugin of this screen a failed build stopped on: a compiler error in one of its components, which are
@@ -1814,6 +2536,11 @@ class Plugins:
                            sorted(plugin_fetch.words_of(chosen).items(), key=lambda kv: kv[0]),
                            (pick or {}).get('value')], default=str)
 
+    def zone(self):
+        """Home Assistant's zone as the app knows it (None until it has said): the zone a time without an offset is
+        read in when its field names none of its own (plugin_fetch.epoch_of), whatever zone the app's machine is in."""
+        return getattr(self.manager.ha, 'time_zone', None)
+
     async def tile_data(self, entry, tile, chosen, ask=True, inbox=None, placed=None):
         """What the screen gets for one tile: the mapped answer of its fetch, with "stale" or "wait". A fetch with `each`
         (0.12) puts the answers of its values together; one that has none yet is left out, one that failed makes the
@@ -1847,9 +2574,9 @@ class Plugins:
             return {'wait': next(w for w in ('refused', 'not_filled', 'failed', 'asking') if w in waits)}
         try:
             if fetch.get('each'):
-                data = plugin_fetch.apply_each(fetch['map'], answers)
+                data = plugin_fetch.apply_each(fetch['map'], answers, self.zone())
             else:
-                data = plugin_fetch.apply_map(fetch['map'], *answers[0])
+                data = plugin_fetch.apply_map(fetch['map'], *answers[0], zone=self.zone())
         except Exception as error:   # an answer of another shape than the map expects
             LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
             return {'wait': 'failed'}
@@ -1875,7 +2602,7 @@ class Plugins:
         for name in spec.get('attributes', ()):
             value = attrs.get(name)
             if name.endswith(('_at', '_time', 'date')) and isinstance(value, str):
-                moment = plugin_fetch.epoch_of(value, getattr(self.manager.ha, 'time_zone', None))
+                moment = plugin_fetch.epoch_of(value, self.zone())
                 if moment is not None:
                     bounded[name] = moment
                     continue
@@ -1888,9 +2615,9 @@ class Plugins:
                 bounded[name] = [core.short(v, plugin_fetch.TEXT_BYTES) if isinstance(v, str) else v for v in value[:1000]
                                  if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
                                                            and math.isfinite(v))]
-        zone = getattr(self.manager.ha, 'time_zone', None)
+        zone = self.zone()
         for name, field in (spec.get('fields') or {}).items():
-            bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
+            bounded[name] = plugin_fetch.field_value(attrs, field, zone)
         part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
                 'name': core.short(attrs.get('friendly_name') or entity, plugin_fetch.TEXT_BYTES), 'attributes': bounded}
         moment = plugin_fetch.epoch_of(state.get('last_updated'), zone) if updated else None
@@ -2104,7 +2831,7 @@ class Plugins:
         if not cached or cached['data'] is None:
             return {'ok': False, 'error': 'failed'}
         try:
-            result = plugin_fetch.apply_map(fetch['map'], cached['data'], values)
+            result = plugin_fetch.apply_map(fetch['map'], cached['data'], values, zone=self.zone())
         except Exception as error:   # an answer of another shape than the map expects
             LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
             return {'ok': False, 'error': 'failed'}
@@ -2169,8 +2896,7 @@ class Plugins:
                 # An answer the manifest maps (`answers`) goes as its fields, the rest as it came; both bounded.
                 spec = next((a for a in entry.manifest.get('answers') or [] if a['command'] == ask), None)
                 if spec:
-                    zone = getattr(self.manager.ha, 'time_zone', None)
-                    result = {name: plugin_fetch.field_value(result, {**field, 'tz': field.get('tz') or zone})
+                    result = {name: plugin_fetch.field_value(result, field, self.zone())
                               for name, field in spec['fields'].items()}
                 reply.update(ok=True, result=bounded(result, mapped=bool(spec)))
             except Exception as error:   # Home Assistant said no, or did not answer
@@ -2327,6 +3053,7 @@ class Plugins:
     async def loop(self):
         while True:
             try:
+                self.adopt_started()
                 # The screensaver's steps first: the tiles' round forgets the answers nobody asked for in it.
                 await self.refresh_savers()
                 if self.plugin_tiles():

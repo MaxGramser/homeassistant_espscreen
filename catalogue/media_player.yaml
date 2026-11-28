@@ -2,6 +2,7 @@
 # Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
 # docs/CATALOGUE.md says what every key means.
 domain: media_player
+shelf: square                 # the size the library shows it at
 memory: {bytes: 1312, extras: true}
 # A tile that grows suggests the volume over the playback keys (docs/CATALOGUE.md, "A tile that grows").
 grow: [volume_playback]
@@ -19,6 +20,8 @@ controls:
     one_row: volume
 inline:
   needs: {actions: [media_player.volume_set]}
+# The library shows it with the album cover behind it from two cells up (docs/CATALOGUE.md, "The library's tiles").
+showcase: cover
 displays:
   standard: {}
   watch: {}

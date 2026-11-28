@@ -312,7 +312,9 @@ function plan(c: Candidate, label: string, input: AutoInput, room: Room, role: {
     case "weather":
       // Its forecast takes two columns: a wide card where the screen has one (the editor's own start, layout.defaultOptions).
       if (room.level === "plain" && takes(room, 2, 1)) [columns, rows] = [2, 1];
+      // A service with hours alone shows those.
       if (columns > 1 && displayDrawn(c, caps, "forecast", screen)) appearance.display = "forecast";
+      else if (columns > 1 && displayDrawn(c, caps, "hourly", screen)) appearance.display = "hourly";
       else [columns, rows] = [1, 1];
       break;
     case "calendar":

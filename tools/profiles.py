@@ -304,9 +304,10 @@ def resolved(name):
 def glyphs(source, font):
     """The characters `font` carries in `source` (packages/core.yaml or a profile's text): its glyph list and those of its
     extras, or None. Each list is read as YAML: it holds a ']' and a backslash of its own (firmware 0.36.0+), so a
-    pattern up to the first ']' cuts it."""
+    pattern up to the first ']' cuts it. The bits a pixel are the core's `${FONT_TEXT_BPP}` as written, or the number
+    a board fills in (resolved(): 4 on a glass that is lit, 1 on paper)."""
     flow = r'(\[(?:\'[^\']*\'|"(?:[^"\\]|\\.)*"|[^\]\'"])*\])'
-    block = re.search(r'id: ' + font + r'\n    size: [^\n]+\n    bpp: 4\n    glyphs: ' + flow
+    block = re.search(r'id: ' + font + r'\n    size: [^\n]+\n    bpp: (?:\$\{FONT_TEXT_BPP\}|\d+)\n    glyphs: ' + flow
                       + r'((?:\n    extras:)?(?:\n      - file: [^\n]+\n        glyphs: ' + flow + r')*)', source)
     if not block:
         return None

@@ -1,8 +1,12 @@
 {
-  "firmware": "0.62.0",
+  "firmware": "0.68.0",
   "profiles": [
     {
       "dpi": 118,
+      "look": "standard"
+    },
+    {
+      "dpi": 124,
       "look": "standard"
     },
     {
@@ -54,6 +58,10 @@
       "look": "standard"
     },
     {
+      "dpi": 235,
+      "look": "standard"
+    },
+    {
       "dpi": 254,
       "look": "standard"
     },
@@ -65,5 +73,6 @@
       "dpi": 294,
       "look": "standard"
     }
-  ]
+  ],
+  "plugin_abi": "9182a7c07718cd2c"
 }

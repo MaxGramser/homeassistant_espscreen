@@ -8,29 +8,39 @@ import FirmwareView from "../src/components/FirmwareView.vue";
 import { t } from "../src/i18n";
 import { useInventoryStore } from "../src/stores/inventory";
 import InstallerView from "../src/components/InstallerView.vue";
-import { chipMatches, connectProblem, flashSupport, imageChip, pickProblem, writtenPercent } from "../src/flasher/logic";
+import { chipMatches, CONNECT_SECONDS, connectProblem, flashSupport, imageChip, imageRevisions, otherChip, pickProblem, revisionFits, revisionOf, revisionText,
+  writtenPercent } from "../src/flasher/logic";
 import { setFlasherLoader, useBrowserFlash } from "../src/flasher/session";
 
 // A factory image as ESPHome writes it: erased flash (0xFF) up to the bootloader, whose header starts with 0xE9 and
-// carries the chip id at byte 12.
-function factoryImage(chipId: number, offset: number) {
+// carries the chip id at byte 12 and the range of chip revisions it runs on at bytes 15 and 17 (ESP-IDF's
+// esp_image_header_t), here every revision unless a test says otherwise.
+function factoryImage(chipId: number, offset: number, revisions = { min: 0, max: 0xffff }) {
   const data = new Uint8Array(offset + 64).fill(0xff);
   data[offset] = 0xe9;
   data[offset + 12] = chipId & 0xff;
   data[offset + 13] = chipId >> 8;
+  data[offset + 15] = revisions.min & 0xff;
+  data[offset + 16] = revisions.min >> 8;
+  data[offset + 17] = revisions.max & 0xff;
+  data[offset + 18] = revisions.max >> 8;
   return data;
 }
+// What ESP-IDF builds an ESP32-P4 for: the silicon before revision 3, or revision 3 (docs/CHIP_REVISIONS.md).
+const P4_PRE_V3 = { min: 0, max: 199 };
+const P4_V3 = { min: 300, max: 399 };
 
-function fakePort() {
-  return Object.assign(new EventTarget(), { getInfo: () => ({ usbVendorId: 0x1a86 }) }) as unknown as SerialPort;
+function fakePort(info: { usbVendorId?: number; usbProductId?: number } = { usbVendorId: 0x1a86 }) {
+  return Object.assign(new EventTarget(), { getInfo: () => info, forget: vi.fn(async () => {}) }) as unknown as SerialPort & { forget: ReturnType<typeof vi.fn> };
 }
 
 // The flasher module's stand-in: what esptool.ts exports, recording what the session asked of it.
-function fakeFlasher(chip = "ESP32") {
+function fakeFlasher(chip = "ESP32", revision: number | null = null) {
   const flasher = {
     createLoader: vi.fn((port: SerialPort) => ({ port })),
     connect: vi.fn(async () => chip),
     readMac: vi.fn(async () => "aa:bb:cc:dd:ee:ff"),
+    readRevision: vi.fn(async () => revision),
     writeImage: vi.fn(async (_loader: unknown, _data: Uint8Array, erase: boolean, onErase: () => void, onProgress: (p: number) => void) => {
       if (erase) onErase();
       onProgress(0);
@@ -44,7 +54,7 @@ function fakeFlasher(chip = "ESP32") {
   return flasher;
 }
 
-let port: SerialPort;
+let port: ReturnType<typeof fakePort>;
 const requestPort = vi.fn();
 const getPorts = vi.fn(async (): Promise<SerialPort[]> => []);
 function secure(on = true, serial = true) {
@@ -93,6 +103,24 @@ describe("reading a factory image", () => {
     expect(imageChip(factoryImage(0, 0x1000))).toBe("ESP32");
     expect(imageChip(factoryImage(9, 0x0))).toBe("ESP32-S3");
     expect(imageChip(factoryImage(18, 0x2000))).toBe("ESP32-P4");
+  });
+  it("reads the range of chip revisions the image runs on from the same header", () => {
+    expect(imageRevisions(factoryImage(18, 0x2000, P4_PRE_V3))).toEqual({ min: 0, max: 199 });
+    expect(imageRevisions(factoryImage(18, 0x2000, P4_V3))).toEqual({ min: 300, max: 399 });
+    expect(imageRevisions(new Uint8Array(0x3000).fill(0xff))).toBeNull();
+  });
+  it("tells whether the chip on the cable is one the image runs on, and lets the unknown through", () => {
+    expect(revisionFits(302, P4_V3)).toBe(true);
+    expect(revisionFits(302, P4_PRE_V3)).toBe(false);
+    expect(revisionFits(103, P4_V3)).toBe(false);
+    expect(revisionFits(null, P4_V3)).toBe(true);
+    expect(revisionFits(302, null)).toBe(true);
+  });
+  it("reads a revision from esptool-js's description, and writes one as esptool does", () => {
+    expect(revisionOf("ESP32-P4 (revision v3.2)")).toBe(302);
+    expect(revisionOf("ESP32-D0WD-V3 (revision 3)")).toBeNull();  // the major alone says too little
+    expect(revisionText(302)).toBe("v3.2");
+    expect(revisionText(199)).toBe("v1.99");
   });
   it("says nothing about a file it can't read", () => {
     expect(imageChip(new Uint8Array(0))).toBeNull();
@@ -162,6 +190,38 @@ describe("one installation from the browser", () => {
     expect(flasher.createLoader).not.toHaveBeenCalled();
   });
 
+  it("reads the chip's silicon revision, and refuses an image for other revisions before it writes", async () => {
+    // A JC4880P443 sold with rev3 silicon and a firmware built for the earlier one: it would write, then stay black.
+    const flasher = fakeFlasher("ESP32-P4", 302);
+    addon(factoryImage(18, 0x2000, P4_PRE_V3));
+    const flash = useBrowserFlash();
+    expect(await flash.connect("ESP32-P4")).toBe(true);
+    expect(flash.state.revision).toBe(302);
+    expect(await flash.install("hall.yaml", true)).toBe(false);
+    expect([flash.state.problem, flash.state.params]).toEqual(["wrong_revision", { found: "v3.2", from: "v0.0", to: "v1.99" }]);
+    expect(flasher.writeImage).not.toHaveBeenCalled();
+    expect(t("editor.webflash.errors.wrong_revision", flash.state.params)).toContain("v3.2");
+  });
+
+  it("writes an image built for the chip's revision", async () => {
+    const flasher = fakeFlasher("ESP32-P4", 302);
+    addon(factoryImage(18, 0x2000, P4_V3));
+    const flash = useBrowserFlash();
+    await flash.connect("ESP32-P4");
+    expect(await flash.install("hall.yaml", true)).toBe(true);
+    expect(flasher.writeImage).toHaveBeenCalledOnce();
+  });
+
+  it("goes on without a revision when the chip can't say it", async () => {
+    const flasher = fakeFlasher("ESP32-P4");
+    flasher.readRevision.mockRejectedValueOnce(new Error("no eFuse"));
+    addon(factoryImage(18, 0x2000, P4_PRE_V3));
+    const flash = useBrowserFlash();
+    await flash.connect("ESP32-P4");
+    expect(flash.state.revision).toBeNull();
+    expect(await flash.install("hall.yaml", true)).toBe(true);
+  });
+
   it("refuses a board of another chip before anything is built", async () => {
     const flasher = fakeFlasher("ESP32");
     const flash = useBrowserFlash();
@@ -191,6 +251,58 @@ describe("one installation from the browser", () => {
     expect(flash.state.problem).toBe("connect");
   });
 
+  it("stops waiting for a port that never answers, says so, and forgets the port so the picker comes back", async () => {
+    // A SenseCAP Indicator shows two ports on one cable. Its RP2040's takes no bytes, and esptool-js waits on its write
+    // without end: Install kept turning and said nothing, and the one remembered port was tried again at every click.
+    vi.useFakeTimers();
+    const flasher = fakeFlasher();
+    flasher.connect.mockImplementation(() => new Promise<string>(() => {}));
+    flasher.disconnect.mockImplementation(() => new Promise<void>(() => {}));  // closing waits for that write as well
+    const flash = useBrowserFlash();
+    const connecting = flash.connect("ESP32-S3");
+    await vi.advanceTimersByTimeAsync((CONNECT_SECONDS - 1) * 1000);
+    expect([flash.state.phase, flash.busy()]).toEqual(["connecting", true]);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await connecting).toBe(false);
+    expect([flash.state.phase, flash.state.problem, flash.state.params, flash.busy()]).toEqual(["failed", "silent", { seconds: String(CONNECT_SECONDS) }, false]);
+    expect(port.forget).toHaveBeenCalledOnce();
+    // The next click connects to whatever is picked then, as if nothing had been tried.
+    vi.useRealTimers();
+    flasher.connect.mockImplementation(async () => "ESP32-S3");
+    expect(await flash.connect("ESP32-S3")).toBe(true);
+    expect(flash.state.phase).toBe("waiting");
+  });
+
+  it("tries nothing on the port of a chip that is no ESP, and says which port it was", async () => {
+    const flasher = fakeFlasher();
+    const flash = useBrowserFlash();
+    // Seeed's "INDICATOR RP2040" (2886:0050) and a board with Raspberry Pi's own USB ids.
+    for (const info of [{ usbVendorId: 0x2886, usbProductId: 0x0050 }, { usbVendorId: 0x2e8a, usbProductId: 0x000a }]) {
+      port = fakePort(info);
+      expect(await flash.connect("ESP32-S3")).toBe(false);
+      expect([flash.state.phase, flash.state.problem]).toEqual(["failed", "other_chip"]);
+      expect(port.forget).toHaveBeenCalledOnce();
+    }
+    expect(flasher.createLoader).not.toHaveBeenCalled();
+    // Seeed's other boards and the USB bridges of real screens are let through.
+    expect([otherChip({ usbVendorId: 0x2886, usbProductId: 0x8056 }), otherChip({ usbVendorId: 0x1a86, usbProductId: 0x7523 }), otherChip({ usbVendorId: 0x303a }), otherChip(undefined)])
+      .toEqual([false, false, false, false]);
+  });
+
+  it("forgets a port whose board did not answer or is another chip, and keeps one that connected", async () => {
+    const flasher = fakeFlasher("ESP32");
+    const flash = useBrowserFlash();
+    expect(await flash.connect("ESP32")).toBe(true);
+    expect(port.forget).not.toHaveBeenCalled();
+    expect(await flash.connect("ESP32-S3")).toBe(false);
+    expect(flash.state.problem).toBe("wrong_chip");
+    expect(port.forget).toHaveBeenCalledOnce();
+    flasher.connect.mockRejectedValue(new Error("Failed to connect with the device"));
+    expect(await flash.connect("ESP32")).toBe(false);
+    expect(flash.state.problem).toBe("connect");
+    expect(port.forget).toHaveBeenCalledTimes(2);
+  });
+
   it("notices a cable pulled out while the add-on builds", async () => {
     fakeFlasher();
     const flash = useBrowserFlash();
@@ -218,11 +330,19 @@ describe("one installation from the browser", () => {
 
 // New screen: This computer builds as Download does, then writes the image from the page, erased first.
 // The wizard's third step, where the way in is chosen (app 0.4.32): past the board and the name.
+// New screen up to its last step (app 0.4.103), the cable in this computer: Continue through every question, the name
+// where it is asked.
 async function toInstall(view: ReturnType<typeof mount>) {
-  await view.find("#setup-next").trigger("click");
-  await view.find("#friendly_name").setValue("Hall");
-  await view.find("#setup-next").trigger("click");
+  const at = () => view.find("[data-step]").attributes("data-step");
+  for (let i = 0; i < 10 && !at()!.startsWith("connect"); i++) {
+    if (at() === "name") await view.find("#friendly_name").setValue("Hall");
+    if (at() === "cable") await view.find('input[name="cable"][value="here"]').setValue();
+    await view.find("#setup-next").trigger("click");
+    await flushPromises();
+  }
 }
+// The steps change with a transition; jsdom runs none, so it is the plain switch here.
+const installer = () => mount(InstallerView, { global: { stubs: { transition: true } } });
 
 describe("New screen from this browser", () => {
   const SHAPES = JSON.parse(readFileSync("../screen_manager/app/boards.json", "utf8"));
@@ -251,54 +371,125 @@ describe("New screen from this browser", () => {
   it("explains why it can't on a page opened over plain http, and keeps Download", async () => {
     secure(false, false);
     addonWithBuild(new Uint8Array());
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    expect(view.find("#target-hint").text()).toContain("https");
-    expect(view.find("#install-go").attributes("disabled")).toBeDefined();
-    expect(view.find('#install-target input[value="download"]').exists()).toBe(true);
+    // In this computer, but this browser cannot write a screen: a file to put on it, and why.
+    expect(view.find("#target-hint").text()).toBe(t("editor.installer.flow.file_lead"));
+    expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_download"));
+    expect(view.find("#install-go").attributes("disabled")).toBeUndefined();
   });
 
   it("picks the port on the click, builds with the download target, and installs erased", async () => {
-    const flasher = fakeFlasher("ESP32");
+    const flasher = fakeFlasher("ESP32", 301);  // an ESP32 of revision v3.1
     const { posted, calls } = addonWithBuild(factoryImage(0, 0x1000));
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    expect(view.find("#install-go").text()).toBe("Connect & install");
-    await view.find("#friendly_name").setValue("Hall");
+    expect(view.find("#here-steps").exists()).toBe(true);
+    expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_install"));
     await view.find("#install-form").trigger("submit");
     await flushPromises();
     expect(requestPort).toHaveBeenCalledOnce();
     expect(posted[0].target).toBe("download");
+    // The first firmware is built for the chip's own silicon (docs/CHIP_REVISIONS.md).
+    expect(posted[0].chip_revision).toBe(301);
     // Waiting its turn, the page keeps the port and writes nothing yet.
     expect(view.find("#progress-title").text()).toBe(t("editor.installer.progress.waiting"));
     expect(view.find("#progress-detail").text()).toBe(t("editor.installer.detail.waiting_browser", 1));
     expect(flasher.writeImage).not.toHaveBeenCalled();
+    // The page writes the screen itself: no Close that "keeps going" while it has yet to, since closing would let go of the
+    // port and nothing would be written, and no word that the window may close.
+    expect(view.find("#install-close").exists()).toBe(false);
+    expect(view.text()).not.toContain(t("editor.installer.flow.may_close"));
+    // And a red card that says so for as long as it holds, where a line under the steps was missed.
+    expect(view.find("#keep-open h2").text()).toContain(t("editor.installer.flow.keep_open_title"));
+    expect(view.find("#keep-open").text()).toContain(t("editor.installer.flow.keep_open"));
     // The add-on's next live answer: built, and the page writes it.
     useInventoryStore().applyLive({ line: [build("success") as any] });
     await flush();
     await vi.waitFor(() => expect(flasher.writeImage).toHaveBeenCalledOnce());
     expect(flasher.writeImage.mock.calls[0][2]).toBe(true);
     expect(calls.some((call) => call.url === "api/firmware/profiles/hall.yaml/flashed")).toBe(true);
-    expect(view.find("#progress-title").text()).toContain("Firmware is on Hall");
-    expect(view.find("#install-steps").exists()).toBe(true);
+    // On the screen is not the end: it starts and joins the Wi-Fi, and then Home Assistant (app 0.4.103).
+    expect(view.find("#progress-title").text()).toBe(t("editor.installer.flow.now.wifi", { name: "Hall" }));
+    expect(view.find('#follow-steps [data-step="write"]').classes()).toContain("done");
+  });
+
+  it("installs a board Home Assistant already has again inside the wizard, on the port it holds, without wiping", async () => {
+    // The board on the cable is a screen of this app's already (its MAC, app 0.4.96): "Install it again" finishes here,
+    // with that screen's own profile, built for the chip on the cable, instead of sending the person to Firmware & USB.
+    const flasher = fakeFlasher("ESP32", 301);
+    const jobs: any[] = [];
+    const again = { id: 7, by: "install", file: "tablet.yaml", action: "download", asked: 1 };
+    const { posted } = addonWithBuild(factoryImage(0, 0x1000));
+    const calls = addon(factoryImage(0, 0x1000), (url, options) => {
+      if (url.endsWith("api/firmware")) {
+        return new Response(JSON.stringify({ available: true, ports: [], profiles: [], logs: [], wifi: { state: "ready" }, boards, taken: { nodes: [], prefixes: [] } }));
+      }
+      if (url.includes("api/boards/known")) {
+        return new Response(JSON.stringify({ known: true, mac: "aa:bb:cc:dd:ee:ff", name: "Tablet", node: "tablet", file: "tablet.yaml",
+          screen: "text.tablet_tile_settings", device_id: "d1", entries: ["E1"] }));
+      }
+      if (url.endsWith("api/firmware/jobs") && options.method === "POST") {
+        jobs.push(JSON.parse(options.body));
+        return new Response(JSON.stringify({ ...again, state: "queued", place: 0 }));
+      }
+      if (/api\/firmware\/builds\/\d+\/log$/.test(url)) return new Response(JSON.stringify({ build: { ...again, state: "success" }, logs: [] }));
+      return null;
+    });
+    const view = installer();
+    await flush();
+    await toInstall(view);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(view.find("#known-board").exists()).toBe(true);
+    await view.find("#known-keep").trigger("click");
+    await flush();
+    // That screen's own profile, for the chip that was read, and no new profile.
+    expect(jobs).toEqual([{ file: "tablet.yaml", action: "download", chip_revision: 301 }]);
+    expect(posted).toEqual([]);
+    expect(calls.some((call) => call.url.endsWith("api/firmware/profiles") && call.method === "POST")).toBe(false);
+    useInventoryStore().applyLive({ line: [{ ...again, state: "success", started: 2, finished: 3 } as any] });
+    await flush();
+    await vi.waitFor(() => expect(flasher.writeImage).toHaveBeenCalledOnce());
+    expect(flasher.writeImage.mock.calls[0][2]).toBe(false);
+    expect(requestPort).toHaveBeenCalledOnce();  // the port picked on Install is the one written to
   });
 
   it("writes nothing and makes no profile for a board of another chip", async () => {
     fakeFlasher("ESP32-S3");
     const { posted } = addonWithBuild(factoryImage(9, 0));
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    await view.find("#friendly_name").setValue("Hall");
     await view.find("#install-form").trigger("submit");
     await flush();
     expect(posted).toEqual([]);
     expect(view.find("#webflash-line").text()).toContain("ESP32-S3");
+  });
+
+  it("gives Install back and says why when the chosen port never answers, with nothing built", async () => {
+    // Found on 2026-11-25 with a SenseCAP Indicator: the wrong one of its two ports picked, and Install turned for ever.
+    const flasher = fakeFlasher("ESP32");
+    flasher.connect.mockImplementation(() => new Promise<string>(() => {}));
+    const { posted } = addonWithBuild(factoryImage(0, 0x1000));
+    const view = installer();
+    await flush();
+    await toInstall(view);
+    vi.useFakeTimers();
+    await view.find("#install-form").trigger("submit");
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(view.find("#install-go").attributes("disabled")).toBeDefined();
+    expect(view.find("#webflash-line").text()).toBe("Connecting to the board…");
+    await vi.advanceTimersByTimeAsync(CONNECT_SECONDS * 1000);
+    vi.useRealTimers();
+    await flush();
+    expect(view.find("#install-go").attributes("disabled")).toBeUndefined();
+    expect(view.find("#webflash-line").text()).toContain(`Nothing answered on that port within ${CONNECT_SECONDS} seconds`);
+    expect(view.find("#webflash").classes()).toContain("bad");
+    expect(posted).toEqual([]);
+    expect(port.forget).toHaveBeenCalledOnce();
   });
 });
 
@@ -365,7 +556,7 @@ describe("Firmware & USB fills in a paired screen's address", () => {
 
 describe("Firmware & USB from this browser", () => {
   it("builds the profile, then writes it without erasing", async () => {
-    const flasher = fakeFlasher("ESP32");
+    const flasher = fakeFlasher("ESP32", 301);
     let job: any = null;
     addon(factoryImage(0, 0x1000), (url, options) => {
       if (url.endsWith("api/firmware")) {
@@ -388,6 +579,7 @@ describe("Firmware & USB from this browser", () => {
     await view.find("#firmware-install").trigger("click");
     for (let i = 0; i < 5; i++) await flushPromises();
     expect(job.action).toBe("download");
+    expect(job.chip_revision).toBe(301);
     expect(flasher.writeImage).toHaveBeenCalledOnce();
     expect(flasher.writeImage.mock.calls[0][2]).toBe(false);
     expect(view.find("#webflash-line").text()).toContain("Installed");

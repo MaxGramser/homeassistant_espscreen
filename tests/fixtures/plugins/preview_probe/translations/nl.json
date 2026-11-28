@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "name": "Nederlands"
+  },
+  "screen": {
+    "hello": "Hallo",
+    "more": "Meer van de proef"
+  },
+  "app": {
+    "name": "Voorbeeldproef",
+    "summary": "Zegt een regel die alleen de eigen code kan zeggen, voor de test van de module van een plugin in de voorvertoning van de editor.",
+    "tile": "Notitie",
+    "word": "Woord",
+    "card": "Proefkaart"
+  }
+}

@@ -23,12 +23,20 @@ def line_height(font, size):
     return (height + 32) // 64
 
 
-def font_file(core_text, font_id):
-    """The TrueType file packages/core.yaml builds a font from, by its id, relative to the repository."""
+def font_file(core_text, font_id, values=None):
+    """The TrueType file packages/core.yaml builds a font from, by its id, relative to the repository. A file named by a
+    substitution of the look (`label`: TILE_NAME_FONT_FILE, bold or medium) is read from `values`, the board's
+    substitutions (profiles.board_values); without them such a font raises KeyError instead of returning a name with
+    `${...}` in it."""
     found = re.search(r'- file: "\$\{FONT_DIR\}/([^"]+)"\n    id: ' + re.escape(font_id) + r'\n', core_text)
     if not found:
         raise KeyError(f'no font {font_id} in packages/core.yaml')
-    return 'fonts/' + found[1]
+
+    def value(name):
+        if values is None or name[1] not in values:
+            raise KeyError(f'font {font_id} names its file by ${{{name[1]}}}: pass the board\'s values')
+        return str(values[name[1]])
+    return 'fonts/' + re.sub(r'\$\{(\w+)\}', value, found[1])
 
 
 def ink_top(font, size, char='H'):

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 using namespace weather_week;
 
@@ -138,5 +139,46 @@ int main() {
     assert(std::fabs(through(days, hours, 57.5f) - through(days, hours, 57.0f)) < 1.0f);
   }
   printf("weather_week: all checks passed\n");
+  // GitHub #280: Buienradar's list starts tomorrow in the evening. How many days its first day lies from today...
+  assert(first_day_from_today(3, 2) == 1 && first_day_from_today(2, 2) == 0 && first_day_from_today(1, 2) == -1);
+  assert(first_day_from_today(0, 6) == 1 && first_day_from_today(6, 0) == -1 && first_day_from_today(-1, 2) == 0);
+  {
+    // ...and why the week chart counts its hours from that day: today 15:00 to 23:00 is 30 degrees, tomorrow's high 12.
+    std::vector<Day> days(2);
+    days[0].high = 12; days[0].low = 5; days[1].high = 14; days[1].low = 6;
+    std::vector<Hour> hours;
+    for (int h = 15; h <= 23; ++h) { Hour o; o.at = h; o.temp = 30; hours.push_back(o); }
+    assert(std::fabs(through(days, hours, 15) - 30) < 0.5f);  // before: today's afternoon under tomorrow's column
+    for (auto &o : hours) o.at -= 24 * first_day_from_today(3, 2);
+    assert(std::fabs(through(days, hours, 15) - 12) < 0.5f);  // now: the first column's afternoon is its own high
+  }
+  std::printf("weather week: a forecast that starts tomorrow counts its hours from tomorrow\n");
+  // A tile set to the next hours on a card of one row (weather_tile_lvgl.h): a column per hour from the running one,
+  // named by its time, its temperature alone, in the form of one line on every board's double card.
+  {
+    std::vector<Hour> hours;
+    for (int h = 13; h < 61; ++h) { Hour o; o.at = h; o.condition = "cloudy"; o.temp = 8.0f + h % 5; o.mm = h == 16 ? 1.2f : 0; hours.push_back(o); }
+    const auto cols = hour_columns(hours, 14);
+    assert(cols.size() == (size_t) DAYS && cols[0].name == "14:00" && cols[0].high == hours[1].temp && std::isnan(cols[0].low));
+    assert(hour_columns(hours, 22)[2].name == "00:00");                       // the hours run on past midnight
+    assert(hour_columns(hours, 58).size() == 3 && hour_columns(hours, 99).empty());
+    // (The CYD's double card is too low for this line, as for the days: there the tile takes forecast_tile.h's forms.)
+    assert(!plan(metrics(BOARDS[0]), cols, "mm", 210, 34, true).ok());
+    const Case rows[] = {{"guition", "2x1", 300, 93}, {"waveshare7", "2x1", 290, 72}, {"jc8012p4a1", "2x1", 560, 120}};
+    for (const auto &c : rows)
+      for (const auto &b : BOARDS) {
+        if (std::string(b.name) != c.board) continue;
+        const Metrics m = metrics(b);
+        const Plan p = plan(m, cols, "mm", c.w, c.h, true);
+        assert(p.ok() && p.tier == 0 && p.cols >= 3);
+        // the hour has no low: its column is no wider than its time, its icon and its temperature need
+        assert(column_need(m, cols, p.cols, 0, p.level, "mm") * p.cols <= c.w);
+        printf("%-12s hours    %4dx%-4d level %d hours %d\n", b.name, c.w, c.h, p.level, p.cols);
+      }
+    // A tall card keeps the form of one line for hours too: their rows and curve count in days.
+    const Plan tall = plan(metrics(BOARDS[1]), cols, "mm", 424, 300, true);
+    assert(tall.ok() && tall.tier == 0);
+  }
+  std::printf("weather week: the next hours as columns of one line\n");
   return 0;
 }

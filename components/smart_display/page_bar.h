@@ -130,7 +130,8 @@ inline void enable(lv_obj_t *key, bool on) {
   if (!key) return;
   if (on) lv_obj_remove_state(key, LV_STATE_DISABLED); else lv_obj_add_state(key, LV_STATE_DISABLED);
   if (auto *chevron = glyph(key)) {
-    const lv_opa_t opa = on ? LV_OPA_COVER : LV_OPA_30;
+    // Faint where the glass shows that (theme::gone): a key that leads nowhere holds nothing to read.
+    const lv_opa_t opa = on ? LV_OPA_COVER : theme::gone(LV_OPA_30);
     if (lv_obj_get_style_text_opa(chevron, LV_PART_MAIN) != opa) lv_obj_set_style_text_opa(chevron, opa, 0);
   }
 }
@@ -185,8 +186,7 @@ inline void dots(lv_obj_t *row, int current, int total) {
     lv_obj_remove_flag(d, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_size(d, dot, dot);
     lv_obj_align(d, LV_ALIGN_CENTER, at * (dot + gap) + dot / 2 - width / 2, 0);
-    lv_obj_set_style_bg_color(d, theme::color(at == current ? theme::INK : theme::SUBTLE), 0);
-    lv_obj_set_style_bg_opa(d, at == current ? LV_OPA_COVER : LV_OPA_40, 0);
+    theme::wear(d, theme::pager_dot(at == current, theme::SUBTLE, LV_OPA_40));
   }
 }
 

@@ -34,6 +34,11 @@ Three rules keep this safe:
   sun, graphs, a playing track, "5 min ago"). Every kept set remembers the number it was drawn up to, and a card is
   drawn again when it comes back only when its tile took a later number. A drawing that was asked for before a page was
   built, and ran after, is then no change that page lacks; the flags this replaced got that wrong.
+- **A card that comes back is painted for what it shows now.** A card skips its paint when nothing it is painted for
+  changed: whether it is on, available and lit, its card's look, and the state's colour itself (a thermostat from Auto
+  to Heat stays on and changes only its colour; a lamp that changes its colour stays on). A kept card keeps that memory
+  while its page is away, so the colour is part of it (GitHub #349, web/wasm/test_kept_colour.mjs, which keeps pages in
+  the preview as a board with PSRAM does).
 
 A page's sections (docs/PAGES.md "Sections") are drawn once, when the page is first placed on the glass or prepared off
 it, and kept: their panels, titles and icons are hidden while another page is on the glass and shown with their page, so
@@ -87,10 +92,16 @@ the budget for the rest is a fifth of the PSRAM, at most 6 MB (about 1.2 MB on a
 
 - **No download starts between two quick page turns** (`camera_view::SETTLE_MS`, 800 ms after the last turn), so a
   picture never lands in the middle of someone paging through.
-- **Pictures that do not refresh are fetched ahead** while the screen is in use and the store is under three quarters
-  of its budget, for the cards on kept pages (a cover, a favourite, a map), after everything on the glass and broken off
-  for it (`card_picture_wants`, docs/CAMERA.md "One route for every picture"). A camera on a kept page loads when its
-  page comes back, showing its last picture meanwhile.
+- **Pictures that do not refresh are fetched ahead** while the screen is in use, for the cards on kept pages (a cover, a
+  favourite, a map, a robot's map), after everything on the glass and broken off for it (`card_picture_wants`,
+  docs/CAMERA.md "One route for every picture"). A camera on a kept page loads when its page comes back, showing its last
+  picture meanwhile.
+- **A picture out of sight uses spare room and nothing else** (GitHub #415). One fetched ahead is asked for and loaded
+  only when the store, with it in, stays at or under three quarters of its budget (`picture_store` `ahead_level`,
+  `fits_ahead`, asked per picture by the loader's `room_ahead` with its size from `bytes_of`), and one that arrives
+  when that room is gone is not kept. So a picture fetched ahead never makes another picture go; one that does not fit
+  loads when its page comes back. Before, two large pictures on two kept pages took turns every second or two
+  (tests/test_pictures_ahead.cpp).
 - **Over the budget, a page out of sight makes way.** What the glass shows is never freed. When every picture is on
   some card and the store is over its budget, the picture used longest ago that only a kept page draws goes
   (`picture_away`, `picture_let_go`): its card lets go of it and asks for it again when its page comes back. Every page

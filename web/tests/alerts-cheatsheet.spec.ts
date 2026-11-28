@@ -34,13 +34,25 @@ function clipboard() {
 }
 
 describe("the Alerts page", () => {
-  it("is a part of Events, which the sidebar opens and its Back closes", async () => {
+  it("is a part of Events, which the sidebar opens on its list of parts, and its Back closes", async () => {
     const ui = useUiStore();
     await mount(Sidebar).find("#open-events").trigger("click");
     await flushPromises();
     expect(ui.route).toBe("#events");
     const events = mount(EventsView);
+    // Events opens on its parts, like Settings (model/parts.ts): a row each, in two cards.
+    expect(events.findAll("#events-parts .set-list").length).toBe(2);
+    expect(events.findAll("#events-parts .set-link-main").map((row) => row.attributes("id")))
+      .toEqual(["events-part-alerts", "events-part-doorbell", "events-part-alarm", "events-part-calls"]);
+    expect(events.find("#alerts-dialog").exists()).toBe(false);
+    await events.find("#events-part-alerts").trigger("click");
+    await flushPromises();
+    expect([ui.route, ui.eventsKind]).toEqual(["#events", "alerts"]);
     expect(events.find("#alerts-dialog").exists()).toBe(true);
+    // Back to the list, then out of Events.
+    await events.find(".set-back").trigger("click");
+    await flushPromises();
+    expect(ui.eventsKind).toBeNull();
     await events.find("#close-events").trigger("click");
     await flushPromises();
     expect(ui.route).toBe("");

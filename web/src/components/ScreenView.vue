@@ -1,18 +1,25 @@
 <script setup lang="ts">
-// One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
+// One screen: the head with its name, the Layout, Settings and Plugins tabs, one pill for its state (ScreenStatus.vue)
+// and the one filled key, Save & send, while something is unsaved; under it the tab's view and the inspector in a column
+// on the right (docs/PAGES.md, "The head and the toolbar").
 import { useEventListener, useFileDialog } from "@vueuse/core";
-import { computed } from "vue";
+import { computed, provide, ref, watch } from "vue";
 import { t } from "../i18n";
-import { needsUpdate } from "../model/screen-status";
+import { needsUpdate, restarting, restartingText } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
 import LayoutBotKey from "./LayoutBotKey.vue";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
+import ScreenStatus from "./ScreenStatus.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
 import Drawer from "./Drawer.vue";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import PluginRatingCard from "./PluginRatingCard.vue";
+import PluginSuggestCard from "./PluginSuggestCard.vue";
+import BoardStepCard from "./BoardStepCard.vue";
+import BoardStepDialog from "./steps/BoardStepDialog.vue";
+import { KINDS as STEP_KINDS } from "./steps/kinds";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
@@ -31,6 +38,12 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
+// The library stands in a pane of its own under the page: LayoutView.vue moves it into this view's dock.
+provide("libraryDock", true);
+// A part of the Settings tab is in the address (`?settings=<part>`): an address with one opens the tab, and leaving the
+// tab takes the part out of the address again, in place, so Back does not walk through it.
+watch(() => ui.screenSettingsPart, (part) => { if (part) ui.tab = "settings"; }, { immediate: true });
+watch(() => ui.tab, (tab) => { if (tab !== "settings" && ui.screenSettingsPart) ui.openScreenSettings(null, { replace: true }); });
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
@@ -42,13 +55,21 @@ const insp = useInspectorStore();
 const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
-  : t("editor.screen_view.offline"));
-// The head says whether the screen is there in one word; the details of its delivery stay in the chip's tooltip.
-const statusKind = computed(() => !screen.value.online ? "off" : screen.value.in_sync ? "good" : "update");
-const statusWord = computed(() => !screen.value.online ? t("editor.common.offline") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
+  : restarting(screen.value, builds.building(screen.value)) ? restartingText() : t("editor.screen_view.offline"));
+// The pill says whether the screen is there in one word; the details of its delivery stay in its tooltip.
+// A screen away because its update restarts it says so (model/screen-status.ts restarting), not "offline".
+const away = computed(() => !screen.value.online && !restarting(screen.value, builds.building(screen.value)));
+const statusKind = computed(() => away.value ? "off" : !screen.value.online ? "update" : screen.value.in_sync ? "good" : "update");
+const statusWord = computed(() => away.value ? t("editor.common.offline") : !screen.value.online ? t("editor.update.restarting_short") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
 const others = computed(() => inv.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
 function closeMenu() { ui.menuOpen = false; }
+// The board's own steps (docs/BOARD_STEPS.md): each in the menu, done or not, and the one that is open in its window.
+// The window keeps its step while it is open, so one that turns done under it shows its last page.
+const boardSteps = computed(() => (screen.value.steps || []).filter((step) => STEP_KINDS[step.kind]));
+const stepOpen = ref(false), stepShown = ref<string | null>(null);
+const stepInWindow = computed(() => boardSteps.value.find((step) => step.id === stepShown.value) || null);
+function openStep(id: string) { stepShown.value = id; stepOpen.value = true; }
 function openOverride() {
   closeMenu();
   ui.openOverride(screen.value.update?.profile || null);
@@ -82,7 +103,7 @@ function phoneBack() {
   if (ui.tab !== "layout") { ui.tab = "layout"; return; }
   session.goHome();
 }
-const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offline")
+const phoneStatus = computed(() => away.value ? t("editor.common.offline") : !screen.value.online ? t("editor.update.restarting_short")
   : doc.dirty ? t("editor.phone.not_sent") : screen.value.in_sync ? t("editor.phone.on_screen") : t("editor.screen_view.sending"));
 function phoneSettings() { closeMenu(); insp.closeInspector(); ui.tab = "settings"; }
 async function phoneRename() {
@@ -142,6 +163,10 @@ useEventListener(document, "keydown", onKey);
 </script>
 
 <template>
+  <!-- Three panes on the app's ground (docs/PAGES.md, "The panes"): the page, the library under it (LayoutView.vue puts
+       it in its dock) and the inspector beside both. -->
+  <div class="screen-shell">
+  <section class="pane">
   <header class="main-head">
     <span v-if="ui.phone" class="phone-lead">
       <button type="button" class="icon-btn phone-menu-key" id="phone-menu" :aria-label="t('editor.phone.menu')" @click="ui.sideOpen = true"><Icon name="menu" /></button>
@@ -151,8 +176,7 @@ useEventListener(document, "keydown", onKey);
     </span>
     <div class="head-title">
       <h1 id="screen-name">{{ screen.name }}</h1>
-      <span v-if="!ui.phone" id="delivery" class="chip status" :class="statusKind" :title="statusText"><span class="dot"></span>{{ statusWord }}</span>
-      <p v-else class="phone-status" :class="{ dirty: doc.dirty }" :title="statusText"><span class="dot" :class="statusKind"></span>{{ phoneStatus }}</p>
+      <p v-if="ui.phone" class="phone-status" :class="{ dirty: doc.dirty }" :title="statusText"><span class="dot" :class="statusKind"></span>{{ phoneStatus }}</p>
     </div>
     <div v-if="!ui.phone" class="seg tabs" role="tablist" :aria-label="screen.name">
       <button type="button" id="tab-layout" role="tab" :aria-pressed="ui.tab === 'layout' ? 'true' : 'false'" :aria-selected="ui.tab === 'layout'" @click="ui.tab = 'layout'">
@@ -167,10 +191,8 @@ useEventListener(document, "keydown", onKey);
       </button>
     </div>
     <div class="head-right">
-      <template v-if="!ui.phone">
-      <span v-if="!doc.dirty" id="dirty" class="saved-note" :class="{ sent: doc.saved }"><Icon name="check" />{{ doc.saved ? t(screen.virtual ? "editor.preview.saved" : "editor.screen_view.sent") : t("editor.screen_view.all_saved") }}</span>
-      <span v-else id="dirty" class="chip dirty">{{ t("editor.common.unsaved") }}</span>
-      </template>
+      <!-- One pill for the screen's state, the worst that is going on; the rest is behind it (ScreenStatus.vue). -->
+      <ScreenStatus v-if="!ui.phone" :screen="screen" :away="away" :word="statusWord" :kind="statusKind" :detail="statusText" />
       <button v-if="doc.dirty && !ui.phone" id="save" type="button" class="btn primary" :disabled="doc.busy" title="⌘S" @click="doc.save()">
         <span v-if="doc.busy" class="spin small"></span>{{ doc.busy ? t("editor.common.saving") : t(screen.virtual ? "editor.preview.save" : "editor.common.save_send") }}
       </button>
@@ -211,6 +233,7 @@ useEventListener(document, "keydown", onKey);
         <UiMenuLabel>{{ t("editor.screen_view.menu.group_advanced") }}</UiMenuLabel>
         <UiMenuItem id="open-override" icon="code-braces" :disabled="!screen.update?.profile" :title="screen.update?.profile ? '' : t('editor.screen_view.menu.override_none')" @select="openOverride">{{ t("editor.screen_view.menu.override") }}</UiMenuItem>
         <UiMenuItem icon="flash" @select="ui.go('#firmware')">{{ t("editor.nav.firmware") }}</UiMenuItem>
+        <UiMenuItem v-for="step in boardSteps" :key="step.id" :id="`board-step-${step.id}`" icon="chip" :hint="step.found || t('editor.steps.not_done')" @select="openStep(step.id)">{{ t(`editor.steps.${step.id}.menu`) }}</UiMenuItem>
         <template v-if="ui.narrowPhone">
           <UiMenuSeparator />
           <UiMenuItem v-if="ui.phone" icon="monitor-dashboard" @select="ui.setFullEditor(true)">{{ t("editor.phone.full_editor") }}</UiMenuItem>
@@ -222,13 +245,21 @@ useEventListener(document, "keydown", onKey);
   <FeedbackPanel v-if="screen.feedback?.available" :key="`card-${screen.id}`" :screen="screen" mode="card" />
   <!-- Stars for a plugin it runs (docs/PLUGINS.md, "Likes, ratings and counting"), never at once with the card above. -->
   <PluginRatingCard v-if="inv.pluginsEnabled" :key="`rate-${screen.id}`" :screen="screen" />
+  <!-- A plugin for hardware its board has (docs/PLUGINS.md, "Plugins a board starts with"), asked once. -->
+  <PluginSuggestCard v-if="inv.pluginsEnabled" :key="`suggest-${screen.id}`" :screen="screen" />
+  <!-- A step of its board that is not done (docs/BOARD_STEPS.md), as a second chip that takes a firmware of its own. -->
+  <BoardStepCard :key="`step-${screen.id}`" :screen="screen" @open="openStep" />
+  <BoardStepDialog v-model:open="stepOpen" :step="stepInWindow" :screen="screen" />
   <div class="body" id="body">
     <div class="work">
       <LayoutView v-if="ui.tab === 'layout'" />
       <SettingsTab v-else-if="ui.tab === 'settings'" />
       <ScreenPluginsTab v-else />
     </div>
-    <Drawer />
+  </div>
+  </section>
+  <div class="library-dock" id="library-dock"></div>
+  <Drawer />
   </div>
   <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. Layoutbot's key
        stands before it (docs/LAYOUTBOT.md). -->

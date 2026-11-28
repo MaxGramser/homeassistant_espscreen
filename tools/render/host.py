@@ -9,6 +9,14 @@ picture as on the glass), an SDL touchscreen `ts_touch` for the features' `!exte
 every output id the chain named, so `back_light` and the backlight scripts still resolve. A handful of API actions let
 tools/render/run.py drive and photograph it.
 
+A board whose glass is paper (features/paper.yaml) has two displays, the paper glass LVGL draws on and the panel of
+e-paper under it. The SDL display stands for the glass and the panel goes with the hardware. The program is on paper
+all the same: it gets the paper glass as a key of its own (components/paper_glass/__init__.py: paper.h and the
+panel's inks, without the display that needs the e-paper driver), so the theme's ink table, the still glass and the
+standby's rest are the firmware's own. The ink step, which on a screen runs at every flush, runs over each picture
+tools/render/run.py takes (tools/render/paper_ink_tool.cpp, the same paper_ink.h), so a render shows what the glass
+prints. The printer has no panel here and prints nothing: when a refresh comes is not what a picture shows.
+
 A variant is a board of the catalog (boards.yaml) the way it hangs: `guition`, or `waveshare43-portrait` for a board
 whose glass is not square, built with the angle ESP Screens writes into a screen standing up (boards.json).
 
@@ -31,10 +39,19 @@ import profiles  # noqa: E402
 
 # Top-level blocks that are ESP32 hardware wherever they live (board file or hardware package).
 HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554', 'waveshare_io_ch32v003', 'esp_ldo',
-                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'xl9535', 'motion')
+                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'xl9535', 'motion',
+                   'pi4ioe5v6408')
 # An item anywhere that stands on a chip of the I2C bus the host leaves out (a clock, a motion sensor, an expander's pin)
 # goes with it, and so does an item that names one of those (a clock's write).
-ON_I2C = re.compile(r'(?m)^    i2c_id: |\bxl9535: |^    (lsm6ds|motion)_id: |\bpcf8563\b')
+ON_I2C = re.compile(r'(?m)^    i2c_id: |\b(xl9535|pi4ioe5v6408): |^    (lsm6ds|motion)_id: |\bpcf8563\b')
+# A battery's fuel gauge on that bus is the exception: each reading it names (the level, the voltage, the current)
+# stands as a template sensor of the same id, as a battery on an ADC pin does. The top bar finds the battery by its
+# class, and what reads a reading (a board's charging sensor, from the current) reads its state.
+FUEL_GAUGES = ('bq27220',)
+# How often the SDL touchscreen is read for a board whose own panel names no interval, because it is read on its
+# interrupt or because the board has none (components/no_touch): the pace every polled panel here is read at. ESPHome's own default (50 ms) is slower than a finger's
+# interrupts, and LVGL's swipe would see reads without movement.
+INTERRUPT_TOUCH_INTERVAL = '20ms'
 # The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
 # has not. The host build leaves the audio packages out whole (features/audio*.yaml and a board's audio hardware under
 # hardware/, with the settings rows and the boot steps they bring), and these blocks wherever else they live (a board
@@ -44,9 +61,14 @@ AUDIO_BLOCKS = ('speaker', 'microphone', 'media_player', 'media_source', 'audio_
 
 def audio_package(rel):
     """Whether a package, by its path under packages/, is the screen's audio, which the host build leaves out."""
-    return 'audio' in rel.as_posix()
+    # The echo canceller and a codec's transport through it are audio by another name (hardware/parts/echo-cancel.yaml,
+    # es7210/aec.yaml and split-aec.yaml: esp_aec and esp_audio_stack, which the host has not).
+    return 'audio' in rel.as_posix() or rel.name == 'echo-cancel.yaml' or rel.name.endswith('aec.yaml') \
+        or rel.name == 'amplifier.yaml'   # the speaker's amplifier: its pin may be an expander's
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
+# The longest name ESPHome takes for a device (esphome/core/config.py: "Hostnames can only be 31 characters long").
+NAME_LIMIT = 31
 
 
 @dataclass
@@ -60,7 +82,14 @@ class Variant:
 
     @property
     def name(self):
-        return f'render-{self.key}'
+        """The program's name in ESPHome, which takes 31 characters at most (a hostname): `render-<key>`, and for a
+        key too long for that the shortest of `render-<key>` with -tall for -portrait and `r-` for `render-` that
+        fits (render-freenovefnk0104s-portrait is 32, and ESPHome refused it)."""
+        for name in (f'render-{self.key}', f'render-{self.key}'.replace('-portrait', '-tall'),
+                     f'r-{self.key}'.replace('-portrait', '-tall')):
+            if len(name) <= NAME_LIMIT:
+                return name
+        raise SystemExit(f'variant {self.key}: no name of {NAME_LIMIT} characters for its host program')
 
 
 def variants():
@@ -80,6 +109,17 @@ def variant(key):
         if item.key == key:
             return item
     raise SystemExit(f'unknown variant {key}; one of {", ".join(v.key for v in variants())}')
+
+
+def esphome_floor(tree, file):
+    """The ESPHome a board of `tree` asks for, as (year, month, patch): the `min_version` of its board file when it has
+    one, else the core's (tools/check.sh board_needs reads the same two). The host copy of the board file keeps that
+    line, so ESPHome refuses the host build on an older one as it would the firmware's."""
+    for path in (Path(tree) / 'packages' / 'boards' / file, Path(tree) / 'packages' / 'core.yaml'):
+        found = re.search(r'(?m)^  min_version: (\d+)\.(\d+)\.(\d+)', path.read_text())
+        if found:
+            return tuple(map(int, found.groups()))
+    return (0, 0, 0)
 
 
 # ---- a little YAML surgery on text, so comments and ESPHome tags (!extend, !remove, !lambda) stay as they are
@@ -113,6 +153,25 @@ def drop_items(text, key, predicate):
     _, start, end = blocks[0]
     parts = re.split(r'(?m)^(?=  - )', text[start:end])
     return text[:start] + parts[0] + ''.join(item for item in parts[1:] if not predicate(item)) + text[end:]
+
+
+def swap_items(text, key, swap):
+    """Every item of the top-level block `key:` handed to `swap`, which returns what stands in its place."""
+    blocks = blocks_of(text, key)
+    if not blocks:
+        return text
+    _, start, end = blocks[0]
+    parts = re.split(r'(?m)^(?=  - )', text[start:end])
+    return text[:start] + parts[0] + ''.join(swap(item) for item in parts[1:]) + text[end:]
+
+
+def fuel_gauge(item):
+    """A sensor item of a fuel gauge (FUEL_GAUGES) as template sensors, one for each reading it names with that
+    reading's own lines (its id, its name, its class); any other item as it is."""
+    if not re.match(r'  - platform: (?:%s)[ \t]*\n' % '|'.join(FUEL_GAUGES), item):
+        return item
+    readings = re.findall(r'(?m)^    [a-z_0-9]+:[ \t]*\n((?:      [^\n]*\n)+)', item)
+    return ''.join('  - platform: template\n' + re.sub(r'(?m)^  ', '', lines) for lines in readings)
 
 
 def drop_sub(block, indent, key):
@@ -191,6 +250,7 @@ class Chain:
     """What the walk of one board's include tree found: the ids the host stand-ins must carry."""
     outputs: list = field(default_factory=list)
     displays: list = field(default_factory=list)
+    panels: list = field(default_factory=list)  # displays another display wraps: a paper glass's panel of e-paper
     touches: list = field(default_factory=list)
     files: list = field(default_factory=list)
     notes: list = field(default_factory=list)
@@ -204,7 +264,14 @@ def host_file(text, chain, rel):
         for block in removed:
             if key == 'display':
                 chain.displays += re.findall(r'(?m)^    id: (\w+)', block)
+                # A glass of paper (components/paper_glass) is a display around another, its `panel`: ESPHome's own
+                # e-paper driver, which is hardware and has no stand-in. The SDL display stands for the glass alone.
+                chain.panels += re.findall(r'(?m)^    panel: (\w+)', block)
             chain.notes.append(f'{rel}: dropped {key}:')
+    before = text
+    text = swap_items(text, 'sensor', fuel_gauge)
+    if text != before:
+        chain.notes.append(f'{rel}: a fuel gauge\'s readings stand as template sensors')
     for key, _, _ in top_blocks(text):
         if key not in ('touchscreen', 'packages', 'substitutions', 'esphome'):
             before = text
@@ -237,6 +304,9 @@ def host_file(text, chain, rel):
             interval = re.search(r'(?m)^    update_interval: (\S+)', block)
             if interval:
                 chain.touch_interval = interval[1]
+            elif re.search(r'(?m)^    interrupt_pin:', block) or re.search(r'(?m)^  - platform: no_touch$', block):
+                # A panel read on its interrupt, or none at all (components/no_touch): the host's finger at the same pace.
+                chain.touch_interval = INTERRUPT_TOUCH_INTERVAL
             changes.append((start, end, ''))
             chain.notes.append(f'{rel}: dropped touchscreen: platform')
         elif 'calibration:' in block:
@@ -254,6 +324,15 @@ def host_file(text, chain, rel):
             chain.notes.append(f'{rel}: dropped esphome.on_boot (expander)')
             break
     text = re.sub(r'(?m)^  hardware_uart: \w+\n', '', text)
+    # A standby key on a pin of an IO expander (features/standby-key.yaml) is a plain pin here: the expander is gone.
+    text, n = re.subn(r'(?m)^  STANDBY_KEY: \{[^\n]*\}[^\n]*\n', '', text)
+    if n:
+        chain.notes.append(f'{rel}: the standby key on an expander stands as a plain pin')
+    # A pin of the chip that is still there (a switch that holds a board's power on) is a host pin here, which knows a
+    # pin's number and mode and none of the ESP32's own options.
+    text, n = re.subn(r'(?m)^[ \t]+ignore_strapping_warning: \w+[ \t]*\n', '', text)
+    if n:
+        chain.notes.append(f'{rel}: {n} pins without the ESP32\'s note on strapping')
     return host_common(text)
 
 
@@ -311,6 +390,11 @@ def walk(tree, source, mirror, chain):
             chain.notes.append(f'{rel}: left out {include} (audio)')
             continue
         walk(tree, target, mirror, chain)
+    # A file whose only packages were audio keeps no empty `packages:`, which ESPHome refuses.
+    for _, start, end in blocks_of(text, 'packages'):
+        if not re.search(r'(?m)^[ \t]+[a-z_0-9]+:', text[start:end]):
+            text = text[:start] + text[end:]
+            break
     host = host_file(text, chain, rel)
     if not top_blocks(host):
         host += '\n# Nothing of this file runs on the host.\n{}\n'
@@ -323,7 +407,8 @@ def host_hw(board_text, chain):
     size = {key: re.search(rf'(?m)^  {key}: "?(\d+)"?', board_text) for key in ('PANEL_W', 'PANEL_H')}
     if not all(size.values()):
         raise SystemExit('the board file names no numeric PANEL_W / PANEL_H')
-    displays, touches = sorted(set(chain.displays)) or ['my_display'], sorted(set(chain.touches)) or ['ts_touch']
+    displays = sorted(set(chain.displays) - set(chain.panels)) or ['my_display']
+    touches = sorted(set(chain.touches)) or ['ts_touch']
     if len(displays) != 1 or len(touches) != 1:
         raise SystemExit(f'expected one display and one touchscreen in the chain, found {displays} and {touches}')
     text = f'''# Host stand-ins for the board's hardware (tools/render/host.py): the panel's own pixels on an offscreen SDL surface.
@@ -368,9 +453,27 @@ ACTIONS = '''    - action: render_live_reset
       then:
         - lambda: |-
             lv_obj_update_layout(lv_screen_active());
+            // On a glass of ink the snapshot also says where every text stands, which grounds cover and where
+            // pictures are (ink_audit.h), in <path>.seen: run.py's ink audit reads it against the picture.
+            const bool audit = glass_kind::ink();
+            if (audit) {
+              ink_audit::watch(lv_screen_active());
+              ink_audit::watch(lv_layer_top());
+              ink_audit::seen.clear();
+              ink_audit::recording = true;
+            }
             lv_draw_buf_t *base = lv_snapshot_take(lv_screen_active(), LV_COLOR_FORMAT_RGB888);
             lv_draw_buf_t *top = lv_snapshot_take(lv_layer_top(), LV_COLOR_FORMAT_ARGB8888);
+            ink_audit::recording = false;
             if (!base) { ESP_LOGE("render", "snapshot failed"); return; }
+            if (audit) {
+              const std::string seen = path + ".seen";
+              if (FILE *s = fopen(seen.c_str(), "wb")) {
+                const std::string report = ink_audit::report();
+                fwrite(report.data(), 1, report.size(), s);
+                fclose(s);
+              }
+            }
             std::string part = path + ".part";
             FILE *f = fopen(part.c_str(), "wb");
             int w = base->header.w, h = base->header.h;
@@ -471,7 +574,7 @@ ACTIONS = '''    - action: render_live_reset
             for (auto &w : runtime_tiles::widgets)
               if (w.tile && !lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN)) ++shown;
             ESP_LOGI("render", "probe page=%d applied=%d shown=%d tiles=%u alert=%d pages=%d", (int) id(tile_page),
-                     runtime_tiles::applied_page, shown, (unsigned) runtime_tiles::model.count, (int) id(alert_active),
+                     runtime_tiles::applied_page, shown, (unsigned) runtime_tiles::model.count, (int) alert_life::the().up(),
                      (int) runtime_tiles::page_count());
     - action: render_page
       variables:
@@ -657,7 +760,7 @@ PROBES = '''    - action: render_finger
                      runtime_tiles::header_name.c_str(), room ? lv_label_get_text(room) : "", (int) name.x1, (int) name.y1,
                      (int) name.x2, (int) name.y2);
             const auto &p = runtime_tiles::alert_parts;
-            const bool on = id(alert_active) && p.card && !lv_obj_has_flag(lv_obj_get_parent(p.card), LV_OBJ_FLAG_HIDDEN);
+            const bool on = alert_life::the().up() && p.card && !lv_obj_has_flag(lv_obj_get_parent(p.card), LV_OBJ_FLAG_HIDDEN);
             // The words of the card as its labels hold them (LVGL ends a DOT label's text in dots where it is cut), before
             // the boxes: the harness reads both once the boxes' line is in.
             const auto words = [](lv_obj_t *label) { return label ? lv_label_get_text(label) : ""; };
@@ -799,7 +902,7 @@ SAVER_PROBE = '''    - action: render_standby
         enter: int
       then:
         - lambda: |-
-            if (enter) id(dim_display).execute(); else id(wake_display).execute();
+            if (enter) screen_standby::the().standby_by_time(millis()); else screen_standby::the().wake(millis());
             ESP_LOGI("render", "standby %d", enter);
     - action: render_saver
       then:
@@ -814,7 +917,7 @@ SAVER_PROBE = '''    - action: render_standby
             }
             lv_area_t words{};
             if (runtime_tiles::saver_first) lv_obj_get_coords(runtime_tiles::saver_first, &words);
-            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) id(display_dimmed), keys.c_str(), (int) words.x2);
+            ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) screen_standby::the().in_standby(), keys.c_str(), (int) words.x2);
 '''
 # A board with the calibration wizard shows it on the first start; the renders skip it, as a calibrated screen does.
 # The host's microphone (talk_uplink.h under USE_HOST): whether the board hears, how far a talk is (talk_uplink::State:
@@ -856,7 +959,7 @@ SKIP_CALIBRATION = '''    - action: render_skip_calibration
 class Build:
     """The host build of one variant of one tree, under `work` (the tree's own .esphome/render/ by default)."""
 
-    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None, defines=()):
+    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None, defines=(), grid=None):
         self.variant, self.tree = item, Path(tree).resolve()
         # Defines the program is built with on top of the board's, as a board's hardware would bring them: HW_SPEAKER and
         # HW_MICROPHONE give the host the audio caps (hw.h) of a board that plays and hears, whose parts it leaves out.
@@ -866,6 +969,10 @@ class Build:
         # A plugin folder (docs/PLUGINS.md) built into the program, the way a screen's plugins file adds one: its
         # plugin.yaml as a package and its components as a local external component.
         self.plugin = Path(plugin).resolve() if plugin else None
+        self.inks = 0  # the inks of a board on paper, known once package() has read its chain
+        # Another grid than the board file's own, (columns, rows), as New screen builds a screen with one of its choice:
+        # the substitutions the app writes into such a screen's YAML, for the way this variant hangs.
+        self.grid = tuple(grid) if grid else None
 
     @property
     def program(self):
@@ -874,12 +981,16 @@ class Build:
 
     def components(self):
         """This tree's smart_display component as links, so ESPHome builds the C++ of the tree being rendered."""
-        target = self.work / 'components' / 'smart_display'
         shutil.rmtree(self.work / 'components', ignore_errors=True)
-        target.mkdir(parents=True)
-        for source in (self.tree / 'components' / 'smart_display').iterdir():
-            if source.name != '__pycache__':
-                (target / source.name).symlink_to(source)
+        # The paper glass goes along where the tree has it: a board on paper names it (package()).
+        for name in ('smart_display', 'paper_glass'):
+            if not (self.tree / 'components' / name).is_dir():
+                continue
+            target = self.work / 'components' / name
+            target.mkdir(parents=True)
+            for source in (self.tree / 'components' / name).iterdir():
+                if source.name != '__pycache__':
+                    (target / source.name).symlink_to(source)
 
     def package(self):
         """Write the host mirror of this variant's chain; returns the host package's text."""
@@ -907,8 +1018,16 @@ class Build:
         (mirror_root / 'host-hw.yaml').write_text(host_hw(board.read_text(), chain))
         (mirror_root / 'chain.txt').write_text('\n'.join([str(f) for f in chain.files] + [''] + chain.notes) + '\n')
         chain_text = ''.join((mirror / f).read_text() for f in chain.files)
+        # A board on paper (a display that wraps a panel): the program is told its inks, as the paper glass tells a screen.
+        inks = re.search(r'(?m)^  PAPER_INKS: "?(\d)"?', chain_text) if chain.panels else None
+        self.inks = int(inks[1]) if inks else 0
+        paper = f'\npaper_glass:\n  inks: {self.inks}\n' if self.inks else ''
+        paper_component = ', paper_glass' if self.inks else ''
         actions = ACTIONS + PROBES + ALARM_PROBE + MEDIA_PROBE + SAVER_PROBE + VACUUM_PROBE + TALK_PROBE + (SKIP_CALIBRATION if 'screen_calibration::' in chain_text else '')
         turned = f'\n  LVGL_ROTATION: "{item.rotation}"' if item.rotation else ''
+        if self.grid:
+            way = '_PORTRAIT' if item.rotation else ''
+            turned += f'\n  GRID_COLS{way}: "{self.grid[0]}"\n  GRID_ROWS{way}: "{self.grid[1]}"'
         rel = f'host/{item.key}'
         plugin_package = plugin_component = ''
         if self.plugin:
@@ -932,8 +1051,8 @@ external_components:
   - source:
       type: local
       path: components
-    components: [smart_display]{plugin_component}
-
+    components: [smart_display{paper_component}]{plugin_component}
+{paper}
 globals:
   - id: render_offline_verified
     type: bool

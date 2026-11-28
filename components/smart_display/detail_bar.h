@@ -85,9 +85,20 @@ inline lv_obj_t *key(lv_obj_t *parent, const Rect &at, const char *glyph, lv_eve
 // Put the name in the room between the keys, on the keys' middle line; a long name ends in dots.
 inline void place_title(lv_obj_t *title, const lv_obj_t *parent, int right = 1) {
   if (!title) return;
-  const auto room = middle(parent, right);
+  auto room = middle(parent, right);
   const lv_font_t *font = lv_obj_get_style_text_font(title, LV_PART_MAIN);
   const int line = font ? lv_font_get_line_height(font) : room.h;
+  // A name too long for the room that keeps its middle on the glass's takes all there is between the back key and the
+  // keys at the right: beside two keys "Living room" stood as "L..." on a narrow glass, with a key's width unused.
+  if (font && right > 1 && lv_obj_check_type(title, &lv_label_class)) {
+    lv_point_t need;
+    lv_text_get_size(&need, lv_label_get_text(title), font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    if (need.x > room.w) {
+      const int from = middle(parent, 1).x, end = room.x + room.w;
+      room.x = from;
+      room.w = end - from;
+    }
+  }
   lv_obj_set_align(title, LV_ALIGN_TOP_LEFT);
   lv_obj_set_pos(title, room.x, room.y + (room.h - line) / 2);
   lv_obj_set_size(title, room.w, line);

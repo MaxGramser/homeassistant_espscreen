@@ -290,6 +290,8 @@
    ],
    "controls": [],
    "inline": null,
+   "showcase": "live",
+   "shelf": "square",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -454,6 +456,7 @@
     "setpoint_mode",
     "setpoint"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -646,6 +649,7 @@
     "position_tilt",
     "buttons_tilt"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -769,6 +773,7 @@
     "speed",
     "toggle"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -865,6 +870,7 @@
     "setpoint_mode",
     "slider"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -897,6 +903,8 @@
    ],
    "controls": [],
    "inline": null,
+   "showcase": "live",
+   "shelf": "square",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1052,6 +1060,7 @@
      ]
     }
    },
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1222,6 +1231,7 @@
     "brightness",
     "toggle"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1535,6 +1545,8 @@
    "grow": [
     "volume_playback"
    ],
+   "showcase": "cover",
+   "shelf": "square",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1615,6 +1627,7 @@
      ]
     }
    },
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -1648,6 +1661,8 @@
    ],
    "controls": [],
    "inline": null,
+   "showcase": "map",
+   "shelf": "square",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -2111,6 +2126,8 @@
    ],
    "controls": [],
    "inline": null,
+   "showcase": "graph",
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -2141,6 +2158,8 @@
    ],
    "controls": [],
    "inline": null,
+   "showcase": "sunpath",
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -2475,6 +2494,7 @@
     "map",
     "rooms"
    ],
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],
@@ -2522,10 +2542,24 @@
       ]
      },
      "wide": true
+    },
+    {
+     "key": "hourly",
+     "needs": {
+      "features": [
+       "FORECAST_HOURLY"
+      ]
+     },
+     "screen": {
+      "feature": "weather_hours",
+      "else": "forecast"
+     },
+     "wide": true
     }
    ],
    "controls": [],
    "inline": null,
+   "shelf": "wide",
    "toggle": null,
    "taps": [],
    "guards": [],

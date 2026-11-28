@@ -57,6 +57,9 @@ substitutions:
   BEDSIDE_WITH_NAMES: "0"   # the compact look keeps the keys without names
   FONT_LABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }        # tile titles
   WIDE_NAME_FONT: "sublabel_big"  # a tile title with room: the L step, 14 px (firmware 0.17.0; before, a bold 14 of its own)
+  # A tile title in Roboto Medium: bold at 11 px ran its letters into each other on a CYD's glass, and a pixel of
+  # letter spacing cut names short (2026-11-24, rendered both). Medium keeps the width and costs no flash.
+  TILE_NAME_FONT_FILE: "Roboto-500.ttf"
   FONT_SUBLABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
   FONT_SUBLABEL_BIG_SIZE: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
   FONT_ICON_SIZE: ${ [8, (28 * LOOK_SCALE | float) | round | int] | max }         # tile icons

@@ -442,12 +442,14 @@ std::string receive(const std::string &payload) {
       // A call between screens (module call, docs/CALLS.md): `s` out, ring, live, held or end; `k` its key, `n` the other
       // screen's name, `i` its icon, `vd` video, `l` the stream of the other, `tk` where this screen sends its voice,
       // `ds` the token this screen serves its own camera and voice under in a direct call (call_serve.h; `l` is then the
-      // other screen's own address and `tk` is absent), `pc` the other's camera is on, `w` why it ended, `vs` and `ec` the call's voice switching and echo cancelling (docs/CALLS.md, "Echo"; the state `set` brings only these).
+      // other screen's own address and `tk` is absent), `pc` the other's camera is on, `w` why it ended, `vs` and `ec` the call's voice switching and echo cancelling (docs/CALLS.md, "Echo"; the state `set` brings only these),
+      // `rt` with a ring: the link of the ringtone chosen for this screen (docs/CALLS.md, "Ringtone").
       call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
                     root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
                     !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16),
                     root["vs"].is<unsigned>() ? static_cast<int>(root["vs"].as<unsigned>() == 1) : -1,
-                    root["ec"].is<unsigned>() ? static_cast<int>(root["ec"].as<unsigned>() == 1) : -1, string(root["ds"], 32));
+                    root["ec"].is<unsigned>() ? static_cast<int>(root["ec"].as<unsigned>() == 1) : -1, string(root["ds"], 32),
+                    string(root["rt"], 200));
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
@@ -461,12 +463,21 @@ std::string receive(const std::string &payload) {
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
     }();
+    if (op == "sound") return [&]() __attribute__((noinline)) -> bool {
+      // A sound chosen in the app that belongs to no module (docs/SOUNDS.md): `u` the link of its file, played once as
+      // soon as it is here (an alert's tone, sent beside the alert). Only a screen whose hello says `sounds` gets it.
+#ifdef USE_SPEAKER
+      kept_sound::play(string(root["u"], 200));
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }();
     if (op == "doorbell") return [&]() __attribute__((noinline)) -> bool {
       // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
       // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched
       // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), its door when it has one
       // (`d`: 1 a lock, with its state `ds`, 2 an action), the stream the app made for this screen (`l`, opened at
-      // once) and where it sends its voice (`tk`, its Talk key); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
+      // once), where it sends its voice (`tk`, its Talk key) and the chime chosen for it (`ch`, docs/SOUNDS.md); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
       // `ds` alone, its lock's new state. Only a screen whose hello says `doorbell` gets it.
 #ifdef SD_MOD_DOORBELL
       const std::string key = string(root["k"], 16);
@@ -482,7 +493,7 @@ std::string receive(const std::string &payload) {
                        root["t"].is<unsigned>() ? root["t"].as<uint32_t>() : 0, root["d"].is<unsigned>() ? root["d"].as<unsigned>() : 0,
                        string(root["ds"], 16), root["m"].is<unsigned>() && root["m"].as<unsigned>() == 1,
                        !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200),
-                       string(root["tk"], 200));
+                       string(root["tk"], 200), string(root["ch"], 200));
       }
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
@@ -962,6 +973,9 @@ std::string receive(const std::string &payload) {
     tile.inline_control = string(options["inline"]); if (tile.inline_control.empty()) tile.inline_control="none";
     // What the second line says (firmware 0.2.90+); "auto" is the line the screen works out itself, as before.
     tile.subtitle = string(options["sub"], 96); if (tile.subtitle.empty()) tile.subtitle="auto";
+    // Whether a name and a second line too wide for their room roll by (dev): anything but "off", a missing key too, rolls.
+    tile.name_scroll = string(options["name_scroll"], 4) != "off";
+    tile.sub_scroll = string(options["sub_scroll"], 4) != "off";
     // Direct controls (0.2.19+): the manager sends only the set a wide card really shows.
     tile.controls = string(options["controls"], 24);  // the longest, brightness_presets, is 18
     // Geometry belongs to initialization and never changes in a live value packet.
@@ -1066,7 +1080,8 @@ std::string receive(const std::string &payload) {
       if(next.options.size()==16)break;next.options.push_back(string(option,48)); }
     // A remote's activities and the one it runs (firmware 0.22.0+): Home Assistant names them only where the remote
     // supports ACTIVITY, and the card lists them as a select's options.
-    if (a["activity_list"].is<JsonArray>()) for(JsonVariant option:a["activity_list"].as<JsonArray>()) {
+    const uint32_t listed_features = a["supported_features"].as<uint32_t>();
+    if (tile_controls::list_supported("activity_list", listed_features) && a["activity_list"].is<JsonArray>()) for(JsonVariant option:a["activity_list"].as<JsonArray>()) {
       if(next.options.size()==16)break;next.options.push_back(string(option,48)); }
     next.activity=string(a["current_activity"],48);
     // A remote's keypad (firmware 0.22.0+): eleven commands, an empty one for a key the remote lacks.
@@ -1175,7 +1190,9 @@ std::string receive(const std::string &payload) {
       tile.current = number(a["current_humidity"]); tile.target = number(a["humidity"]); tile.humidity = NAN;
       tile.minimum = number(a["min_humidity"], 0); tile.maximum = number(a["max_humidity"], 100);
       tile.step = std::max(1.0f, number(a["target_humidity_step"], 1));
-      next.hvac_modes = list(a["available_modes"]); next.hvac_action = string(a["action"], 24);
+      // Its modes only with the flag for them, as Home Assistant's card (tile_controls::list_supported).
+      next.hvac_modes = tile_controls::list_supported("available_modes", listed_features) ? list(a["available_modes"]) : std::string();
+      next.hvac_action = string(a["action"], 24);
       next.humidifier_mode = string(a["mode"], 48);
     }
     float hue = number(a["hs_color"][0]);
@@ -1189,7 +1206,7 @@ std::string receive(const std::string &payload) {
     tile.min_kelvin = std::clamp(number(a["min_color_temp_kelvin"], 0), 0.0f, 15000.0f);
     tile.max_kelvin = std::clamp(number(a["max_color_temp_kelvin"], 0), 0.0f, 15000.0f);
     next.fan_speed = string(a["fan_speed"], 48);
-    if (a["fan_speed_list"].is<JsonArray>()) for (JsonVariant speed : a["fan_speed_list"].as<JsonArray>()) {
+    if (tile_controls::list_supported("fan_speed_list", listed_features) && a["fan_speed_list"].is<JsonArray>()) for (JsonVariant speed : a["fan_speed_list"].as<JsonArray>()) {
       if (next.fan_speeds.size() == 4) break;
       next.fan_speeds.push_back(string(speed, 48));
     }
@@ -1524,7 +1541,7 @@ std::string receive(const std::string &payload) {
       if(tile.edit_sent && std::fabs(tile.extra().target_high-tile.edit_high)<0.051f)tile.edit_high=NAN;
     }else if(std::isfinite(tile.edit_value) && tile.edit_sent && std::fabs(tile_controls::edit_target(tile)-tile.edit_value)<0.051f)tile.edit_value=NAN;
     tile.received = true;
-    for(auto &w:widgets)if(w.index==index)w.cached_active=-1;
+    for(auto &w:widgets)if(w.index==index)w.paint_again();
     last_received = esphome::millis();
     if (initial) {
       transfer.tile(index);

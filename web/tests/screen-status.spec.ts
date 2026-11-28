@@ -3,8 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
 import { homeView, SMALLEST } from "../src/model/overview";
-import { buildProgress, explainsItself, firmwareVersion, languageOnly, needsAttention, pendingText, rowStatus, screenBoardName, screenIcon, screenLight,
-  screenSubline, updateNotes, updateState, whatsNew, type StatusFacts } from "../src/model/screen-status";
+import { buildProgress, explainsItself, firmwareVersion, headStatus, languageOnly, needsAttention, pendingText, rowStatus, screenBoardName, screenIcon, screenLight,
+  screenSubline, updateNotes, updateState, whatsNew, type HeadFacts, type StatusFacts } from "../src/model/screen-status";
 import type { LineBuild, Screen } from "../src/types";
 import { screenFixture } from "./helpers/fixtures";
 
@@ -22,6 +22,25 @@ describe("a screen's status", () => {
     expect(screenSubline(screen({ online: false }), quiet)).toEqual({ kind: "down", text: t("editor.common.offline") });
     expect(needsAttention(screen({ online: false }), quiet)).toBe(true);
     expect(screenLight(screen({ virtual: true, online: false }), quiet)).toBe("ok");
+  });
+
+  it("is no screen that is away while its update restarts it: it says the restart", () => {
+    const building: StatusFacts = { ...quiet, build: { by: "update", state: "running", stage: "upload", phase: "install" } };
+    const away = screen({ online: false });
+    expect(screenLight(away, building)).toBe("update");
+    expect(screenSubline(away, building)).toEqual({ kind: "update", text: t("editor.update.restarting") });
+    expect(rowStatus(away, "running")).toBe("running");
+    expect(buildProgress(away, building)!.text).toBe(t("editor.update.restarting"));
+    expect(buildProgress(screen(), building)!.text).toBe(t("editor.update.writing"));
+    // Built ahead in a round, waiting for its turn to install.
+    const ready: StatusFacts = { ...quiet, build: { by: "update", state: "running", stage: null, phase: "ready" } };
+    expect(buildProgress(screen(), ready)).toEqual({ percent: 55, text: t("editor.update.phases.ready") });
+    // A plugin build waiting for the screen to confirm says so too.
+    const confirming: StatusFacts = { ...quiet, build: { by: "plugins", state: "running", stage: null, phase: "verify" } };
+    expect(buildProgress(screen(), confirming)!.text).toBe(t("editor.update.phases.verify"));
+    expect(buildProgress(away, confirming)!.text).toBe(t("editor.update.restarting"));
+    // Waiting its turn while away is away: nothing installs on it yet.
+    expect(rowStatus(away, "queued")).toBe("down");
   });
 
   it("offers an update, names a new language alone by its name, and says why one cannot be built here", () => {
@@ -162,5 +181,33 @@ describe("a build that ends while the page is open", () => {
     expect(buildEndText([{ screen: hall, by: "update", outcome: "ready" }, { screen: desk, by: "plugins", outcome: "failed" }]))
       .toEqual({ text: t("editor.build.build_failed", { name: "Desk" }), failed: true });
     expect(buildEndText([{ screen: hall, by: "update", outcome: "failed" }])!.text).toBe(t("editor.build.update_failed", { name: "Hall" }));
+  });
+});
+
+describe("the pill in a screen's head", () => {
+  const calm: HeadFacts = { away: false, restarting: false, dirty: false, saved: false, memory: null, none: false };
+  const said = (more: Partial<HeadFacts> = {}, of: Partial<Screen> = {}) =>
+    headStatus(screen({ in_sync: true, ...of }), { ...calm, ...more });
+
+  it("is quiet while nothing is wrong, and says a save arrived", () => {
+    expect(said()).toEqual({ kind: "fine", text: "Online · All saved" });
+    expect(said({ saved: true })).toEqual({ kind: "good", text: "Saved · sent to screen" });
+    expect(said({}, { in_sync: false })).toEqual({ kind: "update", text: "Sending" });
+  });
+
+  it("says the worst that is going on: away before memory, memory before unsaved changes", () => {
+    const over = { level: "over" as const, share: 1.18 };
+    expect(said({ dirty: true })).toEqual({ kind: "warn", text: "Unsaved changes" });
+    expect(said({ dirty: true, memory: { level: "close", share: 0.86 } })).toEqual({ kind: "warn", text: "Memory 86 %" });
+    expect(said({ dirty: true, memory: over })).toEqual({ kind: "bad", text: "Full · 118 %" });
+    expect(said({ memory: over, none: true })).toEqual({ kind: "bad", text: "No room" });
+    expect(said({ dirty: true, memory: over, restarting: true })).toEqual({ kind: "update", text: "Updating" });
+    expect(said({ dirty: true, memory: over, restarting: true, away: true })).toEqual({ kind: "off", text: "Offline" });
+    expect(said({ memory: { level: "fine", share: 0.4 } }).kind).toBe("fine");
+  });
+
+  it("calls a preview a preview", () => {
+    expect(said({}, { virtual: true, in_sync: false }).kind).toBe("fine");
+    expect(said({ dirty: true }, { virtual: true })).toEqual({ kind: "warn", text: "Unsaved changes" });
   });
 });

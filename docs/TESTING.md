@@ -30,6 +30,10 @@ Work on dev is proven at level 4, on the screens a change concerns; a release ru
 
 ## 1. The fast checks: `tools/check.sh`
 
+`tools/check.sh --app` is the short list of a release that changes only the app and the editor (docs/RELEASING.md,
+"An app and editor release"): the checks below that read no firmware, after a first one that stops when a firmware
+source changed.
+
 One command, the same on a laptop and in CI (`.github/workflows/ci.yml` runs it on every push to main, every pull
 request, each night and on a release's commit). On a development machine run it with `PYTHON=.venv-portal/bin/python`. It needs aiohttp, PyYAML, Pillow,
 fontTools and jinja2, and stops when one is missing, because a skipped test proves nothing. In order:
@@ -69,9 +73,10 @@ fontTools and jinja2, and stops when one is missing, because a skipped test prov
 - **The editor**: `npm ci`, the Vitest suite, ESLint (`npm run lint`, which `npm run check` and so the build run too),
   the type check and the build, and whether the bundle in Git equals that build.
 - **The firmware preview**, the shared firmware compiled to WebAssembly for the editor: whether it is older than the
-  firmware sources, and its tests (`web/wasm/test_*.mjs`) at three glass shapes. `.github/workflows/preview.yml`
-  rebuilds and commits it when the firmware sources move; locally, `sh web/wasm/build.sh` with Emscripten does the
-  same.
+  firmware sources, and its tests at four glass shapes (`web/wasm/test.sh`, the one list of them: a test that is not
+  in it runs nowhere). `.github/workflows/preview.yml` rebuilds it when the firmware sources move, runs the same list
+  and commits it to the branch (docs/RELEASING.md, "Firmware preview", says how it lands on a branch that moves);
+  locally, `sh web/wasm/build.sh` with Emscripten builds it. `tests/test_preview_land.py` proves the landing.
 
 ### Running a test
 
@@ -150,12 +155,28 @@ For each variant it:
   compare with an earlier commit, render a checkout of it with `--tree <checkout> --out .esphome/render/base` and run
   `tools/compare_renders.py` on the two folders.
 
+Two renders of one tree are not the same in every picture, so before a difference is laid at a change, render the
+older tree a second time and see whether that picture differs there too. What moves by itself stands elsewhere in
+each run: the spinner of the starting screens and of the favourites that wait, the circle of an alarm that arrives or
+arms, the rolling line of the media card's full view. Everything else is the same to the pixel, which is what a
+change that should draw nothing new is held to. A host program without `KEPT_PAGES_HOST=1` keeps one download at a
+time, so on the media round's favourites page the tile that loaded last has its picture and the others have none,
+the same in every run. A tree from before 2026-11-28 loaded those pictures in turn, and there the favourites and the
+library's albums differ from run to run.
+
 `--tree` also shows that a new check fails before its fix: run this checkout's `run.py` with `--tree` set to a worktree
 of the commit before the fix and `--work` set to a folder of its own, so the two builds do not share one. The harness
 is today's, the firmware the older one. The `hello_again` round was shown failing that way before its fix went in.
 
 What it cannot show: colours and timing of a real panel, a real finger on real glass, memory and heat, and anything a
 real Home Assistant or camera adds.
+
+A board whose glass is e-paper is built on paper there, and its pictures come out as the panel's inks: the theme's
+ink table, the still glass and the ink step are the firmware's own. `--only paper` makes a look book of such a board,
+and `tools/render/sheets.py` puts a folder of renders on contact sheets. Every picture of such a board goes through
+the ink audit (`tools/render/ink_audit.py`, docs/GLASS_KINDS.md "The audit"): a glyph or a word that stands on a
+raster or on a picture fails the round and is listed in `ink-audit.txt` beside the pictures. docs/PAPER.md, "Seeing it
+without a screen", has the commands and what each round shows.
 
 ### The plugin host
 

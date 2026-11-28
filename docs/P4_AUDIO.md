@@ -174,16 +174,21 @@ return, not stale output. No custom echo-cancellation algorithm has been added.
 
 - Hane's [ESPHome Audio Stack](https://github.com/n-IA-hane/esphome-audio-stack/tree/245fc1ad34b443996479c645d20e2960d99bdc31)
   provides the full-duplex bus and standard ESPHome microphone/speaker adapters. Only
-  `esp_audio_stack` is fetched from that pinned version. Our [AEC wrapper](../components/esp_aec/README.md)
+  `esp_audio_stack` is fetched, from this project's fork of it
+  ([MaxGramser/esphome-audio-stack](https://github.com/MaxGramser/esphome-audio-stack/tree/6ffa32dfc2a271cf258ec974e4bef624b34ce05d),
+  branch `tessera-esphome-2026.11`): 245fc1ad and one commit of ours. Our [AEC wrapper](../components/esp_aec/README.md)
   derives from the same repository and keeps its MIT notice.
   The pin is chosen by the ESPHome versions a screen builds with (docs/RELEASING.md, "ESPHome versions"): ESPHome
   2026.10 made the ring buffer's handle a function, the stack's 2026.10.2 release still read it as a field and no
   longer compiled there, and its releases from 2026.11.0 on require ESPHome 2026.10. The pinned commit is the
   stack's own step in between, which reads the handle either way, so it builds with the app's ESPHome, with
   `min_version` and with the newest. Moving the pin past it waits for a `min_version` of 2026.10.
-  ESPHome 2026.11 renamed the speaker's `audio_dac_` to `audio_dacs_`, which the pinned commit still uses, so a board
-  with echo cancelling does not build on ESPHome 2026.11 yet; only the stack's development tag from 2026.12 on reads
-  both, and it requires ESPHome 2026.10 (docs/open-issues/esphome-2026-11-audio-stack.md).
+  ESPHome 2026.11 renamed the speaker's `audio_dac_` to `audio_dacs_` and drives the DACs in its own `set_volume` and
+  `set_mute_state`. The stack's own versions that know this require ESPHome 2026.10, so the fork adds one commit on top
+  of 245fc1ad: from ESPHome 2026.11 on (`ESPHOME_VERSION_CODE`) the speaker hands volume and mute to the base class, with
+  an older ESPHome it is as before. One pin builds with ESPHome 2026.6 to 2026.11. The stack's own development version
+  already does the same but requires ESPHome 2026.10: once the app's ESPHome and `min_version` reach 2026.10, the pin
+  goes back to the stack itself and the fork is no longer needed.
 - Espressif **ESP-SR 2.5.5** provides the AEC algorithm. ESP-DSP retains the reviewed `^1.8.0`
   constraint; the pinned stack supplies its audio-effects dependency, an exact version for each
   chip revision (`1.3.0~1` before revision 3, `1.4.3` from revision 3 on).

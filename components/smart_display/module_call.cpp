@@ -11,6 +11,7 @@
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
 #include "module_call.h"
+#include "volume_lift.h"
 #include "hw.h"
 #include "plugin_host.h"
 #include "settings_screen.h"
@@ -18,6 +19,7 @@
 #include "picture_engine.h"
 #include "call_serve.h"
 #include "picture_fetch.h"
+#include "kept_sound.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -27,8 +29,6 @@ namespace runtime_tiles {
 namespace call {
 
 std::function<void(const std::string &, const std::string &, bool, const std::string &)> report;
-std::function<float()> volume_get;
-std::function<void(float)> volume_set;
 std::function<bool()> ring_on;
 std::function<bool()> switch_on;
 std::function<void(bool)> echo_cancel;
@@ -85,8 +85,9 @@ void say(const char *action, const std::string &to = "", bool video = false) {
 esphome::speaker::Speaker *speaker_out = nullptr;
 tessera::SoundPlayer player;
 tessera::Sound ring_sound;
-// While it rings the speaker's volume stands at the top; ring_stop puts back what it was, from one place.
-float ring_volume_restore = -1.0f;
+// While it rings the speaker's volume stands at the top: a lift of the call's (volume_lift.h), which ring_stop takes down.
+// The lifts keep what the volume was, so an alarm of a plugin ringing at the same moment never leaves the speaker loud.
+constexpr uintptr_t RING_LIFT = 1;
 roomy::List<int16_t> ring_samples;
 void make_ring() {
   // Two bursts of a bright two-tone ring at full scale, made once at 16 kHz. Bright on purpose: these small speakers carry 1.4 to
@@ -107,10 +108,36 @@ void make_ring() {
   ring_sound.rate = RATE;
   ring_sound.channels = 1;
 }
+// The ringtone ESP Screens chose for this screen (docs/SOUNDS.md): a ring's `rt` links a WAV file of the app, kept by its
+// name (kept_sound.h), so the screen downloads it once. The file holds its own pause: it plays back to back for as long
+// as it rings. `none` rings without a sound; without a link or a file (an app before sounds, a download that failed) the
+// screen rings with its own tone above, every RING_EVERY_MS.
+kept_sound::Kept tone("ringtone");
+std::string tone_link;  // the ring's `rt`
+void want_tone(const std::string &link) {
+  tone_link = link;
+  if (!link.empty() && !kept_sound::silent(link)) tone.want(link, []() { if (player.playing(tone.sound())) player.stop(); });
+}
+// Whether a ring still waits for the tone it asked for.
+bool tone_on_its_way(uint32_t now) { return !tone_link.empty() && !kept_sound::silent(tone_link) && !tone.has(tone_link) && tone.waiting(now); }
+// Keeps the chosen tone going (true), or leaves the ring to the screen's own tone (false). The player queues it behind
+// itself, so it plays without a gap however late the loop comes.
+bool ring_tone(uint32_t now) {
+  if (kept_sound::silent(tone_link)) return true;
+  if (tone_link.empty() || !tone.has(tone_link)) return false;
+  (void) now;
+  if (ring_on && !ring_on()) return true;
+  if (!speaker_out) return true;
+  if (!player.playing()) ESP_LOGI(TAG, "ringing");
+  player.add(tone.sound(), 0);
+  return true;
+}
 void ring_stop() {
   player.stop();
-  if (ring_volume_restore >= 0.0f && volume_set) volume_set(ring_volume_restore);
-  ring_volume_restore = -1.0f;
+  if (volume_lift::the().up(RING_LIFT)) {
+    volume_lift::the().drop(RING_LIFT);
+    ESP_LOGI(TAG, "ring done, volume %.3f", volume_lift::the().now());
+  }
 }
 void ring_once() {
   if (ring_on && !ring_on()) return;
@@ -122,6 +149,9 @@ void ring_once() {
 #else
 void ring_once() {}
 void ring_stop() {}
+void want_tone(const std::string &) {}
+bool tone_on_its_way(uint32_t) { return false; }
+bool ring_tone(uint32_t) { return false; }
 #endif
 
 void claim_audio() {
@@ -246,6 +276,7 @@ void labelled_key(lv_obj_t *root, int cx, int cy, int d, uint32_t fill, const ch
 }
 
 void show_ring() {
+  glass_moment::news(esphome::millis());  // a call comes in (a glass of ink prints it at once)
   auto *root = new_card();
   who(root, screen_text::tr(with_video ? screen_text::txt::call_video : screen_text::txt::call_audio), true);
   const int d = key_d() * 4 / 3, w = overlay_card::screen_width(), h = overlay_card::screen_height();
@@ -502,7 +533,7 @@ void fill_list() {
     int right = width;
     const auto key = [&](bool video) {
       right -= d;
-      auto *k = disc(line, right, (row_h - d) / 2, d, theme::tint(green(), 40), video ? VIDEO : PHONE, mini_icon_font, theme::icon(green()));
+      auto *k = disc(line, right, (row_h - d) / 2, d, theme::field(green(), 40), video ? VIDEO : PHONE, mini_icon_font, theme::icon(green()));
       lv_obj_add_flag(k, LV_OBJ_FLAG_CLICKABLE);
       if (video) lv_obj_add_flag(k, LV_OBJ_FLAG_USER_1);
       lv_obj_add_event_cb(k, dial_cb, LV_EVENT_SHORT_CLICKED, reinterpret_cast<void *>(static_cast<intptr_t>(index)));
@@ -601,7 +632,8 @@ void on_contacts(const std::string &text_rows, bool append, bool more) {
 }
 
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch, int echo, const std::string &serve) {
+             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch, int echo, const std::string &serve,
+             const std::string &ringtone) {
   if (state == "set") {
     // The call's choices, changed on either screen: nothing else of the call moves.
     if (key != call_key || stage != Stage::LIVE) return;
@@ -637,16 +669,18 @@ void on_call(const std::string &state, const std::string &key, const std::string
     claim_audio();
     show_out();
   } else if (state == "ring") {
-    if (plugin_host::wake) plugin_host::wake("call");
+    if (plugin_host::wake) plugin_host::wake("call", false);
     settings_screen::close();
     close_list();
     stage = Stage::RING;
     last_ring = 0;
+    want_tone(ringtone);
     ring_since = esphome::millis();
 #ifdef USE_SPEAKER
-    if (volume_get && volume_set && ring_volume_restore < 0.0f && (!ring_on || ring_on())) {
-      ring_volume_restore = volume_get();
-      if (ring_volume_restore < ring_top) volume_set(ring_top);
+    if (!volume_lift::the().up(RING_LIFT) && (!ring_on || ring_on())) {
+      const float before = volume_lift::the().now();
+      const bool lifted = volume_lift::the().lift(RING_LIFT, ring_top);
+      ESP_LOGI(TAG, "ring volume %.3f to %.3f (top %.3f)%s", before, volume_lift::the().now(), ring_top, lifted ? "" : ", not lifted");
     }
 #endif
     show_ring();
@@ -772,7 +806,7 @@ void tick(uint32_t now) {
     stage = Stage::NONE;
     call_key.clear();
   }
-  if (stage == Stage::RING && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
+  if (stage == Stage::RING && !ring_tone(now) && !tone_on_its_way(now) && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
     last_ring = now;
     ring_once();
   }

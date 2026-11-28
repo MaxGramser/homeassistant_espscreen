@@ -279,6 +279,7 @@ inline void history_ranges(int x,int y,int w,int h,int bottom){
     auto *segment=detail_button(words[i],x+inset+i*sw,y+inset,segment_w,h-2*inset,160+i);
     lv_obj_set_style_radius(segment,(h-2*inset)/2,0);
     lv_obj_set_style_bg_color(segment,theme::color(theme::ACCENT),0);
+    theme::rim(segment,false);  // a segment is the track's own part: on paper the track has the rim, a segment none
     lv_obj_set_style_bg_opa(segment,selected?LV_OPA_COVER:LV_OPA_TRANSP,0);
     lv_obj_set_style_bg_opa(segment,LV_OPA_COVER,LV_STATE_PRESSED);
     if(!selected)lv_obj_set_style_bg_color(segment,theme::color(theme::ACCENT_TINT),LV_STATE_PRESSED);

@@ -9,7 +9,12 @@ import { matchesQuery, prefixRank } from "./search";
 import type { Tile } from "../types";
 
 /** An entity the library offers: Home Assistant's, a card of the screen's own, or a plugin's tile type. */
-export type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean; words?: string };
+export type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean; words?: string;
+  /** Home Assistant's entity_category: a setting ("config") or a reading for diagnosis ("diagnostic"). */
+  category?: "config" | "diagnostic"; /** Hidden in Home Assistant. */ hidden?: boolean };
+/** An extra of its device, as Home Assistant's device page puts it apart from the controls: a setting, a reading for
+ * diagnosis, or one hidden there. The library lists it after the rest, folded. */
+export const isExtra = (e: Entry) => Boolean(e.category || e.hidden);
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
 // "plugin" (second, right under All): every plugin's tiles together, which people could not find among the rooms.
 export const PLUGIN_FILTER = "plugin";
@@ -21,6 +26,11 @@ export const FILTERS = [
 const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button", text: "input_text" };
 /** How many rows stand on the page at first, and how many more come as the list is scrolled. */
 export const ROWS_AT_ONCE = 120;
+/** How the library shows what a tile can show (docs/PAGES.md "The library"): on its shelf, every entity as one tile at the
+ * size that suits its type best or at one size for all, or as the list of entities. */
+export type ShelfView = "best" | "small" | "wide" | "large";
+export type LibraryView = ShelfView | "list";
+export const LIBRARY_VIEWS: LibraryView[] = ["best", "small", "wide", "large", "list"];
 
 /** How many tiles each entity has on the screen. */
 export function tileCounts(tiles: readonly Tile[]) {
@@ -75,7 +85,7 @@ function kindWords(id: string, kinds: Map<string, string>) {
  * then one with a word that does), in Home Assistant's order without one. */
 export function libraryMatches(pool: readonly Entry[], kind: string, query: string) {
   const found = pool.filter((e) => inDomain(e.id, kind));
-  return query ? [...found].sort((a, b) => prefixRank(a.name, query) - prefixRank(b.name, query)) : found;
+  return query ? [...found].sort((a, b) => prefixRank(a.name, query) - prefixRank(b.name, query) || Number(isExtra(a)) - Number(isExtra(b))) : found;
 }
 const PLUGINS = "\u0002plugins", SCREEN = "\u0001screen", NONE = "\u0000none";
 /** The entities under their room while browsing: the screen's own cards first, the plugins' tiles last; a search or a
@@ -90,8 +100,10 @@ export function libraryGroups(list: readonly Entry[], grouped: boolean) {
     else byRoom.set(key, [e]);
   }
   const order = (key: string) => key === SCREEN ? -1 : key === PLUGINS ? 3 : key === NONE ? 1 : 0;
+  // In a room its extras come last, so the window of the list reaches them after the rest.
+  const extrasLast = (list: Entry[]) => [...list.filter((e) => !isExtra(e)), ...list.filter(isExtra)];
   return [...byRoom.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((key) => ({
-    key, entities: byRoom.get(key)!,
+    key, entities: extrasLast(byRoom.get(key)!),
     title: key === PLUGINS ? t("editor.library.plugins") : key === SCREEN ? t("editor.library.filters.screen") : key === NONE ? t("editor.library.no_room") : key,
   }));
 }

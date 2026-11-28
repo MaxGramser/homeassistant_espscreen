@@ -29,12 +29,12 @@ int main() {
   static_assert(pictures_on_glass(true, false, false));
   static_assert(!pictures_on_glass(true, true, false) && !pictures_on_glass(true, false, true));  // a card, a full view
   static_assert(!pictures_on_glass(false, false, false));  // a screensaver, or dark
-  // ...and a kept page's are fetched ahead only while the screen is in use, with room to spare and nothing else busy.
-  static_assert(pictures_ahead(true, true, false, 0, 1000, 0) && pictures_ahead(true, true, false, 749, 1000, 0));
-  static_assert(!pictures_ahead(true, true, false, 750, 1000, 0));  // three quarters of the store: no more ahead
-  static_assert(!pictures_ahead(false, true, false, 0, 1000, 0));  // dimmed: what is not seen waits for a screen in use
-  static_assert(!pictures_ahead(true, false, false, 0, 1000, 0) && !pictures_ahead(true, true, true, 0, 1000, 0));
-  static_assert(!pictures_ahead(true, true, false, 0, 1000, 1));  // a busy screen fetches nothing ahead
+  // ...and a kept page's are fetched ahead only while the screen is in use and nothing else is busy; whether each one
+  // fits is the store's spare room, per picture (tests/test_pictures_ahead.cpp, GitHub #415).
+  static_assert(pictures_ahead(true, true, false, 0));
+  static_assert(!pictures_ahead(false, true, false, 0));  // dimmed: what is not seen waits for a screen in use
+  static_assert(!pictures_ahead(true, false, false, 0) && !pictures_ahead(true, true, true, 0));
+  static_assert(!pictures_ahead(true, true, false, 1));  // a busy screen fetches nothing ahead
   // A dimmed screen without a screensaver still shows its tiles, so their pictures on the glass load (tiles_seen).
   static_assert(pictures_on_glass(tiles_seen(false, false, 30), false, false));
   // A picture card's name and the live picture's copy of it: left, as wide as the content, one line high, at the bottom.

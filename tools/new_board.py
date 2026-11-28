@@ -50,6 +50,21 @@ light:
   - id: !extend back_light
     default_transition_length: 200ms
 """
+# The same for a board whose glass is paper (packages/features/paper.yaml): it has no light to extend, so the case
+# hangs on the paper glass, the touch panel and the touch panel's bus (tests/test_override_contract.py).
+PAPER_CONTRACT = """# Written by tools/new_board.py: the parts every board names the same way (docs/PROFILES.md, "What an override may
+# rely on"), extended the way a screen's Override YAML does it. The glass is paper, so there is no backlight here.
+# tools/check.sh --firmware has ESPHome read it on this board. Add the cases people with this board share, one file each.
+display:
+  - id: !extend my_display
+    partial: false
+touchscreen:
+  - id: !extend ts_touch
+    update_interval: 30ms
+i2c:
+  - id: !extend touch_bus
+    frequency: 100kHz
+"""
 
 
 def own_substitutions(source):
@@ -180,7 +195,8 @@ def main():
         f'{a.name}:', f'  file: {a.name}.yaml', f'  name: {a.title or entry["name"]}',
         f'  model: {a.model or a.name.upper()}', f'  status: {a.status}']) + '\n')
     contract = profiles.ROOT / 'tests' / 'fixtures' / 'overrides' / f'{a.name}-contract.yaml'
-    contract.write_text(CONTRACT)
+    paper = any(path.name == 'paper.yaml' for path in profiles.chain(template))
+    contract.write_text(PAPER_CONTRACT if paper else CONTRACT)
     run('tools/generate_entries.py')
     run('tools/generate_board_shapes.py')
     print(f'Added to boards.yaml, with packages/{a.name}.yaml, checkout/{a.name}.yaml and {contract.relative_to(profiles.ROOT)}.')

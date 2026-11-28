@@ -3,12 +3,15 @@
 // what does not fit its board. The same cards and details as the Plugins page, with one button for this screen.
 import { computed, ref, watch } from "vue";
 import { t } from "../i18n";
-import { text, type Plugin } from "../model/plugins";
+import type { Plugin } from "../model/plugins";
 import PluginCard from "./PluginCard.vue";
 import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
 import PluginTray from "./PluginTray.vue";
 import BuildLog from "./BuildLog.vue";
+import PluginFailures from "./plugins/PluginFailures.vue";
+import ScreenUpdates from "./plugins/ScreenUpdates.vue";
+import BuildHistory from "./BuildHistory.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { usePluginsStore } from "../stores/plugins";
@@ -23,13 +26,6 @@ const screen = computed(() => scr.currentScreen!);
 const here = computed(() => [...plugins.index.filter((p) => plugins.installedOn(screen.value, p.id) || plugins.buildingOn(screen.value, p.id)), ...plugins.testsOn(screen.value)]);
 const addable = computed(() => plugins.index.filter((p) => !here.value.includes(p) && plugins.fits(p, screen.value).ok));
 const misfits = computed(() => plugins.index.filter((p) => !here.value.includes(p) && !plugins.fits(p, screen.value).ok));
-// Update all on this screen: every plugin with an update in one build. Updates that ask for other rights are named, and
-// go only with one yes for all of them, which counts as the yes each one asks for in its details.
-const updates = computed(() => plugins.updatesOn(screen.value));
-const asking = computed(() => updates.value.filter((p) => plugins.needsConsent(screen.value, p)));
-const agreed = computed(() => asking.value.every((p) => plugins.consented[p.id]));
-const names = (list: Plugin[]) => list.map((p) => text(p.name)).join(", ");
-function agree(on: boolean) { for (const p of asking.value) plugins.consented[p.id] = on; }
 
 const panel = ref<"plugin" | "link" | null>(null);
 const openId = ref<string | null>(null);
@@ -56,6 +52,9 @@ watch(() => plugins.focus, (id) => {
         </div>
       </div>
 
+      <!-- What did not build on this screen, first: why, the build's log to download, and the way to try again. -->
+      <PluginFailures :screen="screen" @open="show" />
+
       <!-- The same word as the Plugins page: plugins share this screen's memory, and many at once can make it unstable. -->
       <div class="notice warn plugin-risk" id="screen-plugin-risk" role="note">
         <Icon name="alert-circle-outline" />
@@ -65,14 +64,8 @@ watch(() => plugins.focus, (id) => {
       <!-- This screen's build, whoever asked for it, with its log; a failed one stays until the next build. -->
       <BuildLog :screen="screen" />
 
-      <div v-if="updates.length" class="sp-updates" id="screen-plugin-updates">
-        <p><b>{{ t("editor.plugins.tab.updates", { n: updates.length }, updates.length) }}</b>{{ t("editor.plugins.tab.updates_note", { names: names(updates), screen: screen.name }) }}</p>
-        <label v-if="asking.length" class="pd-trust" id="screen-plugin-consent">
-          <input type="checkbox" :checked="agreed" @change="agree(($event.target as HTMLInputElement).checked)" />
-          <span><b>{{ t("editor.plugins.tab.updates_rights", { names: names(asking) }, asking.length) }}</b>{{ t("editor.plugins.consent.agree") }}</span>
-        </label>
-        <button type="button" class="btn primary" id="screen-plugin-update-all" :disabled="!agreed" @click="plugins.updateAll(screen, updates)">{{ t("editor.plugins.tab.update_all") }}</button>
-      </div>
+      <!-- Every update of this screen, firmware and plugins, in one card and one build. -->
+      <ScreenUpdates :screen="screen" />
 
       <section class="sp-group">
         <h3>{{ t("editor.plugins.tab.here") }}</h3>
@@ -96,6 +89,9 @@ watch(() => plugins.focus, (id) => {
           <PluginCard v-for="plugin in misfits" :key="plugin.id" :plugin="plugin" :status="plugins.statusOn(plugin, screen)" :chosen="openId === plugin.id" @open="show(plugin)" />
         </div>
       </details>
+
+      <!-- What happened to this screen's builds, each with its log. -->
+      <BuildHistory :screen="screen" />
 
       <PluginTray @open="show" />
     </div>

@@ -1,7 +1,15 @@
 /* Design tokens. Light is the default; dark follows the browser (Home Assistant's "auto" theme does too). */
 :root {
+  /* The room a phone's system bar takes at the bottom, one value for every part at the foot of the phone editor (the
+     dock, the canvas, the toast, the library, the drawer, the sheets). In a browser env() says it; in Home Assistant
+     (2026.8+) the app's page sits in an iframe that Home Assistant pads by its own safe area (frontend
+     src/panels/app/ha-panel-app.ts), so env() reads 0 there and is right. GitHub #438: docs/open-issues. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light dark;
   /* Neutral greys in small steps, the way Attio layers its surfaces: depth from the step, not from a shadow (app 0.4.32). */
+  /* What the page's card and the sidebar lie on, on a wide page (app 0.4.110, styles/app.css "The page as a card"): a
+     step under the ground, so the card stands out of it by its step and a hairline. */
+  --shell: #ecedf0;
   --ground: #f7f7f8;
   --surface: #ffffff;
   --surface-2: #f6f7f7;
@@ -22,6 +30,21 @@
   --danger-soft: #fdecea;
   --danger-ink: #ffffff;
   --seg: #f1f2f3;
+  /* New screen's drawings (app 0.4.103): Home Assistant's own blue for its mark, the dark frame of a screen, and the four
+     colours of the Tessera mark on a page of tiles (the same as components/DeviceArt.vue draws). */
+  --brand-ha: #18bcf2;
+  --device-frame: #17181b;
+  /* A screen's miniature in the sidebar (components/ScreenMini.vue): its frame, the glass and the cards of the screens'
+     light look (the glass a step darker than on a screen, so cards this small still stand apart), and a glass that is
+     dark because its screen is away. */
+  --mini-frame: #17181b;
+  --mini-glass: #cfd1d6;
+  --mini-tile: #ffffff;
+  --mini-off: #3b3c41;
+  --tile-amber: #f4b400;
+  --tile-blue: #0a96d6;
+  --tile-purple: #8e63c4;
+  --tile-green: #43a047;
   /* A plugin's stars (plugin ratings): the warm yellow of a store's stars, readable on white and on the dark ground. */
   --star: #e39b0b;
   /* What is open in the inspector (app 0.4.32): a tile in black, a page in the accent, the top bar dashed in black. The
@@ -30,6 +53,9 @@
   --kind-page: #266df0;
   --kind-bar: #101112;
   --shadow: 0 12px 40px rgba(20, 24, 40, 0.12), 0 1px 2px rgba(20, 24, 40, 0.06);
+  /* What lies behind a sheet, a dialog, a wizard or the search is dimmed by this one colour, dark enough that what is
+     open stands apart from the page (it was a third of this, and in the dark look the page behind barely changed). */
+  --dim: rgba(10, 12, 18, 0.52);
   --code-bg: #f1f3f6;
   /* Layoutbot (components/LayoutBot.vue): its gradient, from the accent to violet, and the light of its sweep. */
   --bot-a: #266df0;
@@ -37,6 +63,17 @@
   --bot-c: #38bdf8;
   --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
   --pop-shadow: 0 14px 38px rgba(20, 24, 40, 0.16), 0 2px 6px rgba(20, 24, 40, 0.08);
+  /* The round icons of the settings lists (components/parts/PartLink.vue): Home Assistant's own colours for the rows of its Settings
+     page, the same in light and dark, each with a white glyph. */
+  --tone-teal: #00838f;
+  --tone-cyan: #3b808e;
+  --tone-blue: #0d47a1;
+  --tone-indigo: #3f51b5;
+  --tone-violet: #7c4dff;
+  --tone-green: #518c43;
+  --tone-orange: #e48629;
+  --tone-yellow: #f1c447;
+  --tone-rose: #b1345c;
   --ui-font: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -44,6 +81,7 @@
   /* The neutral near-black greys of Home Assistant's own dark theme (primary background #111111, cards
      #1c1c1c), so the panel sits in Home Assistant without a blue cast. */
   :root {
+    --shell: #0a0a0a;
     --ground: #111111;
     --surface: #1c1c1c;
     --surface-2: #222222;
@@ -64,17 +102,26 @@
     --danger-soft: #361b19;
     --danger-ink: #1c0c0b;
     --seg: #262626;
+    --device-frame: #000000;
+    --mini-frame: #34363b;
+    --mini-off: #17181a;
     --star: #f2b84b;
     --kind-tile: #000000;
     --kind-page: #3f6fe0;
     --kind-bar: #000000;
     --shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --dim: rgba(0, 0, 0, 0.7);
     --code-bg: #161616;
     --bot-a: #4f7dff;
     --bot-b: #9d74ff;
     --bot-c: #4cc9f0;
     --pop-shadow: 0 16px 44px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.4);
   }
+}
+/* In the dark a shadow shows nothing, so a popover (a menu, a list, a picker, a tip) stands a step lighter than what it
+   opens over: its own greys, which everything inside it reads. */
+@media (prefers-color-scheme: dark) {
+  .ui-popover { --surface: #262626; --surface-2: #2c2c2c; --seg: #343434; --line: #3a3a3a; --line-strong: #4c4c4c; }
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar
    mockup and its cards write in the firmware's Roboto: 400 and 500, and 700 for a card's name. */

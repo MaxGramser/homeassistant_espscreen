@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.62.0"
+  SCREEN_FIRMWARE_VERSION: "0.68.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -62,8 +62,17 @@ substitutions:
   SCREEN_MAX_PAGES: "8"
   # The most items one page's top bar holds (firmware 0.34.0+); the glass's width decides how many of them show.
   SCREEN_MAX_BAR_ITEMS: "6"
+  # How often the backlight blinks for an alert that asks for a flash (alert_life.h). A backlight that must never go
+  # dark says 0 (features/backlight-always-on.yaml): the card itself is the signal there.
+  ALERT_BLINKS: "4"
   BACKLIGHT_DIMMABLE: "true"                       # false: the backlight is lit or dark, a switch instead of a percentage
   CAN_STANDBY: "true"                              # false: the screen never goes dark (features/backlight-always-on.yaml)
+  # The glass (docs/PAPER.md). A panel of e-paper states its inks (features/paper.yaml: 2 for black and white, 4 for
+  # four greys); 0 is a glass that is lit and shows colours. On paper LVGL draws only while the panel is not
+  # refreshing, and the letters are built without soft edges, which a panel of two inks cannot show.
+  PAPER_INKS: "0"
+  LVGL_WAITS_FOR_GLASS: "false"
+  FONT_TEXT_BPP: 4                                 # the text and digit fonts' bits a pixel (a number, as ESPHome reads it)
   # 0: the bedside clock takes the display step, never digits of its own (hardware/flash-4mb.yaml, looks/shared/digits.yaml).
   BEDSIDE_OWN_DIGITS: "1"
   # The touch test page (CALIBRATION_ON_BOOT); its sizes are the look's.
@@ -71,8 +80,10 @@ substitutions:
   TOUCH_TEST_TITLE: "calibration_touch_check"      # the words at the top
   TOUCH_TEST_PAINT: "paint_ink"                    # the crosses
   # Code the shared lambdas below take from a feature or a board, at the place named ${...}; empty when nothing
-  # adds anything there. BOOT_TOUCH, BOOT_PAGE_GESTURE, APPLY_BACKLIGHT and OTA_BACKLIGHT have no default: every screen
-  # reads a touch panel and lights a backlight, so the board says how (features/capacitive-touch.yaml, features/backlight.yaml).
+  # adds anything there. BOOT_TOUCH and BOOT_PAGE_GESTURE have no default: every screen reads a touch panel, so the
+  # board says how (features/capacitive-touch.yaml). Nor have the light's three, SET_BACKLIGHT (a level in percent over
+  # so many ms, as `level` and `ms`), BOOT_BACKLIGHT and OTA_BACKLIGHT: every screen says how its glass is lit
+  # (features/backlight.yaml) or that it has no light of its own (features/paper.yaml, where they are empty).
   CAMERA_PAINT_FILL: ""                            # the paint styles a feature brings (theme::paints)
   CALIBRATION_PAINT_FILL: ""
   BOOT_CAMERA_HOOKS: ""                            # after the gesture: the camera images (features/camera.yaml)
@@ -84,6 +95,7 @@ substitutions:
   BOOT_MIC_CONTROLS: ""                            # the microphones' gain and ALC (parts/es7210-controls.yaml)
   BOOT_MICROPHONE_PART: ""                         # the microphones' codec and its transport (parts/es7210.yaml)
   BOOT_BOARD_SETTINGS: ""                          # the board file's own
+  HELLO_BOARD_STEPS: ""                            # the board file's own: its steps that are done (docs/BOARD_STEPS.md)
   # The screen's moments (every 250 ms, the cards closing, the settings page opening, away from page 1, an alert) are
   # lists, not substitutions (screen_hooks.h): a feature adds to them at boot, a plugin through the plugin API.
   # one more line of the ui_state diagnostics
@@ -137,7 +149,13 @@ esphome:
     - <esphome/components/smart_display/alert_overlay.h>
     - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
+    - <esphome/components/smart_display/glass_kind.h>
+    - <esphome/components/smart_display/still_glass_lvgl.h>
     - <esphome/components/smart_display/screen_power.h>
+    - <esphome/components/smart_display/screen_standby.h>
+    - <esphome/components/smart_display/alert_life.h>
+    - <esphome/components/smart_display/moved.h>
+    - <esphome/components/smart_display/chip_revision.h>
   name: ${DEVICE_NAME}
   friendly_name: ${DEVICE_FRIENDLY_NAME}
   on_boot:
@@ -171,7 +189,7 @@ esphome:
           runtime_tiles::brand_mark = id(tessera_mark)->get_lv_image_dsc();
           runtime_tiles::firmware_version = "${SCREEN_FIRMWARE_VERSION}";
           runtime_tiles::now_time = []() { return id(homeassistant_time).now(); };
-          runtime_tiles::screen_awake = []() { return !id(display_dimmed); };
+          runtime_tiles::screen_awake = []() { return !screen_standby::the().in_standby(); };
           // The screensaver (firmware 0.29.0+): a new word from ESP Screens in standby sets the level and the glass again.
           runtime_tiles::saver_changed = []() { id(apply_screen_settings).execute(false); };
           runtime_tiles::mini_icon_font = id(materialdesign_icons_mini)->get_lv_font();
@@ -207,6 +225,7 @@ esphome:
           // Whether this board's backlight takes levels (firmware 0.2.90+): a board whose backlight is one line
           // shows a switch where the others show a percentage. ESP Screens reads the same fact from boards.json.
           settings_screen::dimmable = ${BACKLIGHT_DIMMABLE};
+          settings_screen::lit = glass_kind::lit();
           // Whether this board's screen can go dark at all (firmware 0.2.91+): the Waveshare's backlight boost pulls
           // the 3.3 V rail under the brownout level when it switches on from a dark screen, so that board has no
           // standby and no night. The rows, the entities and the add-on's Settings follow the same fact.
@@ -234,8 +253,18 @@ esphome:
             ${CAMERA_PAINT_FILL}
             ${CALIBRATION_PAINT_FILL}
           };
+          // The kind of glass (glass_kind.h) is known before this: the theme takes a glass of ink's tones from its ink
+          // table by itself. Every widget of LVGL's own takes its still form there: a slider is a level in steps, a
+          // spinner stands, a line that would roll is cut (still_glass_lvgl.h). An empty call on a glass that is lit.
+          still_glass::watch();
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
+          // The paints are styles the profile's widgets already wear, most of them empty until this first fill. LVGL
+          // notes per widget which kinds of property its styles hold (LV_OBJ_STYLE_CACHE) when a style is put on, so
+          // a colour that comes into an empty style afterwards is not looked up: a page key's chevron wore paint_ink
+          // and was drawn in LVGL's own grey, dark on dark in the dark look (seen on a reTerminal Sticky's render,
+          // 2026-11-27). Told once, here, before anything is drawn; a change of look only changes colours that are there.
+          lv_obj_report_style_change(nullptr);
           runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(false); };
           runtime_tiles::dismiss = []() {
             effects_page::close();
@@ -249,11 +278,7 @@ esphome:
           runtime_tiles::refresh = []() { if (!id(ui_refresh).is_running()) id(ui_refresh).execute(); };
           // What a finger on the glass does lives in the shared tree (runtime_tiles::touch_input); a board's
           // three touchscreen triggers are one line each. These four are what only the YAML can answer.
-          runtime_tiles::touch_input::contact = [](bool down) {
-            id(last_touch_ms) = millis();
-            id(last_use_ms) = millis();
-            id(touch_down) = down;
-          };
+          runtime_tiles::touch_input::contact = [](bool down) { screen_standby::the().contact(down, millis()); };
           runtime_tiles::touch_input::to_screen = [](int &x, int &y) {
             int32_t px = x, py = y;
             id(screen_lvgl).rotate_coordinates(px, py);
@@ -261,36 +286,145 @@ esphome:
           };
           // A dimmed screen only wakes, a calibration and an alert own the glass: no edge swipe does anything then.
           runtime_tiles::touch_input::swipe_blocked = []() -> const char * {
-            if (id(display_dimmed)) return "screen dimmed";
+            if (screen_standby::the().in_standby()) return "screen dimmed";
             if (id(calibration_active)) return "calibration";
-            if (id(alert_active)) return "alert showing";
+            if (alert_life::the().up()) return "alert showing";
             return nullptr;
           };
           runtime_tiles::touch_input::card_open = runtime_tiles::colour_shown;
+          // The screen's standby (screen_standby.h): what only this file can answer or do for it. The state, its rules
+          // and their order are there; the scripts and entities below call in.
+          {
+            auto &glass = screen_standby::the().glass;
+            glass.can_standby = []() { return settings_screen::can_standby; };
+            // A calibration, an alert and a doorbell's ring each hold the screen lit.
+            glass.owned = []() -> uint8_t {
+              return (id(calibration_active) ? screen_standby::CALIBRATION : 0) | (alert_life::the().up() ? screen_standby::ALERT : 0) |
+                     (runtime_tiles::doorbell_holds() ? screen_standby::RING : 0);
+            };
+            glass.away = []() {
+              return settings_screen::visible() || screen_hooks::is_away() || runtime_tiles::colour_shown() ||
+                     id(tile_page) != runtime_tiles::home_page() ||
+                     (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));
+            };
+            glass.home_after = []() -> uint32_t { return runtime_tiles::auto_home ? (uint32_t) runtime_tiles::auto_home_seconds : 0; };
+            glass.standby_level = []() { return runtime_tiles::standby_level(); };
+            glass.keeps = []() { return glass_kind::keeps(); };
+            // Only a glass that keeps its picture rests in a calm page (screen_standby.h asks `keeps` first), so only a
+            // build with such a glass carries what makes one. One print either way there: whole as the screen comes
+            // to rest, at once as it wakes.
+            if (glass_kind::keeps()) glass.calm = [](bool on) {
+              glass_moment::rest(on, millis());
+              if (!on) glass_moment::news(millis());
+              runtime_tiles::calm(on);
+            };
+            // One owner for the backlight's level, the board's script set_backlight (features/backlight.yaml); a glass
+            // without a light of its own has nothing here (features/paper.yaml).
+            glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };
+            glass.overlay = [](bool shown) {
+              if (!shown) { lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN); return; }
+              lv_obj_clear_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
+              lv_obj_move_foreground(id(dim_wake_overlay));
+            };
+            // The screensaver lies over everything on the top layer without a tap of its own: the overlay takes the touch.
+            // What a glass of ink keeps while it rests is printed whole: it stands for hours.
+            glass.saver = [](bool lit) { if (lit) glass_moment::whole(millis()); runtime_tiles::saver_sync(lit); };
+            glass.saver_wake = []() { const bool was = runtime_tiles::saver_on(); runtime_tiles::saver_wake(); return was; };
+            glass.close_settings = []() { settings_screen::close(); };
+            glass.close_cards = []() { id(close_cards).execute(); };
+            glass.page_1 = []() {
+              runtime_tiles::navigation_history.clear();
+              id(tile_page) = runtime_tiles::home_page();
+              id(show_tile_page).execute();
+            };
+            glass.alert_close = []() { alert_life::the().dismiss("remote"); };
+            glass.apply = []() { id(apply_screen_settings).execute(false); };
+            glass.later = [](uint32_t ms) { id(standby_wait).execute(ms); };
+            glass.say = [](const char *line) { ESP_LOGI("standby", "%s", line); };
+          }
+          // An alert's life (alert_life.h): what only this file can do for it. When it is up, what ends it and what
+          // Home Assistant hears is decided there; the actions, the card's keys and the scripts below call in.
+          {
+            auto &alert = alert_life::the();
+            alert.blinks = ${ALERT_BLINKS};
+            alert.glass.close_settings = []() { settings_screen::close(); };
+            // One button or two (firmware 0.3.3+), laid out before what hangs on an alert about to show
+            // (screen_hooks::alert_show), which lays the card out again for a camera's picture.
+            alert.glass.prepare = [](const screen_alert::Alert &card) {
+              runtime_tiles::alert_two_buttons = !card.button2.empty();
+              lv_label_set_text(id(alert_button2_label), card.button2.c_str());
+              runtime_tiles::alert_key(id(alert_ok), id(alert_ok_label), card.button_color);
+              runtime_tiles::alert_key(id(alert_button2), id(alert_button2_label), card.button2_color);
+              runtime_tiles::alert_place(false);
+              screen_hooks::run_alert_show();
+            };
+            alert.glass.fill = [](const screen_alert::Alert &card) {
+              lv_label_set_text(id(alert_icon), card.icon.c_str());
+              lv_label_set_text(id(alert_title), card.title.c_str());
+              lv_label_set_text(id(alert_subtitle), card.subtitle.c_str());
+              lv_label_set_text(id(alert_ok_label), card.button.c_str());
+              lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(card.color)), LV_PART_MAIN);
+            };
+            alert.glass.reveal = [](bool shown) {
+              // News: a glass of ink prints it at once, not when a stream of values has its turn (paper_print.h).
+              glass_moment::news(millis());
+              if (shown) screen_motion::show(id(alert_overlay), id(alert_card));
+              else screen_motion::hide(id(alert_overlay), id(alert_card));
+            };
+            alert.glass.clear = []() { runtime_tiles::alert_clear(); };
+            alert.glass.wake = []() { screen_standby::the().wake(millis()); };
+            alert.glass.stir = []() { screen_standby::the().stir(millis()); };
+            alert.glass.light = [](int level, int ms) { ${SET_BACKLIGHT} };
+            alert.glass.report = [](const char *action, const std::string &title) { id(alert_event).execute(std::string(action), title); };
+            alert.glass.later = [](uint32_t ms) { id(alert_wait).execute(ms); };
+            alert.glass.say = [](const char *line) { ESP_LOGI("alert", "%s", line); };
+          }
           // The way home for the house in the top bar and for a swipe up from the bottom edge (firmware 0.2.100+, from
           // over any card or the settings page 0.28.0+): the same script the Back to page 1 timeout and Home Assistant
           // use, so there is one way home, and it closes everything on the way.
-          runtime_tiles::back_home = []() { id(go_home).execute(); };
+          runtime_tiles::back_home = []() { screen_standby::the().go_home(millis()); };
+          // The home key held for half a second (firmware 0.64.0+): standby by hand, with its screensaver, as the
+          // board's key does. False leaves the lift a tap home (screen_standby::hold_home says when).
+          runtime_tiles::hold_home = []() { return screen_standby::the().hold_home(millis()); };
           // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
           // card (firmware 0.3.3+): Back to page 1 counts from now.
-          runtime_tiles::alarm_wake = []() { id(last_use_ms) = millis(); id(wake_display).execute(); };
+          runtime_tiles::alarm_wake = []() { screen_standby::the().use(millis()); screen_standby::the().wake(millis()); };
           // A plugin wakes the screen as Home Assistant's Wake button does (tessera::wake, plugin API 0.16): the one way
           // in for every wake that is not a finger, the script wake_from, with the plugin's name for the log.
-          plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };
+          // A plugin's own wake senses someone (motion, a light); a call or a doorbell is no sensing (screen_standby.h).
+          plugin_host::wake = [](const std::string &source, bool sensed) {
+            // Which kind of wake a plugin's yes or no is: screen_standby::kind_of, the one place that says.
+            screen_standby::the().wake_from(source.c_str(), screen_standby::Asker::PLUGIN, sensed, millis());
+          };
           // How a doorbell's ring ended on this screen goes to ESP Screens (module doorbell, esphome.screen_doorbell).
           runtime_tiles::doorbell_reports([](const std::string &action, const std::string &key) { id(doorbell_report).execute(action, key); });
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
-          screen_power::freeze = [](bool on) { id(screen_lvgl).set_paused(on, false); ESP_LOGI("power", on ? "dark: saving" : "awake"); };
-          screen_power::later = [](uint32_t ms) { id(screen_power_wait).execute(ms); };
-          screen_power::dark = []() { return id(display_dimmed) && runtime_tiles::standby_level() == 0; };
-          screen_power::wake = []() { id(wake_display).execute(); };
+          // A paper glass at rest keeps drawing: its page stays readable and follows the house (docs/PAPER.md).
+          screen_power::freeze = [](bool on) {
+            if (!glass_kind::keeps()) id(screen_lvgl).set_paused(on, false);
+            ESP_LOGI("power", on ? "at rest: saving" : "awake");
+          };
+          screen_power::later = [](uint32_t ms) { screen_standby::the().power_wait(ms, millis()); };
+          screen_power::dark = []() { return screen_standby::the().at_rest(); };
+          // The wake for a tap LVGL may have missed while it was paused. A paper glass never pauses LVGL, so every tap
+          // there is LVGL's own: a key of the screensaver among them, which must not wake the screen (a render of
+          // the reTerminal Sticky, 2026-11-27: volume up on the screensaver woke it).
+          screen_power::wake = []() { if (!glass_kind::keeps()) screen_standby::the().wake(millis()); };
           // Feedback a finger hears or feels (touch_feedback.h): none for the push that wakes a dimmed screen, nor in a calibration.
-          touch_feedback::quiet = []() { return id(display_dimmed) || id(calibration_active); };
+          touch_feedback::quiet = []() { return screen_standby::the().in_standby() || id(calibration_active); };
           {
             // A touch on the dark glass resumes drawing before LVGL reads it, so the wake overlay gets the tap.
+            // A paper glass hears the same two moments: nothing prints under a finger (paper_print.h).
             struct WakeListener : public esphome::touchscreen::TouchListener {
-              void update(const esphome::touchscreen::TouchPoints_t &points) override { if (!points.empty()) screen_power::touched(esphome::millis()); }
-              void release() override { screen_power::released(esphome::millis()); }
+              void update(const esphome::touchscreen::TouchPoints_t &points) override {
+                if (points.empty()) return;
+                screen_power::touched(esphome::millis());
+                glass_moment::finger(true, esphome::millis());
+              }
+              void release() override {
+                screen_power::released(esphome::millis());
+                glass_moment::finger(false, esphome::millis());
+              }
             };
             id(ts_touch).register_listener(new WakeListener());
           }
@@ -362,25 +496,22 @@ esphome:
           };
           // The screen's own explanation on the alert card (runtime_tiles::hint_alert): no icon colour, no blinks, until OK.
           runtime_tiles::hint_alert = [](const std::string &title, const std::string &text) {
-            runtime_tiles::own_alert_next = true;
+            alert_life::the().own_next();
             id(alert_show).execute(title, text, std::string("alert-circle-outline"), std::string(), std::string(), std::string(),
                                    std::string(), std::string(), 0, false);
           };
           // An update wakes the screen before it says how far it is (ota_status.h): lit, out of standby, no screensaver.
           ota_status::wake = []() {
-            id(screen_power_wait).stop();
-            screen_power::leave();
-            // Sleep stays asked for: the screen restarts after the update, and a failed one dims again on its own time.
-            id(display_dimmed) = false;
-            id(last_touch_ms) = millis();
+            // A wake as any other for the standby's state; the light goes straight to the output below.
+            screen_standby::the().lit(millis());
             plugin_host::before_update();
-            runtime_tiles::saver_wake(true);
+            runtime_tiles::saver_wake();
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
           runtime_tiles::open_this_screen = []() {
             if (!settings_screen::may_open || !settings_screen::may_open()) return;
-            id(last_use_ms) = millis();
+            screen_standby::the().use(millis());
             settings_screen::open(4);
           };
           settings_screen::tessera_text = []() {
@@ -389,7 +520,7 @@ esphome:
           settings_screen::restart_device = []() { ESP_LOGI("settings", "restart from the screen"); App.safe_reboot(); };
           // A dimmed screen, a calibration or an alert owns the glass; the page waits.
           settings_screen::may_open = []() {
-            return runtime_tiles::enabled && !id(display_dimmed) && !id(calibration_active) && !id(alert_active) && !screen_hooks::settings_kept_closed();
+            return runtime_tiles::enabled && !screen_standby::the().in_standby() && !id(calibration_active) && !alert_life::the().up() && !screen_hooks::settings_kept_closed();
           };
           settings_screen::drift = []() { return screen_input::touch_guard.distance(); };
           settings_screen::before_open = []() { id(close_cards).execute(); };
@@ -403,15 +534,14 @@ esphome:
             effects_page::restyle();
             group_page::restyle();
             settings_screen::restyle();
-            if (id(alert_active)) lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(id(alert_card_color))), LV_PART_MAIN);
+            if (alert_life::the().up()) lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(alert_life::the().color())), LV_PART_MAIN);
           };
           // Under the cards: the colour card is the first of them on the page, so the back button and
           // the action at the top right of a card keep their taps.
           settings_screen::attach_hold(id(home_page)->obj, ${SETTINGS_HOLD_X}, 0,
             overlay_card::screen_width() - ${SETTINGS_HOLD_X} * 2, ${SCROLL_Y});
-      - light.turn_on:
-          id: back_light
-          brightness: !lambda "return screen_settings::current.brightness / 100.0f;"
+      - lambda: |-
+          ${BOOT_BACKLIGHT}
       - script.execute: show_tile_page
       - lambda: 'if (!id(ui_refresh).is_running()) id(ui_refresh).execute();'
       - if:
@@ -483,7 +613,7 @@ api:
               (int) cfg.standby_enabled, (int) cfg.standby_seconds, (int) cfg.brightness, (int) cfg.standby_brightness,
               (int) cfg.night_enabled, (int) cfg.night_start, (int) cfg.night_end, (int) cfg.night_brightness,
               (int) cfg.show_clock, (int) cfg.clock_24h, (int) cfg.home_on_standby,
-              (unsigned)(millis() - id(last_touch_ms)), (unsigned)(millis() - id(last_use_ms)), id(display_dimmed));
+              (unsigned)(screen_standby::the().since_touch(millis())), (unsigned)(screen_standby::the().since_use(millis())), (int) screen_standby::the().in_standby());
             ESP_LOGI("ui_diag", "navigation page=%d runtime_detail=%d", id(tile_page),
               runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));
             ${UI_STATE_HOOK}
@@ -512,12 +642,13 @@ api:
         page: int
       then:
         - lambda: |-
-            if (page < 0) { id(go_home).execute(); return; }
+            if (page < 0) { screen_standby::the().go_home(millis()); return; }
             // Opened for someone to look at: Back to page 1 counts from now, as after a touch.
-            id(last_use_ms) = millis();
-            id(wake_display).execute();
+            screen_standby::the().use(millis());
+            screen_standby::the().wake(millis());
             settings_screen::open((uint8_t) page);
-            ESP_LOGI("settings", "page %d open from Home Assistant", (int) page);
+            if (settings_screen::offered((uint8_t) page)) ESP_LOGI("settings", "page %d open from Home Assistant", (int) page);
+            else ESP_LOGI("settings", "no page %d on this screen: its first page open from Home Assistant", (int) page);
 
     # Home Assistant automations: esphome.<device>_show_page puts a page of tiles on the screen (README,
     # "Open a page from an automation"), the way a Go to page tile does: a player that starts an album can
@@ -531,8 +662,9 @@ api:
         page: int
       then:
         - lambda: |-
-            id(last_use_ms) = millis();
-            id(wake_display).execute();
+            screen_standby::the().use(millis());
+            screen_standby::the().wake(millis());
+            glass_moment::news(millis());  // asked for now: a glass of ink prints it at once
             if (!runtime_tiles::navigation_ready()) {
               runtime_tiles::wanted_page = std::max(1, (int) page);
               ESP_LOGI("navigation", "show page %d waits until the pages are ready", runtime_tiles::wanted_page);
@@ -691,6 +823,10 @@ api:
                       memory["page"] = board.page_bytes;
                       if (runtime_tiles::memory_short(now)) memory["short"] = 1;
                     }
+                    // The board's own steps that this screen can see are done (docs/BOARD_STEPS.md), each with what it
+                    // found: the firmware of a second chip that answers. The board file fills it (HELLO_BOARD_STEPS).
+                    // A board without steps writes nothing here.
+                    { ${HELLO_BOARD_STEPS} }
                     // What this firmware takes beyond the flags above, as a list (firmware 0.19.0+, app 0.4.32+): a newer
                     // option adds its name here. climate_range: a thermostat's range on its -/+, with the chip for its end.
                     auto features = root["features"].to<JsonArray>();
@@ -736,6 +872,9 @@ api:
                     // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
                     // the visibility and the rain's unit.
                     features.add("weather_week");
+                    // weather_hours: a weather tile set to the next hours (display hourly) draws them (weather_tile_lvgl.h), so
+                    // ESP Screens sends that display; to a screen without it, the days (catalogue/weather.yaml).
+                    features.add("weather_hours");
                     // calendar_detail: a calendar card takes short events (calendar_feed.compact) and keeps 48 without PSRAM;
                     // a tap on one asks for its whole title, place and notes (esphome.screen_calendar, op "calendar_event").
                     features.add("calendar_detail");
@@ -760,6 +899,16 @@ api:
                     // streams (a P4, live_view.h): elsewhere the camera's picture would be a still.
                     #ifdef SD_MOD_DOORBELL
                     if (live_view::available()) features.add("doorbell");
+                    #endif
+                    // sounds (docs/SOUNDS.md): this screen plays sounds the app chose as files it downloads (kept_sound.h),
+                    // so ESP Screens sends a doorbell's ring its chime (`ch`) and an alert its tone (the op "sound").
+                    // A speaker on a second chip counts while that chip answers (hw::speaker_now).
+                    #if defined(USE_SPEAKER) && defined(SCREEN_PICTURES)
+                    if (hw::speaker_now()) {
+                      features.add("sounds");
+                      // buzzer: its speaker is a buzzer, so ESP Screens sends the sounds it made for a buzzer's band.
+                      if (hw::buzzer()) features.add("buzzer");
+                    }
                     #endif
                     // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
                     #ifdef SD_MOD_CALL
@@ -831,21 +980,14 @@ interval:
     then:
       - lambda: |-
           runtime_tiles::tick();
-          plugin_host::tick(millis(), id(display_dimmed));
+          plugin_host::tick(millis(), screen_standby::the().in_standby());
           screen_hooks::run_tick(millis());
   - interval: 1s
     then:
-      - if:
-          condition:
-            lambda: |-
-              if (!screen_settings::current.standby_enabled) return false;
-              if (id(display_dimmed) || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
-              // A doorbell's ring on the glass (module doorbell) stays lit until it closes.
-              if (runtime_tiles::doorbell_holds()) return false;
-              return (millis() - id(last_touch_ms)) > (screen_settings::current.standby_seconds * 1000UL);
-          then:
-            - script.execute: dim_display
-      - script.execute: back_to_page_1_when_due
+      # The standby time and Back to page 1 (screen_standby.h).
+      - lambda: 'screen_standby::the().tick(millis());'
+      # A glass of ink is made clean as the screen comes to rest, not while someone may be looking (paper_print.h).
+      - lambda: 'glass_moment::rest(screen_standby::the().at_rest(), millis());'
       # A page Home Assistant asked for while the pages were being prepared (show_page) opens once they are ready.
       - lambda: |-
           if (runtime_tiles::wanted_page > 0 && runtime_tiles::navigation_ready()) {
@@ -875,22 +1017,6 @@ time:
               minute: true
 
 globals:
-  # Alert overlay (HA action show_alert): standby waits while one is up.
-  - id: alert_active
-    type: bool
-    initial_value: 'false'
-  - id: alert_title_text
-    type: std::string
-  # The alert's colour as the automation named it (a swatch's light value, 0 for the normal card).
-  - id: alert_card_color
-    type: uint32_t
-    initial_value: '0'
-  - id: alert_timeout_seconds
-    type: int
-    initial_value: '0'
-  - id: alert_flash_requested
-    type: bool
-    initial_value: 'false'
   - id: rendered_frames
     type: uint32_t
     initial_value: '0'
@@ -900,56 +1026,6 @@ globals:
   - id: tile_page
     type: int
     initial_value: '0'
-  - id: touch_down
-    type: bool
-    initial_value: 'false'
-
-
-
-  # Two clocks. last_touch_ms is the standby time: a touch, Wake, an alert ending and Auto standby on restart it.
-  # last_use_ms is Back to page 1 (firmware 0.2.56+): only a touch, or Home Assistant opening the settings page.
-  - id: last_touch_ms
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: last_use_ms
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  # Debounce for do_tile_action: this resistive XPT2046 panel sometimes gives
-  # multiple separate press/release cycles for one physical touch (noise in
-  # the resistive layer), causing the same HA action to fire multiple times
-  # within a few hundred ms (observed: script.ambient_morning 6x in 8s).
-  - id: last_action_entity
-    type: std::string
-    restore_value: no
-
-  - id: last_action_ms
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: display_dimmed
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-  # Sleep from Home Assistant (0.2.45+): standby that also holds with Auto standby off,
-  # until a tap, Wake or an alert wakes the screen.
-  - id: sleep_requested
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-
-
-
-
-
-
-
 
 # The Tessera mark on the starting screen (firmware 0.3.8+), fonts/tessera-mark.png rendered from the website's
 # tessera-mark.svg; ESPHome scales it to the look's size when it builds. The top-level form that ESPHome 2026.6.2
@@ -978,7 +1054,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: headline
     size: ${FONT_HEADLINE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -999,7 +1075,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: watch_value
     size: ${FONT_WATCH_VALUE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1021,7 +1097,7 @@ font:
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: clock_digits
     size: ${FONT_CLOCK_DIGITS_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','-','0','1','2','3','4','5','6','7','8','9']
 
   # The display step (firmware 0.17.0+): half a page's width, the flip clock's blocks and the bedside clock
@@ -1029,7 +1105,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: display_digits
     size: ${FONT_DISPLAY_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','0','1','2','3','4','5','6','7','8','9']
 
   # The bedside clock's own step (firmware 0.8.0+), only where the whole page takes a fifth larger digits than the display
@@ -1037,20 +1113,21 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: bedside_digits
     size: ${FONT_BEDSIDE_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: [':','0','1','2','3','4','5','6','7','8','9']
 
   # The climate card's setpoint, large enough to read across the room; a humidifier's in percent (firmware 0.42.0+).
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: setpoint_digits
     size: ${FONT_SETPOINT_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['-','.',',','°','%','0','1','2','3','4','5','6','7','8','9']
 
-  - file: "${FONT_DIR}/Roboto-700.ttf"
+  # A tile's name: bold, or medium on the compact look (TILE_NAME_FONT_FILE), the same glyphs either way.
+  - file: "${FONT_DIR}/${TILE_NAME_FONT_FILE}"
     id: label
     size: ${FONT_LABEL_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1071,7 +1148,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: sublabel
     size: ${FONT_SUBLABEL_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1092,7 +1169,7 @@ font:
   - file: "${FONT_DIR}/Roboto-400.ttf"
     id: sublabel_big
     size: ${FONT_SUBLABEL_BIG_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
@@ -1114,7 +1191,7 @@ font:
   - file: "${FONT_DIR}/Roboto-700.ttf"
     id: brand_wordmark
     size: ${FONT_BRAND_SIZE}
-    bpp: 4
+    bpp: ${FONT_TEXT_BPP}
     glyphs: ['t','e','s','r','a']
 
   # Material Design Icons (MDI) — included at fonts/materialdesignicons-webfont.ttf (Apache 2.0)
@@ -1562,7 +1639,10 @@ font:
     glyphs: *tile_icons
 
 # Make memory visible: this board has no PSRAM, so the free heap determines
-# how much UI still fits. Also shows up as an entity in Home Assistant.
+# how much UI still fits. The figures are entities in Home Assistant, switched off there until someone wants them
+# (`disabled_by_default`, firmware 0.63.0): a row every five minutes per figure and screen is nobody's history. ESP
+# Screens switches them on while the screen's Debug mode is on (screen_manager/app/debug_sensors.py), and the
+# health lines below go to the log either way.
 debug:
   # Heap figures every five minutes: enough to spot a leak, few recorder rows.
   update_interval: 300s
@@ -1571,6 +1651,7 @@ sensor:
   - platform: debug
     free:
       name: "Heap Free"
+      disabled_by_default: true
       id: heap_free
       on_value:
         - lambda: |-
@@ -1595,13 +1676,16 @@ sensor:
             #endif
     fragmentation:
       name: "Heap Fragmentation"
+      disabled_by_default: true
     block:
       name: "Heap Largest Block"
+      disabled_by_default: true
       on_value:
         - lambda: 'ESP_LOGI("health", "largest_block=%.0f", x);'
     # The lowest free heap since boot: what the busiest moment (boot sync, a swipe) left over.
     min_free:
       name: "Heap Minimum Free"
+      disabled_by_default: true
       on_value:
         - lambda: 'ESP_LOGI("health", "min_free=%.0f", x);'
   # The other half of the memory (firmware 0.2.83+). The four figures above are ESPHome's debug platform, and on
@@ -1611,6 +1695,7 @@ sensor:
   # from how much PSRAM it has. These two say what the other half holds; a board without PSRAM reports zero.
   - platform: template
     name: "Psram Free"
+    disabled_by_default: true
     id: psram_free
     unit_of_measurement: B
     accuracy_decimals: 0
@@ -1628,6 +1713,7 @@ sensor:
   # page is built (show_tile_page_soon). The figure of the health line loop_stack_min_free.
   - platform: template
     name: "Loop Stack Free"
+    disabled_by_default: true
     id: loop_stack_free
     unit_of_measurement: B
     accuracy_decimals: 0
@@ -1646,6 +1732,7 @@ sensor:
   # shows nothing, so the figure waits for standby at level 0 or Sleep and keeps its last value until then.
   - platform: template
     name: "Psram Largest Block"
+    disabled_by_default: true
     id: psram_largest
     unit_of_measurement: B
     accuracy_decimals: 0
@@ -1654,7 +1741,7 @@ sensor:
     lambda: |-
       #ifdef USE_ESP32
         if (!heap_caps_get_total_size(MALLOC_CAP_SPIRAM)) return 0;
-        if (!id(display_dimmed) || runtime_tiles::standby_level() != 0) return {};
+        if (!screen_standby::the().in_standby() || runtime_tiles::standby_level() != 0) return {};
         return heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
       #else
         return 0;
@@ -1719,6 +1806,14 @@ text_sensor:
     name: "Screen board"
     entity_category: diagnostic
     lambda: 'return {"${BOARD_ID}"};'
+    update_interval: 60s
+  # The chip and its silicon revision (firmware after 0.63.0), "ESP32-P4 v3.2": ESP Screen Manager builds every later
+  # firmware of this screen for that revision (CHIP_REVISION in the screen's own YAML, docs/CHIP_REVISIONS.md), also
+  # when it was installed some other way than through the app. chip_revision.h reads it from the eFuses.
+  - platform: template
+    name: "Screen chip"
+    entity_category: diagnostic
+    lambda: 'return {chip_revision::said()};'
     update_interval: 60s
   # What this screen is able to do (firmware 0.2.99+): the words of settings_screen::features(), which is where the
   # list of abilities lives. ESP Screens used to read these facts from a table it keeps per board (boards.json),
@@ -1796,7 +1891,7 @@ switch:
     lambda: return screen_settings::current.standby_enabled;
     turn_on_action:
       - lambda: |-
-          id(last_touch_ms) = millis();
+          screen_standby::the().stir(millis());
           settings_screen::set("standby_enabled", 1);
     turn_off_action:
       - lambda: 'settings_screen::set("standby_enabled", 0);'
@@ -1954,6 +2049,9 @@ lvgl:
     - touchscreen_id: ts_touch
 
   buffer_size: ${LVGL_BUFFER_SIZE}
+  # A panel of e-paper is busy for a part of a second with every refresh: LVGL draws again when it is free, and tells
+  # the glass after every round of drawing (components/paper_glass). False on every glass that is lit.
+  update_when_display_idle: ${LVGL_WAITS_FOR_GLASS}
 
   # Direct local feedback on the WHOLE UI. A theme sets the style per widget type, so this covers all
   # buttons, tabs, sliders and the thermostat ring in one go. Non-clickable widgets never enter the
@@ -2358,8 +2456,12 @@ lvgl:
             scrollable: false
             scrollbar_mode: 'OFF'
             clickable: true
+            # A finger on a screensaver gets its answer as it lands, not when it lifts: the screensaver goes and the
+            # light comes up at once (runtime_tiles::saver_wake). The click that follows wakes nothing more.
+            on_press:
+              - lambda: 'if (runtime_tiles::saver_on()) screen_standby::the().wake(millis());'
             on_click:
-              - script.execute: wake_display
+              - lambda: 'screen_standby::the().wake(millis());'
               # A page that is one full tile switching something on or off switches with this push as well
               # (firmware 0.2.65+, runtime_tiles::wake_tap); on every other page the first touch only wakes.
               - lambda: 'runtime_tiles::wake_tap();'
@@ -2520,21 +2622,9 @@ script:
               id(screen_lvgl).set_rotation(wanted);
             }
           }
-          // Auto standby off wakes the screen, but not out of a Sleep pressed in Home Assistant.
-          if (id(display_dimmed) && !settings.standby_enabled && !id(sleep_requested)) {
-            id(display_dimmed) = false;
-          }
-          const int level = id(display_dimmed) ? runtime_tiles::standby_level() : settings.brightness;
-          ${APPLY_BACKLIGHT}
-          // Dark (standby or Sleep at level 0): the power saving of screen_power.h, once the backlight has faded out.
-          // ESPHome puts its own Wi-Fi mode back when it connects again: a dark screen dozes again within the minute.
-          if (id(display_dimmed) && level == 0) { if (screen_power::saving) screen_power::doze_wifi(true); else screen_power::rest(); }
-          else { id(screen_power_wait).stop(); screen_power::leave(); }
-          if (id(display_dimmed)) { lv_obj_clear_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(id(dim_wake_overlay)); }
-          else lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
-          // The screensaver (firmware 0.29.0+) in standby, at the standby level: it lies over everything on the top layer
-          // without a tap of its own, so the overlay takes the touch. Sleep pressed in Home Assistant stays without it.
-          runtime_tiles::saver_sync(id(display_dimmed) && !id(sleep_requested) && level > 0);
+          // The standby's part (screen_standby.h): the backlight's level, the power saving of a dark screen, the wake
+          // overlay and the screensaver.
+          screen_standby::the().show();
           // The setting numbers and times only publish a changed value (HA keeps identical states anyway); the
           // switches publish their own changes. An open settings page shows a change from Home Assistant too.
           // A number without a state publishes too: a night brightness of 0 equals the number's initial state and
@@ -2565,71 +2655,65 @@ script:
           else runtime_tiles::mark_time();
           if (!id(ui_refresh).is_running()) id(ui_refresh).execute();
 
+  # ---------- STANDBY (screen_standby.h) ----------
+  # Lit or in standby, why, which wake lights the screen and in which order a standby closes what is open: all of it is
+  # C++ (components/smart_display/screen_standby.h, run by tests/test_screen_standby.cpp). The scripts here are its
+  # names in YAML, for a board's key, a feature, a plugin's package and an Override YAML: each is one call.
+
   # Every card closes through runtime_tiles::dismiss (set in on_boot): the runtime detail card, the light,
   # colour card (runtime_tiles::colour_close, through hide_detail), which the swipe guard reads.
   - id: close_cards
     then:
       - lambda: 'if (runtime_tiles::dismiss) runtime_tiles::dismiss();'
 
-  # Everything back to the overview: the settings page, every card and the first page of tiles.
-  # Used by standby, by the "Back to page 1" timeout and by the Home Assistant action.
-  # From the loop's next pass too, like open_page: open_settings from Home Assistant goes home from inside the API's call.
+  # Everything back to the overview: the settings page, every card and the first page of tiles, from the loop's next
+  # pass (open_settings from Home Assistant goes home from inside the API's call).
   - id: go_home
-    mode: restart
     then:
-      - delay: 0ms
-      - lambda: 'settings_screen::close();'
-      - script.execute: close_cards
-      - lambda: 'runtime_tiles::navigation_history.clear(); id(tile_page) = runtime_tiles::home_page();'
-      - script.execute: show_tile_page
+      - lambda: 'screen_standby::the().go_home(millis());'
 
-  # Back to page 1 by itself (0.2.44+). A card, a settings page or a second page left open keeps
-  # showing what someone looked at minutes ago; after this long the screen is a screen again.
-  # Independent of standby, which may be off or much later; paused while the screen is in standby.
-  # The time runs from the last touch (last_use_ms, firmware 0.2.56+): Wake, an alert or Auto standby
-  # light the screen and restart the standby time, but nobody used a page. Checked every second and by Wake.
-  - id: back_to_page_1_when_due
+  # The one way every wake takes: the screen lit, the standby and its screensaver gone, every card closed.
+  - id: wake_display
     then:
-      - if:
-          condition:
-            lambda: |-
-              if (!runtime_tiles::auto_home || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
-              // A doorbell's ring (module doorbell) closes on its own times, not two minutes after the last touch.
-              if (runtime_tiles::doorbell_holds()) return false;
-              if (id(display_dimmed)) return false;
-              bool away = settings_screen::visible() || screen_hooks::is_away() || runtime_tiles::colour_shown() || id(tile_page) != runtime_tiles::home_page() ||
-                          (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));
-              return away && (millis() - id(last_use_ms)) > (uint32_t) runtime_tiles::auto_home_seconds * 1000UL;
-          then:
-            - script.execute: go_home
+      - lambda: 'screen_standby::the().wake(millis());'
 
-  # Wake that is light, not a tap (0.2.56+): the one way in for every wake that is not a finger on the glass. Home
-  # Assistant's Wake button, a board's own sensor (which presses that button) and a plugin (tessera::wake, plugin API
-  # 0.16, through plugin_host::wake) all come here; `source` only goes into the log. A dimmed screen lights up the way
-  # the tap on its wake overlay does, then goes to page 1 at once when that time ran out during standby; one that is on
-  # only restarts the standby time. Back to page 1 keeps counting from the last touch (last_use_ms), so a wake on every
-  # motion holds no card or page 2 up.
+  # A wake that is no finger, from the YAML: Home Assistant's Wake and Motion buttons and a board's own sensor. `source`
+  # goes into the log; `sensed` says it senses someone (Motion, a board that moved) and waits for the quiet after a
+  # standby by hand, where a wake someone means (Wake) never waits. Which kind that is: screen_standby::kind_of.
   - id: wake_from
     parameters:
       source: string
+      sensed: bool
     then:
-      - lambda: 'ESP_LOGI("standby", "Wake from %s, screen %s", source.c_str(), id(display_dimmed) ? "in standby" : "on");'
-      - if:
-          condition:
-            lambda: 'return id(display_dimmed);'
-          then:
-            - script.execute: wake_display
-            # A page whose time ran out during standby: light up on page 1, not on the old page first.
-            - script.execute: back_to_page_1_when_due
-          else:
-            - lambda: 'id(last_touch_ms) = millis();'
+      - lambda: 'screen_standby::the().wake_from(source.c_str(), screen_standby::Asker::SCRIPT, sensed, millis());'
 
-  # ---------- ALERT (HA action show_alert) ----------
-  # The screen wakes, keeps its normal brightness and shows the card until OK or the
-  # timeout (0: until OK); the standby interval waits on alert_active. A new alert
-  # replaces the current one; every ending reports itself as esphome.screen_alert.
-  - id: alert_show
+  # The board's own key (features/standby-key.yaml, firmware 0.64.0+): a toggle between standby and lit.
+  - id: standby_key
+    then:
+      - lambda: 'screen_standby::the().key(millis());'
+
+  # Standby by hand (firmware 0.64.0+): Home Assistant's Sleep, the board's key and the home key held.
+  - id: standby_by_hand
+    parameters:
+      source: string
+    then:
+      - lambda: 'screen_standby::the().standby_by_hand(source.c_str(), millis());'
+
+  # The standby's one timer: every wait of screen_standby.h (the loop's next pass, the power saving of a dark screen)
+  # asks here, and a new ask replaces the last.
+  - id: standby_wait
     mode: restart
+    parameters:
+      ms: int
+    then:
+      - delay: !lambda return ms;
+      - lambda: 'screen_standby::the().due(millis());'
+
+  # ---------- ALERT (alert_life.h) ----------
+  # The card of the actions show_alert and show_alert_choice. When it is up, what ends it, its blinks and what Home
+  # Assistant hears is C++ (components/smart_display/alert_life.h, run by tests/test_alert_life.cpp). The scripts here
+  # are its names in the YAML, for the actions, the card's keys and an Override YAML: each is one call.
+  - id: alert_show
     parameters:
       title: string
       subtitle: string
@@ -2643,73 +2727,58 @@ script:
       flash: bool
     then:
       - lambda: |-
-          if (id(alert_active)) id(alert_report).execute("replaced");
-          // An alert of the screen's own (firmware 0.38.0) reports nothing to Home Assistant when it closes.
-          runtime_tiles::own_alert = runtime_tiles::own_alert_next;
-          runtime_tiles::own_alert_next = false;
-          // An alert is the one thing that outranks the settings page, so that closes first.
-          settings_screen::close();
-          const auto alert = screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color);
-          // One button or two (firmware 0.3.3+), laid out before the hook, which lays the card out again for a picture.
-          runtime_tiles::alert_two_buttons = !alert.button2.empty();
-          lv_label_set_text(id(alert_button2_label), alert.button2.c_str());
-          runtime_tiles::alert_key(id(alert_ok), id(alert_ok_label), alert.button_color);
-          runtime_tiles::alert_key(id(alert_button2), id(alert_button2_label), alert.button2_color);
-          runtime_tiles::alert_place(false);
-          screen_hooks::run_alert_show();
-          id(alert_active) = true;
-          id(alert_title_text) = alert.title;
-          id(alert_timeout_seconds) = alert.timeout_seconds;
-          id(alert_flash_requested) = alert.flash;
-          lv_label_set_text(id(alert_icon), alert.icon.c_str());
-          lv_label_set_text(id(alert_title), alert.title.c_str());
-          lv_label_set_text(id(alert_subtitle), alert.subtitle.c_str());
-          lv_label_set_text(id(alert_ok_label), alert.button.c_str());
-          id(alert_card_color) = alert.color;
-          lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(alert.color)), LV_PART_MAIN);
-          ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
-                   alert.button2.empty() ? 1 : 2);
-      - script.execute: wake_display
-      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
-      - script.stop: alert_timeout
-      - if:
-          condition:
-            lambda: 'return id(alert_flash_requested);'
-          then:
-            - script.execute: alert_flash
-      - if:
-          condition:
-            lambda: 'return id(alert_timeout_seconds) > 0;'
-          then:
-            - script.execute:
-                id: alert_timeout
-                seconds: !lambda 'return id(alert_timeout_seconds);'
+          alert_life::the().show(screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX},
+                                                    ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color),
+                                 millis());
 
+  # The alert ends: ok, button2, timeout or remote, the reason Home Assistant hears.
+  - id: alert_dismiss
+    parameters:
+      reason: string
+    then:
+      - lambda: 'alert_life::the().dismiss(reason.c_str());'
+
+  # The backlight's blinks, as an alert that flashes starts them.
+  - id: alert_flash
+    then:
+      - lambda: 'alert_life::the().flash(millis());'
+
+  # The alert that is up closes by itself after so many seconds.
   - id: alert_timeout
-    mode: restart
     parameters:
       seconds: int
     then:
-      - delay: !lambda 'return static_cast<uint32_t>(seconds) * 1000UL;'
-      - script.execute:
-          id: alert_dismiss
-          reason: "timeout"
+      - lambda: 'alert_life::the().timeout(seconds, millis());'
 
-  # Home Assistant adds device_id; action is ok, button2 (the second button, firmware 0.3.3+), timeout, replaced or remote.
+  # An ending to Home Assistant, unless the alert is the screen's own.
   - id: alert_report
     parameters:
       action: string
     then:
-      - if:
-          condition:
-            lambda: 'return !runtime_tiles::own_alert;'
-          then:
-            - homeassistant.event:
-                event: esphome.screen_alert
-                data:
-                  action: !lambda 'return action;'
-                  title: !lambda 'return id(alert_title_text);'
-                  screen: !lambda 'return App.get_name();'
+      - lambda: 'alert_life::the().report(action.c_str());'
+
+  # The alert's one timer: its time running out and its blinks ask here, and a new ask replaces the last.
+  - id: alert_wait
+    mode: restart
+    parameters:
+      ms: int
+    then:
+      - delay: !lambda return ms;
+      - lambda: 'alert_life::the().due(millis());'
+
+  # What alert_life.h reports, as the event esphome.screen_alert. Home Assistant adds device_id; action is ok, button2
+  # (the second button, firmware 0.3.3+), timeout, replaced or remote.
+  - id: alert_event
+    parameters:
+      action: string
+      title: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_alert
+          data:
+            action: !lambda 'return action;'
+            title: !lambda 'return title;'
+            screen: !lambda 'return App.get_name();'
 
   # How a doorbell's ring ended here (module doorbell, docs/DOORBELL.md): answered (the first touch), closed, missed
   # (nobody touched it) or seen (opened again from the top bar), with the app's key of the ring. Home Assistant adds
@@ -2726,38 +2795,6 @@ script:
             key: !lambda 'return key;'
             screen: !lambda 'return App.get_name();'
 
-  # Standby: the standby time ran out (the 1 s interval checks Auto standby) or Sleep was pressed.
-  # The settings page and every card close; with "also on standby" the screen goes back to page 1 too.
-  # A board whose screen cannot go dark (CAN_STANDBY false, firmware 0.2.91+) has no standby at all: the time
-  # runs out and Sleep is pressed to no effect, and the screen simply stays lit.
-  - id: dim_display
-    mode: restart
-    then:
-      - if:
-          condition:
-            lambda: 'return settings_screen::can_standby;'
-          then:
-            - lambda: 'id(display_dimmed) = true;'
-            - if:
-                condition:
-                  lambda: 'return screen_settings::current.home_on_standby;'
-                then:
-                  - script.execute: go_home
-                else:
-                  - lambda: 'settings_screen::close();'
-                  - script.execute: close_cards
-            # After the cards closed: the screensaver (firmware 0.29.0+) may open the camera's full view itself.
-            - lambda: 'id(apply_screen_settings).execute(false);'
-
-  # The power saving's one wait (screen_power.h): after the backlight's fade out, or after a touch on the dark glass.
-  - id: screen_power_wait
-    mode: restart
-    parameters:
-      ms: int
-    then:
-      - delay: !lambda return ms;
-      - lambda: 'screen_power::due();'
-
   # Isolated 40-second preview; every light commit is suppressed in the helper.
   - id: light_controls_preview
     mode: single
@@ -2766,48 +2803,6 @@ script:
       - lambda: 'runtime_tiles::colour_demo(true);'
       - delay: 40s
       - lambda: 'runtime_tiles::colour_demo(false);'
-
-  # ----------------------------------------------------------
-  # do_tile_action
-  #
-  # Centralized handler for executing Home Assistant actions
-  # triggered by tile taps.
-  #
-  # Parameters
-  # - tile_type: light | fan | switch | scene | script | cover
-  # - tap_action: auto | toggle | activate | fan_toggle_preset
-  # - service: optional Home Assistant service override
-  # - entity_id: target entity
-  # - param_key / param_val: optional parameters for custom services
-  # - was_on: previous entity state (pass false for longpress actions)
-  #
-  # Behavior
-  #
-  # toggle
-  #   -> toggles the entity
-  #   light.toggle / fan.toggle / switch.toggle / cover.open_cover|close_cover (based on was_on)
-  #
-  # activate
-  #   -> activates entity
-  #   scene.turn_on / script.turn_on / light.turn_on / fan.turn_on / cover.open_cover
-  #
-  # auto
-  #   -> resolves automatically based on tile_type:
-  #        light/switch/fan/cover -> toggle
-  #        scene/script           -> activate
-  #
-  # fan_toggle_preset
-  #   -> if fan was ON: fan.turn_off
-  #   -> if fan was OFF:
-  #        fan.turn_on
-  #        wait 150ms
-  #        fan.set_preset_mode(param_val)
-  #
-  # Custom service
-  #   If "service" is set, it will be called directly.
-  #   param_key / param_val may be used for parameters
-  #   like preset_mode, brightness_pct, percentage, etc.
-  # ----------------------------------------------------------
 
   # UI refresh (values + time + styles) + render
   - id: ui_refresh
@@ -2840,8 +2835,9 @@ button:
   # script wake_from): it lights a dimmed screen and counts the standby time from now, while Back to
   # page 1 keeps counting from the last touch, so Wake on every motion no longer holds a card or page 2
   # up. Sleep is the standby time running out, right away and also with Auto standby off; it holds until
-  # a tap, Wake or an alert, and closes an alert that is up. Neither saves anything, so an automation may
-  # press them on every motion. No entity_category: they are controls, not settings.
+  # a tap, Wake or an alert, and closes an alert that is up (the script standby_by_hand). Motion (0.64.0+) is Wake
+  # for an automation on motion. None saves anything, so an automation may press them as often as it likes. No
+  # entity_category: they are controls, not settings.
   - platform: template
     id: wake_button
     name: "Wake"
@@ -2850,24 +2846,27 @@ button:
       - script.execute:
           id: wake_from
           source: "Home Assistant"
+          # A person or an automation that means it: it always wakes, also right after a standby by hand.
+          sensed: false
+  # Motion (firmware 0.64.0+): what an automation presses on motion, someone sensed, as a plugin's wake. It wakes as Wake
+  # does, except right after a standby by hand: then it waits until the room went quiet (screen_standby.h).
+  - platform: template
+    id: motion_button
+    name: "Motion"
+    icon: "mdi:motion-sensor"
+    on_press:
+      - script.execute:
+          id: wake_from
+          source: "Home Assistant's Motion"
+          sensed: true
   - platform: template
     id: sleep_button
     name: "Sleep"
     icon: "mdi:power-sleep"
     on_press:
-      - if:
-          condition:
-            lambda: 'return id(calibration_active);'
-          then:
-            - lambda: 'ESP_LOGI("standby", "Sleep from Home Assistant ignored: touch calibration is running");'
-          else:
-            - lambda: |-
-                ESP_LOGI("standby", "Sleep from Home Assistant");
-                id(sleep_requested) = true;
-            - script.execute:
-                id: alert_dismiss
-                reason: "remote"
-            - script.execute: dim_display
+      - script.execute:
+          id: standby_by_hand
+          source: "Home Assistant's Sleep"
 
 number:
   # Firmware 0.2.49+: every number goes through settings_screen::set(), like the settings page, so a value the

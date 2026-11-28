@@ -53,6 +53,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(REPO / 'diagnostics'))
 sys.path.insert(0, str(REPO / 'screen_manager' / 'app'))
 import host  # noqa: E402
+import ink_audit  # noqa: E402
 import send_layout  # noqa: E402
 
 # Every render shows the same moment: Tuesday 15 September 2026, 10:08 in Amsterdam.
@@ -278,6 +279,10 @@ def placed(question, place, **said):
     return picture_service.Service._painted(None, question, place, picture_sources.Resolved(**said))
 
 
+# The inks of the board being rendered, 0 for a glass that is lit: set as its run begins (Run).
+PAPER_INKS = [0]
+
+
 def painted(question, raws, said=None):
     """(bytes, question) of a screen's question painted as the add-on paints it (picture_service.Service.answer and
     picture): within the screen's cap, each place as its source says (`said`, a dict per place for placed()), from one raw
@@ -289,12 +294,14 @@ def painted(question, raws, said=None):
     question = dataclasses.replace(question, places=tuple(placed(question, place, **(said[n] if said else {}))
                                                           for n, place in enumerate(question.places)))
     raws = [raw(place.w, place.h) if callable(raw) else raw for raw, place in zip(raws, question.places)]
-    return picture_paint.paint(question, raws), question
+    # For a board whose glass is e-paper the app paints in the panel's inks (picture_service, core.inks_of).
+    return picture_paint.paint(question, raws, inks=PAPER_INKS[0]), question
 
 
 def too_old(esphome):
     """Refuse an ESPHome older than the app's (screen_manager/Dockerfile): an older one fails the host build on what it
-    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3."""
+    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3.
+    Returns the version that runs, for a board that asks for a newer one than the app's (main)."""
     wanted = re.search(r'esphome/esphome:(\d+\.\d+\.\d+)', (REPO / 'screen_manager/Dockerfile').read_text())[1]
     try:
         said = subprocess.run([*esphome, 'version'], capture_output=True, text=True, timeout=60).stdout
@@ -305,6 +312,7 @@ def too_old(esphome):
         raise SystemExit(f'The host renders need ESPHome {wanted} or newer (the app\'s) and {" ".join(esphome)} is '
                          f'{found[0] if found else "unknown"}: run uv run --no-project --python 3.13 --with esphome=={wanted} '
                          f'--with pillow python tools/render/run.py {" ".join(sys.argv[1:])}')
+    return tuple(map(int, found.groups()))
 
 
 def free(port):
@@ -318,8 +326,10 @@ class Run:
     def __init__(self, build, out, pictures, camera, only=None):
         self.build, self.item, self.out, self.pictures, self.camera = build, build.variant, out, pictures, camera
         self.only = only
+        PAPER_INKS[0] = build.inks
         self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
+        self.ink_faults, self.ink_judged = [], 0  # the ink audit's, for a board whose glass is ink (audit)
         self.alert_title_h = None  # the first alert's title, one line high: every alert's title is as high
 
     async def call(self, name, **args):
@@ -394,8 +404,35 @@ class Run:
             await asyncio.sleep(0.05)
         raise RuntimeError(f'no snapshot at {path}')
 
+    def ink_step(self, image, what=()):
+        """What the paper glass's own ink step (paper_ink_tool.cpp, which is paper_ink.h) makes of `image`: the panel's
+        inks, or with what=('raster',) where it printed a raster."""
+        tool = self.build.work / 'paper_ink_tool'
+        source = HERE / 'paper_ink_tool.cpp'
+        rules = REPO / 'components' / 'paper_glass' / 'paper_ink.h'
+        if not tool.exists() or tool.stat().st_mtime < max(source.stat().st_mtime, rules.stat().st_mtime):
+            subprocess.run([os.environ.get('CXX', 'c++'), '-std=c++17', '-O2', f'-I{REPO}', str(source), '-o', str(tool)], check=True)
+        raw = io.BytesIO()
+        image.convert('RGB').save(raw, 'PPM')
+        done = subprocess.run([str(tool), str(self.build.inks), *what], input=raw.getvalue(), capture_output=True, check=True)
+        return Image.open(io.BytesIO(done.stdout))
+
+    def inked(self, image):
+        """`image` as this board's glass of ink prints it. A board whose glass is lit gets its picture back as it is."""
+        return self.ink_step(image).convert('RGB') if self.build.inks else image
+
+    def audit(self, name, image, seen):
+        """The ink audit of one picture (ink_audit.py): `image` is what LVGL drew, before the ink step, and `seen`
+        what the host program saw LVGL draw for it (ink_audit.h)."""
+        if not any(kind == 'T' for kind, _, _ in seen):
+            return
+        found, judged = ink_audit.faults(name, self.ink_step(image, ('raster',)).convert('L'), seen, image.convert('RGB'))
+        self.ink_faults += found
+        self.ink_judged += judged
+
     async def render(self, name, keep=True, timeout=25):
-        """Snapshots until two in a row match (at least 0.4 s apart); the last is kept as <name>.png."""
+        """Snapshots until two in a row match (at least 0.4 s apart); the last is kept as <name>.png. On a board whose
+        glass is e-paper the picture kept and handed back is the panel's inks (inked)."""
         start, previous = time.monotonic(), None
         while True:
             image = await self.snapshot(self.out / f'{name}.ppm')
@@ -407,6 +444,12 @@ class Run:
             previous = image
             await asyncio.sleep(0.4)
         (self.out / f'{name}.ppm').unlink(missing_ok=True)
+        # What the host program saw LVGL draw for this picture, on a glass of ink: the ink audit reads it.
+        seen_file = self.out / f'{name}.ppm.seen'
+        if self.build.inks and seen_file.exists():
+            self.audit(name, image, ink_audit.read(seen_file.read_text(errors='replace')))
+        seen_file.unlink(missing_ok=True)
+        image = self.inked(image)
         if keep:
             image.save(self.out / f'{name}.png')
         return image
@@ -998,6 +1041,10 @@ class Run:
         digits, value, number, word = (int(v) for v in re.search(r'digits=(\d+) value=(\d+) covers=(\d),(\d)', fonts).groups())
         if not (digits > value and number == 1 and word == 0):
             self.failures.append(f'Font::DIGITS is not the large digits: {fonts}')
+        # The clocks' digits (plugin API 0.29): half a page larger than DIGITS, the page's at least that, and a time in them.
+        large, page, clock = (int(v) for v in re.search(r'large=(\d+) page=(\d+) clock=(\d)', fonts).groups())
+        if not (large > digits and page >= large and clock == 1):
+            self.failures.append(f'Font::DIGITS_LARGE and DIGITS_PAGE are not the clocks\' digits: {fonts}')
         # The tones for a block (plugin API 0.9): four colours of their own, GOOD on the badge, and a label one line high.
         tones = await self.until(lambda l: probe(l, 'tile=0 tones'), 10, 'the tones of tile 0', start)
         good, busy, alert, normal, fill = re.search(r'good=(\w+) busy=(\w+) alert=(\w+) normal=(\w+) fill=(\w+)', tones).groups()
@@ -1006,6 +1053,17 @@ class Run:
         height = await self.until(lambda l: probe(l, 'tile=0 label height'), 10, 'the height of a label', start)
         if re.search(r'height=(\d+) line=(\d+)', height).group(1) != re.search(r'height=(\d+) line=(\d+)', height).group(2):
             self.failures.append(f'a label is not one line high: {height}')
+        # A tile renamed in the editor (plugin API 0.29, plugin_host made_from): the editor's save of a name reaches the
+        # plugin, whose card is made again and gets the new name in create(); then the old name back for the rest.
+        probe_tile = next(t for page in record['layout']['pages'] for t in page['tiles']
+                          if (t.get('appearance') or {}).get('label') == 'Probe')
+        for label in ('Renamed', 'Probe'):
+            start_name = len(self.lines)
+            probe_tile['appearance']['label'] = label
+            compiled = send_layout.compile_tiles(record['layout'], grid)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(1), bars)
+            await self.until(lambda l: probe(l, 'tile=0 create') and f'name=[{label}]' in l, 10,
+                             f'tile 0 made again with its new name {label}', start_name)
         # Boot came before the harness listened: the probe repeats what it heard then with every tile it makes.
         status = await self.until(lambda l: probe(l, 'status ready='), 10, 'the probe status', start)
         assert 'ready=1 settings=5 interval=1' in status, f'the moments of boot: {status}'
@@ -1849,6 +1907,84 @@ class Run:
                 'title': m[4], 'status': m[5], 'line': m[6], 'modes': points(m[7]), 'keys': points(m[8]), 'faults': m[9],
                 'locked': int(m[10])}
 
+    async def look_book(self, pages):
+        """A look book of this board, to leaf through: every page of the demo layout, the card a hold opens on every
+        tile, the colour card's example, the alerts, the settings pages, and the screen at rest with its page and
+        with each clock face. One picture each and no checks. Made for a board whose glass is e-paper, where every
+        picture is the panel's inks (inked) and a design is judged by eye before it goes to a real glass
+        (docs/PAPER.md, "Seeing it without a screen"); it runs on any board.
+
+            python3 tools/render/run.py reterminalsticky-portrait --only paper
+        """
+        made = 0
+
+        async def keep(name, settle=0.6):
+            nonlocal made
+            await asyncio.sleep(settle)
+            await self.render(name)
+            made += 1
+
+        async def home(page=0):
+            await self.call('render_close_cards')
+            await self.call('render_page', page=page)
+            await self.page_done(page)
+
+        for page in range(pages):
+            await home(page)
+            await keep(f'page-{page + 1}', 1.0)
+            for n, (entity, (x, y)) in enumerate((await self.slots()).items()):
+                await self.hold(x, y)
+                await keep(f'page-{page + 1}-card-{n + 1}-{entity.replace(".", "-")}')
+                await home(page)
+                await asyncio.sleep(0.3)
+        # The colour card as the screen's own example shows it: a lamp with a colour, a white shade and a brightness.
+        await home()
+        if 'light_controls_preview' in self.services:
+            await self.call('light_controls_preview')
+            await keep('colour-card', 1.0)
+            await self.call('render_close_cards')
+        # The alerts, each over page 1.
+        for name, given in ALERTS:
+            await home()
+            args = dict(title='', subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+            choice = any(field in given for field in CHOICE_FIELDS)
+            if choice:
+                args.update({field: '' for field in CHOICE_FIELDS})
+            args.update(given)
+            await self.call('show_alert_choice' if choice else 'show_alert', **args)
+            await keep(name, 1.0)
+            await self.call('dismiss_alert')
+            await asyncio.sleep(0.5)
+        # The settings: its first page and each page behind it.
+        if 'open_settings' in self.services:
+            # The table's own pages, a few of the plugins' and the board's Extras (settings_screen.h, BOARD_PAGE); the
+            # screen says which of them it has.
+            for page in (*range(8), 250):
+                await home()
+                start = len(self.lines)
+                await self.call('open_settings', page=page)
+                await asyncio.sleep(0.8)
+                if any('settings' in line.lower() and 'no page' in line.lower() for line in self.lines[start:]):
+                    continue
+                await keep('settings-extras' if page == 250 else f'settings-{page}')
+            await home()
+        # At rest: the page in its calm look, then each face of the clock as the screensaver.
+        await home()
+        await self.call('render_standby', enter=1)
+        await keep('rest-page', 1.5)
+        faces = [('saver-clock', {'k': 'clock'})]
+        if 'clock_faces' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board].get('modules', ()):
+            faces += [(f'saver-{face}-{look}', {'k': 'clock', 'cf': {'f': face, 'n': 4, 's': 1, 'l': look}})
+                      for face in ('glass', 'classic', 'bauhaus') for look in ('light', 'dark')]
+        for name, message in faces:
+            await self.send({'v': 1, 'op': 'saver', **message})
+            await keep(name, 1.5)
+        await self.call('render_standby', enter=0)
+        await asyncio.sleep(0.6)
+        await home()
+        await keep('awake-again')
+        return made
+
     async def standby_state(self):
         """What ui_state says of standby and pages: the standby clock (idle), the page clock (use), dimmed and the page."""
         start = len(self.lines)
@@ -1879,7 +2015,7 @@ class Run:
 
         self.client.switch_command(auto.key, True)
         await asyncio.sleep(0.6)
-        state = await press(sleep, 'Sleep from Home Assistant')
+        state = await press(sleep, "Standby from Home Assistant's Sleep")
         if not state['dimmed']:
             failed('Sleep did not dim the screen')
         # Auto standby turned off, which applies the settings again: a Sleep holds.
@@ -1908,7 +2044,7 @@ class Run:
         if state['idle'] > 1500 or state['use'] < 3000:
             failed(f'Auto standby turned on: {state} (the standby clock restarts, the page clock goes on)')
         # A tap on the dimmed glass ends a Sleep the way Wake does.
-        await press(sleep, 'Sleep from Home Assistant')
+        await press(sleep, "Standby from Home Assistant's Sleep")
         await self.tap(width // 2, height // 2)
         await asyncio.sleep(0.6)
         state = await self.standby_state()
@@ -1923,6 +2059,23 @@ class Run:
         start = len(self.lines)
         self.client.button_command(sleep.key)
         await self.until(lambda l: 'dismissed: remote' in l, 10, 'Sleep did not close the alert as closed from Home Assistant', start)
+        await press(wake, 'Wake from Home Assistant')
+        # GitHub #457: with Back to page 1 on standby, a Sleep from Home Assistant (inside the API's call) goes to page 1 on
+        # the loop's next pass and shows itself after it: the screen is in standby, on page 1, and stays there. The order
+        # itself, the screensaver last, is tests/test_screen_standby.cpp's.
+        on_standby = entities['Back to page 1 on standby']
+        self.client.switch_command(on_standby.key, True)
+        await asyncio.sleep(0.6)
+        await self.call('show_page', page=2)
+        await asyncio.sleep(1)
+        if (await self.standby_state())['page'] != 1:
+            failed('show_page 2 before the Sleep that goes home')
+        await press(sleep, "Standby from Home Assistant's Sleep")
+        await asyncio.sleep(1)
+        state = await self.standby_state()
+        if not state['dimmed'] or state['page'] != 0:
+            failed(f'Sleep with Back to page 1 on standby: {state} (in standby, on page 1)')
+        self.client.switch_command(on_standby.key, False)
         await press(wake, 'Wake from Home Assistant')
         # Back to page 1 counts from the last touch: page 2 opened from Home Assistant, Wake pressed every few seconds,
         # and the page still goes home once its time is over.
@@ -1960,6 +2113,89 @@ class Run:
         if states.get(dimmed.key) != 10:
             failed(f'the standby brightness the screen pulled down to 10 reached Home Assistant as {states.get(dimmed.key)}')
         return 'standby round'
+
+    async def alert_life_round(self):
+        """An alert's life on the real firmware (alert_life.h; tests/test_alert_life.cpp runs every rule of it): each ending
+        as Home Assistant hears it, through the actions, the card's own two keys under a finger and the event the screen
+        sends. Its time running out, a new alert over one, dismiss_alert, OK, the second button, an alert that lights a
+        screen in standby, and one that flashes."""
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        entities = {getattr(e, 'name', ''): e for e in (await self.client.list_entities_services())[0]}
+        failed = lambda what: self.failures.append(f'alert life: {what}')  # noqa: E731
+
+        def heard():
+            return [(call.data.get('action'), call.data.get('title')) for call in calls
+                    if getattr(call, 'is_event', False) and call.service == 'esphome.screen_alert']
+
+        async def show(title, action='show_alert', **more):
+            args = dict(title=title, subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+            if action == 'show_alert_choice':
+                args.update({field: '' for field in CHOICE_FIELDS})
+            args.update(more)
+            start = len(self.lines)
+            await self.call(action, **args)
+            await self.until(lambda l: '[alert' in l and f'show "{title}"' in l, 10, f'the alert {title} never showed', start)
+
+        async def ends(reason, title, start, seconds=10):
+            await self.until(lambda l: f'dismissed: {reason}' in l, seconds, f'{title} never ended as {reason}', start)
+            end = time.monotonic() + 5
+            while (reason, title) not in heard() and time.monotonic() < end:
+                await asyncio.sleep(0.1)
+            if (reason, title) not in heard():
+                failed(f'Home Assistant did not hear {title} end as {reason}: {heard()}')
+            if (await self.state())['alert']:
+                failed(f'{title} ended as {reason} and its card is still up')
+
+        async def press(part, title, reason):
+            box = (await self.state())['boxes'][part]
+            start = len(self.lines)
+            await self.tap((box[0] + box[2]) // 2, (box[1] + box[3]) // 2)
+            await ends(reason, title, start)
+
+        # Its time runs out.
+        start = len(self.lines)
+        await show('Oven', timeout=2)
+        await ends('timeout', 'Oven', start)
+        # A new alert over one: the first is replaced, the second ends from Home Assistant's side.
+        await show('First')
+        await show('Second')
+        end = time.monotonic() + 5
+        while ('replaced', 'First') not in heard() and time.monotonic() < end:
+            await asyncio.sleep(0.1)
+        if ('replaced', 'First') not in heard():
+            failed(f'Home Assistant did not hear First replaced: {heard()}')
+        start = len(self.lines)
+        await self.call('dismiss_alert')
+        await ends('remote', 'Second', start)
+        # The card's own keys, under a finger.
+        await show('Washing done')
+        await press('button', 'Washing done', 'ok')
+        await show('Gate', action='show_alert_choice', button_text='Open', button2_text='No')
+        await press('button2', 'Gate', 'button2')
+        # An alert lights a screen in standby, a standby by hand too.
+        start = len(self.lines)
+        self.client.button_command(entities['Sleep'].key)
+        await self.until(lambda l: "Standby from Home Assistant's Sleep" in l, 10, 'Sleep before the alert', start)
+        await asyncio.sleep(0.6)
+        if not (await self.standby_state())['dimmed']:
+            failed('Sleep did not dim the screen before the alert')
+        await show('Door')
+        await asyncio.sleep(0.6)
+        if (await self.standby_state())['dimmed'] or not (await self.state())['alert']:
+            failed('an alert did not light a screen in standby')
+        start = len(self.lines)
+        await self.call('dismiss_alert')
+        await ends('remote', 'Door', start)
+        # One that flashes stays up through its blinks and ends as any other.
+        await show('Flash', flash=True)
+        await asyncio.sleep(2)
+        if not (await self.state())['alert']:
+            failed('an alert that flashes went by itself')
+        await press('button', 'Flash', 'ok')
+        if len(heard()) != 7:
+            failed(f'seven endings, one event each: {heard()}')
+        return 'alert life round'
 
     async def tap(self, x, y):
         await self.call('render_finger', x=x, y=y, down=True)
@@ -3342,6 +3578,119 @@ class Run:
         await show('humidifier-full', [e('humidifier.bedroom', size='full', controls='setpoint_mode')])
         return 1
 
+    async def climate_panel(self, grid):
+        """A thermostat's card with and without its swing row (`--only climate`): a ducted air conditioner whose
+        integration lists swing modes while the feature is off in supported_features shows its fan row alone, as Home
+        Assistant's own card does; the same unit with the feature on shows both rows. The ducted one in Dark mode too."""
+        from core import extras, state_message
+        def unit(name, features, swing=True):
+            attributes = {'friendly_name': name, 'current_temperature': 21.5, 'temperature': 20, 'min_temp': 16,
+                          'max_temp': 32, 'target_temp_step': 0.5, 'hvac_action': 'cooling',
+                          'hvac_modes': ['off', 'cool', 'heat', 'dry', 'fan_only'],
+                          'fan_modes': ['Auto', 'Quiet', 'Low', 'Medium'], 'fan_mode': 'Low',
+                          'supported_features': features}
+            if swing:
+                attributes.update(swing_modes=['Highest', 'Middle', 'Normal', 'Lowest', 'Swing'], swing_mode='Swing')
+            return {'state': 'cool', 'attributes': attributes, 'last_changed': MOMENT.isoformat()}
+        # 393: a temperature, a fan, off and on. 425: the same with swing. 8: a fan coil with a fan alone, no temperature
+        # to set and no turn_off or turn_on, so its card has no setpoint card and its power key sets the mode "off".
+        states = {'climate.ducted': unit('Ducted', 393), 'climate.split': unit('Split unit', 425),
+                  'climate.fan_coil': unit('Fan coil', 8, swing=False)}
+        states['climate.fan_coil']['attributes'].pop('temperature')
+        # A thermostat that keeps a range: the longest line a tile writes ("Heat/Cool · 18 - 22° · Now 21.5°"), which a
+        # narrow tile shortens in turn (tile_controls::climate_tile_shorter).
+        states['climate.range'] = unit('Range', 386 | 8, swing=False)
+        states['climate.range']['state'] = 'heat_cool'
+        states['climate.range']['attributes'].update(hvac_modes=['off', 'heat_cool', 'cool', 'heat'], target_temp_low=18, target_temp_high=22)
+        states['climate.range']['attributes'].pop('temperature')
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=state['attributes']['friendly_name'], options={}, slot=slot)
+                    for slot, (entity, state) in enumerate(states.items())]
+        record = send_layout.migrate_legacy(dict(title='Climate', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await asyncio.sleep(1.0)
+        await self.render('climate-tiles')
+        for name, entity, dark in (('climate-card-no-swing', 'climate.ducted', True), ('climate-card-swing', 'climate.split', False),
+                                   ('climate-card-no-setpoint', 'climate.fan_coil', True)):
+            spots = await self.slots()
+            if entity not in spots:
+                self.warnings.append(f'climate: {entity} is not on the glass')
+                continue
+            await self.hold(*spots[entity])
+            opened = await self.alarm_until(lambda c: c['open'], f'holding {entity} never opened its card')
+            await asyncio.sleep(0.8)
+            await self.render(name)
+            if opened['faults']:
+                self.warnings.append(f'climate card {entity}: {opened["faults"]}')
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await asyncio.sleep(1.5)
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            await self.tap(*opened['back'][:2])
+            await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
+        return 1
+
+    async def marquee_round(self, grid):
+        """A long name and a long second line rolling by (`--only marquee`, Tile::name_scroll and sub_scroll), frame by
+        frame: an airco in fan-only mode whose line does not fit, a lamp whose name does not fit, and the same two with
+        their roll off, ended in dots or a shorter wording as before. Snapshots one after another (render() waits for two
+        equal ones, which a moving line never gives), each kept as marquee-NN.png with its time since the first in
+        marquee.txt, and marquee-sheet.png with them all. The rolling ones must move and the still ones must not."""
+        from core import extras, state_message
+        airco = {'state': 'fan_only', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Airco', 'current_temperature': 22.5, 'temperature': 20, 'min_temp': 16, 'max_temp': 32,
+            'target_temp_step': 0.5, 'hvac_modes': ['off', 'heat_cool', 'cool', 'heat', 'fan_only', 'dry'],
+            'fan_modes': ['auto'], 'fan_mode': 'auto', 'supported_features': 393}}
+        lamp = {'state': 'on', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Lampen in de hal bij de voordeur', 'brightness': 180, 'color_mode': 'brightness',
+            'supported_color_modes': ['brightness']}}
+        states = {'climate.airco': airco, 'light.hall': lamp, 'climate.airco_still': airco, 'light.hall_still': lamp}
+        names = {'climate.airco': 'Airco', 'light.hall': 'Lampen in de hal bij de voordeur',
+                 'climate.airco_still': 'Airco (off)', 'light.hall_still': 'Lampen in de hal bij de voordeur (off)'}
+        still = {'climate.airco_still': {'sub_scroll': 'off'}, 'light.hall_still': {'name_scroll': 'off'}}
+        region = dict(keepalive=120, clock_24h=True, numbers='comma', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=names[entity], options=still.get(entity, {}), slot=slot)
+                    for slot, entity in enumerate(states)]
+        record = send_layout.migrate_legacy(dict(title='Marquee', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        frames, first, times = [], None, []
+        count, every = int(os.environ.get('MARQUEE_FRAMES', '24')), float(os.environ.get('MARQUEE_EVERY', '0.25'))
+        for n in range(count):
+            image = await self.snapshot(self.out / 'marquee.ppm')
+            now = time.monotonic()
+            first = first if first is not None else now
+            times.append(now - first)
+            image.save(self.out / f'marquee-{n:02d}.png')
+            frames.append(image)
+            await asyncio.sleep(every)
+        (self.out / 'marquee.ppm').unlink(missing_ok=True)
+        (self.out / 'marquee.txt').write_text(''.join(f'marquee-{n:02d}.png {t:6.2f} s\n' for n, t in enumerate(times)))
+        w, h = frames[0].size
+        across = 4
+        sheet = Image.new('RGB', (across * (w + 8), ((count + across - 1) // across) * (h + 24)), 'white')
+        draw = ImageDraw.Draw(sheet)
+        for n, (image, t) in enumerate(zip(frames, times)):
+            x, y = (n % across) * (w + 8), (n // across) * (h + 24)
+            draw.text((x + 4, y + 4), f'{n:02d}  {t:5.2f} s', fill=(0, 0, 0))
+            sheet.paste(image, (x, y + 20))
+        sheet.save(self.out / 'marquee-sheet.png')
+        changed = sum(a.tobytes() != b.tobytes() for a, b in zip(frames, frames[1:]))
+        if not changed:
+            self.warnings.append('marquee: no frame differs from the one before: nothing rolled')
+        return 1
+
     async def remote_panel(self, grid):
         """A remote (firmware 0.22.0, GitHub #117) the way it is used: a tap opens its card, as Home Assistant's tile card
         opens its dialog, with the power key in the top bar and the activities where the remote has them; the tap option
@@ -4598,14 +4947,14 @@ class Run:
         if self.only != 'plugin':
             await self.render('starting')
         # Each step of it as the screen says it (firmware 0.38.0), from Wi-Fi to an update, then back as it was.
-        if 'render_boot' in self.services and self.only not in ('plugin', 'dock'):  # the Dock's round needs no boot screens
+        if 'render_boot' in self.services and self.only not in ('plugin', 'dock', 'climate', 'paper'):  # the Dock's round needs no boot screens
             for name, given in BOOT_STATES:
                 await self.call('render_boot', **{**BOOT_DEFAULTS, **given})
                 await self.render(name)
             await self.call('render_boot', **{**BOOT_DEFAULTS, 'ha': -1})
         side = json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board]['orientations']
         side = side['portrait' if self.item.rotation else 'landscape']
-        grid = send_layout.Grid(side['columns'], side['rows'])
+        grid = send_layout.Grid(*(self.build.grid or (side['columns'], side['rows'])))
         many = self.only == 'dock'  # every page the screen holds, to see the dock full
         record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=DOCK_TITLES if many else PAGE_TITLES,
                                                                  pages=len(DOCK_TITLES) if many else None)
@@ -4635,6 +4984,8 @@ class Run:
             return 1, await self.lock_panel(grid)
         if self.only == 'automation':
             return 1, await self.automation_panel(grid)
+        if self.only == 'marquee':
+            return 1, await self.marquee_round(grid)
         if self.only == 'remote':
             return 1, await self.remote_panel(grid)
         if self.only == 'bedside':
@@ -4647,6 +4998,8 @@ class Run:
             return 1, await self.saver_panel()
         if self.only == 'doorbell':
             return 1, await self.doorbell_round()
+        if self.only == 'climate':
+            return 1, await self.climate_panel(grid)
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
         if self.only == 'vacuum':
@@ -4669,6 +5022,10 @@ class Run:
             return 1, await self.plugin_round(grid)
         if self.only == 'standby':
             return 1, await self.standby_round()
+        if self.only == 'paper':
+            return pages, await self.look_book(pages)
+        if self.only == 'alertlife':
+            return 1, await self.alert_life_round()
         checks = await self.self_test()
         await self.moments(pages)
         await self.dock(pages)
@@ -4764,9 +5121,11 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'marquee', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby', 'paper'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
+    parser.add_argument('--grid', help='another grid than the board\'s own, COLUMNSxROWS (2x4), as New screen builds a screen '
+                        'with one of its choice: the cells of a page for the way each variant hangs')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
     args = parser.parse_args()
     # The programs write their pictures from their own folder, so every path they get is absolute.
@@ -4781,13 +5140,30 @@ def main():
     if busy:
         raise SystemExit(f'ports {", ".join(busy)} are in use; stop what listens there first')
     esphome = shlex.split(os.environ.get('ESPHOME', 'esphome'))
-    too_old(esphome)
+    running = too_old(esphome)
     camera = tuple(int(n) for n in args.camera.split('x'))
     pictures = Pictures()
-    results, failed = {}, []
+    results, failed, skipped = {}, [], []
     tree = args.tree.resolve()
     for item in items:
-        build = host.Build(item, tree=tree, work=args.work, esphome=esphome, plugin=args.plugin)
+        # A board that asks for a newer ESPHome than the one running (its board file's min_version; the reTerminal
+        # Sticky asks for 2026.11.0 while the app's is older) cannot be built here. In a run of every board it is
+        # skipped, as tools/check.sh skips its firmware build; asked for by name it fails, and says what it needs.
+        floor = host.esphome_floor(tree, item.file)
+        if running < floor:
+            wants, has = '.'.join(map(str, floor)), '.'.join(map(str, running))
+            if args.variants:
+                failed.append(item.key)
+                results[item.key] = {'status': 'build failed', 'log': f'asks for ESPHome {wants}, this is {has}'}
+                print(f'{item.key}: BUILD FAILED\nits board asks for ESPHome {wants} and this is {has}: run uv run --no-project '
+                      f'--python 3.13 --with esphome=={wants} --with pillow python tools/render/run.py {item.key}', flush=True)
+            else:
+                skipped.append(item.key)
+                results[item.key] = {'status': 'SKIP', 'summary': f'asks for ESPHome {wants}, this is {has}'}
+                print(f'{item.key}: SKIP (asks for ESPHome {wants}, this is {has})', flush=True)
+            continue
+        build = host.Build(item, tree=tree, work=args.work, esphome=esphome, plugin=args.plugin,
+                           grid=[int(n) for n in args.grid.split('x')] if args.grid else None)
         started = time.monotonic()
         ok, output = build.compile()
         if not ok:
@@ -4802,6 +5178,14 @@ def main():
         except Exception as error:  # a program that crashed or stopped answering
             run.failures.append(f'{type(error).__name__}: {error}')
             summary = 'stopped'
+        # The ink audit of a board whose glass is ink (Run.audit): each fault once, beside the pictures and among
+        # the failures. A round's other checks were written for a glass that is lit; this one is the glass of ink's.
+        ink = sorted(set(run.ink_faults))
+        if build.inks:
+            run.out.mkdir(parents=True, exist_ok=True)
+            (run.out / 'ink-audit.txt').write_text(''.join(f'{fault}\n' for fault in ink)
+                                                   + f'{run.ink_judged} texts judged: {len(ink)} on a raster or a picture\n')
+        run.failures += [f'ink: {fault}' for fault in ink]
         status = 'FAIL' if run.failures else 'PASS'
         if run.failures:
             failed.append(item.key)
@@ -4815,7 +5199,9 @@ def main():
         sheet(args.out, rendered)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / 'summary.json').write_text(json.dumps({'tree': str(tree), 'results': results}, indent=1) + '\n')
-    last = f'{len(items) - len(failed)} of {len(items)} variants passed'
+    last = f'{len(items) - len(failed) - len(skipped)} of {len(items)} variants passed'
+    if skipped:
+        last += f', {len(skipped)} skipped for a newer ESPHome ({", ".join(skipped)})'
     (args.out / 'summary.txt').write_text(''.join(f"{key}: {result['status']} {result.get('summary', '')}\n"
                                                   + ''.join(f'  {line}\n' for line in result.get('failures', []))
                                                   for key, result in results.items()) + last + '\n')

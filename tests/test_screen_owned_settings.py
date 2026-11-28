@@ -251,6 +251,28 @@ class OwnedSettings(unittest.IsolatedAsyncioTestCase):
             for key in ('dark_mode', 'auto_home', 'auto_home_seconds', 'swipe_pages', 'page_buttons'):
                 self.assertIn(key, view['keys'], key)
 
+    async def test_a_glass_of_ink_has_no_light_to_set(self):
+        # A glass of e-paper is read by the light of the room (docs/PAPER.md): no brightness and no night, on the
+        # screen (tests/test_settings_screen.cpp) and here. Its board says so in boards.json (`inks`),
+        # and a screen says so itself with the word "paper". Standby stays: the picture it keeps while it rests.
+        self.assertTrue(core.is_paper({'board': 'reterminalsticky'}))
+        self.assertFalse(core.is_paper({'board': 'guition'}))
+        self.assertFalse(core.is_paper({'board': 'a board this app never heard of'}))
+        self.assertTrue(core.is_paper({'board': 'guition', 'features': 'standby paper battery'}))
+        self.assertFalse(core.is_paper({'board': 'guition', 'features': 'dimmable standby'}))
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            screen = m.screen('text.screen')
+            view = m.settings_view({**screen, 'features': 'standby paper battery'})
+            for key in core.PAPER_KEYS:
+                self.assertNotIn(key, view['keys'] + view['unavailable'], key)
+            for key in ('dark_mode', 'standby_enabled', 'standby_seconds', 'auto_home', 'swipe_pages', 'page_buttons'):
+                self.assertIn(key, view['keys'], key)
+            # The same screen with a glass that is lit keeps them.
+            view = m.settings_view(screen)
+            for key in core.PAPER_KEYS:
+                self.assertIn(key, view['keys'], key)
+
     async def test_a_screen_says_itself_what_it_can_do(self):
         # A board can be changed: a Waveshare whose backlight was rewired to a PWM pin (docs/WAVESHARE7.md) really
         # does dim, and the table this app keeps per board would keep saying it cannot. So a screen reports its own
@@ -662,6 +684,7 @@ class Editor(unittest.TestCase):
         self.script = editor_sources.SCRIPT
         self.css = editor_sources.CSS
         self.tab = editor_sources.component('SettingsTab')
+        self.rows = editor_sources.component('SettingRows')
 
     def test_the_panel_replaces_the_form(self):
         self.assertIn('<div class="settings" id="general-settings"', self.tab)
@@ -673,7 +696,8 @@ class Editor(unittest.TestCase):
             self.assertIn(rule, self.css)
         # A value Home Assistant does not have (offline, entity off) shows as unknown, not as a default.
         self.assertIn('if (value === null || value === undefined) return "—";', self.script)
-        self.assertIn(':class="{ unknown: values[row.key] === null || values[row.key] === undefined }"', self.tab)
+        # The rows themselves are SettingRows, which each part of the tab shows by key (docs/PAGES.md, "Settings").
+        self.assertIn(':class="{ unknown: values[row.key] === null || values[row.key] === undefined }"', self.rows)
 
     def test_the_rows_are_the_settings_of_the_screen_page(self):
         import editor_sources
@@ -694,7 +718,13 @@ class Editor(unittest.TestCase):
         # editor, and no key the screen reports.
         screen_only = {english['debug_mode']}
         self.assertTrue(screen_only <= page_labels)
-        self.assertEqual(page_labels - switch_labels - screen_only, script_labels)
+        # The standby's time says After on the screen, as the row under Back to Home does: it stands right under Auto
+        # standby, and its longer name was cut beside its keys on a narrow glass. The editor's row, in a list of its
+        # own order, keeps the whole name.
+        whole = {editor_sources.text('screen_settings.rows.standby_seconds')}
+        self.assertEqual(whole, {'Standby after'})
+        self.assertIn('duration(screen_text::txt::settings_after, []() -> int32_t { return screen_settings::current.standby_seconds; }', SCREEN_PAGE)
+        self.assertEqual(page_labels - switch_labels - screen_only, script_labels - whole)
         # The -/+ steps and the duration ladder are run on both sides over the same edges: ladderStep and steppedSetting
         # in web/tests/settings.spec.ts, ladder_step in tests/test_settings_screen.cpp.
 

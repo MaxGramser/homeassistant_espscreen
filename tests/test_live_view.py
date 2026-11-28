@@ -178,6 +178,9 @@ class P4Build(unittest.TestCase):
         self.assertEqual(engine_build.picture_engine('esp32s3', True, True), 's3')
         self.assertEqual(engine_build.picture_engine('esp32s3', True, False), 'software')  # nowhere to decode into
         self.assertEqual(engine_build.picture_engine('esp32s3', False, True), 'software')
+        # A paper glass streams nothing and decodes no JPEG, on any chip.
+        self.assertEqual(engine_build.picture_engine('esp32s3', True, True, paper=True), 'software')
+        self.assertEqual(engine_build.picture_engine('esp32p4', True, True, paper=True), 'software')
         for variant in ('esp32', 'esp32c3', 'host'):
             self.assertEqual(engine_build.picture_engine(variant, True, True), 'software')
         # Three things, each its own define: the engine, the glass and the streams; a P4 and an S3 have all three, each

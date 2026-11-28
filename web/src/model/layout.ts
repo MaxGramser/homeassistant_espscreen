@@ -338,7 +338,7 @@ export const supportsFirmware = (firmware: string | undefined | null, major: num
 // add-on tells the editor per screen (tile_limit, app 0.2.78); this rule stays for a screen entry without it.
 
 // What a tile shows and how big it is, in a few words (editor.displays, editor.sizes); a key it doesn't know stays as it is.
-export const DISPLAYS = ["standard", "watch", "forecast", "graph", "digital", "analog", "dial", "flip", "sunpath", "live", "cover", "meter"];
+export const DISPLAYS = ["standard", "watch", "forecast", "hourly", "graph", "digital", "analog", "dial", "flip", "sunpath", "live", "cover", "meter"];
 export const displayName = (display: string) => (DISPLAYS.includes(display) ? t(`editor.displays.${display}`) : display);
 export const sizeName = (size: string | undefined) => t(`editor.sizes.${SIZES.includes(size as Size) ? size : "single"}`);
 export const TOGGLE_BEFORE = ["light", "switch", "input_boolean", "automation", "fan", "media_player", "climate"];

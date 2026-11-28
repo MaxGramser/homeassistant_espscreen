@@ -4,14 +4,19 @@ Every edit runs on the real files of this tree, so a changed line format fails h
 Standard library and PyYAML only.
 """
 from pathlib import Path
+import argparse
+import contextlib
+import io
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
+import affected_boards  # noqa: E402
 import firmware_count  # noqa: E402
 import profiles  # noqa: E402
 import release  # noqa: E402
@@ -142,9 +147,14 @@ class TheName(unittest.TestCase):
     """The App store shows the app from the #dev URL beside the stable one: on dev its name says dev, a release takes
     that off, and publish refuses a release that still has it (docs/RELEASING.md, "Testing dev")."""
     def test_dev_names_the_app_dev(self):
-        # On dev the CHANGELOG starts with "## Unreleased"; the release commit has its version there and the plain name.
-        on_dev = CHANGELOG.startswith('## Unreleased')
-        self.assertEqual(release.name_of(CONFIG), 'Tessera Screen Manager (dev)' if on_dev else 'Tessera Screen Manager')
+        # Work under "## Unreleased" is dev's, so the name says dev. A CHANGELOG that starts with a version is the
+        # release commit, with the plain name, or dev right after it: publish puts the mark back there in a commit of
+        # its own, and "## Unreleased" only returns with the first line someone writes under it.
+        name = release.name_of(CONFIG)
+        if CHANGELOG.startswith('## Unreleased'):
+            self.assertEqual(name, 'Tessera Screen Manager (dev)')
+        else:
+            self.assertIn(name, ('Tessera Screen Manager', 'Tessera Screen Manager (dev)'))
 
     def test_a_release_takes_the_mark_off_and_dev_puts_it_back(self):
         # From dev's file also on a release commit, whose own file has the plain name already.
@@ -202,6 +212,156 @@ class TheCandidate(unittest.TestCase):
                 text = release.git('show', f'{commit}:{path}', cwd=clone)
                 self.assertNotRegex(text, release.REF_MAIN)
                 self.assertIn(release.CANDIDATE, text)
+
+
+class World:
+    """What tools/release.py sees of git, GitHub and the tree at a publish, made up: a release commit that is pushed,
+    with main behind it. Every push and every call to GitHub is written down in `did` and goes nowhere; a call the
+    route should not make fails the test (the release tool's tests must never reach GitHub, where one once started the
+    real workflow)."""
+    HEAD, MAIN, VERSION = 'a' * 40, 'b' * 40, '9.9.9'
+
+    def __init__(self, changed, ci='success', candidate=None, checks=True):
+        self.changed, self.ci, self.candidate, self.checks = list(changed), ci, candidate, checks
+        self.did = []
+        firmware = profiles.substitutions_in(CORE_YAML)['SCREEN_FIRMWARE_VERSION'].strip('"')
+        self.files = {release.CHANGELOG: f'## {self.VERSION} (firmware {firmware})\n\n- A fix in the editor.\n\n'
+                                         + without_unreleased(CHANGELOG),
+                      release.CONFIG: release.with_name(release.with_version(CONFIG, self.VERSION), dev=False)}
+
+    def git(self, *args, **_):
+        if args[0] in ('push', 'tag', 'commit'):
+            self.did.append(('git', *args))
+            return ''
+        if args[0] == 'rev-parse':
+            if '--abbrev-ref' in args:
+                return 'hotfix-editor'
+            if '--verify' in args:   # has(ref): the tag of the release does not exist yet
+                return ''
+            return {f'{self.candidate}^': 'c' * 40 if self.candidate == 'other' else self.HEAD}.get(args[-1], self.HEAD)[:40]
+        if args[0] == 'ls-remote':
+            return f'{self.candidate}\trefs/heads/{release.CANDIDATE}' if self.candidate and '--heads' in args else ''
+        if args[0] == 'branch':
+            return 'origin/hotfix-editor'
+        if args[0] in ('status', 'fetch'):
+            return ''
+        raise AssertionError(f'a git call the test does not know: {args}')
+
+    def gh(self, *args):
+        self.did.append(('gh', *args[:2]))
+        return ''
+
+    def ci_state(self, _sha):
+        self.did.append(('ci_state',))
+        return {job: self.ci for job in release.CI_JOBS}
+
+    def app_checks(self):
+        self.did.append(('check.sh --app',))
+        return self.checks
+
+    def the_release(self):
+        with mock.patch.object(affected_boards, 'only_comments', return_value=False):
+            reach = affected_boards.sort(self.changed, 'HEAD')
+        return 'b' * 40, reach, set(), affected_boards.release_of(reach)
+
+    def publish(self, *flags):
+        """(exit status or the refusal's text, what was printed) of `tools/release.py publish --notes <file> flags`."""
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            notes = Path(folder) / 'notes.md'
+            notes.write_text('What is new.\n')
+            for name, stand_in in (('git', self.git), ('gh', self.gh), ('fetch', lambda: None), ('ci_state', self.ci_state),
+                                   ('app_checks', self.app_checks), ('the_release', self.the_release),
+                                   ('ancestor', lambda *_: True), ('lint_problem', lambda: None),
+                                   ('read', lambda path: self.files[path]),
+                                   ('write', mock.Mock(side_effect=AssertionError('a publish from a hotfix writes no file'))),
+                                   ('plugins_clone', mock.Mock(side_effect=AssertionError('a hotfix leaves the plugins alone')))):
+                stack.enter_context(mock.patch.object(release, name, stand_in))
+            # Whatever slips past the stand-ins above is stopped here instead of reaching a real repository.
+            stack.enter_context(mock.patch.object(release.subprocess, 'run',
+                                                  mock.Mock(side_effect=AssertionError('a publish test ran a real command'))))
+            stack.enter_context(contextlib.redirect_stdout(out))
+            args = argparse.Namespace(notes=str(notes), yes='--yes' in flags, without_ci='--without-ci' in flags,
+                                      without_upgrade_test='--without-upgrade-test' in flags, without_plugins=False)
+            try:
+                return release.publish(args), out.getvalue()
+            except release.Refusal as refusal:
+                return str(refusal), out.getvalue()
+
+    def moved(self):
+        """Whether main and the tag were pushed."""
+        return any(step[:2] == ('git', 'push') and f'{self.HEAD}:refs/heads/main' in step for step in self.did)
+
+
+APP_AND_EDITOR = ('web/src/App.vue', 'screen_manager/app/core.py', 'screen_manager/app/static/index.html',
+                  'screen_manager/config.yaml', 'screen_manager/CHANGELOG.md', 'docs/RELEASING.md')
+
+
+class TheShortRoute(unittest.TestCase):
+    """An app and editor release (docs/RELEASING.md, "An app and editor release"): what changed since main picks the
+    route at publish. Without a firmware source it asks neither CI nor the upgrade test and runs tools/check.sh --app
+    itself; with one it is the release it always was, and no flag of the short route exists to get past that."""
+
+    def test_app_and_editor_only_publishes_after_its_own_checks(self):
+        world = World(APP_AND_EDITOR, ci='missing', candidate=None)
+        status, said = world.publish('--yes')
+        self.assertEqual(status, 0, status)
+        self.assertNotIn(('ci_state',), world.did)             # CI on every board is not asked for
+        self.assertIn(('check.sh --app',), world.did)
+        self.assertTrue(world.moved())
+        self.assertLess(world.did.index(('check.sh --app',)), world.did.index(('git', 'tag', 'screens-v9.9.9', world.HEAD)))
+        self.assertIn(('gh', 'release', 'create'), world.did)
+        self.assertIn('Published Tessera 9.9.9', said)
+
+    def test_without_yes_it_says_so_and_runs_nothing(self):
+        world = World(APP_AND_EDITOR, ci='missing')
+        status, said = world.publish()
+        self.assertEqual(status, 0, status)
+        self.assertIn('run tools/check.sh --app first (app and editor only', said)
+        self.assertIn('Nothing done', said)
+        self.assertEqual(world.did, [])
+
+    def test_a_failing_check_moves_nothing(self):
+        world = World(APP_AND_EDITOR, checks=False)
+        status, _said = world.publish('--yes')
+        self.assertIn('tools/check.sh --app failed', status)
+        self.assertEqual(world.did, [('check.sh --app',)])
+
+    def test_a_firmware_source_takes_the_full_route(self):
+        """One package, component, screen text source or Dockerfile among the app's files: CI and the candidate are
+        asked for as before, the refusal names the file, and the short checks are not what it is published on."""
+        for source in ('packages/core.yaml', 'components/smart_display/theme.h', 'screen_manager/Dockerfile',
+                       str(profiles.BOARDS['cyd'].relative_to(ROOT)), 'web/wasm/firmware_preview.cpp'):
+            with self.subTest(source=source):
+                world = World([*APP_AND_EDITOR, source], ci='missing', candidate=None)
+                status, _said = world.publish('--yes')
+                self.assertIn('Not published', status)
+                self.assertIn(f'this is no app and editor release, a firmware source changed since main ({source})', status)
+                self.assertIn('CI is not green on HEAD', status)
+                self.assertIn(f'there is no {release.CANDIDATE}', status)
+                self.assertFalse(world.moved())
+                self.assertNotIn(('check.sh --app',), world.did)
+                self.assertEqual([step for step in world.did if step[0] in ('git', 'gh')], [])
+
+    def test_a_firmware_release_that_is_proven_goes_out_as_before(self):
+        world = World([*APP_AND_EDITOR, 'packages/core.yaml'], ci='success', candidate='d' * 40)
+        status, said = world.publish('--yes')
+        self.assertEqual(status, 0, status)
+        self.assertIn(('ci_state',), world.did)
+        self.assertNotIn(('check.sh --app',), world.did)
+        self.assertNotIn('app and editor', said)
+        self.assertTrue(world.moved())
+        # A candidate made of another commit is still refused.
+        world = World([*APP_AND_EDITOR, 'packages/core.yaml'], candidate='other')
+        self.assertIn('was made of another commit', world.publish('--yes')[0])
+        self.assertFalse(world.moved())
+
+    def test_the_route_follows_what_changed_in_prepare_and_status_too(self):
+        self.assertTrue(release.app_only(affected_boards.sort(list(APP_AND_EDITOR), 'HEAD')))
+        with mock.patch.object(affected_boards, 'only_comments', return_value=False):
+            self.assertFalse(release.app_only(affected_boards.sort([*APP_AND_EDITOR, 'packages/core.yaml'], 'HEAD')))
+        # No flag picks the short route: the command line has none for it.
+        self.assertNotRegex((ROOT / 'tools/release.py').read_text(), r"add_argument\('--(app|short|editor)")
 
 
 def plugin_index(api, *plugins):
@@ -286,6 +446,172 @@ class ThePlugins(unittest.TestCase):
                 self.assertEqual(plugins.merge('trial', keep=False), (None, ['README.md']))
                 self.assertEqual(plugins.merge('again', keep=True), (None, ['README.md']))
                 self.assertEqual(plugins.git('status', '--porcelain'), '')
+
+
+class TheIndexRun(unittest.TestCase):
+    """The index workflow on main at a release (release_plugins.build_index): a run of the hour can push the release's
+    waiting run out, which GitHub calls cancelled; it is started once more, and any other end is the answer."""
+
+    def ends(self, *conclusions):
+        left = list(conclusions)
+        with mock.patch.object(release_plugins, 'index_run', side_effect=lambda say=print: left.pop(0)) as run:
+            return release_plugins.build_index(lambda *_: None), run.call_count
+
+    def test_a_pushed_out_run_is_started_once_more(self):
+        self.assertEqual(self.ends('cancelled', 'success'), ('success', 2))
+        self.assertEqual(self.ends('cancelled', 'cancelled'), ('cancelled', 2))
+
+    def test_any_other_end_is_the_answer(self):
+        self.assertEqual(self.ends('success'), ('success', 1))
+        self.assertEqual(self.ends('failure'), ('failure', 1))
+
+
+class TheModules(unittest.TestCase):
+    """The editor's modules at a release (release_plugins.modules_step, docs/EMULATOR_ARCHITECTURE.md "Plugins"): the
+    released editor draws a plugin's tile with a module built for its preview's number, so a release is done only when
+    every plugin main offers has its module, or the reason it has none, for that number."""
+    NUMBER = '0123456789abcdef'
+    INDEX = plugin_index('0.12', ('radar', '0.4.0', '0.12'), ('voice', '0.4.0', '0.12'), ('clock', '1.1.0', '0.10'),
+                         ('gone', '1.0.0', '0.12', 'blocked'))
+
+    def setUp(self):
+        # What the branch `modules` has for the number: the radar's module, the clock's of an older version, and why
+        # the voice plugin has none. A test's own, as some add to it.
+        self.built = {'radar': {'0.4.0': {'sha256': 'a', 'bytes': 1}}, 'clock': {'1.0.0': {'sha256': 'b', 'bytes': 1}}}
+        self.reason = {'voice': {'0.4.0': 'voice needs or brings hardware (speaker): it shows on a screen only'}}
+        # No test here reaches GitHub or waits a real second: a test that would start the plugins' workflow fails
+        # instead (the tests that answer for GitHub put their own answers in place of this).
+        for name, stand_in in (('gh', mock.Mock(side_effect=AssertionError('a test reached GitHub'))), ('time', mock.Mock())):
+            patcher = mock.patch.object(release_plugins, name, stand_in)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_a_plugin_has_a_module_or_a_reason_at_the_version_main_offers(self):
+        listing = {'modules': self.built, 'skipped': self.reason}
+        # The clock's module is of an older version; a plugin main does not offer (blocked) needs none.
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, listing), ['clock 1.1.0'])
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, {}), ['radar 0.4.0', 'voice 0.4.0', 'clock 1.1.0'])
+        listing['modules']['clock'] = {'1.0.0': {}, '1.1.0': {'sha256': 'c', 'bytes': 1}}
+        self.assertEqual(release_plugins.modules_missing(self.INDEX, listing), [])
+        self.assertEqual(release_plugins.modules_text(self.INDEX, listing), '2 of 3 plugins have a module, 1 a reason why not')
+
+    def test_the_number_is_the_one_this_tree_s_editor_asks_for(self):
+        import json
+        shipped = json.loads((ROOT / release_plugins.PREVIEW).read_text())['plugin_abi']
+        self.assertEqual(release_plugins.preview_number(ROOT), shipped)
+        self.assertRegex(shipped, r'^[0-9a-f]{16}$')
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(release_plugins.preview_number(folder), '')            # a core before plugin modules
+            target = Path(folder) / release_plugins.PREVIEW
+            target.parent.mkdir(parents=True)
+            for text, number in (('{"firmware": "0.60.0"}', ''), ('not json', ''), ('{"plugin_abi": "../../etc"}', ''),
+                                 (f'{{"plugin_abi": "{self.NUMBER}"}}', self.NUMBER)):
+                target.write_text(text)
+                self.assertEqual(release_plugins.preview_number(folder), number, text)
+
+    @unittest.skipUnless(shutil.which('git'), 'needs git')
+    def test_the_listing_is_read_from_the_branch_the_workflow_publishes(self):
+        import json
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            run = lambda *args: subprocess.run(['git', *args], cwd=root / 'work', check=True, capture_output=True, text=True)
+            subprocess.run(['git', 'init', '--quiet', '--bare', '-b', 'main', str(root / 'origin.git')], check=True)
+            subprocess.run(['git', 'clone', '--quiet', str(root / 'origin.git'), str(root / 'work')], check=True, capture_output=True)
+            for key, value in (('user.name', 'Release test'), ('user.email', 'release-test@example.invalid')):
+                run('config', key, value)
+            (root / 'work' / 'index.json').write_text(json.dumps(self.INDEX))
+            run('add', '-A'); run('commit', '-qm', 'start'); run('push', '-q', 'origin', 'HEAD:main')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                self.assertEqual(plugins.modules(self.NUMBER), {})                   # no branch `modules` yet
+            run('checkout', '-q', '--orphan', 'modules'); run('rm', '-rqf', '.')
+            listing = root / 'work' / 'modules' / self.NUMBER / 'index.json'
+            listing.parent.mkdir(parents=True)
+            listing.write_text(json.dumps({'abi': self.NUMBER, 'modules': self.built, 'skipped': self.reason}))
+            run('add', '-A'); run('commit', '-qm', 'Modules'); run('push', '-q', 'origin', 'modules')
+            with release_plugins.Clone(str(root / 'origin.git')) as plugins:
+                self.assertEqual(plugins.modules(self.NUMBER)['modules'], self.built)
+                self.assertEqual(plugins.modules('f' * 16), {})                      # nothing built for another preview
+                self.assertEqual(release_plugins.modules_missing(plugins.index('origin/main'), plugins.modules(self.NUMBER)),
+                                 ['clock 1.1.0'])
+
+    def turns(self, *looks, ends=()):
+        """await_modules with what each look finds missing and how each turn of the workflow ends."""
+        found, ended = list(looks), list(ends)
+        with mock.patch.object(release_plugins, 'modules_run', side_effect=lambda say: ended.pop(0)) as turn:
+            return release_plugins.await_modules(lambda: found.pop(0), lambda *_: None), turn.call_count
+
+    def test_nothing_missing_starts_no_run(self):
+        self.assertEqual(self.turns([]), (([], None), 0))
+
+    def test_what_is_missing_is_built_and_looked_at_again(self):
+        self.assertEqual(self.turns(['clock 1.1.0'], [], ends=['success']), (([], 'success'), 1))
+        # A run that was under way before main's index was built did not see it: the next one does.
+        self.assertEqual(self.turns(['clock 1.1.0'], ['clock 1.1.0'], [], ends=['success', 'success']), (([], 'success'), 2))
+        # One pushed out by a run of the hour, and one that could not build another plugin: what is there decides.
+        self.assertEqual(self.turns(['clock 1.1.0'], ['clock 1.1.0'], [], ends=['cancelled', 'failure']), (([], 'failure'), 2))
+
+    def test_it_stops_after_its_turns_and_says_what_is_left(self):
+        looks = [['clock 1.1.0']] * (release_plugins.MODULE_TURNS + 1)
+        self.assertEqual(self.turns(*looks, ends=['failure'] * release_plugins.MODULE_TURNS),
+                         ((['clock 1.1.0'], 'failure'), release_plugins.MODULE_TURNS))
+
+    def workflow(self, *lists):
+        """modules_run against GitHub as `gh run list` answers it, one list per look: (its answer, the gh calls)."""
+        import json
+        import time
+        answers, calls = list(lists), []
+        def gh(*args):
+            calls.append(args[:2])
+            return json.dumps(answers.pop(0) if len(answers) > 1 else answers[0]) if args[:2] == ('run', 'list') else ''
+        clock = mock.Mock(time=time.time, monotonic=time.monotonic, strptime=time.strptime)   # real time, no sleep
+        with mock.patch.object(release_plugins, 'gh', side_effect=gh), mock.patch.object(release_plugins, 'time', clock):
+            return release_plugins.modules_run(lambda *_: None), calls
+
+    def row(self, number, status, conclusion=None, event='workflow_run', at='2020-01-01T00:00:00Z'):
+        return {'databaseId': number, 'status': status, 'conclusion': conclusion, 'event': event, 'createdAt': at}
+
+    def test_a_run_that_is_under_way_is_waited_for_and_none_is_started(self):
+        """The index run on main starts the modules run by itself: the newest waiting one runs last, so it is the one."""
+        before = [self.row(9, 'queued'), self.row(8, 'in_progress'), self.row(7, 'completed', 'success')]
+        after = [self.row(9, 'completed', 'success'), self.row(8, 'completed', 'failure'), self.row(7, 'completed', 'success')]
+        ended, calls = self.workflow(before, [self.row(9, 'in_progress'), *before[1:]], after)
+        self.assertEqual(ended, 'success')
+        self.assertNotIn(('workflow', 'run'), calls)
+
+    def test_with_no_run_under_way_one_is_started_on_main_and_that_one_is_waited_for(self):
+        import time
+        now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() + 60))
+        old = self.row(7, 'completed', 'failure', 'workflow_dispatch')              # an earlier run, not this one
+        ended, calls = self.workflow([old], [old], [self.row(8, 'in_progress', None, 'workflow_dispatch', now), old],
+                                     [self.row(8, 'completed', 'success', 'workflow_dispatch', now), old])
+        self.assertEqual(ended, 'success')
+        self.assertEqual(calls.count(('workflow', 'run')), 1)
+
+    def test_a_release_is_not_done_while_a_plugin_has_no_module(self):
+        """The step of the release itself, against a plugins repository that gets the module at the second look."""
+        class Plugins:
+            listings = [{'modules': self.built, 'skipped': self.reason}]
+            fetch = mock.Mock()
+            def index(_, ref):
+                return self.INDEX
+            def modules(inner, number):
+                self.assertEqual(number, self.NUMBER)
+                return inner.listings[0]
+        said = []
+        def built(_say):
+            Plugins.listings[0]['modules']['clock'] = {'1.1.0': {'sha256': 'c', 'bytes': 1}}
+            return 'success'
+        with mock.patch.object(release_plugins, 'modules_run', side_effect=built) as run:
+            release_plugins.modules_step(Plugins(), self.NUMBER, said.append)
+        self.assertEqual(run.call_count, 1)
+        self.assertIn('2 of 3 plugins have a module, 1 a reason why not', said[-1])
+        # And one that never gets it: the release says which plugin, for which preview, and where to look.
+        Plugins.listings[0]['modules'].pop('clock')
+        with mock.patch.object(release_plugins, 'modules_run', return_value='failure'):
+            with self.assertRaises(release_plugins.Problem) as refused:
+                release_plugins.modules_step(Plugins(), self.NUMBER, said.append)
+        for part in ('clock 1.1.0', self.NUMBER, 'ended failure', release_plugins.MODULES_WORKFLOW):
+            self.assertIn(part, str(refused.exception))
 
 
 if __name__ == '__main__':

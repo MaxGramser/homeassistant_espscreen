@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { useResizeObserver } from "@vueuse/core";
-import { nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { vTooltip } from "floating-vue";
 import "floating-vue/dist/style.css";
 import { t } from "../i18n";
-import { explainsItself, languageOnly, pendingText, rowStatus, screenBoardName, screenIcon, updateNotes } from "../model/screen-status";
+import { explainsItself, languageOnly, pendingText, rowStatus, screenBoardName, updateNotes } from "../model/screen-status";
 import { glyph } from "../model/topbar";
 import { summaryText } from "../model/broken-tiles";
 import type { Screen } from "../types";
 import Icon from "./ui/Icon.vue";
 import TesseraMark from "./TesseraMark.vue";
+import ScreenMini from "./ScreenMini.vue";
 import BuildIndicator from "./BuildIndicator.vue";
 import BrokenList from "./BrokenList.vue";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
@@ -64,6 +65,14 @@ const isSelected = (screen: Screen) => screen.id === scr.selected && ui.route ==
 const explains = (screen: Screen) => explainsItself(screen, scr.updateState(screen)?.kind);
 // Folded to its icons the sidebar has no room for a screen's details: the row opens them again.
 const isOpen = (screen: Screen) => !sidebar.folded && (folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen));
+// A screen's plugin news on its row (plugins.newsOn): a plugin that did not build, or how many have an update; the
+// firmware's own update keeps its key, plugin news opens the screen's Plugins tab.
+const news = computed(() => new Map(inv.inventory.screens.map((screen) => [screen.id, plugins.pluginsEnabled ? plugins.newsOn(screen) : null])));
+const pluginNews = (screen: Screen) => news.value.get(screen.id) ?? null;
+function openPlugins(screen: Screen) {
+  if (!isSelected(screen)) folded.value = null;
+  void session.openTab(screen.id, "plugins");
+}
 function choose(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;
   removeFor.value = null;
@@ -73,9 +82,10 @@ function toggleDetails(screen: Screen) {
   folded.value = { id: screen.id, open: !isOpen(screen) };
   if (!folded.value.open) removeFor.value = null;
 }
-// The icon and the board of a screen, and what its update brings (model/screen-status.ts).
-const boardIcon = (screen: Screen) => glyph(screenIcon(screen));
+// The board of a screen, and what its update brings (model/screen-status.ts). Its picture in the row is ScreenMini's.
 const boardName = screenBoardName;
+// The overview is open: nothing chosen and no other page (the row that leads there says so).
+const isHome = computed(() => !scr.selected && ui.route === "");
 const notes = (screen: Screen) => updateNotes(screen, builds.whatsNew(screen), scr.newLanguageText);
 function update(screen: Screen) {
   const u = screen.update || {};
@@ -144,13 +154,17 @@ const lastLog = () => {
   <aside ref="aside" class="side">
     <div class="side-top">
       <button type="button" class="brand" :aria-label="t('editor.sidebar.home')" :title="sidebar.folded ? undefined : t('editor.sidebar.home')"
-        v-tooltip="tip('brand', t('editor.sidebar.home'))" :aria-current="!scr.selected && ui.route === '' ? 'page' : undefined" @click="session.goHome">
+        v-tooltip="tip('brand', t('editor.sidebar.home'))" @click="session.goHome">
         <TesseraMark class="mark" />
         <span class="txt">Tessera</span>
         <!-- The dev app (added from the #dev URL) says so beside the name, so nobody mistakes it for the stable one. -->
         <span v-if="builds.devChannel" class="chip channel-chip" id="dev-chip" :title="t('editor.sidebar.dev_chip')">dev</span>
       </button>
       <BuildIndicator />
+      <!-- Search (app 0.4.110): a key beside the logo with its shortcut in the tooltip. It searches the whole app, so it
+           stands with the app's name and not among the screens. -->
+      <button type="button" class="icon-btn side-search" id="open-palette" :aria-label="t('editor.sidebar.search')"
+        v-tooltip="tip('search', `${t('editor.sidebar.search')} ⌘K`, true)" @click="ui.palette = true"><Icon name="magnify" /></button>
       <button type="button" id="side-fold" class="icon-btn side-fold" :aria-pressed="sidebar.folded ? 'true' : 'false'"
         :aria-label="t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold')" v-tooltip="tip('fold', t(sidebar.folded ? 'editor.sidebar.unfold' : 'editor.sidebar.fold'), true)"
         @click="sidebar.toggle()"><Icon name="dock-left" /></button>
@@ -159,8 +173,27 @@ const lastLog = () => {
     <span v-if="inv.reachable && !inv.connected" id="connection" class="conn" role="status" v-tooltip="tip('conn', t('editor.sidebar.connection.reconnecting'))">
       <Icon name="wifi-off" class="conn-icon" /><span class="conn-text">{{ t("editor.sidebar.connection.reconnecting") }}</span>
     </span>
-    <button type="button" class="search-btn" id="open-palette" data-tip="search" v-tooltip="tip('search', `${t('editor.sidebar.search')} ⌘K`)" :aria-label="t('editor.sidebar.search')"
-      @click="ui.palette = true"><Icon name="magnify" /><span class="txt">{{ t("editor.sidebar.search") }}</span><kbd>⌘K</kbd></button>
+    <!-- Where the app goes (app 0.4.110), above the screens: the overview of every screen, the tiles that ask for a look
+         while there are any (stores/broken.ts), the plugins and the events. What is rarely needed stays at the foot. -->
+    <div class="side-nav">
+      <button id="open-home" type="button" class="nav-item" data-tip="home" v-tooltip="tip('home', t('editor.sidebar.home'))" :aria-current="isHome ? 'true' : 'false'" @click="session.goHome"><Icon name="view-grid-outline" /><span class="txt">{{ t("editor.nav.overview") }}</span></button>
+      <PopoverRoot v-if="broken.summary" v-model:open="brokenOpen">
+        <PopoverTrigger as-child>
+          <button type="button" id="broken-tiles-open" class="nav-item broken-nav" data-tip="broken" v-tooltip="tip('broken', t('editor.broken.short', broken.summary.tiles))"
+            :aria-label="t('editor.broken.short', broken.summary.tiles)">
+            <Icon name="alert-circle-outline" /><span class="txt">{{ t("editor.broken.short", broken.summary.tiles) }}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverPortal>
+          <PopoverContent class="ui-popover broken-pop" side="right" align="start" :side-offset="8" :collision-padding="12">
+            <h4>{{ summaryText(broken.summary) }}</h4>
+            <BrokenList :tiles="broken.tiles" @done="brokenOpen = false" />
+          </PopoverContent>
+        </PopoverPortal>
+      </PopoverRoot>
+      <button v-if="plugins.pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="ui.route === '#plugins' ? 'true' : 'false'" @click="ui.go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
+      <button id="open-events" type="button" class="nav-item" data-tip="events" v-tooltip="tip('events', t('editor.nav.events'))" :aria-current="ui.route === '#events' ? 'true' : 'false'" @click="ui.go('#events')"><span class="mdi">{{ glyph("F073C") }}</span><span class="txt">{{ t("editor.nav.events") }}</span></button>
+    </div>
     <div class="label label-row">
       <span>{{ t("editor.sidebar.screens") }}</span>
       <button id="refresh" type="button" class="icon-btn" :aria-label="t('editor.sidebar.refresh')" :title="t('editor.sidebar.refresh')" @click="inv.refresh()"><Icon name="refresh" /></button>
@@ -172,7 +205,8 @@ const lastLog = () => {
         <button type="button" class="nav-item" :data-tip="`screen:${screen.id}`" :aria-current="isSelected(screen) ? 'true' : 'false'"
           :aria-label="screenTip(screen)" :title="tip(`screen:${screen.id}`, screenTip(screen)) ? undefined : subline(screen)?.text"
           v-tooltip="tip(`screen:${screen.id}`, screenTip(screen))" @click="choose(screen)">
-          <span class="board-icon mdi" aria-hidden="true">{{ boardIcon(screen) }}</span>
+          <!-- Its own glass with the tiles of its home page (app 0.4.110), so the screens are told apart at a glance. -->
+          <span class="screen-pic"><ScreenMini :screen="screen" /></span>
           <!-- Folded, the row keeps its news as a dot on the icon: an update ready, or one that waits. -->
           <span v-if="sidebar.folded && ['update', 'waiting'].includes(status(screen))" class="fold-badge" :class="status(screen)" aria-hidden="true"></span>
           <span class="name">{{ screen.name }}</span>
@@ -180,11 +214,14 @@ const lastLog = () => {
           <ProgressRing v-if="status(screen) === 'running'" class="row-ring" :percent="builds.buildProgress(screen)?.percent ?? 0" :label="subline(screen)?.text || ''" />
           <Icon v-else-if="status(screen) === 'failed'" name="alert-circle-outline" class="sub-icon failed" />
           <small v-else-if="['down', 'virtual', 'waiting'].includes(status(screen))" class="sub" :class="subline(screen)?.kind">{{ status(screen) === 'waiting' ? t("editor.sidebar.update.short") : subline(screen)?.text }}</small>
+          <span v-else-if="pluginNews(screen) === 'failed'" class="sub-icon failed plugin-news" role="img" :aria-label="t('editor.sidebar.plugins.failed')" :title="t('editor.sidebar.plugins.failed')"><Icon name="puzzle-outline" /></span>
           <span v-else-if="brokenOn(screen).length" class="broken-dot" role="img" :aria-label="t('editor.broken.short', brokenOn(screen).length)" :title="t('editor.broken.short', brokenOn(screen).length)"></span>
         </button>
         <span class="row-end">
           <!-- The one button an update needs, always in the list: an icon, so the name keeps its room; its words in the tooltip. -->
           <button v-if="status(screen) === 'update'" type="button" class="update-pill" :title="`${t('editor.sidebar.update.button')} · ${subline(screen)?.text}`" :aria-label="`${t('editor.sidebar.update.button')}: ${screen.name}`" @click="update(screen)"><Icon name="update" /></button>
+          <button v-if="status(screen) !== 'update' && typeof pluginNews(screen) === 'number'" type="button" class="update-pill plugin-pill" :title="t('editor.sidebar.plugins.updates', { n: pluginNews(screen) }, Number(pluginNews(screen)))"
+            :aria-label="`${t('editor.sidebar.plugins.updates', { n: pluginNews(screen) }, Number(pluginNews(screen)))}: ${screen.name}`" @click="openPlugins(screen)"><Icon name="puzzle-outline" /><small>{{ pluginNews(screen) }}</small></button>
           <button type="button" class="details-toggle" :aria-expanded="isOpen(screen) ? 'true' : 'false'"
             :aria-label="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })"
             :title="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })" @click="toggleDetails(screen)">
@@ -302,28 +339,12 @@ const lastLog = () => {
         <a class="btn link mini screen-files" :href="`api/firmware/profiles/${encodeURIComponent(p.file)}/files`" download :title="t('editor.sidebar.files_hint')">{{ t("editor.sidebar.files") }}</a>
       </div>
     </div>
-    <PopoverRoot v-if="broken.summary" v-model:open="brokenOpen">
-      <PopoverTrigger as-child>
-        <button type="button" id="broken-tiles-open" class="nav-item broken-nav" data-tip="broken" v-tooltip="tip('broken', t('editor.broken.short', broken.summary.tiles))"
-          :aria-label="t('editor.broken.short', broken.summary.tiles)">
-          <Icon name="alert-circle-outline" /><span class="txt">{{ t("editor.broken.short", broken.summary.tiles) }}</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverPortal>
-        <PopoverContent class="ui-popover broken-pop" side="right" align="start" :side-offset="8" :collision-padding="12">
-          <h4>{{ summaryText(broken.summary) }}</h4>
-          <BrokenList :tiles="broken.tiles" @done="brokenOpen = false" />
-        </PopoverContent>
-      </PopoverPortal>
-    </PopoverRoot>
     <div class="spacer"></div>
     <div class="more">
       <!-- The firmware tool (build, USB, OTA, download) is for repairs, not for adding a screen, so it lives in Settings,
            the command palette and a screen's menu rather than here, where it read as the way in (app 0.3.27). -->
-      <button v-if="plugins.pluginsEnabled" id="open-plugins" type="button" class="nav-item" data-tip="plugins" v-tooltip="tip('plugins', t('editor.nav.plugins'))" :aria-current="ui.route === '#plugins' ? 'true' : 'false'" @click="ui.go('#plugins')"><Icon name="puzzle-outline"/><span class="txt">{{ t("editor.nav.plugins") }}</span><span v-if="pluginBuilds()" class="spin small" role="img" :aria-label="t('editor.build.plugins')"></span></button>
       <!-- The manual on the website (app 0.4.91): what every button does and what to do when something doesn't work. -->
       <a id="open-manual" class="nav-item" href="https://tessera-maxgramser.on-forge.com/docs" target="_blank" rel="noopener" data-tip="manual" v-tooltip="tip('manual', t('editor.nav.manual'))"><Icon name="book-open-page-variant"/><span class="txt">{{ t("editor.nav.manual") }}</span></a>
-      <button id="open-events" type="button" class="nav-item" data-tip="events" v-tooltip="tip('events', t('editor.nav.events'))" :aria-current="ui.route === '#events' ? 'true' : 'false'" @click="ui.go('#events')"><span class="mdi">{{ glyph("F073C") }}</span><span class="txt">{{ t("editor.nav.events") }}</span></button>
       <button id="open-settings" type="button" class="nav-item" data-tip="settings" v-tooltip="tip('settings', t('editor.nav.settings'))" :aria-current="ui.route === '#settings' ? 'true' : 'false'" @click="ui.go('#settings')"><span class="mdi">{{ glyph("F0493") }}</span><span class="txt">{{ t("editor.nav.settings") }}</span></button>
     </div>
     <!-- The edge (app 0.4.85): drag it wider or narrower, past the narrowest it folds to the icons; a double click resets it. -->

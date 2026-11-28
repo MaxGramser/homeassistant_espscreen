@@ -5,8 +5,10 @@
 # same, and what tells them apart (the sensors on the RP2040, the LoRa radio of the D1L and D1Pro) is not used here.
 # Seeed fits a GX or a DX panel; this file drives the GX one, the panel of ESPHome's SEEED-INDICATOR-D1 model. A
 # community member ran it on a D1L with the GX panel (docs/SENSECAP_INDICATOR.md); the project has not tried it on one.
-# Only the ESP32-S3 is programmed: the RP2040 keeps its own firmware, and LoRa, the sensors, Grove, the microSD slot,
-# the buzzer and the user button are not configured.
+# The RP2040 drives the buzzer. With Tessera's firmware on it (chips/indicator-rp2040, written in a step of New screen,
+# docs/BOARD_STEPS.md) the buzzer is the screen's speaker: the screen sends it sound over the serial line between the
+# two chips (docs/SECOND_CHIP.md). With Seeed's own firmware the screen works as before, without sound. LoRa, the
+# sensors, Grove and the microSD slot are not configured.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
@@ -24,13 +26,21 @@ packages:
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
+  # Pictures, and with them the files a screen downloads: camera tiles, an alert's snapshot, artwork, and its sounds.
+  camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The buzzer on the RP2040 as the screen's speaker (the line to that chip is CHIP_LINK_TX_PIN and CHIP_LINK_RX_PIN below).
+  chip_speaker: !include ../features/chip-speaker.yaml
+  # The user button on the side, GPIO38 (low while pressed, Seeed's BSP), as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "sensecapd1"
   DEVICE_NAME: "sensecapd1-new"
   DEVICE_FRIENDLY_NAME: "My SenseCAP Indicator"
+  STANDBY_KEY_PIN: GPIO38                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, 679 diagonal pixels over its 3.95-inch diagonal.
   PANEL_W: "480"
@@ -52,6 +62,16 @@ substitutions:
   # board; the core turns the touch with them (its touchscreen: !extend ts_touch).
   TOUCH_MIRROR_X: "true"
   TOUCH_MIRROR_Y: "true"
+
+  # The serial line to the RP2040, as Seeed wired it (features/chip-speaker.yaml opens it): GPIO19 out and GPIO20 in,
+  # the chip's GPIO17 and GPIO16. These are the ESP32-S3's USB pins, free here because the USB-C port reaches the chip
+  # through a CH340.
+  CHIP_LINK_TX_PIN: GPIO19
+  CHIP_LINK_RX_PIN: GPIO20
+  # The board's step in New screen, Tessera's firmware for the RP2040 (boards.yaml `steps`, docs/BOARD_STEPS.md): done
+  # when that chip answers, with the firmware it runs. `steps` is there either way, empty while the chip is silent: a
+  # screen whose firmware says nothing of steps is one that cannot tell, and is not asked to do one.
+  HELLO_BOARD_STEPS: 'auto steps = root["steps"].to<JsonObject>(); if (id(ts_chip).present()) steps["buzzer"] = id(ts_chip).version();'
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "100Hz"                  # the backlight's PWM, as in ESPHome's configuration for this board
@@ -94,6 +114,15 @@ switch:
     pin:
       pca9554: indicator_io
       number: 0
+      mode: OUTPUT
+  # The RP2040's reset (line 8), released for good, as Seeed's own firmware holds it.
+  - platform: gpio
+    id: chip_reset_released
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pca9554: indicator_io
+      number: 8
       mode: OUTPUT
   # The touch panel's reset (line 7), released for good.
   - platform: gpio

@@ -10,7 +10,7 @@ import page_delivery
 from doorbell import FEATURE as DOORBELL_FEATURE, with_missed
 from core import SECTIONS_FEATURE, has_module, bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
-from page_layout import (FORMAT as PAGE_FORMAT, SECTION_SUMMARY_BYTES, LayoutError, bar_items, compile_tiles, sections_of,
+from page_layout import (FORMAT as PAGE_FORMAT, SECTION_SUMMARY_BYTES, GridAdaptationRequired, LayoutError, bar_items, compile_tiles, sections_of,
                          grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document, without_sections)
 
 
@@ -23,7 +23,7 @@ def preflight_update(manager, inbox):
         raise LayoutError(t('addon.errors.pages.migration_pending'))
     grid = manager.record_grid(inbox, record)
     if grid is None or grid != grid_of_record(record):
-        raise LayoutError(t('addon.errors.pages.adaptation'))
+        raise GridAdaptationRequired(t('addon.errors.pages.adaptation'))
     validate_document(record['layout'], grid)
     manager.preflight_pages(inbox, record)
 
@@ -68,7 +68,7 @@ def save_pages(manager, inbox, data):
         if isinstance(adaptation, dict) and 'upright' in adaptation and chosen is not None:
             expected['upright'] = adaptation['upright']
         if not previous or previous['format'] != PAGE_FORMAT or adaptation != expected or manager.verified_grid(inbox) is None:
-            raise LayoutError(t('addon.errors.pages.adaptation'))
+            raise GridAdaptationRequired(t('addon.errors.pages.adaptation'))
     document = validate_document(data.get('layout'), grid)
     # A screen whose board draws no sections keeps none: the tiles stay where they stand. The editor holds a draft to
     # the same (stores/document.ts held), so this only meets a layout that came another way.

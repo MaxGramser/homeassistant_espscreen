@@ -4,6 +4,7 @@
 #include "glass.h"
 #include "hw_hello.h"
 #include "live_view.h"
+#include "glass_kind.h"
 #ifdef SD_MOD_TEXT_CARD
 #include "module_text_card.h"
 #endif
@@ -38,6 +39,7 @@ Facts facts() {
   f.full_tier = true;
 #endif
   f.live_tiles = picture_engine::limits().live_tiles;
+  f.inks = glass_kind::inks();
 #ifdef USE_ESP32
   f.psram_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
   f.internal_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_INTERNAL));
@@ -52,11 +54,13 @@ const Caps &caps() {
   return resolved;
 }
 
+bool speaker_now() { return caps().speaker && (!speaker_works() || speaker_works()()); }
+
 void hello(JsonObject root) {
   const Caps &c = caps();
   auto caps = root["caps"].to<JsonObject>();
   caps["live"] = c.live_video;
-  caps["speaker"] = c.speaker;
+  caps["speaker"] = speaker_now();
   caps["microphone"] = c.microphone;
   caps["echo_cancel"] = c.echo_cancel;
   caps["camera"] = c.camera;
@@ -67,6 +71,8 @@ void hello(JsonObject root) {
   // straight, and its PPA turns nothing per picture (live_view.cpp, show). LVGL's turn as the hello leaves.
   if (c.live_video && glass::turn() != 0) caps["picture_turn"] = glass::turn();
   caps["live_tiles"] = c.live_tiles;
+  // A paper glass: the app sends its pictures in these inks and its values at a calm pace (docs/PAPER.md).
+  if (c.inks) caps["inks"] = c.inks;
   caps["psram_kb"] = c.psram_bytes / 1024;
   caps["internal_kb"] = c.internal_bytes / 1024;
 #ifdef SD_MOD_TEXT_CARD

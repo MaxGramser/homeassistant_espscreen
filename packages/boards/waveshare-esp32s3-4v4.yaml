@@ -20,12 +20,16 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The power key, read on GPIO16 (SYS_OUT, low while pressed, 10k pull-up; schematic V4.0), as the standby key: a
+  # press puts the screen in standby or wakes it. Not the BOOT key: GPIO0 is the CAN transceiver's receive line here.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare4v4"
   DEVICE_NAME: "waveshare4v4-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 4"
+  STANDBY_KEY_PIN: GPIO16                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, 679 diagonal pixels over 4.0 inches.
   PANEL_W: "480"

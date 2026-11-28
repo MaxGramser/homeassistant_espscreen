@@ -1,0 +1,21 @@
+# A plugin for the editor's preview (web/wasm/test_plugin_module.mjs, docs/EMULATOR_ARCHITECTURE.md "Plugins"): the
+# smallest plugin whose own code says something only that code can say. Its tile writes a word of its translations, its
+# option and its data on one line and counts its ticks; a tap opens its card. The test builds it into a module
+# (web/wasm/build_plugin.py), loads that into the firmware preview and reads the lines back. Never on a screen, never in
+# the index.
+id: preview_probe
+version: 1.0.0
+api: "0.28"
+icon: puzzle-outline
+topics: [tech]
+maintainer: tessera
+license: MIT
+tiles:
+  - id: note
+    name: tile
+    sizes: { min: 1x1, max: 2x2 }
+    memory: 300
+    options:
+      - { id: word, kind: text, label: word, default: "Probe" }
+cards:
+  - { id: more, name: card }

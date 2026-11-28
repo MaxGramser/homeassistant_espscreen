@@ -8,7 +8,7 @@ import { computed, ref } from "vue";
 import theme from "virtual:esp-screens-theme";
 import { glyph } from "../../model/topbar";
 import { dotted, textPx } from "../../model/text-fit";
-import { frameOf } from "../../model/ui-scale";
+import { frameOf, labelWeight } from "../../model/ui-scale";
 import { MODE_ICONS, tileModes, vacuumLayout, type Box } from "../../model/vacuum-tile";
 import type { TileCardView } from "../../composables/useTileCard";
 import { useDocumentStore } from "../../stores/document";
@@ -51,10 +51,12 @@ const battery = computed(() => {
 });
 
 // The words' widths in the screens' Roboto, as the screen measures its glyphs (text-fit: measured again once it arrives).
-const measure = (text: string, size: number, bold = false) => Math.ceil(textPx(text, size, bold ? 700 : 400));
+// A name is drawn in the board's name weight (bold, medium on the compact look), the rest regular.
+const nameWeight = computed(() => labelWeight(doc.screenShape));
+const measure = (text: string, size: number, bold = false) => Math.ceil(textPx(text, size, bold ? nameWeight.value : 400));
 const frame = computed(() => frameOf(doc.screenShape));
 // A word cut as the glass cuts it, with LVGL's three dots, in a box `w` glass pixels wide.
-const cut = (text: string, size: number, w: number, bold = false) => dotted(text, size, bold ? 700 : 400, w);
+const cut = (text: string, size: number, w: number, bold = false) => dotted(text, size, bold ? nameWeight.value : 400, w);
 const layout = computed(() => room.value.width > 0 ? vacuumLayout(doc.screenShape, {
   face: face.value, width: room.value.width / glass.value, height: room.value.height / glass.value,
   rooms: (preview.value?.rooms ?? []).map(([name]) => name), routines: preview.value?.routines ?? [], map: Boolean(preview.value?.map),
@@ -81,7 +83,7 @@ const roomIcon = (i: number) => glyph(preview.value?.rooms[i]?.[1] || "F0FE6");
     <template v-if="layout">
       <span class="vc-circle mdi" :style="{ ...place({ x: 0, y: (layout.head - layout.circle) / 2, w: layout.circle, h: layout.circle }), fontSize: px(layout.fonts.icon) }">{{ glyph('F070D') }}</span>
       <span class="vc-text" :style="{ left: px(layout.text.x), width: px(layout.text.w), top: '0', height: px(layout.head) }">
-        <b :style="font(layout.fonts.label, 700)">{{ cut(card.texts.name, layout.fonts.label, layout.text.w, true) }}</b>
+        <b :style="font(layout.fonts.label, nameWeight)">{{ cut(card.texts.name, layout.fonts.label, layout.text.w, true) }}</b>
         <small :style="font(layout.fonts.small)">{{ cut(stateLine, layout.fonts.small, layout.text.w) }}</small>
       </span>
       <span v-for="chip in layout.chips" :key="chip.icon" class="vc-chip" :style="{ ...place(chip.box), ...font(layout.fonts.small) }">

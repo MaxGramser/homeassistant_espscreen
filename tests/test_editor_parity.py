@@ -5,7 +5,8 @@ TypeScript: ui::px and the look (ui_scale.h) in web/src/model/ui-scale.ts, the -
 (runtime_tiles panel_metrics, stepper_keys, climate_tile::bar_room) there too, the top bar (header_bar.h and the look's
 fonts) in topbar.ts, a tile's size (page_protocol.h, core.py) in sizes.ts, a card's colour (Tile::active,
 tile_controls::accent) in tile-palette.ts, a thermostat's modes (tile_controls::climate_bar_keys) in tall-controls.ts, and
-a cover card's layout and its slats (cover_tile.h) in cover-tile.ts, the words a card writes where the firmware has a rule for them (tile_controls::temperature_text, humidity_text,
+a cover card's layout and its slats (cover_tile.h) in cover-tile.ts, a sensor's graph on a card (render_graph, smooth(),
+graph_side, theme::fill_opacity()) in history-preview.ts, the words a card writes where the firmware has a rule for them (tile_controls::temperature_text, humidity_text,
 reading_text, status_text, binary_state_text) in tile-text.ts.
 The editor does not read these numbers from the firmware; this test keeps the two the same, the way
 tests/test_alert_layout.py does for the alert: it compiles the C++ (the real headers, and the few lines of
@@ -142,6 +143,7 @@ import {{ mediaLayout }} from "{model / 'media-layout'}";
 import {{ vacuumLayout, vacuumMetrics }} from "{model / 'vacuum-tile'}";
 import {{ hsRgb, kelvinRgb, levelShown, luminosity, presetSizes, row as presetRow, shows }} from "{model / 'light-presets'}";
 import {{ insideMargins, sectionMetrics }} from "{model / 'sections'}";
+import {{ cardPoints, GRAPH_FILL, GRAPH_SIDE }} from "{model / 'history-preview'}";
 const DATA = JSON.parse(readFileSync("{Path(tmp) / 'data.json'}", "utf8"));
 {body}
 ''')
@@ -873,8 +875,8 @@ def number(value):
 
 class TileText(unittest.TestCase):
     """The words a card writes where the firmware has a rule for them (tile-text.ts): a temperature (temperature_text), a
-    humidity (humidity_text), what a thermostat measures (reading_text), a thermostat's line beside its controls
-    (status_text, for a humidifier climate_card_status brief) and a binary sensor's state by its class (binary_state_text),
+    humidity (humidity_text), what a thermostat measures (reading_text), a thermostat's own line (climate_tile_line, with
+    the parts its tile chose) and a humidifier's beside its controls (status_text: climate_card_status brief) and a binary sensor's state by its class (binary_state_text),
     in English, on the values Home Assistant sends."""
 
     @classmethod
@@ -882,6 +884,11 @@ class TileText(unittest.TestCase):
         compiler(), node()
         cls.climates = [{'state': state, 'action': action, 'current': current} for state in HVAC_MODES for action in HVAC_ACTIONS
                         for current in (None, 20.25, 21, 19.5)]
+        # A thermostat's own line (firmware 0.68.0): the temperature it is set to, the parts its tile chose and whether
+        # its -/+ stands on the card, each walking its own round so every pair of them meets.
+        for i, case in enumerate(cls.climates):
+            case.update(target=(None, 19, 21.5)[i % 3], sub=('auto', 'show:action,now', 'show:target', 'show:', 'show:mode,action,target,now')[i % 5],
+                        stepper=bool(i % 2))
         cls.humidifiers = [{'state': state, 'action': action, 'current': current} for state in ('on', 'off') for action in HUMIDIFIER_ACTIONS
                            for current in (None, 41.5, 45, 41.25)]
         cls.binaries = [{'device_class': dc, 'state': state} for dc in BINARY_CLASSES for state in ('on', 'off')]
@@ -894,20 +901,22 @@ console.log(JSON.stringify({
   humidities: DATA.humidities.map((v: number) => humidityText(v, words)),
   readings: DATA.temperatures.flatMap((v: number) => [readingText("climate", v, words), readingText("humidifier", v, words)]),
   climates: DATA.climates.map((c: any) => stateText("climate.x", live(c.state, { ...(c.action ? { hvac_action: c.action } : {}),
-    ...(c.current !== null ? { current_temperature: c.current } : {}) }), { controlled: true }, words)),
+    ...(c.current !== null ? { current_temperature: c.current } : {}), ...(c.target !== null ? { temperature: c.target, supported_features: 1 } : {}) }),
+    { controlled: true, sub: c.sub, stepper: c.stepper }, words)),
   humidifiers: DATA.humidifiers.map((c: any) => stateText("humidifier.x", live(c.state, { ...(c.action ? { action: c.action } : {}),
     ...(c.current !== null ? { current_humidity: c.current } : {}) }), { controlled: true }, words)),
   binaries: DATA.binaries.map((b: any) => stateText("binary_sensor.x", live(b.state, { device_class: b.device_class }), {}, words)),
 }));''', {'temperatures': TEMPERATURES, 'humidities': HUMIDITIES, 'climates': cls.climates, 'humidifiers': cls.humidifiers,
                  'binaries': cls.binaries}, tmp)
-            thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}}}'
+            thermostats = ',\n'.join(f'  {{{json.dumps(domain)}, {json.dumps(c["state"])}, {json.dumps(c["action"] or "")}, {number(c["current"])}, '
+                                     f'{number(c.get("target"))}, {json.dumps(c.get("sub", ""))}, {int(c.get("stepper", False))}}}'
                                      for domain, cases in (('climate.x', cls.climates), ('humidifier.x', cls.humidifiers)) for c in cases)
             binaries = ',\n'.join(f'  {{{json.dumps(b["device_class"])}, {int(b["state"] == "on")}}}' for b in cls.binaries)
             cls.cpp = build_and_run(f'''#include "screen_text_en.h"
 #define THEME_TEST
 #include "components/smart_display/tile_controls.h"
 #include <cstdio>
-struct Thermostat {{ const char *entity, *state, *action; float current; }};
+struct Thermostat {{ const char *entity, *state, *action; float current, target; const char *sub; int stepper; }};
 static const Thermostat THERMOSTATS[] = {{
 {thermostats}
 }};
@@ -927,7 +936,10 @@ int main() {{
   for (const auto &c : THERMOSTATS) {{
     runtime_tiles::Tile t; t.entity = c.entity; t.state = c.state; t.received = true; t.current = c.current;
     t.edit_extra().hvac_action = c.action;
-    std::printf("status %s\\n", tile_controls::status_text(t).c_str());
+    if (t.domain() == "climate") {{
+      t.target = c.target; t.supported = std::isfinite(c.target) ? 1 : 0;
+      std::printf("status %s\\n", tile_controls::climate_tile_line(t, tile_controls::climate_parts(c.sub), c.stepper).c_str());
+    }} else std::printf("status %s\\n", tile_controls::status_text(t).c_str());
   }}
   for (const auto &b : BINARIES) std::printf("binary %s\\n", tile_controls::binary_state_text(b.device_class, b.on));
 }}
@@ -951,7 +963,7 @@ int main() {{
 
     def test_a_thermostats_line_beside_its_controls(self):
         theirs = self.lines('status')
-        self.same(self.climates, self.ts['climates'], theirs[:len(self.climates)], 'a climate: stateText is not status_text')
+        self.same(self.climates, self.ts['climates'], theirs[:len(self.climates)], 'a climate: stateText is not climate_tile_line')
         self.same(self.humidifiers, self.ts['humidifiers'], theirs[len(self.climates):], 'a humidifier: stateText is not status_text')
 
     def test_a_binary_sensors_state(self):
@@ -1487,3 +1499,79 @@ int main() {
 
 if __name__ == '__main__':
     unittest.main()
+
+
+GRAPH_SERIES = [
+    [20.0 + (i * 7 % 11) * 0.37 for i in range(24)],
+    [230.0] * 19 + [229.5, 229.4, 229.6, 230.1, 230.3],
+    [0.0, 2.0, None, 4.0] + [None] * 18 + [3.0, 1.0],
+    [5.0, 5.0, 5.0],
+    [12.5],
+    [None, -3.0, -1.0, None, None, 8.0, 7.5, 7.0, 6.0, None, 2.0, 2.5, 3.0, 9.0, 1.0, 0.0, None, 4.0, 4.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+]
+GRAPH_BOXES = [(200, 50, 2), (120, 40, 2), (331, 92, 3), (64, 18, 2), (600, 160, 3)]
+
+
+class Graph(unittest.TestCase):
+    """A sensor's graph on a card: render_graph's points through smooth(), the wide card's share and the fill."""
+
+    def test_the_points_are_render_graphs(self):
+        compiler(), node()
+        graph = cut(r'inline void render_graph\(Widgets &w,const Tile &t,bool large,int x,int y,int width,int height\) \{\s*'
+                    r'begin_extra\(w,"graph",x\+width,y\+height\);(.*?)unsigned count=smooth',
+                    (ROOT / 'components/smart_display/weather_tile_lvgl.h').read_text(), 'render_graph')
+        smooth = cut(r'inline unsigned smooth\(.*?\n\}', (ROOT / 'components/smart_display/tile_widgets_lvgl.h').read_text(), 'smooth()')
+        cases = [(series, box) for series in GRAPH_SERIES for box in GRAPH_BOXES]
+        rows = ',\n'.join('{{%s}, %d, %d, %d}' % (', '.join('NAN' if v is None else repr(float(v)) + 'f' for v in series), *box)
+                           for series, box in cases)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = build_and_run(f'''#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <vector>
+typedef int32_t lv_value_precise_t;
+struct lv_point_precise_t {{ lv_value_precise_t x, y; }};
+static const unsigned POINT_BUFFER = 256;
+{smooth}
+struct Tile {{ std::vector<float> history; }};
+struct Case {{ std::vector<float> history; int width, height, stroke; }};
+static const Case CASES[] = {{
+{rows}
+}};
+int main() {{
+  lv_point_precise_t points[POINT_BUFFER];
+  for (const auto &c : CASES) {{
+    const Tile t{{c.history}};const int width=c.width,height=c.height;
+    // render_graph as it stands, its stroke the case's (ui::px(large?3:2) on the glass).
+    struct {{ int px(int v) const {{ return v; }} }} ui_;
+    const bool large=c.stroke==3;
+    auto px=[&](int v){{ return v; }};
+{graph.replace('ui::px', 'px')}
+    unsigned count=smooth(raw,n,points,POINT_BUFFER,width,height);
+    for (unsigned i = 0; i < count; ++i) std::printf("%d,%d ", (int)points[i].x, (int)points[i].y);
+    std::printf("\\n");
+  }}
+}}
+''', tmp)
+            mine = run_ts('''
+console.log(JSON.stringify(DATA.cases.map(([series, [w, h, stroke]]: any) => cardPoints(series, w, h, stroke).map((p) => `${p.x},${p.y}`).join(" "))));''',
+                          {'cases': cases}, tmp)
+        # The same points, each within a pixel: whether `a-b*c` is rounded once (a fused multiply-add) or twice is the
+        # compiler's and the chip's choice (the S3 and the P4 have madd.s), and moves a cut to a whole pixel by one.
+        for (series, box), fw, ts in zip(cases, out.splitlines(), mine):
+            theirs = [tuple(map(int, p.split(','))) for p in fw.split()]
+            ours = [tuple(map(int, p.split(','))) for p in ts.split()]
+            self.assertEqual(len(ours), len(theirs), f'{box} {series}: cardPoints draws another number of points than smooth()')
+            for a, b in zip(ours, theirs):
+                self.assertLessEqual(max(abs(a[0] - b[0]), abs(a[1] - b[1])), 1, f'{box} {series}: {a} is not render_graph\'s {b}')
+
+    def test_the_wide_cards_share_and_the_fill_are_the_firmwares(self):
+        node()
+        side = cut(r'int chart_w=graph_side\?content_w\*(\d+)/100', TILES, "graph_side's share")
+        fill = cut(r'inline uint8_t fill_opacity\(\) \{ return dark \? \d+ : (\d+); \}',
+                   (ROOT / 'components/smart_display/theme.h').read_text(), 'theme::fill_opacity()')
+        with tempfile.TemporaryDirectory() as tmp:
+            mine = run_ts('console.log(JSON.stringify([GRAPH_SIDE, GRAPH_FILL]));', {}, tmp)
+        self.assertEqual(mine[0], int(side), 'GRAPH_SIDE is not graph_side\'s share')
+        self.assertAlmostEqual(mine[1], int(fill) / 255, msg='GRAPH_FILL is not theme::fill_opacity() of a light card')

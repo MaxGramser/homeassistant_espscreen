@@ -167,14 +167,6 @@ export function installProgress(job: Job, logs: readonly string[], opts: { brows
  * the end, `browser` this browser writes it, `built` the build succeeded, `stopped` the build stopped for its memory. */
 export type Follow = { saved: boolean; running: boolean; waiting?: boolean; ahead?: number; ok: boolean; download: boolean; browser: boolean;
   writing: boolean; calibrate: boolean; built: boolean; stopped: boolean; name: string; file: string };
-/** The title over the installation. */
-export function followTitle(f: Follow) {
-  if (f.saved) return t("editor.installer.progress.saved", { file: f.file });
-  if (f.waiting) return t("editor.installer.progress.waiting");
-  if (f.running) return f.writing ? t("editor.installer.progress.writing", { name: f.name }) : t("editor.installer.progress.building");
-  if (f.ok) return f.download ? t("editor.installer.progress.ready", { name: f.name }) : t("editor.installer.progress.installed", { name: f.name });
-  return t(f.download ? "editor.installer.progress.build_failed" : "editor.installer.progress.install_failed");
-}
 /** The line under the title; when it failed, the line of the log that says why (`error`), unless a card under it says
  * what happened (this browser's writing, the build's memory). */
 export function followDetail(f: Follow, error?: string) {
@@ -193,6 +185,46 @@ export function elapsedText(started: number, finished: number | null, now: numbe
   const seconds = Math.max(0, Math.round(((finished || now) - started) / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
-/** A step's name; the last one says the file is ready where the end is a download. */
-export const stepLabel = (key: StepKey, download: boolean) =>
-  t(key === "done" && download ? "editor.installer.steps_done.download" : `editor.installer.steps_done.${key}`);
+
+// ---- The whole way, until the screen works (app 0.4.103) ----
+// The firmware on the glass is not the end: the screen still starts, joins the Wi-Fi, and has to be added to Home Assistant
+// and allowed to perform actions before a tap on it does anything. New screen follows all of it and says done only
+// then, so nobody walks away from a screen that only looks ready. `arrival` is what Home Assistant says of it
+// (model/installer.ts arrivalOf), null until the firmware is on; `download` is a file the person puts on it themselves.
+export type JourneyKey = "build" | "write" | "wifi" | "ha";
+export type Journey = { steps: { key: JourneyKey; state: StepState; percent: number | null }[]; percent: number; done: boolean; failed: boolean };
+const PARTS: Record<JourneyKey, number> = { build: 0.6, write: 0.2, wifi: 0.12, ha: 0.08 };
+/** How far the software is made, as a share of 1: getting ready (ESPHome setting the build up, its first 15 %), then the
+ * build's own count. */
+function madeShare(prepare: Step | undefined, build: Step | undefined) {
+  if (build?.state === "running") return 0.15 + 0.85 * (build.percent ?? 0) / 100;
+  return prepare?.state === "running" ? 0.15 * (prepare.percent ?? 0) / 100 : 0;
+}
+export function journey(progress: Progress, arrival: string | null, download: boolean): Journey {
+  const step = (key: StepKey) => progress.steps.find((one) => one.key === key);
+  const prepare = step("prepare"), build = step("build"), write = step("write"), restart = step("restart");
+  const states = [prepare?.state, build?.state];
+  const built = build?.state === "done";
+  const buildState: StepState = states.includes("failed") ? "failed" : built ? "done" : states.includes("running") ? "running" : "waiting";
+  const on = arrival !== null;
+  const seen = arrival === "seen" || arrival === "paired" || arrival === "ready" || arrival === "failed";
+  // Written: by the add-on or this browser (the steps say so), or by the person, which shows once Home Assistant sees it.
+  const written = download ? seen : write?.state === "done";
+  const writeState: StepState = written ? "done" : download ? (built ? "running" : "waiting") : write?.state || "waiting";
+  const wifiState: StepState = seen ? "done" : arrival === "missing" ? "failed" : (written && on) || restart?.state === "running" ? "running" : "waiting";
+  const haState: StepState = arrival === "ready" ? "done" : arrival === "failed" ? "failed" : seen ? "running" : "waiting";
+  const steps = [
+    // Never 100 % while it still runs: the last few steps (linking a P4's firmware) can take minutes.
+    { key: "build" as const, state: buildState, percent: buildState === "running" && build?.state === "running" && build.percent !== null ? Math.min(99, build.percent) : null },
+    { key: "write" as const, state: writeState, percent: writeState === "running" && !download ? write?.percent ?? null : null },
+    { key: "wifi" as const, state: wifiState, percent: null },
+    { key: "ha" as const, state: haState, percent: null },
+  ];
+  let percent = 0;
+  for (const one of steps) {
+    if (one.state === "done") percent += PARTS[one.key];
+    else if (one.state === "running") percent += PARTS[one.key] * (one.key === "build" ? madeShare(prepare, build) : (one.percent ?? 0) / 100);
+  }
+  const done = arrival === "ready";
+  return { steps, percent: done ? 100 : Math.min(99, Math.round(percent * 100)), done, failed: steps.some((one) => one.state === "failed") };
+}

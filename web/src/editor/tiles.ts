@@ -5,6 +5,7 @@
 import { t } from "../i18n";
 import { askConfirm } from "../composables/useConfirm";
 import { dimensions, effectiveControls, entriesOf, isFull, isWide, newTile, pageTarget, sizeOf, type Size } from "../model/layout";
+import { wideDisplay } from "../model/catalogue";
 import { memoryCrossing } from "../model/memory";
 import { suggestedPageTitle } from "../model/page-naming";
 import { validateCardOptions } from "../model/page-validation";
@@ -21,6 +22,7 @@ import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useUiStore } from "../stores/ui";
+import { addPage } from "./pages";
 import type { ChildTile, Layout, Tile, SectionBlock } from "../types";
 
 const toast = (message: string) => useUiStore().toast(message);
@@ -102,8 +104,9 @@ export function startTile(id: string): Tile {
   return { ...tile, options: { ...tile.options, size: fitting.includes("square") ? "square" : fitting[0] ?? "full" } };
 }
 // A click in the picker: the marked empty cell or key place, else the selected page's first free cell. Never silently
-// spill a library click onto another page.
-export async function addTile(id: string) {
+// spill a library click onto another page. `ready`: the tile as the library's Tiles view showed it (a size and its
+// controls); a new one otherwise.
+export async function addTile(id: string, ready?: Tile) {
   const doc = useDocumentStore(), insp = useInspectorStore(), scr = useScreenStore();
   if (!doc.layout || (!scr.repeatable(id) && doc.layout.tiles.some((t) => t.entity === id)) || doc.layout.tiles.length >= doc.tileLimit) return;
   // Past the screen's memory the tile waits for the answer; otherwise it goes on at once.
@@ -128,13 +131,19 @@ export async function addTile(id: string) {
   if (id.startsWith("sensor.") && !useEntitiesStore().liveStates[id]) await useEntitiesStore().reloadState(id);
   if (!doc.layout) return;
   const before = tileIds();
-  const tile = startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
+  const tile = ready ?? startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
   const page = Math.max(0, doc.document!.pages.findIndex((page) => page.id === doc.selectedPageId));
   const at = marked?.kind === "cell" ? marked.slot : -1;
   const target = at >= 0 ? at : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);
   const slot = at >= 0 || target < (page + 1) * grid.slots ? target : -1;
   insp.insert = null;
-  if (slot < 0) return toast(t("editor.pages.selected_full"));
+  // A full page takes nothing silently from elsewhere; the person may put the tile on a new page of its own instead.
+  if (slot < 0) {
+    const roomForPage = doc.document!.pages.length < grid.pages;
+    return roomForPage
+      ? useUiStore().toast(t("editor.pages.selected_full"), { label: t("editor.pages.place_on_new_page"), run: () => { if (addPage()) void addTile(id); } })
+      : toast(t("editor.pages.selected_full"));
+  }
   if (slot >= 0 && placeTile(tile, slot)) {
     const added = doc.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
     if (added && useUiStore().phone) doc.markAdded(added);
@@ -182,7 +191,12 @@ export function moveTileToPage(tile: Tile, page: number) {
 export function otherPages(tile: Tile) {
   const doc = useDocumentStore(), { pageOf } = doc.editorLayout;
   if (tile.in !== undefined || tile.entity === "screen.nightstand" || !doc.document) return [];
-  return doc.document.pages.map((page, index) => ({ index, name: pages.titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
+  // The page's number always, and its title after it: pages often share a title (the screen's name), and the number is
+  // what tells them apart.
+  return doc.document.pages.map((page, index) => {
+    const number = t("editor.page.label", { page: index + 1 }), title = pages.titleOf(doc.document!, page);
+    return { index, name: title && title !== number ? `${number} · ${title}` : number };
+  })
     .filter((page) => page.index !== pageOf(tile.slot));
 }
 /** Moves a tile to the first free cell of another page, and the editor goes there with it. */
@@ -205,7 +219,7 @@ export function tileSizeChoices(tile: Tile): Size[] {
   const choices: Size[] = ["single", "wide"];
   const said = screenSizes();
   // A forecast or the sun's path needs width: nothing one column wide and taller than a row.
-  const narrow = ["forecast", "sunpath"].includes(String(tile.options?.display));
+  const narrow = wideDisplay(tile.entity.split(".")[0], tile.options?.display);
   if (taller) for (const size of ["tall", "square"] as const) {
     if (!said.includes(size) || grid.rows < 2 || (size === "square" && grid.columns < 2)) continue;
     if (size === "tall" && narrow) continue;
@@ -315,7 +329,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   const domain = tile.entity.split(".")[0], caps = useEntitiesStore().capabilities[tile.entity], wasSize = sizeOf(tile);
   // Beyond single, wide and the whole page, a size is one the screen said it takes (tall and square 0.3.1, spans 0.19.0).
   if (key === "size" && !["single", "wide", "full"].includes(String(value)) && ((isTallSize(value) && !inv.tallerTilesEnabled) || !screenSizes().includes(String(value)))) return;
-  if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
+  if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && wideDisplay(domain, tile.options?.display)) return;
   // Perform action is a choice with a second step (app 0.4.0, GitHub #47): nothing is stored until an action is chosen,
   // which comes here as `action` and brings the tap choice with it.
   if (key === "tap" && value === "action" && !tile.options?.action) return;
@@ -324,7 +338,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   tile.options = coupledOptions(tile.options, key, value, Boolean(inv.inventory.controls?.[domain]));
   if (key === "size" && isTallSize(value) && dimensions(wasSize, grid).rows === 1 && !("controls" in tile.options))
     tile.options.controls = previousControls || "none";
-  if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
+  if (key === "display" && wideDisplay(domain, value) && !isWide(tile)) tile.options.size = "wide";
   // A card that becomes wide gets the first direct control Home Assistant offers when the usual one isn't there.
   const catalogue = inv.inventory.controls?.[domain];
   if (key === "size" && value !== "full" && sizeColumns(value) > 1 && caps && catalogue && !("controls" in tile.options) && !caps.controls.includes(catalogue.default))

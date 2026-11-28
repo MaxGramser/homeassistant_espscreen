@@ -78,7 +78,9 @@ jobs:
     # Twenty-one boards without a cache take about four minutes each: the add-on's ESPHome ran past 60 minutes at 0.4.84.
     # 31 boards without a cache take about 2.7 hours (release 0.4.91, 2026-10-30: 23 in two hours, the eight new boards
     # never reached); a cancelled job keeps no cache, so the next run starts cold too.
-    timeout-minutes: 240
+    # 32 boards and a plugin build took 3 h 43 min for the add-on's ESPHome on 2026-11-18 and ran past 4 hours on
+    # 2026-11-19 (release 0.4.99, waveshare43c never reached): GitHub's own limit for a job.
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:

@@ -63,7 +63,7 @@ def controls_states(now):
         'cover.demo_curtain': {'state': 'open', 'attributes': {'current_position': 80, 'device_class': 'curtain', 'supported_features': 15}},
         'climate.demo_ac': {'state': 'cool', 'attributes': {'current_temperature': 21.5, 'temperature': 20, 'min_temp': 16, 'max_temp': 32, 'target_temp_step': 1.0, 'hvac_modes': ['off', 'heat_cool', 'cool', 'heat', 'fan_only', 'dry'], 'fan_modes': ['auto', 'low', 'medium', 'high'], 'fan_mode': 'low', 'swing_modes': ['off', 'both', 'vertical', 'horizontal'], 'swing_mode': 'off', 'supported_features': 425}},
         'media_player.demo_sonos': {'state': 'playing', 'attributes': {'volume_level': 0.17, 'is_volume_muted': False, 'media_title': 'TV', 'supported_features': 8321599}},
-        'climate.demo_heating': {'state': 'heat', 'attributes': {'current_temperature': 19.5, 'temperature': 21, 'hvac_action': 'heating', 'hvac_modes': ['off', 'heat', 'auto']}},
+        'climate.demo_heating': {'state': 'heat', 'attributes': {'current_temperature': 19.5, 'temperature': 21, 'hvac_action': 'heating', 'hvac_modes': ['off', 'heat', 'auto'], 'supported_features': 385}},
         'media_player.demo_radio': {'state': 'playing', 'attributes': {'volume_level': 0.15, 'media_title': 'NPO Radio 2', 'supported_features': 8321599}},
         'vacuum.demo_robot': {'state': 'docked', 'attributes': {'battery_level': 100, 'fan_speed': 'max', 'fan_speed_list': ['quiet', 'balanced', 'turbo', 'max'], 'supported_features': 30524}},
         'switch.demo_desk': {'state': 'on', 'attributes': {}},

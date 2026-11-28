@@ -34,6 +34,10 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
+| send a file from the add-on to a screen (a ringtone, a new kind of file) | docs/SCREEN_FILES.md | `screen_manager/app/screen_files.py`, `file_fetch.h`, `http_get.h` |
+| give a board a step of its own in New screen (a second chip's firmware, something set by hand), or add a kind of step | docs/BOARD_STEPS.md | `boards.yaml` `steps`, `KINDS` in `screen_manager/app/board_steps.py`, `web/src/components/steps/` |
+| change the firmware of a board's second chip (the SenseCAP Indicator's RP2040), or the buzzer as a speaker | docs/SECOND_CHIP.md | `chips/`, `components/chip_link/`, `tools/build_chips.py` |
+| change a sound a screen plays (ringtone, chime, alert), or add a kind of sound | docs/SOUNDS.md | `screen_manager/app/sounds.py`, `kept_sound.h`, `web/src/components/sounds/` |
 | change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
@@ -41,13 +45,21 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change Layoutbot, the editor's chat that arranges pages | docs/LAYOUTBOT.md | `screen_manager/app/layoutbot.py`, `web/src/stores/layoutbot.ts` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
 | give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
+| change when a screen goes to standby, what wakes it, or Back to page 1 | docs/ARCHITECTURE.md, "The standby" | `screen_standby.h`, `tests/test_screen_standby.cpp` |
+| change when an alert shows, what ends it, its blinks or what Home Assistant hears of it | docs/ARCHITECTURE.md, "An alert's life" | `alert_life.h`, `tests/test_alert_life.cpp` |
+| change the line a screen leaves in Home Assistant's logbook for an action (which screen, page and tile) | docs/ARCHITECTURE.md, "An action's line in the logbook" | `action_log.h`, `tests/test_action_log.cpp` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
 | change the alarm panel's card, the keypad for a code, or what the screens do when it goes off | docs/ALARM_PANEL.md | `alarm_panel.h`, `alarm_panel_lvgl.h`, `screen_manager/app/alarm_screens.py` |
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
+| change what differs between a glass that is lit and a glass of ink, or add a part a card asks for (a disc that says a state, a mark, a part that waits) | docs/GLASS_KINDS.md | `glass_kind.h`, `theme_parts.h`, `theme_lit.h`, `theme_ink.h`, `tests/test_glass_kinds.py` |
+| give a board a glass of e-paper, or change how one prints, its inks or a slider on it | docs/PAPER.md | `components/paper_glass/`, `still_glass_lvgl.h`, `level_bar.h`, the ink table in `theme.h` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
+| suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
+| change how a plugin's own tile is shown in the editor, or how its code reaches the preview | docs/EMULATOR_ARCHITECTURE.md, "Plugins" | `web/wasm/build_plugin.py`, `web/wasm/toolchain.py`, `screen_manager/app/plugin_module.py`, `web/src/components/GlassFaces.vue` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
+| build for a chip's silicon revision, or add a rule when a chip changes its silicon (the ESP32-P4 before and from v3) | docs/CHIP_REVISIONS.md | `CHIP_REVISION` in `packages/hardware/esp32p4-core.yaml`, `screen_manager/app/chip_revision.py` |
 | touch the flash of a board with 4 MB | docs/FLASH_LAYOUT.md | `components/flash_layout/`, `packages/hardware/flash-4mb.yaml` |
 | change how a build waits its turn (updates, plugins, New screen, Firmware & USB) | docs/BUILDS.md | `screen_manager/app/build_queue.py`, `web/src/stores/builds.ts` |
 | change how a build is sent to a build server (ESPHome's remote build) | docs/BUILDS.md, "On a build server" | `screen_manager/app/build_server.py`, `web/src/components/BuildServerCard.vue` |
@@ -112,6 +124,18 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   buffer past LVGL is a live picture in its own room and the veil, and never without the glass knowing.
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
+- **One layer for the kind of glass** (docs/GLASS_KINDS.md): a card says what a thing is and never asks which glass
+  it is on. The kind of glass is one fact in `glass_kind.h`; a colour, a ground or a strength that differs between a
+  lit glass and a glass of ink is a part of `theme_parts.h` with a form in each stylesheet (`theme_lit.h`,
+  `theme_ink.h`), and what moves asks `screen_motion::still()`. Never write `if` on the glass in a card: add the part.
+  `tests/test_glass_kinds.py` fails on it, and the host render's ink audit fails a picture of a paper board in which
+  a glyph or a word stands on a raster or on a picture.
+- **A still glass** (docs/PAPER.md): a glass of ink shows no state by colour alone and runs nothing by itself. On paper
+  a role is a tone of the theme's ink table and a state is a shape (a disc of ink, a ring, a rim), and a change is a
+  print the printer times, never a frame. A control is made as on any screen and takes its still form from the pass
+  (`still_glass_lvgl.h`: a slider is a level, a spinner stands, a rolling label is cut), never from a check of the
+  board. An animation starts through `screen_motion::start()`, and what draws by itself asks `screen_motion::still()`
+  and counts time in the steps of `still_glass.h`.
 - **Memory.** Never walk the PSRAM heap (`heap_caps_get_largest_free_block`, `heap_caps_get_info`) while an RGB panel
   is lit: it shifts a frame. Pictures share one budget worked out from the board's PSRAM. The firmware check gates the
   flash use of every 4 MB board.
@@ -158,6 +182,8 @@ release is checked fully, once a week. docs/TESTING.md says what each layer prov
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
   draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"). What fails there is fixed
   in the release.
+- **A release of the app and the editor alone** runs `tools/check.sh --app` instead: no firmware builds, no preview
+  rebuild, no CI on every board, no upgrade test (docs/RELEASING.md, "An app and editor release").
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
@@ -189,6 +215,8 @@ Two branches, and the difference between them is the most important rule in this
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
   upgrade from main on the home Home Assistant, and then main moves to that exact commit with its tag and GitHub release. The
   plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
+- **A release that changes no firmware source** (only the app, the editor, their texts, docs) takes the short route of
+  docs/RELEASING.md, "An app and editor release": `tools/release.py` picks it by what changed, never by a flag.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into
   dev.

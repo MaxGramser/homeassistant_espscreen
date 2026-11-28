@@ -42,13 +42,6 @@ class ClimateRange(unittest.TestCase):
         fan = {'climate.ecobee': {'state': 'fan_only', 'attributes': {'supported_features': 8, 'current_temperature': 21}}}
         self.assertEqual(drawn_controls(state_message(0, tile, fan), features=None)['o']['controls'], 'none')
 
-    def test_the_tile_writes_the_temperature_it_is_set_to_as_home_assistant_does(self):
-        # 68° and 21.5°, as the room's temperature beside a range: not 68.0° (the value line of runtime_tiles.h).
-        from firmware_sources import runtime_source
-        source = runtime_source()
-        self.assertIn('else if (d == "climate" && std::isfinite(t.target)) value = tile_controls::temperature_text(t.target);', source)
-        self.assertNotIn('decimal(t.target, 1)', source)
-
 
 if __name__ == '__main__':
     unittest.main()

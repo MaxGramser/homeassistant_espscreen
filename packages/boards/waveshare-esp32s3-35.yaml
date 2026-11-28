@@ -8,12 +8,20 @@ packages:
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
   self_test: !include ../features/self-test.yaml
+  # The PWR key as the standby key: a press puts the screen in standby or wakes it. It reaches the chip only through
+  # the expander: PWRON, an inverter, SYS_OUT, EXIO6, high while pressed (schematic V2; Waveshare's BSP,
+  # BSP_BUTTON_PWR_EXIO). Not the BOOT key: on the V1 board GPIO0 is also the IMU's interrupt line. Held for seconds,
+  # the key is the AXP2101's power key.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare35"
   DEVICE_NAME: "waveshare35-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare"
+  STANDBY_KEY_PIN: "6"                          # the standby key on the expander (features/standby-key.yaml)
+  STANDBY_KEY_INVERTED: "false"
+  STANDBY_KEY: {pca9554: io_expander, mode: INPUT}
 
   # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
   PANEL_W: "320"

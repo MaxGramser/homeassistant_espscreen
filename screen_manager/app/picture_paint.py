@@ -384,8 +384,31 @@ def encode(image, fmt='bmp24', corners=()):
     return out.getvalue()
 
 
-def paint(question, raws, fmt=None):
-    """The bytes a screen downloads for a question: its picture (picture()) in `fmt`, the question's own when not given."""
+# The greys a glass of ink prints, as the screen's ink step reads them (components/paper_glass/paper_ink.h, grey()):
+# black and white for two inks, and for four the middles of the driver's four bands.
+INKS = {2: (0, 255), 4: (0, 64, 128, 255)}
+
+
+def inked(image, inks):
+    """`image` as a glass of `inks` greys prints it (docs/PAPER.md, "Pictures"): its tones spread from black to white,
+    then every pixel one of the inks, with what it lost handed on to its neighbours (Floyd-Steinberg). A photo keeps
+    its shades as grain that way, where the screen's own raster, made for a tint under a word, would lay a pattern
+    over it. The screen prints an ink as that ink, so what is made here is what stands on the glass."""
+    from PIL import Image, ImageOps
+    grey = ImageOps.autocontrast(image.convert('L'), cutoff=1)
+    levels = INKS.get(inks, INKS[2])
+    if len(levels) == 2:
+        return grey.convert('1', dither=Image.Dither.FLOYDSTEINBERG).convert('RGB')
+    palette = Image.new('P', (1, 1))
+    palette.putpalette([tone for level in levels for tone in (level, level, level)] * (256 // len(levels)))
+    return grey.convert('RGB').quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG).convert('RGB')
+
+
+def paint(question, raws, fmt=None, inks=0):
+    """The bytes a screen downloads for a question: its picture (picture()) in `fmt`, the question's own when not given,
+    and in the screen's `inks` when its glass prints with them."""
     image = picture(question, raws)
+    if inks:
+        image = inked(image, inks)
     fmt = fmt or question.format
     return encode(image, fmt, corners_of(question, image.size) if fmt == 'jpeg' else ())

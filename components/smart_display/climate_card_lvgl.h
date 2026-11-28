@@ -45,6 +45,7 @@ inline int climate_top(const climate_card::Metrics &m){return m.bar_y+m.bar+ui::
 inline int climate_columns(const Tile &t,bool large){
   const climate_card::Metrics m=climate_metrics(large);
   const int modes=(int)tile_controls::climate_modes(t).size(),rows=(int)tile_controls::climate_rows(t).size();
+  if(!tile_controls::climate_setpoint(t))return 1;   // no setpoint card to stand beside the rest
   return overlay_card::columns(climate_top(m)+climate_card::need_height(m,modes,rows)+m.margin(),climate_card::min_column(m));
 }
 inline std::string climate_number_text(const Tile &t){
@@ -132,6 +133,9 @@ inline void climate_hold(lv_event_t *e){
 // the target in full while the device has work to do, a dot at the humidity now and a white knob at the target.
 inline void humidity_ring(const Tile &t,const climate_card::Rect &card,const climate_card::Rect &minus,const climate_card::Rect &plus,bool large){
 #if LV_USE_ARC
+  // Only on a glass that shades: the ring is a track and a part at half strength, and where those are rasters the
+  // number and the line above it say the same.
+  if(!theme::shades())return;
   const int d=std::min(plus.x-minus.right()-ui::px(large?16:8),card.h-ui::px(large?16:8));
   if(d<ui::px(70))return;
   const int cx=card.cx(),cy=card.cy(),w=std::max(ui::px(large?10:6),d/14);
@@ -180,13 +184,13 @@ inline int climate_card_mode_keys=0;  // how many mode keys the open card has
 // The power key: lit while the device runs in any mode.
 inline void climate_power_paint(lv_obj_t *key,const Tile &t,const CardPart &){
   const bool off=tile_controls::climate_off(t);
-  set_color(key,LV_STYLE_BG_COLOR,theme::color(off?theme::KEY:theme::ACCENT_TINT));
-  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(off?theme::ICON_OFF:theme::ACCENT_ICON));
+  theme::ground(key,off?theme::KEY:theme::KEY_ON);
+  if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(off?theme::ICON_OFF:theme::KEY_ON_ICON));
 }
 // The number between - and +: the value being set, grey while the device is off.
 inline void climate_number_paint(lv_obj_t *number,const Tile &t,const CardPart &){
   label(number,climate_number_text(t));
-  set_color(number,LV_STYLE_TEXT_COLOR,theme::color(tile_controls::climate_off(t)?theme::OFF:theme::INK));
+  set_color(number,LV_STYLE_TEXT_COLOR,tile_controls::climate_off(t)?lv_color_hex(theme::absent()):theme::color(theme::INK));
 }
 // - or + (arg -1 or 1): faded at the end of the device's span.
 inline void climate_limit_paint(lv_obj_t *key,const Tile &t,const CardPart &part){
@@ -199,8 +203,8 @@ inline void climate_limit_paint(lv_obj_t *key,const Tile &t,const CardPart &part
 inline void climate_mode_paint(lv_obj_t *key,const Tile &t,const CardPart &part){
   const bool selected=!tile_controls::climate_off(t)&&part.value==tile_controls::current_mode(t);
   const uint32_t colour=tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(part.value);
-  set_color(key,LV_STYLE_BG_COLOR,selected?lv_color_hex(colour):theme::color(theme::CARD));
-  set_number(key,LV_STYLE_BORDER_WIDTH,selected?0:1);
+  set_color(key,LV_STYLE_BG_COLOR,selected?lv_color_hex(theme::chosen(colour)):theme::color(theme::CARD));
+  set_number(key,LV_STYLE_BORDER_WIDTH,selected?0:theme::hairline());
   if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(selected?theme::ON_ACCENT:theme::SLATE));
 }
 // A segment of the fan or swing row (arg: the row's kind, value: its choice).
@@ -220,6 +224,8 @@ inline uint32_t climate_card_shape(const Tile &t){
   auto number=[&](float v){char b[24];snprintf(b,sizeof(b),"%.2f",v);add(b);};
   add(t.entity);f.write(fresh()&&t.available());add(t.unit);add(t.device_class);
   number(t.minimum);number(t.maximum);number(t.step);add(std::to_string(t.supported));
+  // A power key that comes and goes with the state (no TURN_ON: none while off) is another card.
+  f.write(tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE);
   const auto modes=tile_controls::climate_modes(t);
   for(const auto &m:modes)add(m);
   f.write('|');for(const auto &k:climate_shown_keys(modes,climate_card_mode_keys,tile_controls::current_mode(t)))add(k);
@@ -248,7 +254,9 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
     const int knob=std::clamp(m.min_row()-ui::px(6),ui::px(18),ui::px(26));
     mr.caption_h=knob+ui::px(4)+m.caption_h;
   }
-  auto l=climate_card::layout(mr,width,top,height-m.margin(),(int)modes.size(),(int)rows.size(),columns,range);
+  // Without a temperature to set there is no setpoint card: the state line, the modes and the rows (tile_controls::climate_setpoint).
+  const bool box=tile_controls::climate_setpoint(t);
+  auto l=climate_card::layout(mr,width,top,height-m.margin(),(int)modes.size(),(int)rows.size(),columns,range,box);
   // A humidifier's ring takes the setpoint card's height, the - and + a finger's size at its sides.
   if(tile_controls::humidifier(t)){
     const auto &c=l.setpoint;const int key=std::max(m.touch,ui::px(large?64:40)),in=m.key_inset();
@@ -260,13 +268,15 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
   const std::string mode=tile_controls::current_mode(t);
   detail_placed=true;   // the layout has already put every block where the glass has room for it
 
-  // The power key, across from the back key: lit while the device runs in any mode.
+  // The power key, across from the back key: lit while the device runs in any mode. It is there while it can do
+  // something (tile_controls::climate_power): a card is built again when that changes (climate_shape).
   climate_card_mode_keys=0;
-  card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,off?theme::KEY:theme::ACCENT_TINT,
-                              off?theme::ICON_OFF:theme::ACCENT_ICON,CLIMATE_POWER),t,climate_power_paint);
+  if(tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,off?theme::KEY:theme::KEY_ON,
+                              off?theme::ICON_OFF:theme::KEY_ON_ICON,CLIMATE_POWER),t,climate_power_paint);
   if(!l.status.empty()){
     detail_status=card_bind(detail_text(detail_root,"",l.status.x,l.status.y,l.status.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED),t,card_status_paint);
   }
+  if(box){
   // The setpoint: the number between the two keys, the word under it while there is room.
   detail_card(l.setpoint.x,l.setpoint.y,l.setpoint.w,l.setpoint.h);
   const lv_font_t *key_icons=tile_icons&&lv_font_get_line_height(tile_icons)<=l.minus.h-ui::px(8)?tile_icons:mini;
@@ -367,6 +377,7 @@ inline void render_climate_detail(Tile &t,bool large,int width,int height,int co
     auto *caption=detail_text(detail_root,l.caption_is_status?std::string():std::string(tr(txt::climate_target)),
                               l.caption.x,l.caption.y,l.caption.w,small,LV_TEXT_ALIGN_CENTER,theme::SUBTLE);
     if(l.caption_is_status){detail_status=card_bind(caption,t,card_status_paint,"",1);detail_status_brief=true;}
+  }
   }
   // One key per mode, in Home Assistant's colour for the one in use. A device with one mode shows none: the
   // power key already turns it on and off.

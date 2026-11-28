@@ -235,6 +235,8 @@ def refusal(entity_id, name, key, value):
         return t('addon.errors.home_assistant.no_graph', name=label)
     if key == 'display' and value == 'forecast':
         return t('addon.errors.home_assistant.no_forecast', name=label)
+    if key == 'display' and value == 'hourly':
+        return t('addon.errors.home_assistant.no_hourly', name=label)
     if key == 'display' and value == 'meter':
         return t('addon.errors.home_assistant.no_meter', name=label)
     return t('addon.errors.home_assistant.no_control', name=label)
@@ -251,7 +253,7 @@ def unsupported(tile, previous, caps):
         ('tap', options.get('tap') == 'toggle' and not caps.get('toggle')),
         ('inline', options.get('inline') == 'slider' and not caps.get('inline')),
         ('controls', options.get('controls', 'none') != 'none' and options.get('controls') not in caps.get('controls', ())),
-        ('display', options.get('display') in ('graph', 'forecast', 'meter') and options.get('display') not in caps.get('displays', ())),
+        ('display', options.get('display') in ('graph', 'forecast', 'hourly', 'meter') and options.get('display') not in caps.get('displays', ())),
     )
     for key, refused in checks:
         if refused and (previous is None or before.get(key) != options.get(key)):

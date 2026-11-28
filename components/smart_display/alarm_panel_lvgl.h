@@ -79,7 +79,7 @@ inline uint32_t alarm_left(const Tile &t){
 inline std::string alarm_status(const Tile &t,bool card){
   if(!t.available())return tr(txt::ha_unavailable);
   std::string text=!t.extra().state_word.empty()?t.extra().state_word:std::string(alarm_state_text(t.state));
-  if(const uint32_t left=alarm_left(t))text+=" · "+countdown(left);
+  if(const uint32_t left=alarm_left(t))text+=" · "+countdown(shown_left(left));
   if(card&&!t.extra().changed_by.empty()&&!alarm_panel::urgent(t.state))text+=" · "+t.extra().changed_by;
   return text;
 }
@@ -212,7 +212,7 @@ inline void alarm_beat(lv_obj_t *o,uint32_t colour,uint32_t period,int reach,boo
   lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,o);lv_anim_set_values(&a,0,255);lv_anim_set_duration(&a,period);
   lv_anim_set_custom_exec_cb(&a,alarm_beat_exec);lv_anim_set_user_data(&a,(void *)(intptr_t)reach);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
   lv_anim_set_repeat_count(&a,once?1:LV_ANIM_REPEAT_INFINITE);
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 inline void alarm_spring(lv_obj_t *o,uint32_t delay){
   lv_obj_set_style_radius(o,LV_RADIUS_CIRCLE,0);
@@ -220,7 +220,7 @@ inline void alarm_spring(lv_obj_t *o,uint32_t delay){
   lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,o);lv_anim_set_values(&a,0,grow);lv_anim_set_duration(&a,150);
   lv_anim_set_reverse_duration(&a,200);lv_anim_set_delay(&a,delay);lv_anim_set_exec_cb(&a,alarm_spring_exec);
   lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 // How long after a change of state the arrival is still shown: a card drawn later (opened a minute after arming)
 // shows the shield standing still.
@@ -294,7 +294,7 @@ inline void alarm_card_ring(const Tile &t,int cx,int cy,int size,int width){
     lv_arc_set_angles(arc,0,0);
     lv_anim_set_values(&a,0,360);lv_anim_set_duration(&a,500);lv_anim_set_exec_cb(&a,alarm_ring_close);lv_anim_set_path_cb(&a,lv_anim_path_ease_out);
     lv_anim_set_completed_cb(&a,[](lv_anim_t *done){lv_obj_add_flag(static_cast<lv_obj_t *>(done->var),LV_OBJ_FLAG_HIDDEN);});
-    lv_anim_start(&a);
+    screen_motion::start(&a);
     return;
   }
   const uint32_t delay=t.extra().alarm_delay,left=alarm_left(t);
@@ -306,7 +306,7 @@ inline void alarm_card_ring(const Tile &t,int cx,int cy,int size,int width){
   }
   lv_arc_set_angles(arc,0,70);
   lv_anim_set_values(&a,270,630);lv_anim_set_duration(&a,1600);lv_anim_set_exec_cb(&a,alarm_ring_turn);
-  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);lv_anim_start(&a);
+  lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);screen_motion::start(&a);
 #else
   (void)t;(void)cx;(void)cy;(void)size;(void)width;
 #endif
@@ -403,7 +403,7 @@ inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int 
   if(alarm_pad.shake_at&&esphome::millis()-alarm_pad.shake_at<400){
     alarm_pad.shake_at=0;
     lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,alarm_dots);lv_anim_set_values(&a,0,320);lv_anim_set_duration(&a,320);
-    lv_anim_set_exec_cb(&a,alarm_shake_exec);lv_anim_start(&a);
+    lv_anim_set_exec_cb(&a,alarm_shake_exec);screen_motion::start(&a);
   }
   alarm_line=detail_text(detail_root,alarm_line_text(),l.line.x,l.line.y,l.line.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED);
   // The words wrap within their room instead of ending in dots after the first one (keypad_layout gives it the lines).
@@ -480,14 +480,17 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
   int d=std::min(std::min(l.hero.w,l.hero.h)-2*(ring_w+ring_gap)-ui::px(large?10:6),icon_h*5/2);
   d=std::max(d,icon_h+ui::px(8));
   const int cx=l.hero.cx(),cy=l.hero.cy();
-  auto *circle=detail_shape(detail_root,cx-d/2,cy-d/2,d,d,available?theme::tint(theme::state(colour),38):theme::hex(theme::TRACK),d/2);
+  // The disc that says the state (theme::state_disc): armed is the one it stands for.
+  const theme::Dress hero=theme::state_disc(colour,available,colour!=theme::STATE_OFF);
+  auto *circle=detail_shape(detail_root,cx-d/2,cy-d/2,d,d,hero.ground,d/2);
+  theme::rim(circle,hero.rim>0);
   if(icons){
     auto *icon=detail_text(circle,t.icon.empty()?alarm_panel::icon(t.state):t.icon.c_str(),0,(d-icon_h)/2,d,icons,LV_TEXT_ALIGN_CENTER,
-                           available?theme::icon(theme::state(colour)):theme::hex(theme::OFF));
+                           hero.ink);
     if(t.state=="triggered"&&awake()){
       lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,icon);lv_anim_set_values(&a,0,1000);lv_anim_set_duration(&a,1000);
       lv_anim_set_custom_exec_cb(&a,alarm_swing_exec);lv_anim_set_user_data(&a,(void *)(intptr_t)std::max(2,icon_h/10));
-      lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);lv_anim_start(&a);
+      lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);screen_motion::start(&a);
     }
   }
   alarm_card_ring(t,cx,cy,d+2*(ring_w+ring_gap),ring_w);
@@ -512,9 +515,9 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
     auto *key=detail_button("",r.x,r.y,r.w,r.h,ALARM_MODE_FIRST+(int)mode);
     lv_obj_set_style_radius(key,r.h/2,0);
     const uint32_t mode_colour=mode==DISARM?theme::STATE_OFF:GREEN;
-    lv_obj_set_style_bg_color(key,current?lv_color_hex(theme::state(mode_colour)):theme::color(theme::CARD),0);
+    lv_obj_set_style_bg_color(key,current?lv_color_hex(theme::chosen(theme::state(mode_colour))):theme::color(theme::CARD),0);
     lv_obj_set_style_bg_color(key,theme::color(theme::KEY),LV_STATE_PRESSED);
-    lv_obj_set_style_border_width(key,current?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
+    lv_obj_set_style_border_width(key,current?0:theme::hairline(),0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
     alarm_key_face(key,MODES[mode].icon,alarm_mode_text(mode),key_icons,text,
                    current?theme::color(theme::ON_ACCENT):theme::color(theme::INK),r.w,r.h);
     // The icon in the mode's colour on a white key, as Home Assistant colours its choices.
@@ -565,7 +568,7 @@ inline void alarm_tick(){
 #if LV_USE_ARC
   if(alarm_ring&&detail_index<model.count){
     const auto &t=model.tiles[detail_index];
-    lv_arc_set_value(alarm_ring,(int32_t)std::min(alarm_left(t),t.extra().alarm_delay));
+    lv_arc_set_value(alarm_ring,(int32_t)std::min(shown_left(alarm_left(t)),t.extra().alarm_delay));
   }
 #endif
 }

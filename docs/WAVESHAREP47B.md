@@ -11,16 +11,10 @@ tried it on one, so the board is **experimental**.
 ## Which silicon
 
 Waveshare sells this board with two revisions of the ESP32-P4 under one name, and firmware for one does not start on the
-other. This board file builds for **rev3 silicon** ("chip revision: v3.x" in the first lines of the USB log,
-`engineering_sample: false`), which is what Waveshare ships now. A board with earlier silicon ("chip revision: v1.3")
-needs this in its screen's Override YAML:
-
-```yaml
-esp32:
-  engineering_sample: true
-```
-
-Nobody has tried this board file on earlier silicon yet; please report how it goes.
+other. This board file assumes **rev3 silicon** ("chip revision: v3.x" in the first lines of the USB log), which is what
+Waveshare ships now. Tessera reads the chip when it installs a screen and builds for the revision it finds, so a board
+with earlier silicon ("chip revision: v1.3") gets a firmware for that ([CHIP_REVISIONS.md](CHIP_REVISIONS.md)). Nobody has tried this board on earlier
+silicon yet; please report how it goes.
 
 ## Install
 

@@ -102,7 +102,9 @@ an app of that version must find its tag.
 ## The release
 
 About once a week, or when a fix can't wait for the next one, everything on dev goes out as one release. `tools/release.py`
-does the steps that can go wrong by hand, and refuses when something is missing.
+does the steps that can go wrong by hand, and refuses when something is missing. These are the steps of a release that
+changes a firmware source; one that changes only the app and the editor takes the short route of "An app and editor
+release" below, and `tools/release.py status` says which of the two it is.
 
 1. **Freeze dev.** Nobody pushes to dev until the release is out; whoever has work in progress keeps it on a branch of
    their own. `tools/release.py status` lists the commits since main, the notes under `## Unreleased` and the firmware
@@ -140,9 +142,14 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    So before anything is published, `publish` checks that the plugins' check is green on their dev, that every plugin
    of dev's index fits this release's plugin API, and that their dev merges into their main without a conflict outside
    `index.json`, `likes.json` and `stats.json`; any of these refuses the release. Right after main moved, it merges their dev into
-   their main, runs their index workflow on main (built against the released core), and checks main's index: it names
+   their main, runs their index workflow on main (built against the released core; a run that a run of the hour pushed out
+   is started once more), and checks main's index: it names
    this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
-   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
+   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. Last it looks at the
+   editor's modules (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): every plugin main offers must have its module, or the
+   reason it has none, for the number of this release's preview on the plugins repository's branch `modules`. What is
+   missing is built by the plugins' workflow `modules`, waited for and looked at again; a plugin still without one
+   leaves the release not done. A step that fails
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
    main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
    `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
@@ -152,6 +159,55 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    at the new release's tag when it starts ("Which firmware a screen builds"). Every issue the release's CHANGELOG section names gets a short
 reply (which version has it, and how to get it) and is closed; `publish` lists them. Keep an eye on new issues that
 day.
+
+## An app and editor release
+
+A release that changes only the app (`screen_manager/`) and the editor (`web/`, its bundle in
+`screen_manager/app/static`, the `editor` and `addon` texts of the translations, docs, tests, tools) builds no screen
+anything new. A new firmware number, a rebuilt preview, CI on every board and the upgrade test would prove nothing
+about it, so it takes a short route. What changed picks the route, never a flag: `tools/affected_boards.py` sorts every
+path that differs from main, and the route is the short one when none of them is a firmware source. A firmware source
+is:
+
+- a path that reaches a board: the core, a board file or a package a board includes, `components/`, `fonts/`, an
+  entry file, and the `screen` section of a translation file. The section decides, not the file: a text under
+  `editor` or `addon` reaches no screen, a text under `screen` is firmware for every board;
+- any other file under `packages/`, `components/`, `fonts/` or `checkout/`, also when it reaches no screen that exists
+  yet (a new board, a change in comments alone);
+- `screen_manager/Dockerfile`, which names the ESPHome the app builds every screen with;
+- `web/wasm/`, the preview's own code (not `web/wasm/generated/`, which its build writes).
+
+`tools/affected_boards.py --app-only` answers the question alone: exit 0 for the short route, exit 1 with the files
+when a firmware source changed.
+
+1. **Freeze dev and look.** `tools/release.py status` says "App and editor only" and lists the short checks. When it
+   names a firmware number instead, this is "The release" above.
+2. **Prepare.** `tools/release.py prepare` bumps the app version in `screen_manager/config.yaml`, takes " (dev)" off
+   the app's name and turns `## Unreleased` into the release's heading. The firmware number stays: the heading names
+   the firmware main already has, `packages/core.yaml`, `FIRMWARE_VERSION` and `boards.json` are not touched, and the
+   preview is not rebuilt.
+3. **Check.** `PYTHON=.venv-portal/bin/python tools/check.sh --app`, one command:
+   - first that this still is an app and editor release (it stops there when a firmware source changed);
+   - the Python tests, `tests/test_release_lint.py` among them;
+   - the generated files of the app and the editor: board shapes, entry files, issue templates, icons, the tile
+     catalogue;
+   - `tools/i18n.py check`, every language against English;
+   - that the firmware preview in Git is the one the firmware sources build to (asked, not rebuilt);
+   - the editor: `npm ci`, `npm test`, lint, both `vue-tsc` passes, its sizes against the firmware's, `npm run build`,
+     and that the bundle in `screen_manager/app/static` in Git is that build.
+
+   It runs no C++ tests, no preview tests, no firmware builds and no renders.
+4. **Commit and push**: `Release X.Y.Z (firmware A.B.C): what it brings`, with the firmware number main has.
+5. **Publish.** Write the GitHub release notes in a file, then `tools/release.py publish --notes <file> --yes`. It asks
+   for no CI run and no `release-candidate`, and takes neither `--without-ci` nor `--without-upgrade-test`: it runs
+   `tools/check.sh --app` on the pushed commit itself, and publishes only when every check passed. Everything else is
+   as in step 6 of "The release": the tag, main, the GitHub release, the app named "(dev)" on dev again, and the
+   plugins. Without `--yes` it says what it would do and runs nothing.
+6. **After**, as in step 7 of "The release". No screen is offered an update, so there is none to run.
+
+With a firmware source among the changes, `publish` is the full release again: it refuses without green CI and a
+candidate of that commit, and its refusal names the files that make it one. A hotfix that changes only the app or the
+editor takes this route on its `hotfix` branch.
 
 ## A hotfix
 
@@ -190,9 +246,34 @@ checks would flag is listed in its `KNOWN` and `TOUCH_FLOORS` with the code behi
 it is skipped on a laptop and fails in CI, and a preview older than the firmware sources fails everywhere.
 **Firmware preview.** The editor's preview is the shared firmware compiled to WebAssembly (web/wasm/README.md), and
 `tools/check.sh` fails when it is older than the firmware sources, which every firmware number bump makes it. On dev,
-`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev (a few
-minutes): pull that commit before your next push. The release commit changes the firmware number, so rebuild it there
+`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev: pull that
+commit before your next push. The release commit changes the firmware number, so rebuild it there
 locally with `sh web/wasm/build.sh` (Emscripten) and `cd web && npm run build`, and commit it with the release.
+
+The job builds for about ten minutes and dev moves meanwhile, so it keeps to one rule: a built file is committed on
+the head it was built from, and is never merged or rebased. The WebAssembly is made from the firmware sources alone
+(`web/wasm/generate_renderer_manifest.py --check` knows which), so one build of it is good for every later head on
+which that check passes. The editor's bundle is made from the WebAssembly and `web/src`, and its files are named after
+their content, so two builds of it cannot be merged: it is built again on the head it lands on, which takes about a
+minute. `web/wasm/land.py` does the landing, and what it does follows from the head dev has by then:
+
+- The head already has a current preview (someone built it by hand): nothing to land.
+- The built preview fits the head, because the head is still the one the job started from or the firmware sources did
+  not change since: the editor is built on that head, and both go to dev as one commit.
+- The firmware sources changed while the job built: the run is out of date. It ends without a commit and without
+  failing, because the push that changed them started a run of its own.
+- dev moved again between taking the head and the push, so the push is refused: the same again on the new head, a
+  few times (`ATTEMPTS` in `land.py`), and then the run fails.
+
+A run that builds is never cancelled, or none would finish on a day with a push every few minutes. One run per branch
+runs at a time, the run of the newest push waits behind it, and a push that arrives while one waits takes its place
+(GitHub's `concurrency` without `cancel-in-progress`). So a run that failed says something is broken: the preview does
+not build, one of its tests fails, or the editor does not build on the head of dev. A run that passed without a commit
+was overtaken, and the run after it has the work. The preview lands once the firmware sources stand still for the
+length of one build, whatever else is pushed in that time. The preview's tests are one list, `web/wasm/test.sh`, which
+the job and `tools/check.sh` both run, and `tests/test_preview_land.py` walks the landing between two repositories on
+one machine, with a branch that moves during the build.
+
 docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
 and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-<board>` and
 build under `.esphome/check`, apart from the profiles of real screens). Check that no secrets are in Git.
@@ -231,9 +312,14 @@ from at most 256 KB back, and ESP-IDF puts a function's literals in front of the
 header of the component compiles into `main.cpp`, so growing code there can push a function out of reach. The build
 then fails at the link step with `dangerous relocation: l32r: literal target out of range`, often on an S3 board
 while the CYD still links. The fix is its own compilation unit for a large part (the protocol parser has lived in
-`components/smart_display/page_receiver.cpp` since 0.3.8), not a global compiler flag. To see the margin, compare
-in a build's `.map` the address of a function's `.literal.<name>` with the end of its `.text.<name>`: 0.3.8 left
-about 14 KB on the S3 boards and 66 KB on the CYD. The ESP32-P4 is RISC-V and has no such limit.
+`components/smart_display/page_receiver.cpp` since 0.3.8, the picture loader's bodies in `picture_loader.cpp` since
+2026-11-24), not a global compiler flag. `tools/literal_margin.py BUILD.map` prints the margin: for each function, the
+distance from its own `.literal.<name>` to the end of its own `.text.<name>`, against the 256 KB reach, the tightest
+first. `tools/check.sh --firmware` runs it on every build and fails under `LITERAL_FLOOR` (8 KB). It reads the map from
+ESP-IDF's build folder, or from PlatformIO's (`.pioenvs/<name>/firmware.map`) where an older ESPHome builds there. 0.3.8 left about
+14 KB on the S3 boards and 66 KB on the CYD; on 2026-11-24 the S3 boards failed at -16 KB (picture_loader::Loader::end,
+an inline function laid out far from its literals) and stood at 24 KB on the Guition and 50 KB on the CYD once the loader
+left main.cpp. The ESP32-P4 is RISC-V and has no such limit.
 
 Before a release, test app start, saving, restarting and updating with existing layouts, reconnecting to Home
 Assistant and an ESP restart (the upgrade test walks them), and a new card on real hardware. A good build doesn't

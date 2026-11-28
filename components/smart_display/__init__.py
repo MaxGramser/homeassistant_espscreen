@@ -71,9 +71,10 @@ def _engine_of(full_config):
         return engine_build.ENGINES["software"]
     from esphome.components.esp32 import get_esp32_variant
 
+    paper = any((item or {}).get("platform") == "paper_glass" for item in full_config.get("display") or [])
     return engine_build.ENGINES[
         engine_build.picture_engine(str(get_esp32_variant()).lower(), bool(full_config.get("lvgl")),
-                                    "psram" in full_config)
+                                    "psram" in full_config, paper)
     ]
 
 
@@ -219,7 +220,7 @@ async def _engine(config):
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
 # (a test keeps the three equal). A plugin builds on the same major from its own minor up, unless a minor between its
 # own and this one changed the meaning of a name while the major is 0 (PLUGIN_API_BREAKS, the same as plugin_manifest.py's).
-PLUGIN_API = (0, 28)
+PLUGIN_API = (0, 29)
 PLUGIN_API_BREAKS = {0: (4,)}
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 

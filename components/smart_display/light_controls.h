@@ -4,6 +4,10 @@
 // closes (runtime_tiles::colour_open, colour_close), painted from the light's tile on every change (paint), and a
 // slider let go is a wish the runtime makes through `commits` (docs/OPTIMISTIC.md). It keeps no state of Home Assistant
 // of its own. The values part stays free of LVGL for tests/test_light_controls.cpp.
+//
+// On a still glass (docs/PAPER.md) the first two rows are not sliders: a spectrum in ink says nothing, so the colour
+// and the white shade are keys with names (light_choices.h), the one the light has now filled. The brightness stays
+// the slider it is, which that glass draws as a level like every slider (still_glass_lvgl.h).
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -29,11 +33,20 @@ struct Values {
 #ifndef LIGHT_CONTROLS_TEST
 #include "esphome/core/log.h"
 #include "lvgl.h"
+#include "esphome/core/hal.h"
+#include "light_choices.h"
 #include "screen_input.h"
+#include "screen_motion.h"
 #include "theme.h"
 #include <functional>
 namespace light_controls {
-struct Row { lv_obj_t *box{}, *slider{}, *value{}, *icon{}; bool dirty = false; unsigned index{}; bool off = false; int held = 0; };
+struct Row {
+  lv_obj_t *box{}, *slider{}, *value{}, *icon{}; bool dirty = false; unsigned index{}; bool off = false; int held = 0;
+  int h = 0;  // the height of its card
+  // On a still glass the colour and the white shade are keys with names, and no slider: the keys, how many, and
+  // which one stands filled (-1: none).
+  lv_obj_t *keys[light_choices::COLOURS]{}; int count = 0, chosen = -1;
+};
 inline Row rows[3];
 // The card the rows stand on: a hand's width, in the middle of the overlay that covers the glass.
 inline lv_obj_t *card = nullptr;
@@ -69,7 +82,30 @@ inline lv_color_t kelvin_color(int value, int low, int high) {
   int mix = high > low ? clamp((value - low) * 255 / (high - low), 0, 255) : 128;
   return lv_color_hex(theme::mix(COOL, WARM, static_cast<uint8_t>(mix)));
 }
+// A row of named keys: the one the light has now stands filled, the others are paper with a rim.
+inline void choose(Row &row, int chosen) {
+  row.chosen = chosen;
+  for (int n = 0; n < row.count; ++n) {
+    auto *key = row.keys[n];
+    if (!key) continue;
+    const bool on = n == chosen;
+    theme::ground(key, on ? theme::KEY_ON : theme::KEY);
+    lv_obj_set_style_text_color(key, theme::color(on ? theme::KEY_ON_ICON : theme::INK), 0);
+  }
+}
+inline void choice_tapped(lv_event_t *e) {
+  auto &row = *static_cast<Row *>(lv_event_get_user_data(e));
+  const int n = static_cast<int>(reinterpret_cast<intptr_t>(lv_obj_get_user_data(lv_event_get_target_obj(e))));
+  if (n < 0 || n >= row.count) return;
+  if (row.index == 1 && !shown.temperature_ready()) return;
+  if (!screen_input::touch_guard.accept_repeat(esphome::millis(), 360 + static_cast<int>(row.index) * 10 + n)) return;
+  choose(row, n);
+  const int value = row.index == 0 ? light_choices::HUES[n] : light_choices::shade_kelvin(n, shown.minimum, shown.maximum);
+  if (row.index == 1) lv_label_set_text_fmt(row.value, "%d K", value);
+  if (!demo && commits[row.index]) commits[row.index](value);
+}
 inline void preview(Row &row) {
+  if (!row.slider) return;
   int value = lv_slider_get_value(row.slider);
   if (row.index == 0) {
     lv_label_set_text_fmt(row.value, "%d°", value);
@@ -153,6 +189,7 @@ inline void colours(Row &row) {
   lv_obj_set_style_text_color(row.box, theme::color(theme::INK), 0);
   lv_obj_set_style_text_color(row.value, theme::color(theme::MUTED), 0);
   if (row.icon) lv_obj_set_style_text_color(row.icon, theme::color(theme::MUTED), 0);
+  if (!row.slider) return;
   if (row.index < 2) lv_obj_set_style_border_color(row.slider, theme::color(theme::KNOB), LV_PART_KNOB);
   else lv_obj_set_style_bg_color(row.slider, theme::color(theme::KNOB), LV_PART_KNOB);
 }
@@ -181,6 +218,34 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   int inset = ui::px(large ? 18 : 10), text_y = ui::px(large ? 14 : 5), track_h = ui::px(large ? 32 : 18);
   row_x = margin; row_w = w; row_h = card_h; row_inset = inset; row_text_y = text_y;
   int track_x = inset, track_w = w - 2 * inset, track_y = card_h - inset + (ui::px(large ? 2 : 3)) - track_h;
+  // A still glass: keys with names for the colour and the white shade, a level thick enough for a key at each end,
+  // and so each row as high as what it holds. What the glass lacks in height the keys give up, down to their words.
+  const bool still = screen_motion::still();
+  const int line_h = lv_font_get_line_height(font), head = text_y + line_h + ui::px(large ? 8 : 4), under = inset;
+  const int key_gap = std::max(4, ui::px(large ? 8 : 4)), key_pad = ui::px(large ? 14 : 8);
+  int key_h = std::max(ui::mm(6), line_h + ui::px(14)), level_h = ui::mm(6);
+  light_choices::Grid grids[2];
+  if (still) {
+    for (unsigned i = 0; i < 2; ++i) {
+      const int count = i == 0 ? light_choices::COLOURS : light_choices::SHADES;
+      int widest = 0;
+      for (int n = 0; n < count; ++n) {
+        lv_point_t size;
+        lv_text_get_size(&size, screen_text::tr((i == 0 ? screen_text::txt::light_color_red : screen_text::txt::light_shade_warm) + n), font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        widest = std::max(widest, static_cast<int>(size.x));
+      }
+      grids[i] = light_choices::grid(count, track_w, widest + 2 * key_pad, key_gap);
+    }
+    const auto all = [&]() {
+      int sum = 3 * (head + under) + 2 * gap + level_h;
+      for (const auto &g : grids) sum += g.rows * key_h + (g.rows - 1) * key_gap;
+      return sum;
+    };
+    if (all() > room - extra * spacing) {
+      key_h = line_h + ui::px(6);
+      level_h = ui::mm(5);
+    }
+  }
   // A row squeezed by a short screen keeps its words: the track moves right under them and gets thinner,
   // never thinner than something a finger can still drag.
   const int lowest = text_y + lv_font_get_line_height(font) + ui::px(large ? 6 : 3), foot = ui::px(large ? 8 : 4);
@@ -193,7 +258,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   const char *icons[] = {"\U000F03D8", "\U000F050F", "\U000F0335"};
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i]; row.index = i;
-    row.box = plain(parent, margin, top + i * spacing, w, card_h);
+    row.h = !still ? card_h : head + under + (i < 2 ? grids[i].rows * key_h + (grids[i].rows - 1) * key_gap : level_h);
+    row.box = plain(parent, margin, top + i * spacing, w, row.h);
     lv_obj_set_style_bg_opa(row.box, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(row.box, ui::px(large ? 18 : 10), 0);
     lv_obj_set_style_border_width(row.box, 1, 0);
@@ -209,6 +275,31 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
     auto *label = lv_label_create(row.box); lv_label_set_text(label, names[i]);
     lv_obj_set_pos(label, text_x, text_y);
     row.value = lv_label_create(row.box); lv_obj_align(row.value, LV_ALIGN_TOP_RIGHT, -inset, text_y);
+    if (still && i < 2) {
+      // The names, as many beside each other as the row has room for, each a key.
+      const auto &g = grids[i];
+      row.count = i == 0 ? light_choices::COLOURS : light_choices::SHADES;
+      const int key_w = (track_w - (g.columns - 1) * key_gap) / g.columns;
+      for (int n = 0; n < row.count; ++n) {
+        auto *key = row.keys[n] = plain(row.box, track_x + (n % g.columns) * (key_w + key_gap), head + (n / g.columns) * (key_h + key_gap), key_w, key_h);
+        lv_obj_add_flag(key, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_bg_opa(key, LV_OPA_COVER, 0);
+        lv_obj_set_style_radius(key, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_user_data(key, reinterpret_cast<void *>(static_cast<intptr_t>(n)));
+        auto *word = lv_label_create(key);
+        lv_label_set_text(word, screen_text::tr((i == 0 ? screen_text::txt::light_color_red : screen_text::txt::light_shade_warm) + n));
+        lv_obj_center(word);
+        lv_obj_add_event_cb(key, choice_tapped, LV_EVENT_SHORT_CLICKED, &row);
+      }
+      colours(row);
+      choose(row, -1);
+      continue;
+    }
+    if (still) {
+      // The brightness: its track as thick as a key, right under its words (still_glass_lvgl.h draws the level).
+      track_h = level_h;
+      track_y = head;
+    }
     row.slider = lv_slider_create(row.box);
     lv_obj_remove_style_all(row.slider);
     lv_obj_remove_flag(row.slider, LV_OBJ_FLAG_SCROLLABLE);
@@ -261,7 +352,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
       lv_obj_set_style_pad_bottom(row.slider, -(track_h / 4), LV_PART_KNOB);
       // 1 % still shows a stub a third of the height wide: the range starts that far below 1.
       int stub = std::max(track_h / 3, 2 * std::max(1, track_h / 8) + handle), below = track_w > stub ? 99 * stub / (track_w - stub) : 0;
-      lv_slider_set_range(row.slider, 1 - below, 100);
+      // A level has no stub to hold: it counts from nothing in whole tenths.
+      lv_slider_set_range(row.slider, still ? 0 : 1 - below, 100);
     }
     lv_obj_add_event_cb(row.slider, event, LV_EVENT_ALL, &row);
     colours(row);
@@ -273,14 +365,18 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
 // what it draws (overlay_card::centre).
 inline int place(const Values &v) {
   const int showing = (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1 + extra;
-  const int block = showing * spacing - row_gap;
+  // Each row that shows with its own height (all the same on a glass that is lit), and a gap between two.
+  int block = extra * spacing - row_gap;
+  for (unsigned i = 0; i < 3; ++i)
+    if (i == 0 ? v.color : i == 1 ? v.temperature : true) block += rows[i].h + row_gap;
+  (void) showing;
   const int over = glass_h - top - ui::px(ui::large() ? 18 : 8) - block;
   int y = over > ui::touch_min() ? top + over / 2 : top;
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i];
     const bool visible = i == 0 ? v.color : i == 1 ? v.temperature : true;
     if (!visible) { lv_obj_add_flag(row.box, LV_OBJ_FLAG_HIDDEN); continue; }
-    lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y); y += spacing;
+    lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y); y += row.h + row_gap;
   }
   return y;
 }
@@ -293,6 +389,21 @@ inline void paint(const Values &v, bool fresh_card) {
                          clamp(v.brightness, 1, 100)};
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i];
+    // Only a still glass has the keys (setup): asked first, so a glass that moves carries none of what paints them.
+    if (screen_motion::still() && row.count) {
+      // Named keys: the name nearest to what the light has; a white shade waits for the light's own range.
+      if (i == 0) {
+        lv_label_set_text(row.value, "");
+        choose(row, light_choices::colour_of(values[0]));
+      } else if (v.temperature_ready()) {
+        lv_label_set_text_fmt(row.value, "%d K", values[1]);
+        choose(row, light_choices::shade_of(values[1], v.minimum, v.maximum));
+      } else {
+        lv_label_set_text(row.value, screen_text::tr(screen_text::txt::light_waiting));
+        choose(row, -1);
+      }
+      continue;
+    }
     if (!row.slider || (!fresh_card && (row.dirty || lv_obj_has_state(row.slider, LV_STATE_PRESSED)))) continue;
     if (i == 1) {
       if (v.temperature_ready()) {

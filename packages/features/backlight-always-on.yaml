@@ -7,19 +7,11 @@
 # out, ESP Screens does too (boards.json, CAN_STANDBY), and the entities below stay internal. The board's own output
 # for the line never takes it low again (packages/boards/waveshare-esp32s3-43.yaml).
 substitutions:
+  # The light keeps its level for the settings page (Normal brightness); the glass stays lit.
   CAN_STANDBY: "false"
-  # apply_screen_settings: the light keeps its level for the settings page; the glass stays lit.
-  APPLY_BACKLIGHT: |-
-    id(set_backlight).execute(level, 300);
-
-script:
-  # The other boards blink the backlight four times when an alert arrives. This backlight cannot go dark and come
-  # back, so an alert here arrives without blinks; the card itself is the signal.
-  - id: !remove alert_flash
-  - id: alert_flash
-    mode: restart
-    then:
-      - lambda: 'ESP_LOGI("alert", "no backlight blinks on this board");'
+  # The other boards blink the backlight when an alert arrives. This backlight cannot go dark and come back, so an
+  # alert here arrives without blinks; the card itself is the signal (alert_life.h).
+  ALERT_BLINKS: "0"
 
 # The settings of a screen that can go dark, kept out of Home Assistant and ESP Screens (firmware 0.2.91+). The entities
 # stay in the firmware, because packages/core.yaml publishes them, but as internal ones nobody sees. They follow

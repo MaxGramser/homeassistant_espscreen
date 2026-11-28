@@ -629,3 +629,43 @@ describe("a sensor's meter (firmware 0.56.0)", () => {
     });
   });
 });
+
+describe("a thermostat's own line (firmware 0.68.0)", () => {
+  beforeEach(() => { useInventoryStore().inventory.entities.push({ id: "climate.airco", name: "Airco", state: "cool", area: "" } as any); });
+
+  it("keeps its parts in the order the screen says them, and the ones it says by itself as nothing", () => {
+    expect(canonicalOptions("climate.airco", { sub: "show:now,mode" })).toEqual({ sub: "show:mode,now" });
+    expect(canonicalOptions("climate.airco", { sub: "show:now,target,mode" })).toEqual({});
+    expect(canonicalOptions("climate.airco", { sub: "show:" })).toEqual({ sub: "show:" });
+    expect(canonicalOptions("light.a", { sub: "show:mode" })).toEqual({});
+  });
+
+  it("chooses the parts with chips under Automatic, and saves a document the add-on takes", async () => {
+    const tile: Tile = { entity: "climate.airco", name: "", slot: 0 };
+    appendTiles(tile);
+    const panel = mount(TileInspector, { props: { tile: current(tile)! } });
+    const chips = () => panel.findAll(".sub-parts .ui-chip");
+    expect(chips().map((chip) => chip.text())).toEqual(["mode", "action", "target", "now"].map((part) => t(`editor.tile.sub.part_${part}`)));
+    expect(chips().map((chip) => chip.attributes("data-state"))).toEqual(["on", "off", "on", "on"]);
+    // Now off: mode and target stay; the action on beside them.
+    await chips()[3].trigger("click");
+    await panel.setProps({ tile: current(tile)! });
+    expect(current(tile)!.options?.sub).toBe("show:mode,target");
+    await chips()[1].trigger("click");
+    await panel.setProps({ tile: current(tile)! });
+    expect(current(tile)!.options?.sub).toBe("show:mode,action,target");
+    expect(() => validatePages(doc.document!, doc.documentGrid!)).not.toThrow();
+    // Back to the three it says by itself: Automatic, stored as nothing.
+    await chips()[1].trigger("click");
+    await panel.setProps({ tile: current(tile)! });
+    await chips()[3].trigger("click");
+    expect(current(tile)!.options?.sub).toBeUndefined();
+    panel.unmount();
+    // No other type has the chips.
+    const lamp: Tile = { entity: "light.a", name: "", slot: 1 };
+    appendTiles(lamp);
+    const other = mount(TileInspector, { props: { tile: current(lamp)! } });
+    expect(other.find(".sub-parts").exists()).toBe(false);
+    other.unmount();
+  });
+});

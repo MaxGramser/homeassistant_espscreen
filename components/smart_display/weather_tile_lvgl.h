@@ -38,6 +38,8 @@ inline lv_obj_t *part_bar(Widgets &w,unsigned i,int x,int y,int width,int height
 // now in a column at the left, a light line, and the week over the full height at the right, where it reaches a higher
 // tier. Every colour is set on every render, as render_forecast does. False when the week fits in no tier here: the
 // card then keeps the forecast's own forms.
+// A tile set to the next hours (display hourly) has the same head, and under it or beside it the hours' curve with its
+// time axis (the card's Hourly view) where the room holds it, else a column per hour in the form of one line.
 inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height){
   const Extra &x=t.extra();
   const lv_font_t *bold=w.title_font?w.title_font:lv_obj_get_style_text_font(w.title,LV_PART_MAIN),*text=w.value_font;
@@ -49,7 +51,8 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   char now[16];if(std::isfinite(t.current))snprintf(now,sizeof(now),"%.0f°",t.current);else snprintf(now,sizeof(now),"--");
   const std::string cond=t.available()?weather_text(t.state):tr(txt::ha_unavailable);
   const std::string feels=std::isfinite(x.feels)?fill(txt::weather_feels_like,"n",(int)std::lround(x.feels)):"";
-  auto chart=weather_chart_of(t,false);
+  const bool by_hour=t.display=="hourly"&&x.hours.size()>=2;
+  auto chart=weather_chart_of(t,by_hour);
   const bool wide=width>=height*12/5;
   // Where the week goes, and whether it fits there at all.
   int cx=0,cy=0,cw=width,ch=height,col=0;
@@ -72,9 +75,15 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
     col=std::max({circle+gap+std::max(text_width(t.name,bold),text_width(cond,text)),text_width(now,tf),text_width(hl,line_font)})+gap;
     cx=col+gap+1+gap;cw=width-cx;
   }else{cy=circle+gap;ch=height-cy;}
-  const int tier=weather_chart::week_tier(chart,cw,ch);
-  // A card of two rows or more shows the line at least; one of a single row the days.
-  if(tier<0||(!low&&tier<1))return false;
+  int tier=-1;
+  if(by_hour&&!low&&weather_chart::hours_fit(chart,cw,ch))tier=1;
+  else if(by_hour){
+    // Too low for the curve: the hours as columns from the running one.
+    chart.hourly=false;chart.strip=true;chart.days=weather_week::hour_columns(chart.hours,chart.now);
+    tier=weather_chart::week_tier(chart,cw,ch);
+  }else tier=weather_chart::week_tier(chart,cw,ch);
+  // A card of two rows or more shows the line at least; one of a single row the days. The hours' columns go anywhere.
+  if(tier<0||(!low&&tier<1&&!chart.strip))return false;
   begin_extra(w,"week",width,height);
   for(auto *p:w.parts)if(p)lv_obj_add_flag(p,LV_OBJ_FLAG_HIDDEN);
   auto show=[](lv_obj_t *p){lv_obj_remove_flag(p,LV_OBJ_FLAG_HIDDEN);return p;};
@@ -86,7 +95,8 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
   // The head: the circle in the condition's colour with its icon, as on every other card.
   const int disc_y=low?(height-std::min(circle,height))/2:0;
   auto *disc=show(part_dot(w,0,0,disc_y,std::min(circle,height)));
-  set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+  set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::field(sky,38):theme::hex(theme::TRACK)));
+  theme::rim(disc,true);
   const int gh=line_of(w.icon_font);
   words(1,w.icon_font,0,disc_y+(std::min(circle,height)-gh)/2,std::min(circle,height),LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595",t.available()?theme::icon(sky):theme::hex(theme::OFF));
   const int th=line_of(bold),nh=line_of(text),hy=(circle-th-nh)/2;
@@ -122,7 +132,7 @@ inline bool render_week(Widgets &w,const Tile &t,bool large,int width,int height
     words(2,bold,circle+gap,hy,room,LV_TEXT_ALIGN_LEFT,t.name,ink);
     words(3,text,circle+gap,hy+th,room,LV_TEXT_ALIGN_LEFT,line,muted);
   }
-  // The week: one object that owns what it draws (weather_chart.h).
+  // The week or the hours: one object that owns what it draws (weather_chart.h).
   auto *&p=w.parts[5];
   if(!p)p=weather_chart::create(w.extra);
   show(p);lv_obj_set_pos(p,cx,cy);lv_obj_set_size(p,cw,ch);
@@ -137,7 +147,18 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
   namespace ft=forecast_tile;
   // The week (render_week) on every card it fits; the forms below where it fits nowhere.
   if(render_week(w,t,large,width,height))return;
-  const auto &x=t.extra();const auto &days=x.forecast;
+  const auto &x=t.extra();
+  // A tile set to the next hours takes the same forms with a column per hour from the running one (its time, its
+  // condition, its temperature, no low and no pill): the CYD's double card is too low for the week's one line.
+  const bool by_hour=t.display=="hourly"&&x.hours.size()>=2;
+  std::vector<Forecast> hour_days;
+  if(by_hour){
+    const auto c=weather_chart_of(t,true);
+    for(const auto &d:weather_week::hour_columns(c.hours,c.now,forecast_tile::DAYS)){
+      Forecast f;f.day=d.name;f.condition=d.condition;f.high=d.high;f.mm=d.mm;hour_days.push_back(f);
+    }
+  }
+  const auto &days=by_hour?hour_days:x.forecast;
   const lv_font_t *bold=w.title_font?w.title_font:lv_obj_get_style_text_font(w.title,LV_PART_MAIN),*text=w.value_font;
   const lv_font_t *mini=mini_icon_font?mini_icon_font:w.icon_font;
   const lv_font_t *faces[ft::FACES]={setpoint_font,watch_value_font,watch_font};
@@ -158,15 +179,15 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
   float lowest=INFINITY,highest=-INFINITY;
   for(int k=0;k<n;++k){
     const auto &f=days[k];
-    const int hw=text_width(degrees(f.high),bold),lw=text_width(degrees(f.low),text);
-    m.temps_w=std::max(m.temps_w,hw+space+lw);m.high_w=std::max(m.high_w,hw+2);m.low_w=std::max(m.low_w,lw+2);
+    const int hw=text_width(degrees(f.high),bold),lw=std::isfinite(f.low)?text_width(degrees(f.low),text):0;
+    m.temps_w=std::max(m.temps_w,lw?hw+space+lw:hw);m.high_w=std::max(m.high_w,hw+2);m.low_w=std::max(m.low_w,lw+2);
     m.name_w=std::max(m.name_w,text_width(f.day,text)+2);m.row_name_w=std::max(m.row_name_w,text_width(f.day,bold)+2);
     if(std::isfinite(f.rain)&&f.rain>=30){m.rain=true;m.rain_w=std::max(m.rain_w,text_width(screen_text::percent((int)std::lround(f.rain)),text)+2);}
     if(std::isfinite(f.low))lowest=std::min(lowest,f.low);
     if(std::isfinite(f.high))highest=std::max(highest,f.high);
   }
   const bool tall=t.row_span()>1||w.full;
-  const auto l=ft::layout(m,width,height,n,forecast_today(t),tall);
+  const auto l=ft::layout(m,width,height,n,by_hour?-1:forecast_today(t),tall);
   const bool rows=l.form==ft::Form::rows;
   begin_extra(w,rows?"forecast_rows":"forecast",width,height);
   for(auto *p:w.parts)if(p)lv_obj_add_flag(p,LV_OBJ_FLAG_HIDDEN);
@@ -182,7 +203,8 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
   const uint32_t sky=t.available()?weather_color_raw(t.state):theme::STATE_OFF;
   if(!l.circle.empty()){
     auto *disc=show(part_dot(w,0,l.circle.x,l.circle.y,l.circle.w));
-    set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::tint(sky,38):theme::hex(theme::TRACK)));
+    set_color(disc,LV_STYLE_BG_COLOR,lv_color_hex(t.available()?theme::field(sky,38):theme::hex(theme::TRACK)));
+  theme::rim(disc,true);
     const lv_font_t *glyph=l.circle.w>=m.circle||!mini_icon_font?w.icon_font:mini_icon_font;
     const int gh=lv_font_get_line_height(glyph);
     paint(show(part_label(w,1,glyph,l.circle.x,l.circle.y+(l.circle.h-gh)/2,l.circle.w,LV_TEXT_ALIGN_CENTER,t.available()?weather_icon(t.state):"\U000F0595")),
@@ -203,7 +225,9 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
       words(base,bold,r.name,LV_TEXT_ALIGN_LEFT,f.day,ink);
       words(base+1,mini,r.icon,LV_TEXT_ALIGN_CENTER,weather_icon(f.condition),weather_accent(f.condition));
       if(!r.rain.empty()&&std::isfinite(f.rain)&&f.rain>=30)words(base+2,text,r.rain,LV_TEXT_ALIGN_LEFT,screen_text::percent((int)std::lround(f.rain)),rain);
-      words(base+3,text,{r.low.x,r.low.y,r.low.w,r.low.h},LV_TEXT_ALIGN_RIGHT,degrees(f.low),muted);
+      if(std::isfinite(f.low))words(base+3,text,{r.low.x,r.low.y,r.low.w,r.low.h},LV_TEXT_ALIGN_RIGHT,degrees(f.low),muted);
+      // An hour has no range: no bar.
+      if(by_hour){words(base+5,bold,r.high,LV_TEXT_ALIGN_RIGHT,degrees(f.high),ink);continue;}
       auto *track=show(part_bar(w,base+4,r.bar.x,r.bar.y,r.bar.w,r.bar.h));
       set_color(track,LV_STYLE_BG_COLOR,theme::color(theme::TRACK));
       auto *fill_bar=lv_obj_get_child(track,0);
@@ -230,10 +254,10 @@ inline void render_forecast(Widgets &w,const Tile &t,bool large,int width,int he
     const bool beside=!c.name.empty()&&c.name.y>c.icon.y;
     if(!c.name.empty())words(base,text,c.name,beside?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER,f.day,muted);
     words(base+1,mini,c.icon,LV_TEXT_ALIGN_CENTER,weather_icon(f.condition),weather_accent(f.condition));
-    const std::string hi=degrees(f.high),lo=degrees(f.low);
-    const int hw=text_width(hi,bold),lw=text_width(lo,text),x0=c.temps.x+(c.temps.w-(hw+space+lw))/2;
+    const std::string hi=degrees(f.high),lo=std::isfinite(f.low)?degrees(f.low):"";
+    const int hw=text_width(hi,bold),lw=lo.empty()?0:text_width(lo,text),x0=c.temps.x+(c.temps.w-(lo.empty()?hw:hw+space+lw))/2;
     words(base+2,bold,{x0,c.temps.y,hw+2,c.temps.h},LV_TEXT_ALIGN_LEFT,hi,ink);
-    words(base+3,text,{x0+hw+space,c.temps.y+low_drop,lw+2,m.text_h},LV_TEXT_ALIGN_LEFT,lo,muted);
+    if(!lo.empty())words(base+3,text,{x0+hw+space,c.temps.y+low_drop,lw+2,m.text_h},LV_TEXT_ALIGN_LEFT,lo,muted);
     if(!c.rain.empty()&&std::isfinite(f.rain)&&f.rain>=30)words(base+4,text,c.rain,LV_TEXT_ALIGN_CENTER,screen_text::percent((int)std::lround(f.rain)),rain);
   }
 }
@@ -285,12 +309,16 @@ inline void render_sunpath(Widgets &w,const Tile &t,bool large,int width,int hei
   lv_point_precise_t sun={(lv_value_precise_t)(x0+(x1-x0)*fraction),(lv_value_precise_t)(day?horizon-sinf(sa)*amplitude:horizon+sinf(sa)*amplitude)};
   travelled[filled+1]=sun;
   line[0]={(lv_value_precise_t)0,(lv_value_precise_t)horizon};line[1]={(lv_value_precise_t)(width-1),(lv_value_precise_t)horizon};
-  const uint32_t path=theme::hex(theme::SUN_PATH), accent=day?theme::ha::ORANGE:theme::foreground(theme::ha::NIGHT_SKY), disc=day?theme::ha::SUNNY:theme::hex(theme::MOON);
+  const uint32_t path=theme::hex(theme::SUN_PATH), accent=theme::mark(day?theme::ha::ORANGE:theme::foreground(theme::ha::NIGHT_SKY)), disc=day?theme::ha::SUNNY:theme::hex(theme::MOON);
   lv_obj_set_style_line_color(part_line(w,3,line,2,2),lv_color_hex(path),0);
   lv_obj_set_style_line_color(part_line(w,4,arc,segments+1,ui::px(large?2:1)),lv_color_hex(path),0);
   lv_obj_set_style_line_color(part_line(w,5,travelled,filled+2,ui::px(large?4:3)),lv_color_hex(accent),0);
-  auto *halo=part_dot(w,6,int(sun.x)-glow/2,int(sun.y)-glow/2,glow);lv_obj_set_style_bg_color(halo,lv_color_hex(disc),0);lv_obj_set_style_bg_opa(halo,LV_OPA_30,0);
-  lv_obj_set_style_bg_color(part_dot(w,7,int(sun.x)-size/2,int(sun.y)-size/2,size),lv_color_hex(disc),0);
+  // The sun and the moon as an orb with a glow (theme::orb, theme::gone): full by day, its outline by night.
+  auto *halo=part_dot(w,6,int(sun.x)-glow/2,int(sun.y)-glow/2,glow);lv_obj_set_style_bg_color(halo,lv_color_hex(disc),0);lv_obj_set_style_bg_opa(halo,theme::gone(LV_OPA_30),0);
+  auto *body=part_dot(w,7,int(sun.x)-size/2,int(sun.y)-size/2,size);
+  const theme::Dress orb=theme::orb(disc,day);
+  lv_obj_set_style_bg_color(body,lv_color_hex(orb.ground),0);
+  theme::rim(body,orb.rim>0);
   if(day){w.fill_points=travelled;w.fill_count=filled+2;w.fill_x=0;w.fill_y=0;w.fill_base=horizon;w.fill_color=lv_color_hex(theme::ha::SUNNY);w.fill_opa=theme::fill_opacity();}
 }
 }  // namespace runtime_tiles

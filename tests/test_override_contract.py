@@ -17,9 +17,13 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 
 FIXTURES = ROOT / 'tests' / 'fixtures' / 'overrides'
-# The parts every board names the same way, for overrides and for the shared tree: its display, its touch panel, the
-# output that drives its backlight and the light on it.
-EVERY_BOARD = ('my_display', 'ts_touch', 'gpio_backlight_pwm', 'back_light')
+# The parts every board names the same way, for overrides and for the shared tree: its display and its touch panel.
+EVERY_BOARD = ('my_display', 'ts_touch')
+# A glass is lit or it is paper, by the feature its board includes. A lit one (packages/features/backlight.yaml) also
+# names the output that drives its backlight and the light on it; a glass of paper (packages/features/paper.yaml) has no
+# light of its own and names neither, so an override that hangs on a backlight never meets a board without one.
+LIT, PAPER = 'backlight.yaml', 'paper.yaml'
+EVERY_LIT_BOARD = ('gpio_backlight_pwm', 'back_light')
 # And what one family of boards has on top, named by the hardware file that brings it: the Waveshare's backlight line on
 # its CH422G expander (GitHub #22).
 SOME_BOARDS = {'backlight_line': 'waveshare-ch422g.yaml'}
@@ -76,6 +80,11 @@ class Overrides(unittest.TestCase):
             for part in EVERY_BOARD:
                 self.assertIn(part, ids, f'{board} has no {part}')
             chain = [path.name for path in profiles.chain(profiles.BOARDS[board])]
+            self.assertNotEqual(LIT in chain, PAPER in chain,
+                                f'{board}: a board includes features/{LIT} or features/{PAPER}, one of the two')
+            for part in EVERY_LIT_BOARD:
+                self.assertEqual(part in ids, LIT in chain,
+                                 f'{board}: {part} is named on exactly the boards with features/{LIT}')
             for part, hardware in SOME_BOARDS.items():
                 self.assertEqual(part in ids, hardware in chain,
                                  f'{board}: {part} is named on exactly the boards with {hardware} (the overrides of GitHub #22 hang on it)')

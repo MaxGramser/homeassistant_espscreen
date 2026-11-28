@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0xCA81EF43u && screen_text::KEY_COUNT == 565,
+static_assert(screen_text::KEYS_HASH == 0x4C468138u && screen_text::KEY_COUNT == 581,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -112,6 +112,8 @@ const char *const screen_text::TABLE[] = {
     "A connection from {address} was turned away: its key is not this screen's. Enter this screen's key in Home Assistant's ESPHome integration.",
     "No answer from Home Assistant",
     "Often this screen may not perform actions yet. Turn that on in Home Assistant: ESPHome > this screen > Configure.",
+    "operated on {screen}, page {page}, tile {tile}",
+    "operated on {screen}, page {page}",
     "Arranging your tiles",
     "Peeking at your lights",
     "Dusting off the album covers",
@@ -131,9 +133,12 @@ const char *const screen_text::TABLE[] = {
     "Screen",
     "This screen",
     "Extras",
+    "Display",
     "Microphone",
     "Volume",
+    "Volume",
     "Wake when moved",
+    "Tap sound",
     "Backlight PWM",
     "Dimmest level",
     "Dark mode",
@@ -203,6 +208,17 @@ const char *const screen_text::TABLE[] = {
     "Brightness",
     "Waiting...",
     "Presets",
+    "Warm",
+    "Neutral",
+    "Cool",
+    "Red",
+    "Orange",
+    "Yellow",
+    "Green",
+    "Cyan",
+    "Blue",
+    "Purple",
+    "Pink",
     "Effect",
     "Nothing to choose",
     "Loading...",

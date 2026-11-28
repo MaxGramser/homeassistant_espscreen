@@ -47,8 +47,11 @@ def paint_names():
 
 class OnePlace(unittest.TestCase):
     def test_no_header_writes_a_colour_of_its_own(self):
+        # The theme is theme.h, the table, and theme_lit.h, the lit stylesheet, which mixes a colour towards white
+        # and black as theme.h did before the parts moved there (docs/GLASS_KINDS.md). The ink stylesheet
+        # (theme_ink.h) and the parts (theme_parts.h) write no colour: ink names tones.
         for path in sorted(COMPONENT.glob('*.h')):
-            if path.name == 'theme.h':
+            if path.name in ('theme.h', 'theme_lit.h'):
                 continue
             for number, line in enumerate(path.read_text().splitlines(), 1):
                 if HEX.search(line):
@@ -116,9 +119,10 @@ class Paints(unittest.TestCase):
             self.assertEqual(re.findall(r'(\w+::\w*restyle)\(\);', redraw), PREVIEW_REDRAW,
                              f'{path}: theme::redraw calls what the preview\'s does, in its order')
             # The alert card is no part of the preview: core.yaml paints it again itself.
-            self.assertIn('theme::surface(id(alert_card_color))', redraw, f'{path}: the alert card is painted again')
-            self.assertIn('id(alert_card_color) = alert.color;', text)
-            self.assertIn('lv_color_hex(theme::surface(alert.color))', text)
+            self.assertIn('theme::surface(alert_life::the().color())', redraw, f'{path}: the alert card is painted again')
+            # The colour it is painted in again is the one the alert that is up named (alert_life.h keeps it), and the
+            # card got when it was filled.
+            self.assertIn('lv_color_hex(theme::surface(card.color))', text)
 
     def test_the_firmware_draws_long_lived_parts_with_paints(self):
         # Rule: a part that lives across a change of look wears a paint, which theme.h fills again, never a colour.

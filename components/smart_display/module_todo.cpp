@@ -121,7 +121,7 @@ static cc::Measure measure() {
 // it takes the blue of everything without one.
 static std::vector<uint32_t> colours() {
   const uint32_t own = theme::ha::BLUE;
-  return {theme::state(own), theme::tint(own, 40), theme::icon(own), theme::ha::RED};
+  return {theme::state(own), theme::field(own, 40), theme::icon(own), theme::ha::RED};
 }
 // Days since 1970-01-01 of a date, and back (Howard Hinnant's civil algorithms).
 static int days_of(int y, int m, int d) {
@@ -292,7 +292,7 @@ static void swipe_to(int target) {
   lv_anim_set_values(&a, full.swipe_dx, target);
   lv_anim_set_duration(&a, 140);
   lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-  lv_anim_start(&a);
+  screen_motion::start(&a);
 }
 // The row goes back: at once where the list itself changes, else on its way.
 static void swipe_close(bool now) {

@@ -6,12 +6,12 @@
 # 1280 x 800 at 149 dpi, the standard look, a grid of 5 x 5 cells either way it hangs: the same glass as the 10.1-inch
 # Guition JC8012P4A1. The panel itself is 800 x 1280 (portrait); LVGL turns the picture and the touch together. The
 # display, touch and backlight settings are the ones of packages/boards/waveshare101.yaml, the board with pre-v3
-# silicon, and everything but the chip revision and the display platform is shared with it
-# (packages/hardware/waveshare101.yaml). A pre-v3 firmware does not start a rev3 chip, and the other way round. On rev3
-# silicon ESPHome's own display driver aborts while the display starts (seen on this board, 2026-11-16:
-# `esp_lcd_new_dsi_bus`, at once after "Performing bus recovery", over and over); the display below says why this board
-# takes the repository's copy of it for now. With that copy the board starts, shows its pages and takes touches (the
-# same day, a unit of chip revision v3.2). The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
+# silicon, and everything but the chip revision it assumes is shared with it (packages/hardware/waveshare101.yaml).
+# A pre-v3 firmware does not start a rev3 chip, and the other way round; ESP Screen Manager reads the chip and builds
+# for the revision it finds (docs/CHIP_REVISIONS.md). On rev3 silicon ESPHome's own display driver aborts while the
+# display starts (seen on this board, 2026-11-16: `esp_lcd_new_dsi_bus`, at once after "Performing bus recovery", over
+# and over), so DSI_PLATFORM takes the repository's copy of it. With that copy the board starts, shows its pages and
+# takes touches (the same day, a unit of chip revision v3.2). The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
 # 10.1-inch shares with the 7-inch ESP32-P4-WIFI6-Touch-LCD-7, wired as on the Waveshare P4 86 panel (Waveshare's
 # schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default. Experimental:
 # nobody has tried the audio on this board yet. The microSD slot and the MIPI-CSI camera port are not configured.
@@ -33,12 +33,18 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare101v3"
+  # The chip revision this board ships with, the default when the chip has not been read (hardware/esp32p4-core.yaml,
+  # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
+  CHIP_REVISION: "301"
   DEVICE_NAME: "waveshare101v3-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 10 V3"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together. 1509 diagonal pixels over 10.1 inches.
@@ -71,20 +77,3 @@ esphome:
   # as on the Waveshare P4 86 panel, and its display platform, components/mipi_dsi_v3, is ESPHome 2026.9.0's mipi_dsi
   # with one line changed. A board file's min_version wins over the core's.
   min_version: 2026.9.0
-
-esp32:
-  # Rev3 silicon: a pre-v3 firmware does not boot it, and the other way round (docs/WAVESHARE101.md).
-  engineering_sample: false
-
-# ESPHome's panel model `WAVESHARE-P4-NANO-10.1` brings the JD9365's init sequence and timings for two lanes; the reset
-# pin is this board's own, GPIO27, without which the panel never answers. The platform is the repository's mipi_dsi_v3
-# copy (components/mipi_dsi_v3): it leaves the DSI clock for ESP-IDF to choose, where the stock driver's fixed clock
-# aborts on rev3 silicon while the display starts (packages/boards/guition-jc8012p4a1-v3.yaml, GitHub #52).
-display:
-  - platform: mipi_dsi_v3
-    id: my_display
-    model: WAVESHARE-P4-NANO-10.1
-    reset_pin: GPIO27
-    dimensions: {width: 800, height: 1280}
-    update_interval: never
-    auto_clear_enabled: false

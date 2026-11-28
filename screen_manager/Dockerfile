@@ -1,5 +1,5 @@
 # Official ESPHome distribution: compiler, ESP-IDF, esptool and OTA CLI included.
-FROM ghcr.io/esphome/esphome:2026.9.0
+FROM ghcr.io/esphome/esphome:2026.11.1
 ARG BUILD_VERSION
 ARG BUILD_ARCH
 # The Supervisor passes BUILD_ARCH (aarch64, amd64). The image GitHub builds for Docker (docker.yml) builds both
@@ -8,8 +8,9 @@ ARG TARGETARCH
 LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH:-$TARGETARCH}"
 # A camera live on a P4 screen (camera_source.py): aiortc receives Home Assistant's WebRTC of a camera, and brings PyAV
 # (FFmpeg) to decode its H.264 and make its JPEGs. Every Home Assistant builds this image itself, so the WebRTC part
-# is pinned to the set pip resolves on this ESPHome for amd64 and aarch64 (wheels on Python 3.12 and 3.13), and ESPHome's
-# own cryptography is a constraint: a later ESPHome that no longer fits fails this build instead of losing its pin.
+# is pinned to the set pip resolves on this ESPHome for amd64 and aarch64 (wheels on Python 3.12 to 3.14, the Python of
+# ESPHome 2026.11.1's image), and ESPHome's own cryptography is a constraint: a later ESPHome that no longer fits fails
+# this build instead of losing its pin.
 # The screensaver's photos (saver_photos.py) read a telephone's HEIC through pillow-heif (wheels with libheif inside for
 # amd64 and aarch64); ESPHome's own Pillow stays the one it brings.
 RUN (pip freeze | grep -iE '^(cryptography|pillow)==' || true) > /tmp/esphome-keeps.txt \

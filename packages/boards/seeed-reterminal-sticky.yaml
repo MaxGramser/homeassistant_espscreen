@@ -1,0 +1,222 @@
+# ESP Screens - Seeed Studio reTerminal Sticky, experimental: a 3.97-inch 800 x 480 panel of e-paper (an SSD1677,
+# ESPHome's epaper_spi model Seeed-reTerminal-Sticky) with GT911 capacitive touch, on an ESP32-S3R8 with 32 MB of flash
+# and 8 MB of PSRAM, on a battery of 750 mAh. The first board whose glass is paper (docs/PAPER.md).
+#
+# Around the chip: three keys on the side, a buzzer, a BQ27220 fuel gauge and a BQ25616 charger, an SHT40 for
+# temperature and humidity, an LSM6DS3TR-C motion sensor, a PCF8563 clock, a microphone and a microSD slot. The pins
+# come from Seeed's hardware overview and its ESPHome example (seeedstudio.com/sticky/docs); docs/RETERMINAL_STICKY.md
+# says what has been tried on the glass. The microphone, the card and the clock are not used yet.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  # The glass is paper: no backlight, a printer between LVGL and the panel (features/paper.yaml).
+  paper: !include ../features/paper.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The three keys on the side: the page before, the next page, and home (held: standby).
+  page_keys: !include ../features/page-keys.yaml
+  # The buzzer ticks under a finger, which the glass answers a part of a second later.
+  buzzer: !include ../features/buzzer.yaml
+  # The LSM6DS3TR-C motion sensor (board_motion below) wakes the screen when the board is picked up.
+  wake_when_moved: !include ../features/wake-when-moved.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "reterminalsticky"
+  DEVICE_NAME: "reterminalsticky-new"
+  DEVICE_FRIENDLY_NAME: "My reTerminal Sticky"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 3.97 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "235"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # LVGL draws the whole glass into one buffer in PSRAM: a refresh of the panel is one picture, never a row of strips.
+  LVGL_BUFFER_SIZE: "100%"
+
+  # The touch panel counts its x along the panel's short side and its y along the long one: swapped against the
+  # panel's pixels, without a mirror. Measured with a tap in each corner (2026-11-27): the corner at the panel's
+  # (800, 0) read (11, 788) in the touch chip's own numbers.
+  TOUCH_SWAP_XY: "true"
+
+  # The three keys, each low while pressed (features/page-keys.yaml), and the buzzer (features/buzzer.yaml).
+  PAGE_KEY_PREVIOUS_PIN: GPIO5
+  PAGE_KEY_NEXT_PIN: GPIO6
+  HOME_KEY_PIN: GPIO4
+  BUZZER_PIN: GPIO48
+  # A screen you pick up: it wakes in your hand unless someone turns that off (features/wake-when-moved.yaml).
+  WAKE_WHEN_MOVED_AT_FIRST: RESTORE_DEFAULT_ON
+
+  # The board's own settings page (docs/SETTINGS.md, "A board's own settings").
+  BOOT_BOARD_SETTINGS: |-
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_wake_when_moved,
+        []() -> int32_t { return id(board_wake_when_moved).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_wake_when_moved).turn_on(); else id(board_wake_when_moved).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_tap_sound,
+        []() -> int32_t { return id(tap_sound).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(tap_sound).turn_on(); else id(tap_sound).turn_off(); }));
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # ESPHome drives this panel with a partial refresh that leaves unchanged pixels alone from 2026.11.0, which also
+  # brings the fuel gauge. A board file's min_version wins over the core's.
+  min_version: 2026.11.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 32MB
+  cpu_frequency: 240MHz
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The log goes out over the board's USB bridge (a CH343 on UART0), which is also how it is flashed.
+logger:
+  hardware_uart: UART0
+
+# The panel's bus, shared with the microSD slot.
+spi:
+  clk_pin: GPIO13
+  mosi_pin: GPIO14
+  miso_pin: GPIO12
+
+# Two buses: the touch panel's, and the one the sensors, the fuel gauge and the clock share. GPIO0 and GPIO3 are
+# strapping pins of the ESP32-S3, wired to these buses on this board.
+i2c:
+  - id: touch_bus
+    scl: GPIO2
+    sda:
+      number: GPIO3
+      ignore_strapping_warning: true
+    frequency: 400kHz
+  - id: board_bus
+    scl:
+      number: GPIO0
+      ignore_strapping_warning: true
+    sda: GPIO1
+    frequency: 400kHz
+
+switch:
+  # The two lines that keep the board on when it runs on its battery, and the touch panel's supply. They go high before
+  # anything else is set up: the touch panel holds its bus low until it has power, and the bus would find no chip
+  # (seen 2026-11-27). GPIO45 and GPIO46 are strapping pins of the ESP32-S3, wired to the power latch on this board.
+  - platform: gpio
+    id: board_power_hold
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    restore_mode: ALWAYS_ON
+    setup_priority: 1100
+    internal: true
+  - platform: gpio
+    id: board_power_lock
+    pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    restore_mode: ALWAYS_ON
+    setup_priority: 1100
+    internal: true
+  - platform: gpio
+    id: board_touch_power
+    pin: GPIO42
+    restore_mode: ALWAYS_ON
+    setup_priority: 1100
+    internal: true
+  # The charger charges while this line is low.
+  - platform: gpio
+    id: board_charger
+    pin:
+      number: GPIO39
+      inverted: true
+    restore_mode: ALWAYS_ON
+    internal: true
+
+# The GT911 capacitive touch, at 0x5D, with its interrupt and reset on pins of the chip.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO21
+    reset_pin: GPIO41
+
+# The panel as ESPHome drives it: the model carries its pins, its size and its init sequence. Its partial refresh is
+# on, with no whole one of the driver's own between: the paper glass asks for those (features/paper.yaml).
+display:
+  - platform: epaper_spi
+    id: paper_panel
+    model: Seeed-reTerminal-Sticky
+    full_update_every: 255
+    update_interval: never
+
+# The motion sensor, read ten times a second for Wake when moved (features/wake-when-moved.yaml).
+motion:
+  - platform: lsm6ds
+    id: board_motion
+    i2c_id: board_bus
+    update_interval: 100ms
+    gyroscope_range: 250DPS
+
+sensor:
+  # The battery, from its fuel gauge: the level is what the top bar shows (docs/BATTERY.md), the current says what the
+  # board draws or takes in.
+  - platform: bq27220
+    i2c_id: board_bus
+    update_interval: 30s
+    battery_level:
+      id: screen_battery_level
+      name: "Battery Level"
+      device_class: battery
+      state_class: measurement
+      unit_of_measurement: "%"
+    voltage:
+      id: screen_battery_voltage
+      name: "Battery Voltage"
+      entity_category: diagnostic
+    current:
+      id: screen_battery_current
+      name: "Battery Current"
+      entity_category: diagnostic
+  # The air around the board. The board itself warms it a little while it charges.
+  - platform: sht4x
+    i2c_id: board_bus
+    address: 0x44
+    update_interval: 60s
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+
+binary_sensor:
+  # Charging: the fuel gauge sees current flow into the battery.
+  - platform: template
+    id: screen_battery_charging
+    name: "Battery Charging"
+    device_class: battery_charging
+    lambda: |-
+      if (isnan(id(screen_battery_current).state)) return {};
+      return id(screen_battery_current).state > 0.02f;

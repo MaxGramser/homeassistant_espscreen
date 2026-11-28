@@ -11,6 +11,7 @@ import type { IconInfo } from "../types";
 import { useAutomations } from "../composables/useAutomations";
 import AlertWizard from "./events/AlertWizard.vue";
 import AutomationList from "./events/AutomationList.vue";
+import SoundPicker from "./sounds/SoundPicker.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
@@ -89,6 +90,7 @@ const sections = ["alerts-screens", "alerts-howto", "alerts-all", "alerts-one", 
           <button v-for="id in sections" :key="id" type="button" :data-jump="id" @click="jump(id)">{{ t(`editor.alerts.nav.${id.slice("alerts-".length)}`) }}</button>
         </nav>
       </div>
+      <SoundPicker kind="alert" />
       <section id="alerts-screens" class="card">
         <h2>{{ t("editor.alerts.nav.screens") }}</h2>
         <i18n-t keypath="editor.alerts.screens.text" tag="p" scope="global">

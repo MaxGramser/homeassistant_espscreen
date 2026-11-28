@@ -50,6 +50,22 @@ class Catalog(unittest.TestCase):
         # (tests/test_override_contract.py, KNOBS); the two models and the touch they share are docs/TAB5.md.
         self.assertEqual(tab5['choices'], {'DISPLAY_MODEL': ['ST7121', 'ST7123']})
 
+    def test_a_board_is_offered_only_when_this_app_can_build_it(self):
+        # A board file may ask for a newer ESPHome than the app ships (`esphome: min_version`; the reTerminal Sticky's
+        # e-paper driver came with 2026.11.0). boards.json carries that floor, and New screen leaves such a board out
+        # rather than offer a build that ends in ESPHome's refusal.
+        self.assertEqual(SHAPES['reterminalsticky']['esphome'], '2026.11.0')
+        core_floor = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
+        self.assertEqual(SHAPES['guition']['esphome'], core_floor)
+        older, newer = firmware_module.offered('2026.9.0'), firmware_module.offered('2026.11.0')
+        self.assertNotIn('reterminalsticky', older)
+        # The paper boards: the reTerminal Sticky, and the reTerminal E1001 whose paper glass needs the same driver.
+        self.assertEqual([board for board in profiles.CATALOG if board not in older], ['reterminalsticky', 'reterminale1001'])
+        self.assertEqual(list(newer), list(profiles.CATALOG))
+        self.assertEqual(list(firmware_module.offered('2027.1.0')), list(profiles.CATALOG))
+        # Nobody can say which ESPHome this is (a test, a development run): every board.
+        self.assertEqual(list(firmware_module.offered('')), list(profiles.CATALOG))
+
     def test_what_the_files_say_is_worked_out_not_written(self):
         for board in profiles.CATALOG:
             catalog, values = SHAPES[board]['catalog'], profiles.board_values(board)
@@ -61,6 +77,10 @@ class Catalog(unittest.TestCase):
             chain = [path.name for path in profiles.chain(profiles.BOARDS[board])]
             self.assertEqual(catalog['calibrate'], 'resistive-touch.yaml' in chain, board)
             self.assertIn(catalog['status'], ('stable', 'new', 'experimental'), board)
+            # Only a stable board is recommended, the pick New screen shows first (boards.yaml `recommended`).
+            self.assertIs(type(catalog['recommended']), bool, board)
+            if catalog['recommended']:
+                self.assertEqual(catalog['status'], 'stable', board)
             for key, options in catalog['choices'].items():
                 self.assertEqual(options[0], values[key].strip('"'), f'{board} {key}: the board file\'s own value first')
 
@@ -128,6 +148,10 @@ class Choices(unittest.TestCase):
         for grid in ({'columns': 4, 'rows': 3}, {'columns': 0, 'rows': 3}, {'columns': 2}, {'columns': '2', 'rows': 3}, [2, 3]):
             with self.assertRaises(ValueError, msg=grid):
                 core.installation_yaml({'board': 'cyd', 'name': 'hall', 'friendly_name': 'Hall', 'grid': grid})
+        # A name with " or \ would break the C++ strings it goes into (#453): refused before a build.
+        for name in ('Guition 4"', 'Hall \\ kitchen'):
+            with self.assertRaises(ValueError, msg=name):
+                core.installation_yaml({'board': 'cyd', 'name': 'hall', 'friendly_name': name})
         # Offline, the screen's own YAML says the grid it starts with, the way it hangs: the app counts its cells on it.
         import firmware
         self.assertEqual(firmware.profile_meta(four)['built_grid'], {'rows': 4})
@@ -207,9 +231,12 @@ class NoBoardInTheEditor(unittest.TestCase):
 
     def test_new_screen_and_the_screen_list_name_no_board(self):
         words = [board for board in profiles.CATALOG] + sorted({entry['name'] for entry in profiles.CATALOG.values()})
-        for name in ('components/InstallerView.vue', 'components/install/BoardStep.vue', 'components/install/NameStep.vue',
-                     'components/install/WayStep.vue', 'components/install/Progress.vue', 'composables/useInstaller.ts',
-                     'components/Sidebar.vue', 'model/boards.ts', 'model/installer.ts'):
+        # New screen is every file of components/install/ (one step a file since app 0.4.103, so the list follows the
+        # folder rather than naming the steps of the day), with the view, the composable and the models behind it.
+        install = sorted(f'components/install/{path.name}' for path in (ROOT / 'web/src/components/install').glob('*.vue'))
+        self.assertGreaterEqual(len(install), 5)
+        for name in ['components/InstallerView.vue', *install, 'composables/useInstaller.ts',
+                     'components/Sidebar.vue', 'model/boards.ts', 'model/installer.ts']:
             text = (ROOT / 'web/src' / name).read_text()
             for word in words:
                 self.assertIsNone(re.search(rf'["\'`]{re.escape(word)}["\'`]|\b{re.escape(word)}\b(?=\s*[:=])', text, re.I),

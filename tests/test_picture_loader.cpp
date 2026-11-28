@@ -1,7 +1,11 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_picture_loader.cpp -o /tmp/test_picture_loader && /tmp/test_picture_loader
 #include "../components/smart_display/picture_loader.h"
+#include "../components/smart_display/picture_loader.cpp"  // the loader's bodies (its own compilation unit)
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdio>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -41,6 +45,64 @@ struct Bench {
 
 static const Owner CARD{Kind::CARD, 0}, VIEW{Kind::VIEW, 0}, ALERT{Kind::ALERT, 0};
 static Owner tile(uint32_t n) { return {Kind::TILE, n}; }
+
+// A screen whose store takes no picture over (it has none, as tools/render's host program without KEPT_PAGES_HOST, or
+// every place of it is on a card): a slot's own download is what its owner draws, until the next one loads into that
+// slot. Bound as picture_rounds_lvgl.h binds it (loader_bind, picture_done, slot_letgo). `store` holds what a store did
+// take, for a screen that has one with a single place left.
+struct Slotted {
+  Loader loader;
+  std::array<std::string, 3> slot_key{};
+  std::array<uint32_t, 3> slot_at{};
+  std::map<std::string, uint32_t> store;
+  int places = 0;                                  // how many more pictures the store takes
+  std::vector<std::string> asked, loads, taken;    // `taken`: pictures that went off the glass for another download
+  std::vector<std::pair<std::string, Outcome>> told;
+  uint32_t started = 0;
+  explicit Slotted(bool rule = true) {
+    loader.kept = [this](const std::string &key, uint32_t &at) {
+      if (auto it = store.find(key); it != store.end()) { at = it->second; return true; }
+      for (int s = 0; s < 3; ++s) if (slot_key[s] == key) { at = slot_at[s]; return true; }
+      return false;
+    };
+    loader.load = [this](Slot slot, const std::string &, const std::string &key) {
+      loads.push_back(key);
+      auto &held = slot_key[int(slot)];
+      if (held != key) { if (!held.empty()) taken.push_back(held); held.clear(); }
+    };
+    loader.cancel = [this](Slot slot) { slot_key[int(slot)].clear(); };
+    loader.forget = [this](const std::string &key) { store.erase(key); };
+    if (rule) loader.in_slot = [this](Slot slot, const std::string &key) { return slot_key[int(slot)] == key; };
+  }
+  Want want(const std::string &key, Rank rank = Rank::PAGE, uint32_t every = 0, Slot slot = Slot::LIVE) {
+    Want w;
+    w.key = key; w.tag = key; w.rank = rank; w.slot = slot; w.every = every;
+    w.ask = [this, key] { asked.push_back(key); };
+    w.done = [this, key](Outcome o) { told.emplace_back(key, o); };
+    return w;
+  }
+  // A download ends: into the store while it has a place, else it stays in its slot.
+  void finish(Slot slot, bool ok, uint32_t now) {
+    const std::string key = loader.loaded(slot, ok, now);
+    if (key.empty()) return;
+    if (places > 0) { --places; store[key] = now; }
+    else { slot_key[int(slot)] = key; slot_at[int(slot)] = now; }
+    loader.arrived(key, false);
+  }
+  // A minute of a page that stands: `wants` every 50 ms, the app answering every question 100 ms after the first round,
+  // a download taking 200 ms.
+  void minute(const std::function<void(uint32_t)> &wants, uint32_t from = 1000, uint32_t length = 60000) {
+    for (uint32_t t = from; t < from + length; t += 50) {
+      loader.begin(); wants(t); loader.end(t, true);
+      if (t >= from + 100) for (; answered < asked.size(); ++answered) loader.answer(asked[answered], "http://app/" + asked[answered], t);
+      if (!loader.busy()) started = 0;
+      else if (!started) started = t;
+      else if (t - started >= 200) { finish(Slot::LIVE, true, t); started = 0; }
+    }
+  }
+  size_t answered = 0;
+  int count(const std::string &key) const { return int(std::count(loads.begin(), loads.end(), key)); }
+};
 
 int main() {
   // A card's cover: asked for at once, loaded once its link is here, and then it is simply there.
@@ -331,6 +393,99 @@ int main() {
     b.loader.end(8000, true);
     assert(b.asked.size() == 4 && b.asked[3] == "tile|1" && b.forgotten.size() == 1 && b.forgotten[0] == "tile|1");
     assert(b.loader.settled_for(tile(0)) && !b.loader.settled_for(tile(1)));
+  }
+  // Pictured tiles of one page on a screen whose store takes none of them over (measured 2026-11-27 on the host render:
+  // four tiles of the media round's favourites page, 136 downloads in the 35 s the page stood, and only the tile that
+  // loaded last showed its picture). Each picture is its slot's own download, so the next tile's download takes it off
+  // the glass. Without the rule the loader then fetches it again, which takes the next one off: without end.
+  for (uint32_t tiles : {2u, 4u}) {
+    auto page = [tiles](Slotted &b) {
+      return [&b, tiles](uint32_t) { for (uint32_t n = 0; n < tiles; ++n) b.loader.want(tile(n), b.want("tile|" + std::to_string(n))); };
+    };
+    Slotted before(false);
+    before.minute(page(before));
+    printf("%u pictured tiles, no store: without the rule %zu asks, %zu downloads and %zu pictures taken off the glass in a minute\n",
+           tiles, before.asked.size(), before.loads.size(), before.taken.size());
+    assert(before.asked.size() == tiles && before.loads.size() >= 100);
+    // With it: each picture loads once, the last one stays, and the others stand aside. They wait for nothing (no
+    // spinner, nothing held up behind them) and are not asked for again.
+    Slotted b;
+    b.minute(page(b));
+    printf("%u pictured tiles, no store: with the rule %zu asks, %zu downloads and %zu taken off the glass\n",
+           tiles, b.asked.size(), b.loads.size(), b.taken.size());
+    assert(b.asked.size() == tiles && b.loads.size() == tiles && b.taken.size() == tiles - 1);
+    assert(b.slot_key[int(Slot::LIVE)] == "tile|" + std::to_string(tiles - 1));
+    for (uint32_t n = 0; n < tiles; ++n) assert(b.count("tile|" + std::to_string(n)) == 1 && b.loader.settled_for(tile(n)));
+    assert(!b.loader.glass_waiting(61000) && !b.loader.busy());
+    assert(b.loader.phase(tile(tiles - 1)) == Loader::Phase::DONE && b.loader.phase(tile(0)) == Loader::Phase::LINKED);
+  }
+  // The picture in the slot is no longer wanted (its tile went from the page): one of those that stood aside has its
+  // turn again, one download, and stays.
+  {
+    Slotted b;
+    b.minute([&](uint32_t) { for (uint32_t n = 0; n < 3; ++n) b.loader.want(tile(n), b.want("tile|" + std::to_string(n))); });
+    assert(b.loads.size() == 3 && b.slot_key[int(Slot::LIVE)] == "tile|2");
+    b.minute([&](uint32_t) { for (uint32_t n = 0; n < 2; ++n) b.loader.want(tile(n), b.want("tile|" + std::to_string(n))); }, 61000);
+    assert(b.loads.size() == 4 && b.asked.size() == 3 && b.slot_key[int(Slot::LIVE)] == b.loads[3] && b.loads[3] != "tile|2");
+  }
+  // Another picture for a tile that stood aside (its favourite started to play, another track): that is a new picture
+  // with a turn of its own. It loads once, and the one that was in the slot stands aside for it.
+  {
+    Slotted b;
+    b.minute([&](uint32_t) { b.loader.want(tile(0), b.want("tile|0")); b.loader.want(tile(1), b.want("tile|1")); });
+    assert(b.loads.size() == 2 && b.slot_key[int(Slot::LIVE)] == "tile|1");
+    b.minute([&](uint32_t) { b.loader.want(tile(0), b.want("tile|0|next")); b.loader.want(tile(1), b.want("tile|1")); }, 61000);
+    assert(b.loads.size() == 3 && b.loads[2] == "tile|0|next" && b.slot_key[int(Slot::LIVE)] == "tile|0|next" && b.count("tile|1") == 1);
+  }
+  // Two cameras: the one in the slot refreshes at its pace, the other stands aside (before: they took the slot from each
+  // other at every refresh).
+  {
+    Slotted b;
+    b.minute([&](uint32_t) { b.loader.want(tile(0), b.want("tile|0", Rank::PAGE, 15000)); b.loader.want(tile(1), b.want("tile|1", Rank::PAGE, 15000)); });
+    assert(b.count("tile|0") == 1 && b.count("tile|1") == 4 && b.taken.size() == 1);
+  }
+  // A download that takes the slot and breaks off (its tile went before it came) leaves the slot empty: the picture it
+  // took off the glass comes back.
+  {
+    Slotted b;
+    b.minute([&](uint32_t) { b.loader.want(tile(0), b.want("tile|0")); }, 1000, 2000);
+    assert(b.loads.size() == 1 && b.slot_key[int(Slot::LIVE)] == "tile|0");
+    auto both = [&](uint32_t t) { b.loader.begin(); b.loader.want(tile(0), b.want("tile|0")); b.loader.want(tile(1), b.want("tile|1")); b.loader.end(t, true); };
+    both(3000);
+    b.loader.answer("tile|1", "http://app/1", 3050);
+    both(3100);
+    assert(b.loads.size() == 2 && b.loads[1] == "tile|1" && b.taken.size() == 1 && b.loader.busy());
+    b.minute([&](uint32_t) { b.loader.want(tile(0), b.want("tile|0")); }, 3150, 5000);
+    assert(b.loads.size() == 3 && b.loads[2] == "tile|0" && b.slot_key[int(Slot::LIVE)] == "tile|0");
+  }
+  // A screen with a store that has one place left (its other places are all on cards): the first picture is kept, the
+  // next two are their slot's. The kept one is never touched; of the other two the last one stays.
+  {
+    Slotted b;
+    b.places = 1;
+    b.minute([&](uint32_t) { for (uint32_t n = 0; n < 3; ++n) b.loader.want(tile(n), b.want("tile|" + std::to_string(n))); });
+    assert(b.loads.size() == 3 && b.store.count("tile|0") && b.slot_key[int(Slot::LIVE)] == "tile|2" && b.taken.size() == 1);
+    // A picture the store let go (not one that left a slot) is fetched again at once, as before, also beside a picture
+    // drawn from the slot: its download takes that one off the glass, the store takes it again, and one of the two
+    // that are their slot's has the slot again. Five downloads in all, and then nothing more.
+    b.store.clear();
+    b.places = 1;
+    b.minute([&](uint32_t) { for (uint32_t n = 0; n < 3; ++n) b.loader.want(tile(n), b.want("tile|" + std::to_string(n))); }, 61000);
+    assert(b.loads.size() == 5 && b.loads[3] == "tile|0" && b.store.count("tile|0") && b.slot_key[int(Slot::LIVE)] == b.loads[4]);
+    assert(b.loads[4] != "tile|0" && b.asked.size() == 3 && !b.loader.glass_waiting(121000));
+  }
+  // A picture for a page out of sight never takes a slot from the glass, not on its first turn either, and is not asked
+  // for; the glass takes the slot from one of a page out of sight, which then stands aside.
+  {
+    Slotted b;
+    auto round = [&](uint32_t) { b.loader.want(tile(0), b.want("tile|0")); b.loader.want(tile(9), b.want("tile|9", Rank::AHEAD)); };
+    b.minute(round);
+    assert(b.loads.size() == 1 && b.asked.size() == 1 && b.slot_key[int(Slot::LIVE)] == "tile|0" && b.taken.empty());
+    Slotted c;
+    c.minute([&](uint32_t) { c.loader.want(tile(9), c.want("tile|9", Rank::AHEAD)); }, 1000, 2000);
+    assert(c.loads.size() == 1 && c.slot_key[int(Slot::LIVE)] == "tile|9");
+    c.minute([&](uint32_t) { c.loader.want(tile(0), c.want("tile|0")); c.loader.want(tile(9), c.want("tile|9", Rank::AHEAD)); }, 3000);
+    assert(c.loads.size() == 2 && c.loads[1] == "tile|0" && c.slot_key[int(Slot::LIVE)] == "tile|0" && c.count("tile|9") == 1);
   }
   printf("test_picture_loader: ok\n");
   return 0;

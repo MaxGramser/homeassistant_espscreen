@@ -24,9 +24,10 @@ firmware's map, with the add-on where the firmware's layers end at it.
   │ hw::caps: what this screen can do, one record                  │
   ├──────────────────────────────────────────────────────────────┤
   │ picture_engine (per chip)       glass (per panel kind)        │
-  │   P4: JPEG + PPA, ppa_guard      DSI (P4)   RGB (S3)          │
+  │   P4: JPEG + PPA, ppa_guard      DSI (P4)   RGB (S3)   paper  │
   │   S3: esp_new_jpeg, CPU blit     core: the lock, the rooms    │
   │   other: BMP rows, no blit       other: no direct glass        │
+  │                                  paper: inks and a printer    │
   ├──────────────────────────────────────────────────────────────┤
   │ ESPHome + ESP-IDF: LVGL, the display, Wi-Fi, the API, audio    │
   └──────────────────────────────────────────────────────────────┘
@@ -46,11 +47,16 @@ three defines, each with its own files, and one may come without the others:
 | `PICTURE_ENGINE_S3` | Espressif's software decoder esp_new_jpeg on an ESP32-S3 with PSRAM, a CPU blit as-is | `picture_engine_s3.cpp` |
 | `GLASS_DSI` / `GLASS_RGB` | a frame buffer a task may write past LVGL | `glass_dsi.cpp`, `glass_rgb.cpp`, shared `glass_core.cpp` |
 | `USE_LIVE_VIEW` | the streams | `live_view.cpp` |
+| none of them: a display of the `paper_glass` platform | a glass of e-paper, on any chip: the software engine, no direct glass, no streams | `components/paper_glass/` |
 
 Without an engine a screen decodes BMP rows (`picture_fetch`) and LVGL draws every still; without a direct glass there
 are no streams. A new chip or panel kind is a row in that table with files of its own; `picture_fetch`, `live_view`,
 `live_spots` and `runtime_tiles` do not change for it. Detail: docs/PICTURE_ARCHITECTURE.md section 3.9;
 test: `tests/test_live_view.py`.
+
+A build whose display is the paper glass is the one row keyed by the panel and not by the chip: an ESP32-S3 or a P4
+with a panel of e-paper gets no JPEG decoder and no stream, because its panel has no frame buffer a task writes
+(`picture_engine(..., paper=True)`). Detail: docs/PAPER.md.
 
 Modules work the same way one level up: `modules.py` gates the parts of the UI a 4 MB board has no room for behind a
 define per module (docs/MODULES.md).
@@ -75,6 +81,16 @@ minute in the "Panel watch" sensor (`glass::watch_said`), so a flash needs no ey
 it what the glass cannot see (log lines, the finger: `glass::note_log_line`, `note_finger`); an RGB
 panel's driver keeps no such count, so on an S3 a frame that shifts sideways is seen by eye only. Detail: docs/PICTURE_ARCHITECTURE.md 3.1, docs/CAMERA.md "Live on
 the P4 boards" and "Live on an ESP32-S3"; tests: `tests/test_live_view.cpp` (a rectangle on a turned panel).
+
+A panel of e-paper is a glass of another kind, and none of the above holds for it: it has no frame buffer a task may
+write, no lock and no rooms. Its glass is the paper glass (`components/paper_glass/`), a display platform that stands
+between LVGL and ESPHome's `epaper_spi` driver: every pixel LVGL flushes becomes one of the panel's inks
+(`paper_ink.h`), and a printer decides when the panel refreshes and whether it refreshes a part or all of itself
+(`paper_print.h`). The firmware reaches it through `glass_kind.h`: the kind of glass, with what follows from it under
+its own name (`ink`, `still`, `keeps`, `lit`), and the moments the screen tells its glass, which are empty calls on
+every other screen. What differs between the two kinds of glass differs in one layer, the theme's parts and their
+two stylesheets, and no card asks which glass it is on (docs/GLASS_KINDS.md, `tests/test_glass_kinds.py`).
+Detail: docs/PAPER.md; tests: `tests/test_paper_ink.cpp`, `tests/test_paper_print.cpp`.
 
 ### 3. The picture engine: decode, scale, turn
 
@@ -127,6 +143,9 @@ in a task beside the main loop and decodes a BMP as it streams; `camera_view.h` 
 seconds, never a queue). The add-on answers every question the same way (`screen_manager/app/picture_service.py`).
 Detail: docs/PICTURES.md, docs/CAMERA.md "One route for every picture"; tests: `tests/test_picture_question.cpp`,
 `tests/test_picture_loader.cpp`, `tests/test_picture_fetch.cpp`, `tests/test_camera_view.cpp`.
+A file the app has and a screen keeps (a sound it plays, docs/SOUNDS.md, `kept_sound.h`) goes beside them: `file_fetch.h` downloads it whole in a task of
+its own, named by its content, from `/files/` on the same port; `http_get.h` is the link, head and socket every download
+of the app shares. Detail: docs/SCREEN_FILES.md; tests: `tests/test_wav.cpp`, `tests/test_sounds.py`.
 
 ### 6. The capability record
 
@@ -136,6 +155,12 @@ camera of its own, live tiles at once, the heaps. The build's half comes from th
 `live_view::available`, the memory). The firmware, the hello to the app, the editor and the plugins all read this one
 record, so nothing infers a capability from a board. Detail: docs/PLATFORM_PLAN.md 3.3; tests: `tests/test_hw.cpp`,
 `tests/test_hw.py`.
+
+The record also says what kind of glass this is. `inks` is how many inks the panel prints with: 0 on a glass that is
+lit and shows colours, 2 for black and white, 4 for four greys (`glass_kind::inks()`). `still` is true on
+a glass of ink: a change there is a print that takes a part of a second, so nothing on it runs by itself, and it has
+no `motion` whatever else the build has. The firmware asks it in one place, `screen_motion::still()`, and the hello
+carries `inks`. Detail: docs/PAPER.md, "A still glass".
 
 ### 7. The governor
 
@@ -162,7 +187,10 @@ role, like an audio session on a phone: DOORBELL > CALL > VOICE > CAMERA_SOUND >
 hands it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever
 plays and never claim. A live camera's sound claims through `live_view.h`'s `SoundClaim` and reaches the speaker through
 its `SoundPump`. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; tests: `tests/test_audio_owner.cpp`,
-`tests/test_live_sound.cpp`.
+`tests/test_live_sound.cpp`. Who plays louder than the screen's volume (a call's ring, a plugin's alarm) is apart from
+who holds the speaker: each lifts it through `volume_lift.h`, the one place that keeps the screen's volume and puts it
+back when the last lift comes down, and stores nothing (docs/SOUNDS.md, "Louder than the screen";
+`tests/test_volume_lift.cpp`).
 
 ### 9. The top bar, the doorbell, the modules
 
@@ -220,6 +248,74 @@ When you add to a card, add to its part, and put a rule that needs no LVGL in th
 A part that grows past about a thousand lines wants a second plain header, not a second part. What is still in the
 binder and wants cutting next is in docs/open-issues/binder-still-large.md.
 
+### 13. The standby
+
+`screen_standby.h` holds whether the glass is lit or in standby, and every rule around it: the standby time running
+out, a standby someone asks for by hand (Home Assistant's Sleep, the board's key, the home key held), which wake
+lights the screen and which one waits for the room to go quiet, Back to page 1, and the order in which a standby closes
+what is open, goes to page 1 and shows its screensaver. It is free of LVGL and ESPHome, and
+`tests/test_screen_standby.cpp` runs each rule on a glass that writes down what it was told, with a clock the test
+moves.
+
+`packages/core.yaml` binds that glass at boot (`screen_standby::the().glass`): the backlight's script, the wake overlay, the
+screensaver, closing the cards, page 1, and what holds the screen lit (a calibration, an alert, a doorbell's ring). Its
+scripts `wake_display`, `wake_from`, `standby_key`, `standby_by_hand` and `go_home` are one call each, the names a
+board's key and a feature use. One script, `standby_wait`, is the timer of every wait in it (the loop's next pass, the
+power saving of a dark screen): the file keeps the moments and asks for the soonest.
+
+Change a rule of the standby in that file, with its case in the test. The state is private to it: the YAML asks
+(`screen_standby::the().in_standby()`) and calls a function. The kinds of wake that are no finger are one named list
+there (`Wake`), with one line that says which of them waits for the quiet after a standby by hand.
+
+A glass that keeps its picture without a light (paper, `Glass::keeps`) has no dark: its standby is rest. With a
+screensaver set it shows that one and a finger or a key wakes it as on any screen. Without one the page stays where it
+is, readable, with nothing over it, and a finger or a key on it is used at once and ends the rest by the way
+(`resting()`, `act()`): a first tap that only wakes a page nobody saw change would read as a tap that was not heard.
+The saving of a screen at rest starts either way (`at_rest()`), and on paper LVGL keeps drawing through it, so the
+page follows the house. Detail: docs/PAPER.md, "Standby is rest".
+
+### 14. An alert's life
+
+`alert_life.h` holds when the card of `show_alert` and `show_alert_choice` is up and what ends it: its OK, its second
+button, its time running out, `dismiss_alert` or a standby by hand, and a new alert over it. It decides the backlight's
+blinks for an alert that flashes, what Home Assistant hears of each ending (the event `esphome.screen_alert`; an alert
+of the screen's own reports nothing), and how an alert meets the standby: it lights the screen, holds it lit while it
+is up, and starts the standby time again when it ends. Like the standby it is free of LVGL and ESPHome, its state is
+private, and `tests/test_alert_life.cpp` runs every rule, with a real standby bound to it.
+
+What the card says and where its parts stand is not its business: `alert_overlay.h` makes the card's words and layout,
+and `packages/core.yaml` binds the glass (`alert_life::the().glass`): making and filling the card, revealing it, the
+backlight's script, the event, and the standby's wake. What draws on the card hangs on that glass and only asks: the
+camera's picture (`alert_prepare`, `alert_clear`) and a plugin's `on_alert`. How often the backlight blinks is the
+board's number (`ALERT_BLINKS`: 4, and 0 where the backlight must never go dark). The scripts `alert_show`,
+`alert_dismiss`, `alert_flash`, `alert_timeout` and `alert_report` are one call each; `alert_wait` is its timer and
+`alert_event` sends the event.
+
+The standby and the alert each keep their waits on one script through `one_timer.h`: a module stores the moment of
+each wait and asks its timer for the soonest.
+
+### 15. An action's line in the logbook
+
+Home Assistant runs an action that comes from an ESPHome device without a sender. Its ESPHome integration calls the
+action with no user and no device, so the changed entity's own row in the logbook can only name the domain of the
+action: nothing a device sends along changes that, and no setting does. A screen therefore writes a line of its own.
+Next to every action that goes out for a finger it calls `logbook.log` on the same entity, and the entity's logbook
+reads, for example, "operated on Hall screen, page Living room, tile Thermostat".
+
+`action_log.h` holds the two rules: repeats on one entity within five seconds fold into one line (a slider's steps, a
+volume key held down, a remote's keys), and the message names the screen, the page on the glass and the tile of the
+entity on that page, or the screen and the page alone when no tile there shows the entity (a card's key that acts on
+another entity, a plugin). It is free of ESPHome and the model, and `tests/test_action_log.cpp` runs it.
+`runtime_tiles::log_action` hands it the names and sends the call, from `send_action` and `step_action`, the two doors
+every action of a tile, a card and a plugin leaves through. The line's words are two screen texts (`status.logbook_tile`,
+`status.logbook_page`), in the screen's language.
+
+The line costs one small message per action and asks for no answer, so it takes none of the four places a tap's
+answer waits in. It needs what the action itself needs: that the screen may perform actions in Home Assistant. A Home
+Assistant without the logbook integration writes an error in its own log for the call and the action still runs. The
+app has no part in it, so the line is there while the app is stopped, and an older app needs nothing new. Requests the
+screen makes of the app (events such as `esphome.screen_history`) are no actions and leave no line.
+
 ## The hard rules, and the measurement behind each
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are
@@ -276,12 +372,20 @@ binder and wants cutting next is in docs/open-issues/binder-still-large.md.
   (2026-11-16): the parser was one function of 9,456 bytes for every message (a tile's Extra alone is 1,284), and the
   commit built the page and its cards on top of it, inside the API's call. Now each message type is its own function
   (`noinline`, page_receiver.cpp), a tile's Extra lives on the heap while its tile is redrawn, and a page asked for by the
-  app or Home Assistant (a layout's commit, `show_page`, `open_settings`) is built on the loop's next pass
-  (`show_tile_page_soon`, `open_page`, `go_home` start with `delay: 0ms`). `tools/stack_chains.py <board>` builds a board
+  app or Home Assistant (a layout's commit, `show_page`, `open_settings`, Sleep with Back to page 1 on standby) is built
+  on the loop's next pass (`show_tile_page_soon` and `open_page` start with `delay: 0ms`; the way home and a standby
+  wait their pass in `screen_standby.h`). `tools/stack_chains.py <board>` builds a board
   with the compiler's frame sizes and prints the chains: a message's deepest path is 9.7 KB on a P4 and an S3 and 8.2 KB
   on the CYD, a page from the loop 5.6 to 5.9 KB, with LVGL's own depth on top. Under 2 KB left at any time the health
   line warns (`loop_stack.h`) and every screen reports it as "Loop Stack Free". An S3 and a classic ESP32 have no
   hardware stack guard: an overflow there corrupts memory without a word, so their margin counts as much as a P4's.
+- **On paper an area is rastered by its place, an edge is cut, and nothing prints under a finger** (docs/PAPER.md). On
+  a reTerminal Sticky (an SSD1677, 800 x 480, ESPHome 2026.11.0, 2026-11-27) a whole refresh takes 1.8 to 2.0 s and a
+  partial one 0.70 s, longer than a tap, so the look of a press is never printed and a tap is one refresh. The
+  driver's cut at half brightness left greys of 25, 50 and 75 % as white, white and black and lost a word at 40 %;
+  the ordered raster kept all four. Rastered soft edges frayed into loose dots, and a glyph on a ground of raster fell
+  away into it: an edge prints as the nearer ink, letters are built without soft edges, and a ground that carries a
+  glyph is paper with a rim of ink.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

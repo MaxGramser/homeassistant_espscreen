@@ -10,10 +10,15 @@ main against the released core, and the release checks that what every app now o
 - after Tessera's main moved (`release`): dev merges into main (main has commits of its own: the hourly likes and index,
   a community plugin), main's index is built by its workflow against the released core, and checked: it names this
   core's plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and the
-  plugins' check is green on main; then dev moves up to main, so the two start the next round alike.
+  plugins' check is green on main; then dev moves up to main, so the two start the next round alike. Last, the
+  editor's modules (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): the released editor shows a plugin's tile with the
+  plugin's own code, a module built for that editor's preview and published on the plugins repository's branch
+  `modules`. Every plugin of main's index must have its module there, or the reason it has none, for the number of
+  this release's preview: what is missing is built by the plugins' workflow, waited for, and looked at again.
 
 A hotfix leaves the plugins alone: it brings no newer plugin API. Each step can run again (`tools/release.py plugins`):
-a main that has dev already only gets its index built and checked. Standard library only, and git and gh.
+a main that has dev already only gets its index built and checked, and its modules looked at. Standard library only,
+and git and gh.
 """
 import calendar
 import importlib.util
@@ -32,6 +37,15 @@ WORK, RELEASES = 'dev', 'main'
 GENERATED = {'index.json': 'dev', 'likes.json': 'main', 'stats.json': 'main'}
 CHECK_JOB = 'check'
 INDEX_WORKFLOW = 'index.yml'
+# The editor's modules: the workflow that builds them, the branch it publishes them on, and where a core says which
+# preview its editor has (the number a module must carry, web/wasm/toolchain.py plugin_abi).
+MODULES_WORKFLOW = 'modules.yml'
+MODULES = 'modules'
+PREVIEW = 'web/src/wasm/renderer.json'
+# How many runs of the modules workflow the release waits for before it says what is missing. One builds everything;
+# a second is for a run that was under way before main's index was built and so did not see it, a third for one that
+# a run of the hour pushed out (the workflow's runs wait for each other, and GitHub keeps one waiting run only).
+MODULE_TURNS = 3
 WAIT = 20 * 60          # seconds a workflow of the plugins repository may take before the release says so
 POLL = 15
 
@@ -102,6 +116,34 @@ def index_problems(index, api, fits, offered):
     return problems
 
 
+def preview_number(root):
+    """The number of the editor's preview in the core in `root` (PREVIEW, plugin_abi): what the editor of this release
+    asks a module for. '' for a core from before its preview took plugins' code."""
+    try:
+        number = json.loads((Path(root) / PREVIEW).read_text(encoding='utf-8')).get('plugin_abi')
+    except (OSError, ValueError, AttributeError):
+        return ''
+    return number if isinstance(number, str) and re.fullmatch(r'[0-9a-f]{16}', number) else ''
+
+
+def modules_missing(index, listing):
+    """The plugins an index offers that the editor has nothing for: 'id version' of each one that has neither a module
+    nor a reason in a preview's listing (modules/<number>/index.json on the branch `modules`). A reason (`skipped`: a
+    plugin that needs hardware, one the browser cannot run) is an answer too: the editor draws its placeholder for it."""
+    built, skipped = (listing or {}).get('modules') or {}, (listing or {}).get('skipped') or {}
+    return [f'{plugin} {version}' for plugin, version, _ in entries(index)
+            if version not in (built.get(plugin) or {}) and version not in (skipped.get(plugin) or {})]
+
+
+def modules_text(index, listing):
+    """How many plugins of an index have a module, and how many a reason instead, as words for a line."""
+    built, skipped = (listing or {}).get('modules') or {}, (listing or {}).get('skipped') or {}
+    offered = entries(index)
+    have = sum(version in (built.get(plugin) or {}) for plugin, version, _ in offered)
+    reason = sum(version in (skipped.get(plugin) or {}) for plugin, version, _ in offered)
+    return f'{have} of {len(offered)} plugins have a module, {reason} a reason why not'
+
+
 def core_api(root):
     """(PLUGIN_API, fits) of the core in `root`: the manifest rule the app and the firmware build of this release use."""
     path = Path(root) / 'screen_manager' / 'app' / 'plugin_manifest.py'
@@ -161,12 +203,21 @@ class Clone:
         (index.yml), so the check of a branch is the one on this commit."""
         return self.git('log', '-1', '--format=%H', '--perl-regexp', '--author=^(?!github-actions)', f'origin/{branch}')
 
-    def index(self, ref):
-        text = self.git('show', f'{ref}:index.json', check=False)
+    def read(self, spec):
+        """A JSON file of a commit (`ref:path`), {} when it is not there or does not read."""
+        text = self.git('show', spec, check=False)
         try:
-            return json.loads(text) if text else {}
+            found = json.loads(text) if text else {}
         except ValueError:
             return {}
+        return found if isinstance(found, dict) else {}
+
+    def index(self, ref):
+        return self.read(f'{ref}:index.json')
+
+    def modules(self, number):
+        """What the branch `modules` has for the preview of a number, {} when nothing was built for it yet."""
+        return self.read(f'origin/{MODULES}:modules/{number}/index.json')
 
     def merge(self, message, keep=False):
         """dev merged into main in the clone: (the merge commit or None when main has dev already, the conflicts outside
@@ -222,7 +273,13 @@ def wait_for_check(sha, say=print):
 
 def build_index(say=print):
     """Runs the index workflow on main (index.yml: built against TESSERA_REF main, the released core, and committed
-    when it changed) and waits for it: its conclusion."""
+    when it changed) and waits for it: its conclusion. The workflow's runs wait for each other and GitHub keeps one
+    waiting run only, so a run of the hour can push this one out ("cancelled"): it is started once more then."""
+    conclusion = index_run(say)
+    return index_run(say) if conclusion == 'cancelled' else conclusion
+
+
+def index_run(say=print):
     started = time.time() - 5
     gh('workflow', 'run', INDEX_WORKFLOW, '--repo', REPOSITORY, '--ref', RELEASES)
     end = time.monotonic() + WAIT
@@ -230,17 +287,61 @@ def build_index(say=print):
         time.sleep(POLL)
         rows = json.loads(gh('run', 'list', '--repo', REPOSITORY, '--workflow', INDEX_WORKFLOW, '--branch', RELEASES,
                              '--event', 'workflow_dispatch', '--limit', '5', '--json', 'databaseId,status,conclusion,createdAt'))
-        mine = [row for row in rows if calendar.timegm(time.strptime(row['createdAt'], '%Y-%m-%dT%H:%M:%SZ')) >= started]
+        mine = [row for row in rows if created(row) >= started]
         if mine and mine[0]['status'] == 'completed':
             return mine[0]['conclusion']
         say(f'  the index on main: {mine[0]["status"] if mine else "starting"}, waiting')
     return 'timed out'
 
 
+def created(row):
+    return calendar.timegm(time.strptime(row['createdAt'], '%Y-%m-%dT%H:%M:%SZ'))
+
+
+def modules_run(say=print):
+    """One turn of the modules workflow, waited for: its conclusion, or 'timed out'. The index run on main starts one by
+    itself when it ends (modules.yml), so a run that is waiting or under way is the one to wait for: the newest, as it
+    runs last. Only when there is none, one is started here, on main."""
+    def runs():
+        return json.loads(gh('run', 'list', '--repo', REPOSITORY, '--workflow', MODULES_WORKFLOW, '--limit', '10',
+                             '--json', 'databaseId,status,conclusion,createdAt,event'))
+    active = [row for row in runs() if row['status'] != 'completed']
+    watched, started = (active[0]['databaseId'], None) if active else (None, time.time() - 5)
+    if watched is None:
+        gh('workflow', 'run', MODULES_WORKFLOW, '--repo', REPOSITORY, '--ref', RELEASES)
+    end = time.monotonic() + WAIT
+    while time.monotonic() < end:
+        time.sleep(POLL)
+        rows = runs()
+        if watched is None:
+            mine = [row for row in rows if row['event'] == 'workflow_dispatch' and created(row) >= started]
+            watched = mine[0]['databaseId'] if mine else None
+        row = next((row for row in rows if row['databaseId'] == watched), None)
+        if row and row['status'] == 'completed':
+            return row['conclusion']
+        say(f'  the editor\'s modules: {row["status"] if row else "starting"}, waiting')
+    return 'timed out'
+
+
+def await_modules(look, say=print):
+    """`look()` says what is missing. While something is, the modules workflow gets a turn (modules_run) and it is
+    looked at again, MODULE_TURNS times at most: (what is still missing, how the last turn ended or None when none was
+    needed). What is there decides, not how a run ended: a run that could not build one plugin still published the
+    others."""
+    missing, conclusion = look(), None
+    for _ in range(MODULE_TURNS):
+        if not missing:
+            break
+        conclusion = modules_run(say)
+        missing = look()
+    return missing, conclusion
+
+
 # ----- the steps ----------------------------------------------------------------------------------------------------
 
-def report(plugins, api, fits):
-    """Lines for `status` and `prepare`: what the plugins repository's dev brings to every app with this release."""
+def report(plugins, api, fits, number=''):
+    """Lines for `status` and `prepare`: what the plugins repository's dev brings to every app with this release, and
+    what the editor of this core (`number`, its preview's) has of those plugins' own code now."""
     plugins.fetch()
     ahead, behind = plugins.ahead(RELEASES, WORK), plugins.ahead(WORK, RELEASES)
     dev_index, main_index = plugins.index(f'origin/{WORK}'), plugins.index(f'origin/{RELEASES}')
@@ -249,6 +350,11 @@ def report(plugins, api, fits):
     new = brings(main_index, dev_index)
     lines += [f'  {plugin}: {old or "new"} -> {version}' for plugin, old, version in new] or ['  no plugin changes']
     lines += [f'  does not fit this release: {misfit}' for misfit in misfits(dev_index, fits)]
+    if number:
+        listing = plugins.modules(number)
+        missing = modules_missing(dev_index, listing)
+        lines.append(f'  the editor\'s modules for this preview ({number}): {modules_text(dev_index, listing)}'
+                     + (f'; not built yet: {", ".join(missing)} (publish builds them)' if missing else ''))
     return lines
 
 
@@ -270,9 +376,10 @@ def preflight(plugins, api, fits):
     return problems
 
 
-def release(plugins, api, fits, version, say=print):
-    """The plugins' dev into their main, main's index built against the released core and checked, dev up to main.
-    Raises Problem with what is left to do by hand."""
+def release(plugins, api, fits, version, number='', say=print):
+    """The plugins' dev into their main, main's index built against the released core and checked, dev up to main, and
+    the editor's modules for the released preview (`number`; '' for a core whose editor takes none). Raises Problem
+    with what is left to do by hand."""
     plugins.fetch()
     dev = plugins.sha(WORK)
     offered = plugins.index(f'origin/{WORK}')
@@ -306,3 +413,20 @@ def release(plugins, api, fits, version, say=print):
         say('tessera-plugins: dev moved up to main.')
     else:
         say('tessera-plugins: dev moved meanwhile: merge their main into their dev by hand.')
+    if number:
+        modules_step(plugins, number, say)
+
+
+def modules_step(plugins, number, say=print):
+    """The editor's modules of main's index for the released preview: there, or built now. Tessera's main has moved
+    when this runs, so the plugins' workflow builds for this release (it builds for Tessera's main and dev). Raises
+    Problem when a plugin still has neither a module nor a reason: the released editor would show its placeholder."""
+    def look():
+        plugins.fetch()
+        return modules_missing(plugins.index(f'origin/{RELEASES}'), plugins.modules(number))
+    missing, conclusion = await_modules(look, say)
+    if missing:
+        raise Problem(f'the editor has no module for {", ".join(missing)} (preview {number}; the modules workflow '
+                      f'ended {conclusion}): gh run list --repo {REPOSITORY} --workflow {MODULES_WORKFLOW}')
+    say(f'tessera-plugins: the editor\'s modules for this release\'s preview ({number}): '
+        f'{modules_text(plugins.index(f"origin/{RELEASES}"), plugins.modules(number))}.')

@@ -43,6 +43,21 @@ subscriber over Wi-Fi, came with a flash on the live camera tiles, and with the 
 (docs/PLATFORM_PLAN.md 4.7). Turn it on to read a screen's log in ESPHome or Home Assistant; the troubleshooting
 report turns it on for its own 45 seconds and back to what it was (`reports.screen_log`, `debug=True`).
 
+**The measuring sensors** follow Debug mode in Home Assistant. A screen measures itself: Heap Free, Heap Fragmentation,
+Heap Largest Block, Heap Minimum Free, Psram Free, Psram Largest Block and Loop Stack Free on every board, Wi-Fi
+co-processor, Panel watch and Panel misses on an ESP32-P4, Pressure on a board with a camera and Echo cancellation
+status on one that cancels echo. They are for a diagnosis, so the firmware marks them `disabled_by_default`: Home
+Assistant has them switched off and records nothing of them, and anyone can switch one on under the screen's device.
+Once a screen's Debug mode has been on for a minute and a half, the app switches on the diagnostic entities of that
+screen that Home Assistant holds switched off, and it switches the same ones off again when Debug mode goes off
+(`screen_manager/app/debug_sensors.py`, `tests/test_debug_sensors.py`). It undoes only its own work: a sensor someone
+switched on stays on, one someone switched off stays off, and a screen that had them on before this firmware keeps them
+on, because Home Assistant reads the mark only when it first meets an entity. Switching an entity on makes Home
+Assistant load the screen's integration again half a minute later, so the screen's link drops for a moment then. The
+troubleshooting report needs none of this: it reads the figures from the screen itself. A new sensor that measures the
+firmware gets the mark, right under its `name:`; what the app reads through Home Assistant (Screen firmware, Screen
+board, the settings) never does, and the test says so.
+
 A screen starts with each setting's default until it stores a value of its own. Swipe between pages is the one whose
 default depends on the screen: off in the firmware and in `SETTING_RULES`, because every screen set up before had it off
 and one whose settings were never changed stores no choice, so a default of on would turn it on with an update. A screen
@@ -81,21 +96,26 @@ swipe in `runtime_tiles::touch_input`). Holding the top bar of the overview for 
 as well; a line in the accent colour grows along the top edge while you hold, and letting go before it finishes
 cancels. Both follow **Swipe between pages** for the swipe and `settings_screen::may_open` for the rest. A screen can also carry a
 `screen.settings` tile, which opens the page with or without Home Assistant, and Home Assistant can open it
-with `esphome.<screen>_open_settings`.
+with `esphome.<screen>_open_settings`. A page number the screen has nothing on (Night on a board that cannot go dark, a
+number past the last page) opens the menu (`settings_screen::offered`).
 
 The page is a menu of groups, each of which opens a page of its own:
 
 | Group | Rows |
 |---|---|
-| Brightness | Brightness (dimmable backlight), Dark mode, Auto standby, Standby after, Standby brightness or Screen on in standby (boards that can go dark) |
-| Night (boards that can go dark) | Night mode, Starts, Ends, Night brightness or Screen on at night |
+| Brightness, called Display on a glass without a light (e-paper) | Brightness (dimmable backlight), Dark mode, Auto standby, After, Standby brightness or Screen on in standby (boards that can go dark) |
+| Night (boards that can go dark, and whose glass is lit) | Night mode, Starts, Ends, Night brightness or Screen on at night |
 | Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Loop pages, Show home button, Rotation |
 | This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Debug mode, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
 
+The standby's time says After on the screen, as the row under Back to Home does: it stands right under Auto standby,
+and the entity's longer name, Standby after, was cut beside its keys on a narrow glass.
+
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
-Tessera show it within a second. The editor's **Screen settings** panel has the first three groups as
-cards with the same rows: a switch for a toggle, `-` and `+` that repeat while held, chips for the
-rotation. A screen whose device has a Calibrate touch button also gets a This screen card with that button.
+Tessera show it within a second. The editor's **Screen settings** tab has the same rows, grouped by what a person looks
+for instead of as on the screen (docs/PAGES.md, "Settings"): Display, Standby & night and Navigation, each a part of
+its own, with a switch for a toggle, `-` and `+` that repeat while held, chips for the rotation. A screen whose device
+has a Calibrate touch button also gets that button under This board.
 The 12 or 24-hour clock is not on this panel: it is Settings → Language & region, for every screen. A change there applies at once, without Save. An offline screen shows its values as
 unknown and takes no changes until it is back.
 
@@ -206,8 +226,9 @@ by a board fact rather than written into one board file: `shown` on the row, and
   entity for it. Leave it out for a screen that does not own its settings too (`owner` `'layout'`), as
   `dark_mode` and `page_buttons` are: such firmware cannot have it.
 - `web/src/model/settings.ts`: one row in `SETTING_GROUPS`; its label is `editor.screen_settings.rows.<key>` in
-  `screen_manager/translations/en.json`, in the words the screen uses; then build the editor
-  (`cd web && npm test && npm run build`, AGENTS.md).
+  `screen_manager/translations/en.json`, in the words the screen uses. The key also goes in the part of the editor's
+  Settings tab that shows it, `SCREEN_PART_ROWS` in `web/src/model/settings-parts.ts` (`web/tests/settings-parts.spec.ts`
+  fails on a key no part shows); then build the editor (`cd web && npm test && npm run build`, AGENTS.md).
 - `screen_manager/app/claude_skill.py`: a row in the table of screen entities.
 - `screen_manager/app/core.py`: a `<KEY>_MIN_FIRMWARE` constant with the first firmware that has the setting, such
   as `HOME_BUTTON_MIN_FIRMWARE = '0.2.100'`. The skill's row prints it ("Firmware X or newer"), and the tests hold it
@@ -252,7 +273,7 @@ it in three places at once:
 
 - **Home Assistant**, as every entity of the screen's device;
 - **the screen**, on its settings page under **Extras**, a page that only a screen with such a setting has;
-- **the editor**, under Screen settings in an **Extras** card.
+- **the editor**, in the screen's Settings tab under This board, in an **Extras** card.
 
 All three show and change the same entity, so there is no second copy of the value to keep in step.
 

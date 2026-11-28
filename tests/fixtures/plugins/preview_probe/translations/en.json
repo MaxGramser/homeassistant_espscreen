@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "name": "English"
+  },
+  "screen": {
+    "hello": "Hello",
+    "ticks": "{n} ticks",
+    "more": "More of the probe"
+  },
+  "app": {
+    "name": "Preview probe",
+    "summary": "Says a line only its own code can say, for the test of a plugin's module in the editor's preview.",
+    "tile": "Note",
+    "word": "Word",
+    "card": "Probe card"
+  }
+}

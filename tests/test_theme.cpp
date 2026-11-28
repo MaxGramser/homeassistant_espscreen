@@ -181,6 +181,54 @@ int main() {
     assert(hex_in(CARD, true) == ROLES[CARD].dark && hex_in(CARD, false) == ROLES[CARD].light);
   }
   look(false);
+  // ---- ink: a glass that prints (docs/PAPER.md)
+  // Every role is one of four tones, in both looks, and dark trades paper and ink.
+  paper::inks() = 2;  // the glass is ink (glass_kind.h)
+  for (bool in_dark : {false, true}) {
+    look(in_dark);
+    const uint32_t paper_tone = in_dark ? 0x000000 : 0xFFFFFF, ink_tone = in_dark ? 0xFFFFFF : 0x000000;
+    for (int role = 0; role < ROLE_COUNT; ++role) {
+      const uint32_t tone = hex(static_cast<Role>(role));
+      assert(tone == 0x000000 || tone == 0x555555 || tone == 0xAAAAAA || tone == 0xFFFFFF);
+    }
+    // The page and the card are clean paper, with no stray dot of a near-white; what frames a card is a line of ink.
+    assert(hex(PAGE) == paper_tone && hex(CARD) == paper_tone && hex(RAISED) == paper_tone && hex(LINE) == ink_tone);
+    // Every word and glyph is ink on that paper, whatever grey ranks it on a lit glass.
+    for (Role words : {INK, INK_SOFT, MUTED, SUBTLE, SLATE, ROW_ICON, CHEVRON, ICON_OFF, ACCENT_ICON})
+      assert(hex(words) == ink_tone);
+    // The accent is ink and what stands on it paper: a chosen segment, a toggle's knob.
+    assert(hex(ACCENT) == ink_tone && hex(ON_ACCENT) == paper_tone && hex(KNOB) == paper_tone);
+    // What carries a glyph, a word or a knob is paper with a rim of ink, never a raster a glyph falls away into; a key
+    // that is on is a disc of ink with its glyph left open.
+    for (Role ground : {KEY, TRACK, ACCENT_TINT, TOGGLE_OFF, STEPPER_KEY, KNOB})
+      assert(hex(ground) == paper_tone && rimmed(ground));
+    assert(hex(KEY_ON) == ink_tone && hex(KEY_ON_ICON) == paper_tone && !rimmed(KEY_ON));
+    // An arc's track and a chart's grid carry nothing: a tone between the two.
+    for (Role shade : {SPINNER_TRACK, GRID}) assert(hex(shade) != paper_tone && hex(shade) != ink_tone);
+    // A tile that is on is a disc of ink with its glyph left open; off is the glyph alone, in ink on the card.
+    assert(disc(ha::AMBER) == ink_tone && on_disc(ha::AMBER) == paper_tone);
+    assert(disc(STATE_OFF) == paper_tone && on_disc(STATE_OFF) == ink_tone);
+    assert(disc(ha::AMBER) != disc(STATE_OFF));
+    // A slider's fill is ink on a track that is not, for any colour of lamp or blind.
+    for (uint32_t accent : {ha::AMBER, ha::PURPLE, ha::CYAN, STATE_OFF}) assert(track(accent) != ink_tone);
+    assert(state(ha::AMBER) == ink_tone && state(ha::RED) == ink_tone && foreground(ha::INDIGO) == ink_tone);
+    assert(state(STATE_OFF) == hex(OFF) && hex(OFF) != ink_tone && hex(OFF) != paper_tone);
+    // A glyph without a disc of its own is always ink, never the open glyph of a disc that is not there.
+    assert(icon(ha::AMBER) == ink_tone && icon(STATE_OFF) == ink_tone);
+    // No shade under a finger, and a card of a colour of its own is a card.
+    assert(pressed(hex(CARD)) == hex(CARD) && pressed(Face{}) == hex(CARD));
+    assert(surface(SWATCHES[0].light) == hex(CARD) && outline(SWATCHES[0].light) == ink_tone);
+  }
+  // What is the same in both looks on a lit glass stays what it is: a camera's black page, a QR code.
+  look(false);
+  assert(hex(CAMERA_PAGE) == 0x000000 && hex(QR_DARK) == 0x000000 && hex(QR_LIGHT) == 0xFFFFFF);
+  look(true);
+  assert(hex(CAMERA_PAGE) == 0x000000 && hex(QR_DARK) == 0x000000 && hex(QR_LIGHT) == 0xFFFFFF);
+  // A lit glass is as it was.
+  paper::inks() = 0;
+  look(false);
+  assert(hex(PAGE) == 0xE7E7E7 && disc(ha::AMBER) == tint(ha::AMBER, 38) && on_disc(ha::AMBER) == icon(ha::AMBER));
+  assert(track(ha::AMBER) == tint(ha::AMBER, 51));
   return 0;
 }
 

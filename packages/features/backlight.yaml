@@ -1,18 +1,19 @@
 # ESP Screens - a backlight the firmware dims through one script, set_backlight, for a board that includes this file.
 #
 # The board file names the output that drives the glass, `id: gpio_backlight_pwm` (a PWM pin, or a line on an
-# expander that is lit or dark); this file puts the light on it and every step that sets its level: waking,
-# standby and night (apply_screen_settings in packages/core.yaml), an alert's blinks, and the end of an alert.
+# expander that is lit or dark); this file puts the light on it and the one script that sets its level. Which level and
+# how fast is the standby's to say (components/smart_display/screen_standby.h: waking, standby and night) and an
+# alert's (alert_life.h: its blinks and its end).
 # A backlight that must never go dark adds features/backlight-always-on.yaml after this file.
 substitutions:
-  # apply_screen_settings: how the backlight takes its level. Standby dims slowly (ESPHome's transition); waking is quick.
-  APPLY_BACKLIGHT: |-
-    // Standby dims slowly (ESPHome's transition); waking fades in over 200 ms.
-    id(set_backlight).execute(level, id(display_dimmed) ? 1500 : 200);
   # An update coming in (ota_status::wake, firmware 0.38.0): the glass at its brightness at once. ESPHome's update holds
   # the loop that runs the light's transition, so the level goes straight to the output, with the light's own gamma.
   OTA_BACKLIGHT: |-
     id(gpio_backlight_pwm)->set_level(powf(screen_settings::current.brightness / 100.0f, id(back_light)->get_gamma_correct()));
+  # The light to a level (percent) over so many ms, for the standby and an alert's blinks: the one script below.
+  SET_BACKLIGHT: "id(set_backlight).execute(level, ms);"
+  # The light comes on at the screen's brightness when it starts, with the light's own transition.
+  BOOT_BACKLIGHT: "id(back_light).turn_on().set_brightness(screen_settings::current.brightness / 100.0f).perform();"
 
 light:
   # The firmware owns the backlight: brightness, standby, night and alerts set it, and the minute tick
@@ -36,66 +37,4 @@ script:
       ms: int
     then:
       - lambda: |-
-          // While a change of the whole glass is drawn in the dark the light is that change's (screen_motion::cut): it
-          // comes up at the level the screen should have once the page is at rest.
-          if (screen_motion::holds_light()) return;
           id(back_light).turn_on().set_transition_length(ms).set_brightness(level / 100.0f).perform();
-
-  - id: wake_display
-    mode: restart
-    then:
-      - script.stop: screen_power_wait
-      - lambda: |-
-          // Drawing and full-speed Wi-Fi come back before the light (screen_power.h).
-          screen_power::leave();
-          id(last_touch_ms) = millis();
-          id(display_dimmed) = false;
-          id(sleep_requested) = false;
-          // The backlight as screen_motion.h drives it for a change of the whole glass: out at once, and back to this level.
-          if (!screen_motion::dark) {
-            screen_motion::dark = []() { id(set_backlight).execute(0, 0); };
-            screen_motion::lit = [](int ms) {
-              id(set_backlight).execute(id(display_dimmed) ? runtime_tiles::standby_level() : screen_settings::current.brightness, ms);
-            };
-          }
-          // The screensaver goes with the standby, and the touch that woke the screen does nothing else (0.29.0+).
-          runtime_tiles::saver_wake();
-          // A short fade in, 200 ms. ESPHome's default is 1s, and that feels sluggish
-          // when you touch the screen and are waiting on light. After the screensaver's leave, which keeps the light
-          // for itself until the page under it is drawn (set_backlight then does nothing here).
-          id(set_backlight).execute(screen_settings::current.brightness, 200);
-      - lvgl.widget.hide: dim_wake_overlay
-      - script.execute: close_cards
-
-  - id: alert_dismiss
-    parameters:
-      reason: string
-    then:
-      - if:
-          condition:
-            lambda: 'return id(alert_active);'
-          then:
-            - lambda: |-
-                id(alert_active) = false;
-                id(last_touch_ms) = millis();
-                runtime_tiles::alert_clear();
-                ESP_LOGI("alert", "dismissed: %s", reason.c_str());
-            - lambda: 'screen_motion::hide(id(alert_overlay), id(alert_card));'
-            - script.stop: alert_timeout
-            - script.stop: alert_flash
-            - lambda: 'id(set_backlight).execute(screen_settings::current.brightness, 80);'
-            - script.execute:
-                id: alert_report
-                action: !lambda 'return reason;'
-
-  # Four backlight blinks when the alert arrives; the screen then stays on as usual.
-  - id: alert_flash
-    mode: restart
-    then:
-      - repeat:
-          count: 4
-          then:
-            - lambda: 'id(set_backlight).execute(0, 60);'
-            - delay: 140ms
-            - lambda: 'id(set_backlight).execute(screen_settings::current.brightness, 60);'
-            - delay: 180ms

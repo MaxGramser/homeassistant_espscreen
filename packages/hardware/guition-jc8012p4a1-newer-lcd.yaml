@@ -1,0 +1,17 @@
+# ESP Screens - the newer LCD of the 10.1-inch Guition JC8012P4A1, which its V2 and V3 carry (docs/JC8012P4A1.md): the
+# display block both board files take, guition-jc8012p4a1-v2.yaml and guition-jc8012p4a1-v3.yaml. The two differ only
+# in the chip revision they assume when nobody has read the chip (CHIP_REVISION, docs/CHIP_REVISIONS.md).
+#
+# ESPHome's own mipi_dsi platform knows this LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's init
+# sequence for it, its timings and its reset pin. ESPHome's "V2" is the LCD, not Guition's board label; the community
+# configurations for V2 and V3 boards run this LCD's table. On rev3 silicon ESPHome's own driver before 2026.9.1 aborts
+# while the display starts (GitHub #52), so DSI_PLATFORM (hardware/esp32p4-core.yaml) picks the repository's
+# mipi_dsi_v3 there. The panel is 800x1280; LVGL turns it a quarter (LVGL_ROTATION).
+display:
+  - platform: ${DSI_PLATFORM}
+    id: my_display
+    model: JC8012P4A1-V2
+    dimensions: {width: 800, height: 1280}
+    lanes: 2
+    update_interval: never
+    auto_clear_enabled: false

@@ -14,8 +14,8 @@
 // wake, before the backlight comes up. A touch on the dark glass resumes drawing at once (touched()), so the touch
 // reaches the wake overlay as it always did. SETTLE_MS after the finger lifted, once LVGL has had the release, a screen
 // that is still dark had a tap LVGL did not see: one of TAP_MS or more wakes it, a shorter one is noise on the glass
-// and the screen rests again. One wait does both (later) (core.yaml, screen_power_wait). Small on purpose: every byte counts on
-// the 4 MB boards. Free of LVGL and ESPHome; core.yaml hands it the hooks at boot.
+// and the screen rests again. One wait does both (later), on the standby's timer (screen_standby.h, POWER). Small on
+// purpose: every byte counts on the 4 MB boards. Free of LVGL and ESPHome; core.yaml hands it the hooks at boot.
 #include <cstdint>
 // In the firmware: ESP-IDF's Wi-Fi (core.yaml keeps no #if of its own: a line starting with # is Jinja there).
 #if __has_include("esphome/core/defines.h")

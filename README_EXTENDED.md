@@ -31,7 +31,7 @@ on the screen itself, and how updates work.
 - **One tile per cell**, across up to eight fixed pages and 64 tiles, or more on a board with PSRAM (up to 128 tiles on
   24 pages on an ESP32-S3 board, 256 on 16 pages on the larger ESP32-P4 boards, firmware 0.34.0+), as many as the screen's memory
   holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, a 4-inch Guition or the
-  [experimental Waveshare 4B](docs/WAVESHARE4B.md), the [experimental Waveshare 4 V4.0](docs/WAVESHARE4V4.md), the [experimental SenseCAP Indicator](docs/SENSECAP_INDICATOR.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
+  [experimental Waveshare 4B](docs/WAVESHARE4B.md), the [experimental Waveshare 4 V4.0](docs/WAVESHARE4V4.md), the [SenseCAP Indicator](docs/SENSECAP_INDICATOR.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
   [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch, the [experimental Waveshare 4.3C](docs/WAVESHARE43C.md), the [Waveshare 5-inch](docs/WAVESHARE5.md), the [experimental Guition 4.3-inch](docs/JC4880P443.md) and the [experimental Guition 5-inch](docs/JC8048W550.md), twenty-five on the 10.1-inch Guition, the [experimental CrowPanel 10.1-inch](docs/CROWPANEL101.md) and the [experimental Waveshare 10.1-inch, with either chip revision](docs/WAVESHARE101.md), sixteen on the
   [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md), the [experimental Waveshare P4 7B](docs/WAVESHAREP47B.md), the [experimental Waveshare P4 7-inch](docs/WAVESHAREP47.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md), the [experimental Freenove 4-inch](docs/FREENOVEFNK0104S.md) and the [experimental WT32-SC01 Plus](docs/WT32SC01PLUS.md) (32), lying down, where each starts (the Grid button gives
   a screen another, below). A page need not be full: every screen has eight pages from firmware 0.18.0, where
@@ -604,8 +604,8 @@ written until you press the button.
 
 ## Wake and sleep from an automation
 
-Every screen has two buttons in Home Assistant (firmware 0.2.45+). An automation presses them
-with the `button.press` action:
+Every screen has these buttons in Home Assistant (firmware 0.2.45+, Motion 0.64.0+). An automation presses
+them with the `button.press` action:
 
 - **`button.<screen>_wake`** lights the screen up: a screen in standby goes to its normal brightness
   (the second hand of an analog clock runs again), and the standby time starts counting again. On a
@@ -616,9 +616,13 @@ with the `button.press` action:
   time runs out, and also works with **Auto standby** off. The screen stays in standby until someone
   taps it, **Wake** is pressed or an alert comes in; switching Auto standby off doesn't end it. An alert
   that is showing closes (reported as `remote`).
+- **`button.<screen>_motion`** is Wake for an automation that runs on motion (firmware 0.64.0+). It wakes the
+  screen the same way, except right after someone sent the screen to standby by hand (Sleep, the board's key or the
+  home button held): the person is still walking away, so Motion waits until it has not been pressed for a minute,
+  and the next press after that lights the screen. Wake always wakes, at once.
 
-Neither button saves anything on the screen, so an automation may press them as often as it likes,
-on every motion too. That is the difference with the **Auto standby** switch, which is a setting.
+No button saves anything on the screen, so an automation may press them as often as it likes,
+on every motion too: press Motion for that. That is the difference with the **Auto standby** switch, which is a setting.
 To reach several screens at once, list their buttons:
 
 ```yaml
@@ -631,7 +635,7 @@ actions:
 ```
 
 Don't target an area or a device with `button.press`: that presses every other button there too,
-the Wake and Sleep of the same screen included.
+the Wake, Motion and Sleep of the same screen included.
 
 ## Open a page from an automation
 

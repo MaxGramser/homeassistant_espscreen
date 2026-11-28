@@ -51,6 +51,7 @@ inline bool add(Sink &out, const Item &item) {
 struct Chart {
   bool hourly = false;
   bool icon_only = false;             // the first day's icon alone, in the largest face (the card's weather now)
+  bool strip = false;                 // the days are hours (weather_week::hour_columns): the form of one line only
   std::vector<Day> days;
   std::vector<Hour> hours;
   std::vector<std::string> weekdays;  // the hours' midnights, Sunday first
@@ -72,13 +73,13 @@ struct Holder {
 };
 // The plan for this size, measured once per forecast and size.
 inline const Plan &plan_of(const Chart &c, const Metrics &m, int width, int height) {
-  if (c.plan_w != width || c.plan_h != height) { c.plan_ = plan(m, c.days, c.unit, width, height); c.plan_w = width; c.plan_h = height; }
+  if (c.plan_w != width || c.plan_h != height) { c.plan_ = plan(m, c.days, c.unit, width, height, c.strip); c.plan_w = width; c.plan_h = height; }
   return c.plan_;
 }
 // Does `b` draw the same as `a`? Then set() keeps the picture on the glass as it is.
 inline bool same(const Chart &a, const Chart &b) {
   auto eq = [](float x, float y) { return (std::isnan(x) && std::isnan(y)) || x == y; };
-  if (a.hourly != b.hourly || a.icon_only != b.icon_only || a.unit != b.unit || a.fahrenheit != b.fahrenheit || a.now != b.now ||
+  if (a.hourly != b.hourly || a.icon_only != b.icon_only || a.strip != b.strip || a.unit != b.unit || a.fahrenheit != b.fahrenheit || a.now != b.now ||
       a.today != b.today || a.days.size() != b.days.size() || a.hours.size() != b.hours.size() || a.large != b.large) return false;
   for (size_t i = 0; i < a.days.size(); ++i) {
     const auto &x = a.days[i], &y = b.days[i];
@@ -297,11 +298,12 @@ inline void draw_week(Sink &layer, const lv_area_t &area, const Chart &c) {
     icon(layer, c.fonts, d.condition, x + cw / 2, y0 + r.icon, l.icon, l.small, tone);
     if (p.tier == 0) {
       // the high in its face and the low beside it in the smaller one, on one baseline
-      const std::string hi = degrees(d.high), lo = degrees(d.low);
-      const int hw = text_w(hi, l.high), lw = text_w(lo, l.low), gap = pair_gap(p.level), sx = x + (cw - hw - gap - lw) / 2;
+      // An hour has no low: its temperature stands alone in the middle.
+      const std::string hi = degrees(d.high), lo = std::isfinite(d.low) ? degrees(d.low) : "";
+      const int hw = text_w(hi, l.high), lw = lo.empty() ? 0 : text_w(lo, l.low), gap = lo.empty() ? 0 : pair_gap(p.level), sx = x + (cw - hw - gap - lw) / 2;
       const int drop = (l.high->line_height - l.high->base_line) - (l.low->line_height - l.low->base_line);
       text(layer, hi, sx, y0 + r.high, hw + 2, l.high, ink, LV_TEXT_ALIGN_LEFT);
-      text(layer, lo, sx + hw + gap, y0 + r.high + drop, lw + 2, l.low, muted, LV_TEXT_ALIGN_LEFT);
+      if (!lo.empty()) text(layer, lo, sx + hw + gap, y0 + r.high + drop, lw + 2, l.low, muted, LV_TEXT_ALIGN_LEFT);
       if (r.words >= 0) text(layer, rain_words(d, c.unit), x, y0 + r.words, cw, l.rain, theme::foreground(theme::ha::RAIN));
       continue;
     }
@@ -476,6 +478,16 @@ inline void set(lv_obj_t *o, Chart &&chart) {
   k->chart = std::move(chart);
   k->w = -1;                          // build the parts again at the next draw
   lv_obj_invalidate(o);
+}
+// Whether the next hours' curve (draw_hours) has room here, with four hours at least: a tile set to the next hours draws
+// it where it has, and the hours as columns (strip) where it has not. Wide enough is draw_hours's own rule in its
+// smaller face: a mark every twelve hours at most, each as wide as its time, its temperature and its icon.
+inline bool hours_fit(const Chart &c, int width, int height) {
+  const int n = std::min<int>(HOURS, c.hours.size());
+  if (n < 4 || height < hours_need(c.fonts) || width <= 0) return false;
+  const Level &l = c.fonts.levels[1];
+  const int need = std::max({text_w("00:00", c.fonts.axis), text_w("-12°", l.high), line_h(l.icon) * 5 / 4}) + ui::px(8);
+  return width * std::min(12, n) >= need * n;
 }
 // The tier the week reaches in this room, -1 where it shows nothing: the card around it decides with it.
 inline int week_tier(const Chart &c, int width, int height) {

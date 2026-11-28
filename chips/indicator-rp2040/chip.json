@@ -1,0 +1,7 @@
+{
+  "name": "indicator-rp2040",
+  "target": "tessera-indicator-rp2040",
+  "usb": [{"vendor": 10374, "product": 80}],
+  "drive": "RPI-RP2",
+  "sources": ["../../components/chip_link/chip_protocol.h"]
+}

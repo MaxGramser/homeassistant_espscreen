@@ -70,6 +70,8 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((known['known'], known['name'], known['device_ids'], known['entries']),
                              (True, 'tablet', ['d-cam', 'd-old'], ['E-other', 'E1']))
             self.assertEqual(manager.known_board(MAC.upper())['name'], 'tablet')
+            # No screen of the app's: no profile to install it again from in New screen (Firmware & USB has none either).
+            self.assertIsNone(known['file'])
             self.assertIsNone(manager.known_board('11:22:33:44:55:67'))
             # Nothing that is not a MAC is looked up: the page sends what esptool read, nothing else.
             self.assertIsNone(manager.known_board('../etc/passwd'))

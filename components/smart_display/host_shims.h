@@ -107,6 +107,26 @@ inline HostApiServer host_api_server;
 inline HostApiServer *global_api_server = &host_api_server;
 }
 inline bool api_is_connected() { return true; }
+// What a plugin's component is made of (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): the preview has no ESPHome loop, so a
+// component is only its setup(), which the plugin's module calls once, and the application is always set up.
+namespace setup_priority {
+constexpr float BUS = 1000.0f, IO = 900.0f, HARDWARE = 800.0f, DATA = 600.0f, PROCESSOR = 400.0f, BLUETOOTH = 350.0f,
+                AFTER_BLUETOOTH = 300.0f, WIFI = 250.0f, ETHERNET = 250.0f, BEFORE_CONNECTION = 220.0f,
+                AFTER_WIFI = 200.0f, AFTER_CONNECTION = 100.0f, LATE = -100.0f;
+}  // namespace setup_priority
+class Component {
+ public:
+  virtual ~Component() = default;
+  virtual void setup() {}
+  virtual void loop() {}
+  virtual void dump_config() {}
+  virtual float get_setup_priority() const { return setup_priority::DATA; }
+  virtual float get_loop_priority() const { return 0.0f; }
+};
+struct HostApplication {
+  bool is_setup_complete() const { return true; }
+};
+inline HostApplication App;
 namespace json {
 template <typename Callback> bool parse_json(const std::string &payload, Callback callback) {
   JsonDocument document;

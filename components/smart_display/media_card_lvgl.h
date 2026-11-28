@@ -126,11 +126,23 @@ inline lv_obj_t *media_picture_show(lv_obj_t *parent,lv_obj_t *existing,const me
   (void)parent;(void)r;(void)src;return existing;
 #endif
 }
+// Each round of a rolling text eases in and out (dev): it starts gently, is quickest in the middle and slows down to
+// stand still where it began, instead of LVGL's even pace that starts and stops with a jolt. LVGL makes the scroll's
+// animation anew whenever the text or the label's size changes, always even (lv_label.c takes only the delays from the
+// style's template, not the curve), so the curve is put on the running one each time the label is about to draw: the
+// moment a new one shows its first step. The circular scroll is the only animation LVGL runs on a label itself (from 0
+// to minus its width and a gap); anything else is left alone.
+inline void marquee_ease(lv_event_t *e){
+  auto *label=static_cast<lv_obj_t*>(lv_event_get_target(e));
+  lv_anim_t *a=lv_anim_get(label,nullptr);
+  if(a&&a->start_value==0&&a->end_value<0&&a->path_cb!=lv_anim_path_ease_in_out)a->path_cb=lv_anim_path_ease_in_out;
+}
 // A media text that is wider than its line rolls by, round and round, and stands still when it fits (firmware 0.2.77+):
 // LVGL's own circular scroll, at its own pace, where the dots of LV_LABEL_LONG_DOT cut a long title short.
 inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
   if(!label)return;
-  if(!ready){
+  // A line that rolls is motion: on a still glass it is cut with dots.
+  if(!ready||screen_motion::still()){
     if(lv_label_get_long_mode(label)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(label,LV_LABEL_LONG_DOT);
     return;
   }
@@ -140,6 +152,9 @@ inline void marquee(lv_obj_t *label,bool reading_pause=false,bool ready=true){
     lv_obj_set_style_anim(label,&timing,0);
     lv_obj_set_style_anim_duration(label,lv_anim_speed(ui::px(24)),0);
   }
+  // Once per label: a label that rolled before already eases.
+  lv_obj_remove_event_cb(label,marquee_ease);
+  lv_obj_add_event_cb(label,marquee_ease,LV_EVENT_DRAW_MAIN_BEGIN,nullptr);
   // LVGL cancels the old animation when long mode is assigned, even unchanged.
   lv_label_set_long_mode(label,LV_LABEL_LONG_SCROLL_CIRCULAR);
 }
@@ -162,21 +177,25 @@ inline void media_progress(const Tile &t,lv_obj_t *fill,lv_obj_t *elapsed,int ba
 // (theme::MEDIA_GROUND). One flat colour (firmware 0.52.0): the card ran from one colour at the top to another at the
 // bottom before, and the app has sent the same colour for both ends since GitHub #135.
 inline uint32_t media_ground(const Tile &t){
+  // The card is a stage (theme::stage_ground): where the glass is ink it is the page's own tone, whatever its cover.
   const auto &x=t.extra();
-  return x.has_ground?x.ground:theme::hex(theme::MEDIA_GROUND);
+  return theme::stage_ground(x.has_ground?x.ground:theme::hex(theme::MEDIA_GROUND));
 }
-inline uint32_t media_ink(){return theme::hex(theme::CAMERA_INK);}
-// The second line, the times and what is faded: the ink, a quarter of the way into the ground.
-inline uint32_t media_soft(uint32_t ground){return theme::mix(media_ink(),ground,190);}
+inline uint32_t media_ink(){return theme::stage_ink();}
+// The second line, the times and what stands back: the ink, a quarter of the way into the ground.
+inline uint32_t media_soft(uint32_t ground){return theme::soft(media_ink(),ground,190);}
 // A key on the ground: a white key for the main one with the ground's own colour in it, a faint white circle for the
 // others, none at all for a bare one (mute, shuffle, repeat), white icons.
 inline void media_dark_key(lv_obj_t *key,bool primary,bool bare,uint32_t ground,uint32_t icon_color=0){
   if(!key)return;
-  set_color(key,LV_STYLE_BG_COLOR,theme::rgb(media_ink()));
-  set_color(key,LV_STYLE_BG_COLOR,theme::rgb(primary?theme::mix(media_ink(),ground,200):media_ink()),LV_STATE_PRESSED);
-  set_number(key,LV_STYLE_BG_OPA,primary?LV_OPA_COVER:bare?LV_OPA_TRANSP:40);
-  set_number(key,LV_STYLE_BG_OPA,primary?LV_OPA_COVER:90,LV_STATE_PRESSED);
-  if(auto *icon=lv_obj_get_child(key,0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(icon_color?icon_color:primary?ground:media_ink()));
+  // The main key is whole in the stage's ink with the ground's colour in it, the others a haze of that ink
+  // (theme::haze), a bare one its glyph alone.
+  const uint32_t ink=media_ink();
+  const theme::Dress rest=primary?theme::Dress{ink,ground}:bare?theme::Dress{ink,ink,LV_OPA_TRANSP}:theme::haze(ink,40);
+  const theme::Dress held=primary?theme::Dress{theme::soft(ink,ground,200),ground}:theme::haze(ink,90);
+  theme::wear(key,rest);
+  theme::wear(key,held,LV_STATE_PRESSED);
+  if(auto *icon=lv_obj_get_child(key,0))set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(icon_color?icon_color:primary?ground:ink));
 }
 // ---- What the card shows of its cover: the picture and the colour read from it (firmware 0.52.0, GitHub #177) ----
 // A new track changes the words and the bar at once, as Home Assistant reports them, and the cover and the card's colour
@@ -317,7 +336,13 @@ inline void media_seek_event(lv_event_t *e){
   auto &t=model.tiles[detail_index];
   const auto &x=t.extra();
   if(!media_card::has_track(t.state)||!x.media_duration)return;
-  lv_point_t point;lv_indev_get_point(lv_indev_active(),&point);
+  // The bar hears every event (LV_EVENT_ALL), and only a finger's have a finger to ask: a change of its size comes
+  // from LVGL's layout with no input device, and LVGL 9.6 no longer takes none for an answer (a reTerminal Sticky
+  // restarted here with the media card open, 2026-11-27, ESPHome 2026.11.0).
+  if(code!=LV_EVENT_PRESSED&&code!=LV_EVENT_PRESSING&&code!=LV_EVENT_PRESS_LOST&&code!=LV_EVENT_RELEASED)return;
+  auto *indev=lv_indev_active();
+  if(!indev)return;
+  lv_point_t point;lv_indev_get_point(indev,&point);
   lv_area_t area;lv_obj_get_coords(lv_obj_get_parent(media_progress_fill),&area);
   const int along=point.x-area.x1-media_bar_x;
   const uint32_t seconds=media_card::seek_seconds(along,media_bar_width,x.media_duration);
@@ -378,7 +403,8 @@ inline void media_top_bar(const Tile &t,lv_obj_t *back,lv_obj_t *heading){
   auto *pill=lv_obj_create(detail_root);lv_obj_remove_style_all(pill);
   lv_obj_set_pos(pill,px_left,bar_y+(bar-h)/2);lv_obj_set_size(pill,w,h);
   lv_obj_set_style_radius(pill,LV_RADIUS_CIRCLE,0);lv_obj_add_flag(pill,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(pill,LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_style_bg_color(pill,theme::rgb(media_ink()),0);lv_obj_set_style_bg_opa(pill,40,0);lv_obj_set_style_bg_opa(pill,90,LV_STATE_PRESSED);
+  // A haze of the stage's ink under the speaker's name (theme::haze).
+  theme::wear(pill,theme::haze(media_ink(),40));theme::wear(pill,theme::haze(media_ink(),90),LV_STATE_PRESSED);
   lv_obj_set_ext_click_area(pill,(bar-h)/2);
   lv_obj_add_event_cb(pill,cb,LV_EVENT_SHORT_CLICKED,(void*)(intptr_t)28);
   media_pill_obj=pill;
@@ -448,7 +474,7 @@ inline void media_face_follow(const Tile &t){
   // The new cover is here: it and its colour, together. The one it takes over from goes from the store once nothing
   // draws it (the loader forgets a cover its owner moved on from).
   if(src&&src->data){
-    media_face.drawn=true;media_face.key=key;media_face.src=src;media_face.ground=ground;media_face.coloured=x.has_ground;return;
+    media_face.drawn=true;media_face.key=key;media_face.src=src;media_face.ground=ground;media_face.coloured=theme::stage_coloured(x.has_ground);return;
   }
   // A cover on the card stays while the next one is on its way, or while the player shows none for a moment. The
   // square without a cover keeps its colour too while a cover is on its way (a track without one, then one with):
@@ -459,7 +485,7 @@ inline void media_face_follow(const Tile &t){
   }
   // Nothing to keep: the placeholder on the player's colour, and its cover comes over it once it is here.
   media_face.drawn=true;
-  media_face.key.clear();media_face.src=nullptr;media_face.ground=ground;media_face.coloured=x.has_ground;
+  media_face.key.clear();media_face.src=nullptr;media_face.ground=ground;media_face.coloured=theme::stage_coloured(x.has_ground);
   media_face.recheck=due;
 }
 // The card's colour behind everything, after the face for this paint is worked out.
@@ -472,13 +498,13 @@ inline void media_backdrop_paint(lv_obj_t *backdrop,const Tile &,const CardPart 
 }
 // The square under the cover: a darker one on a cover's colour, a faint white one on the plain black.
 inline void media_frame_paint(lv_obj_t *frame,const Tile &,const CardPart &){
-  set_color(frame,LV_STYLE_BG_COLOR,theme::rgb(media_face.coloured?theme::hex(theme::CAMERA_PAGE):media_ink()));
-  set_number(frame,LV_STYLE_BG_OPA,media_face.coloured?60:24);
+  // A haze under the player's icon (theme::haze): of black on a cover's colour, of the stage's ink on the plain black.
+  theme::wear(frame,theme::haze(media_face.coloured?theme::hex(theme::CAMERA_PAGE):media_ink(),media_face.coloured?60:24));
 }
 // The player's icon in the square (`value`: the library's, for a player at rest): the big icon where the square holds
 // it, the tile's icon in a small one.
 inline void media_placeholder_paint(lv_obj_t *icon,const Tile &t,const CardPart &part){
-  set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(theme::mix(media_ink(),media_face.ground,120)));
+  set_color(icon,LV_STYLE_TEXT_COLOR,theme::rgb(theme::soft(media_ink(),media_face.ground,120)));
   const std::string glyph=part.value.empty()?std::string(icon_for(t)):part.value;
   if(glyph==lv_label_get_text(icon))return;
   set_font(icon,big_icon_font&&font_has(big_icon_font,glyph)&&lv_font_get_line_height(big_icon_font)<=media_art_rect.h?big_icon_font:tile_icon_font());
@@ -555,7 +581,10 @@ inline void media_bar_paint(lv_obj_t *,const Tile &t,const CardPart &){
   if(!media_seeking)media_bar_now(t);
 }
 inline void media_bar_track_paint(lv_obj_t *track,const Tile &,const CardPart &){
-  set_color(track,LV_STYLE_BG_COLOR,theme::rgb(theme::mix(media_ink(),media_face.ground,70)));
+  // The rail the part played runs along (theme::rail).
+  const theme::Dress rail=theme::rail(media_ink(),media_face.ground,70);
+  set_color(track,LV_STYLE_BG_COLOR,theme::rgb(rail.ground));
+  theme::rim(track,rail.rim>0);
 }
 // What decides the media card's parts: whether the player can be used, is at rest or off, the keys it has, the room the
 // times need, the speakers and inputs. The words, play or pause, the bar and its times, mute, shuffle, repeat, the

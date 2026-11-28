@@ -58,10 +58,14 @@ describe("update all on this screen", () => {
     const view = mount(ScreenPluginsTab);
     await nextTick();
     const button = view.get("#screen-plugin-update-all");
-    expect(view.get("#screen-plugin-updates").text()).toContain("Public transport, Waste collection");
+    const card = view.get("#screen-plugin-updates");
+    expect(card.text()).toContain("2 updates for Hall");
+    expect(card.findAll("[data-update]").map((row) => row.attributes("data-update"))).toEqual(["bus", "waste"]);
+    expect(card.text()).toContain("1.1.0 → 1.2.0");
     await button.trigger("click");
     await vi.waitFor(() => expect(calls.length).toBe(1));
-    expect(calls[0].path).toContain("screens/text.hall_tile_settings/plugins");
+    // One request: the add-on builds the plugins with the firmware's update when there is one (update-everything).
+    expect(calls[0].path).toContain("screens/text.hall_tile_settings/update-everything");
     expect(calls[0].body.add.map((a: any) => a.id)).toEqual(["bus", "waste"]);
     expect(calls[0].body.add[1].values).toEqual({ calendar: "calendar.bins" });
   });
@@ -77,5 +81,54 @@ describe("update all on this screen", () => {
     await view.get("#screen-plugin-update-all").trigger("click");
     await vi.waitFor(() => expect(calls.length).toBe(1));
     expect(calls[0].body.add.find((a: any) => a.id === "waste").consent).toBe(true);
+  });
+});
+
+describe("a plugin that did not build", () => {
+  it("is said first in the screen's Plugins tab, with its kept log to download and the way to try again", async () => {
+    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "interrupted", log: "20261123-071500-hall" } });
+    expect(plugins.failuresOn(hall).map((f) => [f.plugin.id, f.kind, f.version])).toEqual([["bus", "update", "1.2.0"]]);
+    expect(plugins.statusOn(plugins.index[0], hall).label).toBe("Update 1.2.0 failed");
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const box = view.get("#screen-plugin-failures");
+    expect(box.text()).toContain("Public transport 1.2.0 did not build on Hall");
+    expect(box.text()).toContain("still runs version 1.1.0");
+    expect(box.get("a[data-action=log]").attributes("href")).toBe("api/firmware/logs/20261123-071500-hall");
+    // A build the app restarted during is no fault of the plugin: nothing to report to its maker.
+    expect(box.find("a[data-action=issue]").exists()).toBe(false);
+    await box.get("button[data-action=retry]").trigger("click");
+    await vi.waitFor(() => expect(calls.length).toBe(1));
+    expect(calls[0].body.add.map((a: any) => a.id)).toEqual(["bus"]);
+  });
+
+  it("names a new plugin that stayed out, and says when no log was kept", async () => {
+    plugins.installed[hall.id][1] = installed("waste", "1.0.2", { state: "failed", reason: "compile failed" });
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const box = view.get("#screen-plugin-failures");
+    expect(box.text()).toContain("Waste collection did not build on Hall");
+    expect(box.text()).toContain("compile failed");
+    expect(box.find("a[data-action=log]").exists()).toBe(false);
+    expect(box.text()).toContain("No log was kept");
+  });
+
+  it("offers a filled-in issue at the maker's repository for a build that stopped on the plugin", async () => {
+    plugins.index[0] = { ...plugins.index[0], repo: "https://github.com/someone/tessera-bus/tree/abc/plugin", maintainer: "Someone" };
+    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "hall.yaml: bus.h:3:1: error: oops in Hall\nmore", log: "k" } });
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const link = view.get("#screen-plugin-failures a[data-action=issue]");
+    expect(link.text()).toContain("Report to Someone");
+    const url = new URL(link.attributes("href")!);
+    expect(url.origin + url.pathname).toBe("https://github.com/someone/tessera-bus/issues/new");
+    expect(url.searchParams.get("title")).toBe("Public transport 1.2.0 did not build on guition");
+    const body = url.searchParams.get("body")!;
+    expect(body).toContain("bus 1.2.0 (update from 1.1.0)");
+    expect(body).toContain("bus.h:3:1: error: oops");
+    expect(body).toContain("0.52.0");
+    expect(body).not.toContain("Hall");
+    expect(body).not.toContain("hall.yaml");
+    expect(body).toContain("<screen>: bus.h:3:1: error: oops in <screen>");
   });
 });

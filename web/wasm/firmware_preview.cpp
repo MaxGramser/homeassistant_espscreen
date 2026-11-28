@@ -2,11 +2,14 @@
 // and drawn by runtime_tiles.h. This file owns only transport, time and input.
 #include <algorithm>
 #include <cstdint>
+#include <dlfcn.h>
+#include <map>
 #include <string>
 #include <vector>
 #include "lvgl.h"
 #include "../../components/smart_display/runtime_tiles.h"
 #include "../../components/smart_display/renderer_host_api.h"
+#include "../../components/smart_display/plugin_host.h"
 #include "generated/firmware_renderer_manifest.h"
 #include "generated/profiles.h"
 #include "generated/text.h"
@@ -14,6 +17,15 @@
 #include "settings_transport.h"
 
 static_assert(ESP_SCREEN_RENDERER_ABI == 3, "Update the host adapter for the renderer ABI change");
+
+// What the hardware can do (hw.h), for the plugin host and a plugin that asks: a browser has no speaker, microphone or
+// camera of a screen, streams nothing live and moves nothing past LVGL.
+namespace hw {
+const Caps &caps() {
+  static const Caps none{};
+  return none;
+}
+}  // namespace hw
 
 namespace {
 lv_display_t *display{};
@@ -26,6 +38,14 @@ bool pressed = false, dirty = true;
 uint32_t epoch = 0, epoch_at = 1000;
 int utc_offset = 0;
 std::string last_result, diagnostics, outgoing_action;
+// What each card on the glass last looked like, by its slot in the layout: a count that goes up each time the card's
+// own pixels changed in a frame (preview_cards reports it). The editor copies a card it shows only when its count
+// moved, so a frame in which nothing changed, or in which another card changed, costs it nothing. Told from the
+// pixels, not from what LVGL was asked to redraw: the display redraws whole frames, and a card redrawn the same has
+// not changed.
+struct Seen { uint64_t pixels = 0; uint32_t count = 0; };
+std::map<uint16_t, Seen> seen;
+bool flushed = false;
 
 void flush(lv_display_t *d, const lv_area_t *area, uint8_t *pixels) {
   // LVGL's native 32-bit pixels are BGRA; ImageData is RGBA. Keep draw memory
@@ -37,7 +57,25 @@ void flush(lv_display_t *d, const lv_area_t *area, uint8_t *pixels) {
       framebuffer[y * width + x] = s[2] | uint32_t(s[1]) << 8 | uint32_t(s[0]) << 16 | 0xFF000000u;
     }
   }
+  flushed = true;
   lv_display_flush_ready(d);
+}
+
+// After a frame was drawn: which cards look different now.
+void note_cards() {
+  for (auto &w : runtime_tiles::widgets) {
+    if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= runtime_tiles::model.count) continue;
+    lv_area_t box; lv_obj_get_coords(w.tile, &box);
+    const int x1 = std::max<int>(box.x1, 0), y1 = std::max<int>(box.y1, 0);
+    const int x2 = std::min<int>(box.x2, width - 1), y2 = std::min<int>(box.y2, height - 1);
+    uint64_t pixels = 1469598103934665603ull;  // FNV-1a over the card's own pixels, and its box
+    const auto mix = [&pixels](uint32_t value) { pixels = (pixels ^ value) * 1099511628211ull; };
+    mix(uint32_t(x1)); mix(uint32_t(y1)); mix(uint32_t(x2)); mix(uint32_t(y2));
+    for (int y = y1; y <= y2; ++y)
+      for (int x = x1; x <= x2; ++x) mix(framebuffer[size_t(y) * width + x]);
+    Seen &card = seen[runtime_tiles::model.slots[w.index]];
+    if (!card.count || card.pixels != pixels) { card.pixels = pixels; ++card.count; }
+  }
 }
 
 void read_pointer(lv_indev_t *, lv_indev_data_t *data) {
@@ -200,7 +238,37 @@ void preview_cancel() {
   lv_indev_read(pointer);
   runtime_tiles::touch_input::released();
 }
+// A plugin's own code (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): the browser loaded its module into this one
+// (loadDynamicLibrary, under `path`); this starts it, as the screen's boot makes a plugin's component and runs its
+// setup(). `language` picks the plugin's own texts. 1 when the module has a plugin of that id. Before the first frame:
+// the plugins hear on_ready together, once the interface is up.
+int preview_plugin(const char *path, const char *id, const char *language) {
+  void *module = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+  if (!module) return 0;
+  const std::string name = std::string("tessera_boot_") + (id ? id : "");
+  auto *boot = reinterpret_cast<void (*)(const char *)>(dlsym(module, name.c_str()));
+  if (!boot) return 0;
+  boot(language ? language : "en");
+  dirty = true;
+  return 1;
+}
+// The number a plugin's module must carry to be loaded into this preview (toolchain.plugin_abi).
+const char *preview_plugin_abi() { return ESP_SCREEN_PLUGIN_ABI; }
+// Another page on the glass, as a swipe would bring it: the editor reads a page's cards from the frame (0 the first).
+int preview_show(int target) {
+  if (target < 0 || target >= (int) runtime_tiles::model.pages) return 0;
+  page = target;
+  show_page();
+  return 1;
+}
 void preview_render() {
+  // The plugins' moments, as packages/core.yaml gives them: ready once the interface is up, then every 250 ms.
+  static bool plugins_ready = false;
+  if (!plugins_ready) { plugins_ready = true; plugin_host::ready(); }
+  static uint32_t plugin_tick = 0;
+  if (esphome::millis() - plugin_tick >= 250) {
+    plugin_tick = esphome::millis(); plugin_host::tick(esphome::millis(), false);
+  }
   runtime_tiles::tick();
   static uint32_t image_tick = 0;
   if (esphome::millis() - image_tick >= 250) {
@@ -209,9 +277,35 @@ void preview_render() {
   if (dirty) { dirty = false; runtime_tiles::render(firmware.room); }
   lv_timer_handler();
   lv_refr_now(display);
+  if (flushed) { flushed = false; note_cards(); }
 }
 const uint32_t *preview_frame() { return framebuffer.data(); }
+// The cards on the glass now, for the editor's own drawing of the same page: where each stands in the frame, which
+// cell of the layout it is (its slot, page * cells + cell), whether a plugin's own code drew it, and how many times
+// its pixels changed (`n`, above). The editor shows such a card as the firmware drew it, cut from the frame, since it
+// cannot draw what a plugin draws, and cuts it again only when that count moved.
+const char *preview_cards() {
+  JsonDocument doc;
+  auto cards = doc.to<JsonArray>();
+  for (auto &w : runtime_tiles::widgets) {
+    if (!w.tile || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || w.index >= runtime_tiles::model.count) continue;
+    const auto &t = runtime_tiles::model.tiles[w.index];
+    lv_area_t box; lv_obj_get_coords(w.tile, &box);
+    auto card = cards.add<JsonObject>();
+    card["i"] = w.index; card["slot"] = runtime_tiles::model.slots[w.index];
+    card["x"] = box.x1; card["y"] = box.y1; card["w"] = box.x2 - box.x1 + 1; card["h"] = box.y2 - box.y1 + 1;
+    card["r"] = lv_obj_get_style_radius(w.tile, LV_PART_MAIN);
+    card["plugin"] = t.is_plugin() && plugin_host::known(t);
+    const auto drawn = seen.find(runtime_tiles::model.slots[w.index]);
+    card["n"] = drawn == seen.end() ? 0 : drawn->second.count;
+  }
+  diagnostics.clear(); serializeJson(doc, diagnostics);
+  return diagnostics.c_str();
+}
 int preview_page() { return page; }
+// Pages kept beside the one on the glass, as a board with PSRAM keeps them (docs/KEPT_PAGES.md): the preview keeps none
+// by itself, a test asks for them to read what a kept page shows when it comes back (web/wasm/test_kept_colour.mjs).
+void preview_keep_pages(int pages) { runtime_tiles::kept_limit = pages; }
 // The layout as the firmware laid it out (app 0.4.32), for the geometry tests (tests/test_layout_audit.py): every
 // visible object with its box, its parent and, for a label, how its text fits. Nothing here draws; the tests read
 // whether anything leaves its card, overlaps what it may not, or runs past its line without dots or a marquee.

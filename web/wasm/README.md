@@ -51,26 +51,23 @@ The virtual device enables the firmware's Swipe between pages setting at startup
 
 CI rebuilds it: `.github/workflows/preview.yml` runs on every push that touches the firmware
 sources, and when `generate_renderer_manifest.py --check` finds the preview stale it builds it
-with the pinned Emscripten, runs the tests below, builds the editor and commits the result to
-the same branch. By hand:
+with the pinned Emscripten (`build.sh`), runs its tests (`test.sh`), and lands the result on the
+head the branch has by then, with the editor built on that head (`land.py`; docs/RELEASING.md,
+"Firmware preview", has the rules). By hand:
 
 Use Python 3.12–3.14 with the ESPHome version pinned in `screen_manager/Dockerfile`,
 PyYAML and Jinja2, plus Emscripten on PATH:
 
 ```sh
 PYTHON=/path/to/venv/bin/python sh web/wasm/build.sh
-node web/wasm/test_runtime.mjs
-node web/wasm/test_look.mjs
-node web/wasm/test_colour_card.mjs
-node web/wasm/test_profiles.mjs
-node web/wasm/test_images.mjs
-PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
-PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
-node web/wasm/test_weather_detail.mjs
+sh web/wasm/test.sh
 cd web
 npm test
 npm run build
 ```
+
+`test.sh` is the one list of the preview's tests: a new `test_*.mjs` gets its line there, and
+then runs in `tools/check.sh` and in CI's job alike.
 
 The builder downloads pinned LVGL 9.5.0 and ArduinoJson 7.4.3 into `PREVIEW_CACHE`
 (default: `../.cache`). `ARDUINO_JSON` can point to an existing ArduinoJson checkout.
@@ -79,6 +76,22 @@ includes the compiler version and LVGL configuration. The add-on ships the compi
 assets, so its users do not need a compiler or a host-side rendering container.
 Third-party notices ship in `web/public/firmware-preview-licenses.txt`; update
 them alongside dependency versions when rebuilding for a newer firmware release.
+
+## A plugin's module
+
+A plugin's own tile is drawn in the preview by the plugin's own code, built into a module the preview loads
+(docs/EMULATOR_ARCHITECTURE.md, "Plugins"). With the same Emscripten on PATH and PyYAML:
+
+```sh
+python web/wasm/build_plugin.py <plugin folder>            # writes <plugin folder>/.preview/<id>.wasm
+python web/wasm/build_plugin.py <plugin folder> --out <file>
+node web/wasm/test_plugin_module.mjs                       # the preview probe, built, loaded and read back
+```
+
+It prints what it built (`{id, version, api, abi, file, bytes}`), or one sentence and exit 2 when the plugin has
+nothing a browser can run. A module fits the preview whose number (`abi`) it carries, which is `plugin_abi` in
+`web/src/wasm/renderer.json`; a plugin in a test folder beside the ESPHome folder (`tessera-plugins/<id>/`) is shown
+by its own code in the editor as soon as its `.preview/<id>.wasm` is there.
 
 The source manifest and runtime smoke test reject stale WASM artifacts. Tests execute
 the actual binary, checking tile placement, full-width forecast, colour differences,
@@ -100,7 +113,8 @@ hardware Extras. Restart and calibration are not offered in the browser.
 
 Hardware, device preferences stored inside WASM, non-image ESPHome event requests
 (history/options) and custom actions with data templates are not emulated. Text and fractional-number Extras
-are read-only, and plugin-specific settings pages are not loaded into the preview. Runtime
+are read-only. A plugin's tiles, cards and settings rows are there for the plugins whose module the preview has; a
+plugin that needs hardware, or whose `plugin.yaml` makes ESPHome entities of its own, has none. Runtime
 detail screens such as the weather card are firmware-rendered; board/YAML-specific
 overlays such as the light colour picker are not yet connected. This is a UI runtime,
 not an ESP32 CPU or peripheral emulator. Browser speed is not a hardware benchmark.

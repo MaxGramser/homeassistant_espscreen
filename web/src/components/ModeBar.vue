@@ -6,6 +6,7 @@
 // room for its own. A humidifier (firmware 0.42.0+) has the same bar for its own modes: Home Assistant's icon and word
 // for each (tile_controls::humidifier_mode_icon and humidifier_mode_text), the one in its `mode` filled blue.
 import { computed } from "vue";
+import theme from "virtual:esp-screens-theme";
 import { te } from "../i18n";
 import { glyph } from "../model/topbar";
 import { barKeys, thermostatMode } from "../model/tall-controls";
@@ -52,6 +53,10 @@ const words = computed(() => {
   const text = fonts.sublabel ?? (large ? 16 : 11);
   return keys.value.every((k) => !k.mode || segment >= icon + px(large ? 26 : 14) + word(k.mode).length * 0.55 * text);
 });
+// The colours of draw_mode_bar and mode_segment, from the firmware's table: the track, a mode's ink (another key's is
+// muted) and the ink on the mode it is in.
+const hex = (role: string) => `#${theme.roles[role].light.toString(16).padStart(6, "0")}`;
+const TRACK = hex("TRACK"), SLATE = hex("SLATE"), MUTED = hex("MUTED"), ON_ACCENT = hex("ON_ACCENT");
 const icons = computed(() => inv.inventory.icons?.controls || {});
 const icon = (k: { icon: string; cp?: string }) => (k.cp ? glyph(k.cp) : icons.value[k.icon] ? glyph(icons.value[k.icon]) : "");
 // The board's sizes in the mockup's pixels: the bar, its inset, its icons and its words.
@@ -66,7 +71,7 @@ const style = computed(() => {
 <template>
   <span class="mode-bar" :class="place">
     <span v-if="keys.length" class="track" :style="style">
-      <span v-for="(k, i) in keys" :key="i" class="seg" :class="{ on: k.mode === current }"
+      <span v-for="(k, i) in keys" :key="i" class="mode-seg" :class="{ on: k.mode === current, other: !k.mode }"
         :style="k.mode === current ? { '--mode': thermostatModeColor(domain, k.mode) } : undefined">
         <span class="mdi">{{ icon(k) }}</span><span v-if="words && k.mode" class="word">{{ word(k.mode) }}</span>
       </span>
@@ -77,9 +82,10 @@ const style = computed(() => {
 <style scoped>
 .mode-bar { display: flex; width: 100%; min-width: 0; justify-content: center; }
 .mode-bar.row { justify-content: flex-end; }
-.track { display: flex; box-sizing: border-box; min-width: 0; height: 24px; padding: 2px; border-radius: 999px; background: #f1f1f1; }
-.seg { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: #46525e; overflow: hidden; }
-.seg .mdi { font-size: var(--icon, 14px); line-height: 1; }
-.seg .word { font-size: var(--word, 10px); white-space: nowrap; }
-.seg.on { background: var(--mode); color: #fff; }
+.track { display: flex; box-sizing: border-box; min-width: 0; height: 24px; padding: 2px; border-radius: 999px; background: v-bind(TRACK); }
+.mode-seg { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px; border-radius: 999px; color: v-bind(SLATE); overflow: hidden; }
+.mode-seg .mdi { font-size: var(--icon, 14px); line-height: 1; }
+.mode-seg .word { font-size: var(--word, 10px); white-space: nowrap; }
+.mode-seg.other { color: v-bind(MUTED); }
+.mode-seg.on { background: var(--mode); color: v-bind(ON_ACCENT); }
 </style>

@@ -124,7 +124,11 @@ Every board builds the same fifteen fonts, by id (firmware 0.17.0+): four text s
 `label`, `sublabel_big`, `headline`, `watch_value`), four digit steps (`clock_digits`, `setpoint_digits`,
 `display_digits`, `bedside_digits`), five icon sizes and the brand wordmark, all in `packages/core.yaml` with `bpp: 4`.
 The icon fonts take their bits from the look (`FONT_ICON_BPP`): 4 in the standard look, 2 in the compact one, which
-halves their flash on the boards with 4 MB.
+halves their flash on the boards with 4 MB. The tile titles (`label`) take their weight from the look too
+(`TILE_NAME_FONT_FILE`): bold in the standard look, medium in the compact one, where bold at 11 px ran its letters
+together on a small, cheap glass. Medium keeps the width and the same glyphs, so it costs no flash; a pixel of letter
+spacing was tried and cut names short. `tools/font_metrics.py` `font_file` reads such a file with the board's values,
+and `boards.json` carries the weight as `label_weight`, which the editor's mockup draws its names in (`labelWeight`).
 Their pixel sizes are the look's (`FONT_*_SIZE` in `packages/looks/standard.yaml` and `compact.yaml`, each a design
 size times `LOOK_SCALE`, the board's density over the look's own), and the two large digit steps are worked out from
 the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest step that fits (for digits
@@ -195,7 +199,15 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   (2), the rain as flat bars hung from a line with the amount under them (3), and the chance of rain (4). A card takes
   the highest tier that fits at the smallest face, then the largest face that keeps it, and every day the forecast
   has comes before either. A wide, low card puts the weather now in a column beside the week. Where the week fits in
-  no tier, the tile keeps the older forms of `forecast_tile.h`.
+  no tier, the tile keeps the older forms of `forecast_tile.h`. The columns are the forecast's own days: a list that
+  starts tomorrow (Buienradar in the evening) counts the line's hours from tomorrow's midnight
+  (`first_day_from_today`, GitHub #280), so today's hours never stand under tomorrow's column.
+- A weather tile set to the next hours (display `hourly`, for an entity with Home Assistant's hourly forecast) keeps
+  the same head and draws the card's Hourly view under it where `weather_chart::hours_fit` holds: the curve, the
+  rain per hour and the time axis. Where it does not (a card of one row), the hours become columns
+  (`weather_week::hour_columns`): from the running hour, each with its time, its icon and its temperature alone, in
+  the week's form of one line only (`plan(..., one_line)`). A card too low even for that (the CYD's double card) takes
+  the forms of `forecast_tile.h` with the same columns and no pill. The card a tap opens starts on Hourly.
 - A thermostat tile of more than one row (`climate_tile.h`) has two groups: the number between - and +, and a
   bar with one segment per mode. Off is not on the bar; the tile's circle switches the thermostat on and off.
   With room the number stands large with the bar under it; otherwise the stepper and the bar share one row, or
@@ -355,6 +367,8 @@ event and the layout sensor count rows, columns and pages the same way. The mock
 proportions: the top bar down to where the tile area starts (`SCROLL_Y`), the grid's margins and gaps, and the
 page bar (`PAGE_BAR_H`) once the layout has more than one page, all from `boards.json`, so a card is as high
 against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
+The page is never wider than the editor's room for it on a narrow page (`cap` in `stores/canvas.ts`, the full editor on
+a phone): a wider page made an iPhone's Home Assistant app draw the whole editor smaller.
 
 Inside a card the mockup draws in the glass's own pixels too, scaled by the page's zoom: the board's corner
 (`TILE_RADIUS`), padding, icon circle and fonts from `boards.json` (`fonts.icon` is the card's icon face,

@@ -40,8 +40,10 @@ inline void saver_clock_draw() {
   if (digits) digit_box(digits, top, digits_h);
   // Black with white digits in both looks (firmware 0.31.0+): a screensaver gives as little light as it can. Before,
   // the clock stood on the page's own colour, a lit white glass in the light look.
-  lv_obj_set_style_bg_color(saver_root, theme::color(theme::CAMERA_PAGE), 0);
-  const uint32_t ink = media_ink(), soft = theme::mix(ink, theme::hex(theme::CAMERA_PAGE), 150);
+  // The clock stands on the stage (theme::stage_ground): where there is no light to save, that is the page itself.
+  lv_obj_set_style_bg_color(saver_root, lv_color_hex(theme::stage_ground(theme::hex(theme::CAMERA_PAGE))), 0);
+  const uint32_t ink = theme::stage_ink();
+  const uint32_t soft = theme::soft(ink, theme::hex(theme::CAMERA_PAGE), 150);
   const auto l = saver_view::clock(width, height, digits_h, date.empty() ? 0 : date_h, date.empty() ? 0 : gap);
   const int time_w = digits ? text_width(time, digits) : width;
   const auto row = saver_view::clock_row(width, time_w, ampm_w, space);
@@ -104,10 +106,28 @@ inline void saver_words() {
       if (saver_view::fits(shape, taller, width, height)) { w = taller; saver_view::before_keys(w, keys, margin); }
     }
   }
-  for (lv_obj_t **words : {&saver_first, &saver_second}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
+  for (lv_obj_t **words : {&saver_first, &saver_second, &saver_band}) if (*words) { lv_obj_delete(*words); *words = nullptr; }
   saver_words_due = false;
-  saver_first = saver_text(camera_root, font, media_ink(), w.first, first, LV_TEXT_ALIGN_LEFT);
-  if (second_h) saver_second = saver_text(camera_root, second_font, theme::mix(media_ink(), 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
+  // Where the glass shades nothing a picture is no ground for words (docs/PAPER.md): the shade the app paints into
+  // its foot is a raster there, and white words and a key's sign fell away into it. The words and the keys stand on a
+  // band of black across the foot of the glass, from a little above the highest of them, and the picture ends where
+  // the band begins.
+  if (!theme::shades()) {
+    int top = w.first.y;
+    for (const auto &r : {keys.plus, keys.minus, keys.play}) if (r.w > 0) top = std::min(top, r.y);
+    top = std::max(0, top - margin / 2);
+    saver_band = lv_obj_create(camera_root);
+    lv_obj_remove_style_all(saver_band);
+    lv_obj_remove_flag(saver_band, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+    lv_obj_set_pos(saver_band, 0, top);
+    lv_obj_set_size(saver_band, width, height - top);
+    lv_obj_set_style_bg_color(saver_band, theme::color(theme::CAMERA_PAGE), 0);
+    lv_obj_set_style_bg_opa(saver_band, LV_OPA_COVER, 0);
+  }
+  // The words stand on the picture's own dark ground on every glass: its ink, never the media card's.
+  const uint32_t words = theme::hex(theme::CAMERA_INK);
+  saver_first = saver_text(camera_root, font, words, w.first, first, LV_TEXT_ALIGN_LEFT);
+  if (second_h) saver_second = saver_text(camera_root, second_font, theme::soft(words, 0, 200), w.second, second, LV_TEXT_ALIGN_LEFT);
   saver_keys_draw();
 }
 // The keys: white rounds over the darkened cover, the play key whole and the two volume keys a haze with a white sign,
@@ -230,7 +250,7 @@ inline void saver_keys_draw() {
   for (lv_obj_t *&key : saver_keys) if (key) { lv_obj_delete(key); key = nullptr; }
   if (!camera_root || !saver_camera || saver_bare || saver_now.kind != "media") return;
   const auto l = saver_key_layout();
-  const uint32_t ink = media_ink();
+  const uint32_t ink = theme::hex(theme::CAMERA_INK);  // on the screensaver's own dark ground
   const lv_font_t *small = mini_icon_font ? mini_icon_font : detail_font;
   auto key = [&](int n, const media_card::Rect &r, const char *glyph, const lv_font_t *font, bool primary) {
     if (r.w <= 0) return;
@@ -242,10 +262,9 @@ inline void saver_keys_draw() {
     lv_obj_set_pos(o, r.x, r.y);
     lv_obj_set_size(o, r.w, r.h);
     lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(o, theme::rgb(ink), 0);
-    lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 56, 0);
-    lv_obj_set_style_bg_color(o, theme::rgb(primary ? theme::mix(ink, 0, 200) : ink), LV_STATE_PRESSED);
-    lv_obj_set_style_bg_opa(o, primary ? LV_OPA_COVER : 110, LV_STATE_PRESSED);
+    // The play key whole in the picture's ink, a volume key a haze of it (theme::haze).
+    theme::wear(o, primary ? theme::Dress{ink, ink} : theme::haze(ink, 56));
+    theme::wear(o, primary ? theme::Dress{theme::mix(ink, 0, 200), ink} : theme::haze(ink, 110), LV_STATE_PRESSED);
     auto *icon = lv_label_create(o);
     lv_obj_remove_flag(icon, LV_OBJ_FLAG_CLICKABLE);
     if (font) lv_obj_set_style_text_font(icon, font, 0);
@@ -378,7 +397,7 @@ inline void saver_follow_pending() {
 inline void saver_sync(bool lit) {
   saver_lit = lit;
   const bool shown = saver_root || saver_camera;
-  if (saver_leaving && !lit) return;  // it goes in the dark, in a moment
+  if (lit) saver_woke = false;  // standby again: no waking touch is still to be read
   if (!lit || !saver_wanted()) { if (shown) saver_hide(); return; }
   // The camera and the cover stand as they are while nothing changed; the clock is drawn again, a minute later. A
   // plugin's saver stays and draws on its own clock (on_tick).
@@ -400,20 +419,16 @@ inline void saver_sync(bool lit) {
   saver_hide();
   saver_show();
 }
-// wake_display: the screensaver goes, and the touch that woke the screen does nothing else.
-// `at_once` for a wake the main loop does not go on after (an update's start): no timer would end the dark.
-inline void saver_wake(bool at_once = false) {
-  // A second wake of the same touch (the finger's click after the board felt the tap) finds it leaving already.
-  if (saver_leaving && !at_once) return;
+// Whether a screensaver is on the glass now: a finger that lands on one wakes the screen at once (dim_wake_overlay).
+inline bool saver_on() { return saver_root || saver_camera; }
+// wake_display: the screensaver goes, and the touch that woke the screen does nothing else. It goes at once and the
+// page under it is drawn in sight: a finger gets its answer the moment it lands, on every board. Hiding that drawing
+// behind a dark backlight kept the glass black for as long as the page took to draw, which read as a tap not heard.
+// `saver_woke` stays until wake_tap has read it, since the finger that woke the screen on its press clicks after.
+inline void saver_wake() {
   saver_lit = false;
-  saver_woke = saver_root || saver_camera;
-  // The page under it would be drawn strip by strip in sight: on a screen with motion it comes behind the backlight.
-  if (saver_woke && !at_once) {
-    saver_leaving = true;
-    screen_motion::cut([]() { saver_leaving = false; saver_hide(); });
-  } else {
-    saver_hide();
-  }
+  if (saver_on()) saver_woke = true;
+  saver_hide();
 }
 // A new layout on its way (cancel_layout_input): every picture goes; saver_tick draws the screensaver again.
 inline void saver_forget() { saver_hide(); }

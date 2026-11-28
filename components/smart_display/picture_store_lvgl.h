@@ -27,7 +27,9 @@ inline bool pictures_kept() {
     pictures.budget = picture_store::budget_for(psram);
 #elif defined(KEPT_PAGES_HOST)
     // tools/render with KEPT_PAGES_HOST=1 draws as a board with PSRAM, its pictures too: the store of a 4-inch Guition.
-    // Without it the host keeps one download at a time, and a page of several pictured tiles shows only the last.
+    // Without it the host keeps one download at a time, and a page of several pictured tiles shows only the last: each
+    // loads once and then leaves the slot to the next (picture_loader.h, in_slot). No board is like that: every board
+    // that draws pictures has PSRAM and so a store.
     pictures.budget = 1200u << 10;
 #endif
     pictures_budget_whole = pictures.budget;

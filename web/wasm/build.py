@@ -1,66 +1,30 @@
 """Build the browser platform adapter with pinned LVGL/ArduinoJson dependencies."""
 import hashlib
-import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
 import sys
-import tarfile
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-ROOT = Path(__file__).resolve().parents[2]
-CACHE = Path(os.environ.get('PREVIEW_CACHE', ROOT / '../.cache')).resolve()
-CACHE.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault('EM_CACHE', str(CACHE / 'emscripten'))
-os.environ.setdefault('EMSDK_PYTHON', sys.executable)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import toolchain
+from toolchain import CACHE, ROOT, run
 
-
-def source(name, version, url):
-    folder = CACHE / f'{name}-{version}'
-    if not folder.is_dir():
-        archive = CACHE / f'{name}-{version}.tar.gz'
-        urllib.request.urlretrieve(url, archive)
-        with tarfile.open(archive) as package:
-            package.extractall(CACHE, filter='data')
-        if not folder.is_dir():
-            raise RuntimeError(f'Archive did not contain {folder.name}')
-    return folder
-
-
-def run(args):
-    subprocess.run([str(arg) for arg in args], check=True)
-
-
+toolchain.prepare()
 if not shutil.which('em++'):
     raise SystemExit('Emscripten is required; activate emsdk before building the preview.')
-lvgl = source('lvgl', '9.5.0', 'https://github.com/lvgl/lvgl/archive/refs/tags/v9.5.0.tar.gz')
-arduino = Path(os.environ['ARDUINO_JSON']) if 'ARDUINO_JSON' in os.environ else source(
-    'ArduinoJson', '7.4.3', 'https://github.com/bblanchon/ArduinoJson/archive/refs/tags/v7.4.3.tar.gz')
+toolchain.check_compiler()
+lvgl = toolchain.lvgl()
+toolchain.arduino_json()
 run([sys.executable, ROOT / 'web/wasm/generate_host_ui.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_image_decoder.py'])
 run([sys.executable, ROOT / 'web/wasm/generate_renderer_manifest.py', ROOT])
-# The most pages, tiles and top bar items any board takes (boards.json, as the add-on's core.PREVIEW_CEILINGS): the
-# preview shows a screen of any board, so it holds what the largest one holds.
-import json
-shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text()).values()
-ceilings = {name: max([shape.get(key, low) for shape in shapes] + [low]) for name, key, low in
-            (('PAGES', 'max_pages', 8), ('TILES', 'max_tiles', 64), ('BAR_ITEMS', 'max_bar_items', 6))}
-# The modules the preview is built with (components/smart_display/modules.py, the table's `preview` column): each one's
-# define, and its own source file where it has one.
-import importlib.util
-_spec = importlib.util.spec_from_file_location('smart_display_modules', ROOT / 'components/smart_display/modules.py')
-modules = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(modules)
-preview_modules = modules.preview_modules()
-flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES',
-         *[f'-D{modules.MODULES[name]["define"]}' for name in preview_modules], '-DGRID_COLS=8', '-DGRID_ROWS=8',
-         '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
-for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
-               lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
-    flags.append(f'-I{folder}')
+# The flags, the ceilings and the modules the preview is built with: toolchain.py, shared with a plugin's module.
+flags = toolchain.flags()
+preview_modules = toolchain.modules().preview_modules()
 key = hashlib.sha256((ROOT / 'web/wasm/lv_conf.h').read_bytes() +
-                     subprocess.check_output(['emcc', '--version']) + b'lvgl9.5.0-O2').hexdigest()[:16]
+                     subprocess.check_output(['emcc', '--version']) + b'lvgl9.5.0-O2-visible').hexdigest()[:16]
 objects = CACHE / f'wasm-{key}'
 objects.mkdir(exist_ok=True)
 
@@ -80,6 +44,7 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('bmp_decoder', ROOT / 'web/wasm/generated/image/bmp_decoder.cpp'),
                           ('image_decoder', ROOT / 'web/wasm/generated/image/image_decoder.cpp'),
                           ('receiver', ROOT / 'components/smart_display/page_receiver.cpp'),
+                          ('picture_loader', ROOT / 'components/smart_display/picture_loader.cpp'),
                           ('library', ROOT / 'components/smart_display/media_library.cpp'),
                           ('panel', ROOT / 'components/smart_display/tile_panel.cpp'),
                           ('energy', ROOT / 'components/smart_display/energy_view.cpp'),
@@ -94,10 +59,15 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
 exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds', 'dark', 'language']
-exports += ['settings', 'extras', 'settings_controls', 'next_setting']
+exports += ['settings', 'extras', 'settings_controls', 'next_setting', 'keep_pages']
+exports += ['plugin', 'plugin_abi', 'show', 'cards']
 out = ROOT / 'web/src/wasm'
 out.mkdir(exist_ok=True)
+# MAIN_MODULE=1: a main module that keeps every symbol, so a plugin's module finds LVGL, the plugin API and the C++
+# library in it, whatever it calls. The browser writes a plugin's module into the preview's own file system (FS) and
+# loads it from there (loadDynamicLibrary): the editor fetched the bytes itself, once for every preview on the page.
 run(['em++', '-O2', *compiled, '-sWASM=1', '-sASSERTIONS=1', '-sSTACK_SIZE=1048576', '-sALLOW_MEMORY_GROWTH=1',
+     '-sMAIN_MODULE=1',
      '-sEXPORTED_FUNCTIONS=' + json.dumps(['_preview_' + name for name in exports]),
-     '-sEXPORTED_RUNTIME_METHODS=["ccall","HEAPU8"]', '-sINCOMING_MODULE_JS_API=["wasmBinary","locateFile"]',
+     '-sEXPORTED_RUNTIME_METHODS=["ccall","HEAPU8","loadDynamicLibrary","FS"]', '-sINCOMING_MODULE_JS_API=["wasmBinary","locateFile"]',
      '-sENVIRONMENT=web,node', '-sMODULARIZE=1', '-sEXPORT_ES6=1', '-o', out / 'firmware_preview.js'])

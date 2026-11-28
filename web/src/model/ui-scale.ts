@@ -3,12 +3,17 @@
 // draws them at the size the glass does instead of sizes of its own.
 export type Shape = { width?: number; height?: number; dpi?: number; look?: string;
   fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; watch_icon?: number; setpoint?: number; icon?: number };
-  spacing?: Spacing; section?: { band: number; title_top: number } };
+  spacing?: Spacing; section?: { band: number; title_top: number }; label_weight?: number };
 // The glass's grid (boards.json "spacing"): its margin, the gaps between columns and between rows, a card's padding, where
 // the tile area starts under the top bar (SCROLL_Y), the page bar's height (PAGE_BAR_H), a card's icon circle and its
 // corner (TILE_RADIUS).
 type Spacing = { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
 
+/** The weight of a tile's name (boards.json label_weight, the look's TILE_NAME_FONT_FILE): bold, medium on the compact
+ * look; for a shape stored without it, the look's. */
+export function labelWeight(shape: Shape) {
+  return shape.label_weight ?? (shape.look === "compact" ? 500 : 700);
+}
 /** ui::configure and ui::px: a size of the reference look (170 dpi standard, 143 dpi compact) in this board's pixels. */
 export function uiScale(shape: Shape) {
   const compact = shape.look === "compact", reference = compact ? 143 : 170;

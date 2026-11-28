@@ -11,7 +11,7 @@
 // the flash of an ESP32-P4 revision 3.1 or 3.2 (ECO6/ECO7), on which, by its changelog, 0.6 hung at the first flash
 // command. With 0.6 a JC8012P4A1 V3 behind a CH340 gave no answer at chip detection (GitHub #51).
 import { ESPLoader, Transport } from "esptool-js";
-import { writtenPercent } from "./logic";
+import { revisionOf, writtenPercent } from "./logic";
 
 export type Loader = ESPLoader;
 
@@ -29,6 +29,26 @@ export async function connect(loader: ESPLoader): Promise<string> {
   await loader.main();
   await loader.flashId();
   return loader.chip.CHIP_NAME;
+}
+
+type RevisionRom = {
+  getMajorChipVersion?: (loader: ESPLoader) => Promise<number>;
+  getMinorChipVersion?: (loader: ESPLoader) => Promise<number>;
+};
+
+/**
+ * The chip's silicon revision as ESP-IDF numbers it, major x 100 + minor (302 for v3.2), or null when esptool-js cannot
+ * say both halves for this chip (the classic ESP32, the C2 and C6 give the major alone): then nothing is written and the
+ * board's own default builds (docs/CHIP_REVISIONS.md). The add-on builds the screen for it.
+ */
+export async function readRevision(loader: ESPLoader): Promise<number | null> {
+  const rom = loader.chip as unknown as RevisionRom;
+  if (rom.getMajorChipVersion && rom.getMinorChipVersion) {
+    const major = await rom.getMajorChipVersion(loader);
+    const minor = await rom.getMinorChipVersion(loader);
+    return Number.isInteger(major) && Number.isInteger(minor) ? major * 100 + minor : null;
+  }
+  return revisionOf(await loader.chip.getChipDescription(loader));
 }
 
 /** The chip's MAC address, lower case with colons, as Home Assistant keys its ESPHome device on it (app 0.4.96). */

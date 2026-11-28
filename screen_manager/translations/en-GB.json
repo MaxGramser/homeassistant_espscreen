@@ -300,7 +300,6 @@
     }
   },
   "editor": {
-    "installer": {},
     "tile": {
       "controls": {
         "tall_hint": "",

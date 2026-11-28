@@ -403,9 +403,11 @@ void render(Widgets &w, const Tile &t, int width, int height) {
     view.dots[i].color = lv_color_to_u32(paint(view.scene.flows[i].paint)) & 0xFFFFFF;
     view.dots[i].cx = -1e6f;  // repainted below at its place now
   }
-  advance(w, esphome::millis());
+  // The dots travel, so a still glass has none: its lines and arrows say which way the power goes.
+  const bool moves = !screen_motion::still();
+  if (moves) advance(w, esphome::millis());
   lv_obj_invalidate(canvas);
-  if (!view.scene.flows.empty()) {
+  if (moves && !view.scene.flows.empty()) {
     if (!timer) timer = lv_timer_create(tick, FRAME_MS, nullptr);
     else lv_timer_resume(timer);
   }

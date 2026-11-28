@@ -4,17 +4,111 @@ App 0.3.1 stores each page as a complete unit: its tiles, top bar, navigation ch
 
 ## Editing
 
-The toolbar above the pages switches between two views, **Row** and **Map**, and holds Undo, Redo, **Preview**, **Add page** and a **?** with a short how-to.
+The toolbar above the pages holds **Add**, Undo, Redo and **Preview**, and on the right the two views, **Row** and **Map**, and a **?** with a short how-to.
+
+### The head and the toolbar
+
+A screen's page says what matters in one look, in two rows with one job each (`ScreenView.vue`, `LayoutView.vue`):
+
+- **The head** says where you are and whether it is well: the screen's name, the tabs **Layout**, **Screen settings**
+  and **Plugins**, one pill for the screen's state, and **Save & send**, the only filled key on the page, which is there
+  only while something is unsaved.
+- **The pill** says one thing, the worst that is going on (`headStatus` in `web/src/model/screen-status.ts`): the screen
+  away, restarting with its update, a layout larger than its memory for tiles, one that takes 80 % of it or more,
+  changes that are not sent, a layout on its way, one that just arrived. While none of that is so it is grey and says
+  the screen is online and all is saved. A click opens the rest (`ScreenStatus.vue`): the connection, the count of
+  pages and tiles, whether the changes are sent, and the memory the layout takes with the lines that explain it
+  (docs/TILE_MEMORY.md). A new fact about a screen goes behind the pill, and becomes what the pill says only when
+  someone has to act on it.
+- **The toolbar** is what you can do to the pages. **Add** is the one key with colour and holds everything that is
+  made: a tile (it opens the library with the cursor in its search), a section on a screen that draws them, a page, and
+  **Auto layout**. Undo, Redo and **Preview** stand beside it without a frame (`.btn.ghost`), the view and the **?** on
+  the right. A new thing to make goes under **Add**, a new view beside Row and Map; what is rare goes in the head's
+  **···** menu, never as one more key in the row.
+
+A phone keeps its own head and dock (app 0.4.40): the line under the screen's name says its state, and the dock holds
+Add tile and Save & send.
+
+### The panes
+
+A screen's page is three panes on the app's ground, the way a window of macOS has its sidebar, its content and its
+inspector as planes of their own (`ScreenView.vue`, `.screen-shell` in `web/src/styles/app.css`):
+
+- **The page**: the head and what the tab shows, a rounded card.
+- **The library**: a card of its own under the page, with the ground between them. `LayoutView.vue` owns it and moves it
+  into the screen's dock (`#library-dock`, a deferred Teleport), so it is no part of the page's card; mounted by
+  itself, as in a test, it stays where it is written.
+- **The inspector**: a card of its own beside both, from the top of the window to its bottom, there only while
+  something is selected.
+
+The card the app gives every other page (`.main`) steps back on a screen's page, so the three stand directly on the
+ground beside the sidebar. A margin keeps them apart, never a gap of the grid: a pane that is not there leaves no room
+behind. A narrow page keeps the three flush with the lines they had, and on a phone the library and the inspector are
+sheets, so there the wrappers are no boxes at all (`display: contents`). A new pane of a screen's page goes in the
+shell's grid as a card of its own, never inside the page's card.
 
 **Row** is the default: the pages side by side, as you swipe through them on the screen. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Each page has a header with its number, its title, a **Home** label on the Home page and one **···** menu: **Page settings**, **Edit top bar**, **Set as Home**, **Duplicate page**, **New empty page with this top bar** and **Remove page**. Page settings hold the page title (the screen title, which every page without its own title shows, is one click under it), **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page**, the page order and the page's top bar. Every page can have different top-bar items. Copying a bar creates independent items on the chosen pages.
 
 The library lists everything a tile can show: the rows come as the list is scrolled (`libraryWindow` in `web/src/model/library.ts`), and a room's number is the whole room's. A search (`web/src/model/search.ts`) takes each word on its own, in any order, in the name, the entity id, the device, the room or what the entity is: its kind in the editor's language and its device class in Home Assistant's words (`kind_words` in `core.py`). Case, accents and whether words are joined by a space, a dash or an underscore make no difference, and a match in the name stands first.
 
+### The shell and the sidebar
+
+On a wide page the editor is one window in two parts. The sidebar lies on the app's own ground (`--shell` in
+`web/src/styles/tokens.css`) without a line of its own, and the page is a rounded card in that ground (`.main`, under
+"The page as a card" in `web/src/styles/app.css`). The card scrolls by itself, so a part that sticks to the top sticks
+to the top of the card, and a part that fills the height takes `--main-h` instead of the height of the window. Below
+961 pixels and on a phone the page runs from edge to edge as before: the sidebar is a row above it, or a sheet from the
+left.
+
+The sidebar (`web/src/components/Sidebar.vue`) reads from top to bottom: the logo with search beside it, then where the
+app goes (**Overview**, the tiles that ask for a look while there are any, **Plugins**, **Events**), then the screens,
+and at the foot the manual and the settings. A screen's row starts with its picture (`ScreenMini.vue`,
+`web/src/model/miniature.ts`): its glass in its own proportions with the tiles of its home page where they stand, and a
+dark glass while the screen is away. The picture draws places only, never states or names, so nothing in it goes stale.
+Folded to its icons, the sidebar keeps the same order and each screen is its picture. `tests/miniature.spec.ts` proves
+the picture, and the Sidebar tests in `tests/components.spec.ts` the rows.
+
+### The library
+
+The library shows what a tile can show on a shelf or in a list, switched at its top right and remembered in the browser:
+
+- **The shelf** (the default): every entity as one tile, the mockup's own card (`TileCard`), in a strip of the screen's
+  glass for each room. The strip is a wide page of the screen: its tiles stand in the screen's own cells, each on the
+  cells it takes on a page, with the glass's own gaps, at one scale, so a low drawer shows many and they compare. Three
+  lines of tiles fill the drawer's height; a taller drawer shows them larger, up to their size on the page, and then
+  more lines.
+- **Which tile** is the view's choice (`shelfSample` in `web/src/editor/library-tiles.ts`). **Best fit** shows each
+  entity at the size that suits its type best: the size its type names in the catalogue (`shelf`, docs/CATALOGUE.md
+  "The library's tiles": a light as a row of two with its slider, a player as two rows with its cover), else the size
+  the tile starts at. **1 x 1**, **2 x 1** and **2 x 2** (the tall size where the grid has no 2 x 2) show every entity at
+  that size, and one that does not take it at the largest it takes under it, so nothing leaves the shelf for the size
+  it is shown at. A click puts that very tile on the marked cell or the first free one, a drag where it is let go, and
+  Enter adds the result the arrows stand on as the shelf shows it.
+- **All of an entity's sizes** open in a card over its tile once the pointer has rested on it a moment, and on the
+  result the arrow keys stand on (`LibrarySizes.vue`): its name in full, where it is, and one cell, a row of two and two
+  rows of two side by side, each as rich as the screen draws it there (the face its type is shown in, catalogue
+  `showcase`, and of the control sets that fit the one with the most parts), with its cells and its controls under it. A
+  click or a drag takes one. The card follows the pointer from tile to tile while it is open, stays while the pointer is
+  on it, and goes when the pointer leaves both, the list scrolls, a tile is placed or the search changes. A finger opens
+  no card: a touch places the tile, and the view's sizes are how a touch screen gets another size.
+- A light shown with presets gets a first set that suits it (`starterPresets` in `web/src/model/light-presets.ts`). Only
+  a tile the add-on saves is shown. The strip takes the screen's own colours, the firmware's roles
+  (`web/src/model/glass-colours.ts`), as the page mockup does. A plugin's tile stands on the shelf as the plugin's own
+  code draws it (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards"); a plugin without a module for the preview
+  keeps its placeholder face, as on a page. `LibraryShelf.vue` draws one entity's tile, `LibrarySample.vue` one tile.
+- **List**: the entities as rows, as the library always was. A phone keeps the list.
+
+A device's extras stand apart, the way Home Assistant's device page puts them apart from the controls: a setting
+(`entity_category: config`, such as a lamp's power-on behaviour), a reading for diagnosis (`diagnostic`) and an entity
+hidden in Home Assistant. The add-on marks them (`category`, `hidden` in the inventory, `discover` in `core.py`), and the
+library lists them after the rest of their room, folded under "N extras", in both views. A search finds them, after an
+equally good match that is not an extra.
+
 **Map** adds a spatial page map and links from navigation tiles to their destinations. Workspace positions belong to the editor, so arranging pages vertically does not change their order on the device. Reordering pages changes the device order while preserving destinations. Returning to Row removes the map connections and keeps the same pages and tiles.
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
-**Auto layout** in the toolbar makes a whole layout from the home's areas and devices, and a screen without tiles
+**Auto layout**, under **Add** in the toolbar, makes a whole layout from the home's areas and devices, and a screen without tiles
 offers it at once; it lands as one edit to undo or change (docs/AUTO_LAYOUT.md).
 
 Explicitly adding a page opens a compact setup dialog for its title, Home control,
@@ -41,6 +135,16 @@ already there, and anything past the screen's tile limit or page limit are left 
 went on. Paste, cut and removing several tiles are each one undo step. The pasted tiles stay chosen, so they can be
 moved or pasted again at once.
 
+Under the list stand the settings the chosen tiles share (`web/src/editor/shared-settings.ts`,
+`web/src/components/inspector/SharedSettings.vue`), under the same headings as in one tile's inspector. A setting shows
+when every chosen tile offers it with the same choices: three blinds of the same kind share what a blind can be set to
+(its controls, what a tap does, the small slider), and a blind beside a lamp only what any tile has (the second line,
+the colour). A row shows the value the tiles all have, or the word Mixed where they differ, and a pick is written to
+every one of them as one step of undo. What belongs to one tile alone stays in its own inspector: its name, its entity,
+the page a link goes to, the action to perform, and what is of one entity (a favourite, a map, a calendar, a to-do
+list, a meter, a template, a light's presets). The conditions of a row are those of the tile inspector
+(`TileInspector.vue`): a row added there is added in `offersOf` too, or it is one tile's alone.
+
 Contextual help uses Floating Vue through `HelpTip.vue`: a small help icon beside a label, only where the
 words alone don't say it. Help icons work with keyboard focus, pointer hover and a tap; Escape or leaving the
 help closes it. Errors, compatibility notices and unsaved-change status remain visible.
@@ -49,6 +153,8 @@ Menus, lists to pick from and switches use Reka UI (app 0.3.19), wrapped in `web
 panel uses the same few building blocks. Build a new control from Reka's rich parts, never from a hand-made list or
 popup: `UiMenu` for a few fixed actions, `UiSelect` for one value from a short fixed list, and `UiPicker` (a Reka
 Popover with a Combobox) for anything picked from the user's own Home Assistant, such as entities, players or areas.
+`UiSegmented` (Reka's ToggleGroup, one at a time) switches between a few views or modes that all stay in sight, such
+as the library's Tiles and List; the older hand-made `.seg` rows move to it as they are touched.
 Such a list can run to dozens of items, so it needs a search field and a list that scrolls inside the window. When
 Reka has a part for what you need (Combobox, Popover, Tooltip, Dialog, Tabs, Slider, ...), wrap it in
 `web/src/components/ui/` first and use that wrapper. The inspector groups a tile's settings in five cards (Text, Look,
@@ -60,8 +166,9 @@ editor's own controls are Material Design Icons, listed in `web/src/model/ui-ico
 What is open is in the page's address, and nowhere else: the editor has one router (vue-router with a hash history,
 `web/src/router.ts`, since the page lives in Home Assistant's ingress iframe where only the hash is the page's own).
 `#/` is the overview, `#/screens/<inbox id>` a screen, `#/settings`, `#/new-screen`, `#/firmware`, `#/alerts` and
-`#/plugins` the pages of the app, `#/override/<profile>` a screen's Override YAML, and `?chat=layoutbot` on a screen's
-address its open Layoutbot chat (docs/LAYOUTBOT.md, "Where the chat stands"). A reload opens the same again
+`#/plugins` the pages of the app, `#/settings/<part>` one part of Settings, `#/override/<profile>` a screen's Override
+YAML, `?settings=<part>` on a screen's address one part of its Settings tab (see "Settings" below), and
+`?chat=layoutbot` on a screen's address its open Layoutbot chat (docs/LAYOUTBOT.md, "Where the chat stands"). A reload opens the same again
 once the inventory has arrived (the session follows the address, `followAddress`), the browser's Back and Forward
 walk through what was open, a link to a screen can be kept, and the addresses from before the router (`#settings`)
 still work. Home Assistant's sidebar shows the editor in a frame whose address nobody sees, and makes it anew on a
@@ -72,6 +179,46 @@ at the overview goes back to what that hash or the tab says (`restoreKeptRoute`)
 or writes `location.hash`: a view is opened with `ui.go()` (the route names the pages know, `""` being the open screen
 or the overview), a screen with `session.select()`, an override with `ui.openOverride()`; what is open is read from
 `ui.route`, `scr.selected` and `ui.overrideProfile`.
+
+### Pages of parts
+
+A page that holds many things is a page of parts, the way Home Assistant's own Settings are: the app's Settings, a
+screen's Settings tab and Events. Each opens on a list of its parts, one row per part with its icon, its name and one
+line of what is set now, and a row opens its part as a page of its own, with the way back to the list above its title.
+The look is Home Assistant's too: one column of 600 px in the middle of a wide page, the rows in a few separate cards,
+each part's icon white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`: every part's icon, colour and
+card in one table; the `--tone-*` tokens in
+`styles/tokens.css`). A part is in the address, so a link, a reload and Back reach it.
+
+It is one design system, in `web/src/model/parts.ts` and `web/src/components/parts/`:
+
+| Piece | What it is |
+|---|---|
+| `PartRow`, `cardsOf` (`model/parts.ts`) | a part as its list shows it (icon, colour, card, title, summary, badge), and the rows in their cards |
+| `PartsPage.vue` | a whole page of parts: its title and intro over the list, or an open part with the way back; the key that leaves |
+| `PartList.vue` | the cards of rows, with a slot for one control of a row's own |
+| `PartLink.vue` | one row |
+| `PartHead.vue` | the head of an open part: the way back and its title |
+
+| Page | Parts | Address |
+|---|---|---|
+| Settings (`AppSettingsView.vue`, a `PartsPage`) | Updates, Builds, Language & region, Plugins, Home Assistant | `#/settings/<part>` |
+| A screen's Settings tab (`SettingsTab.vue`, `PartList` and `PartHead` inside the screen's tabs) | Display, Standby & night, Navigation, This board, Help | `?settings=<part>` on the screen's address |
+| Events (`EventsView.vue`, a `PartsPage`) | Alerts and Doorbell (fired by an automation), Alarm and Calls (followed by the screens) | `#/events/<part>` |
+
+A part that has nothing on this app or this screen (Language on an add-on without languages, This board on a preview
+screen) has no row, and its address opens the list. The rows of the screen's own settings are `SettingRows.vue`, which a
+part shows by key, so the editor groups them by what a person looks for while the screen's own settings page keeps the
+groups of `settings_screen.h`. A row may carry one control for what people change most there, so that needs no page:
+dark mode, on the row of Display. A setting ⌘K finds opens its part and marks its row. Leaving the Settings tab takes the
+part out of the address again, in place, so Back does not walk through it. Events says of each part what Home Assistant
+has: its automations of Tessera, its alarm panels, the ring a call plays, read from the stores the parts read too
+(`stores/automations.ts`, `stores/alarms.ts`, `stores/sounds.ts`), so a change in a part shows in the list at once.
+
+A page that grows gets one more part, never a longer page; a new page that holds many things is a `PartsPage`. A new
+card goes in the part it belongs to, and a new part needs a good reason: its name in the list, an icon of
+`web/src/model/ui-icons.json` (`tools/generate_icons.py` puts a new one in the editor's font), its icon, colour and card
+in `PART_LOOK`, a summary line made of what is set, and its texts in every language.
 
 ### Menus
 
@@ -93,6 +240,26 @@ the pointer, so a page of many tiles carries one menu, not one per card.
   tile's size stays with the handles on its card.
 - The right mouse button is the mouse's alone. A finger held on a tile or a bar item drags it, so on a touch screen
   the ··· is the way to the menu.
+- Under a finger (`@media (pointer: coarse)` in `web/src/styles/app.css`) a menu's rows are 40 px tall and the menu
+  takes the room the window has before it scrolls.
+
+### What is open over the page
+
+What opens over the page stands apart from it, in the light look and the dark one:
+
+- A sheet, a dialog, a wizard and the search dim the page behind them with one colour, `--dim`
+  (`web/src/styles/tokens.css`). A new one uses that token and writes no colour of its own. A `<dialog>`'s backdrop
+  names a fallback beside it, since an older browser's backdrop does not read the page's tokens.
+- A popover (a menu, a list, a picker, a tip: `.ui-popover`) has no dim. It has a line around it, and in the dark look
+  its own greys a step lighter than what it opens over, set on `.ui-popover` so everything inside it reads them. It is
+  never wider than the window.
+- A toast shows above the phone's dock, and at the top of the window while a sheet is open, so it stays clear of the
+  sheet's keys. A sheet at its full height therefore starts 48 px from the top (`.app.phone .library`, `UiSheet`'s
+  `TOP`): the toast never lies on the sheet's head and the key that closes it. A tap on a toast's words sends it away.
+- The smallest keys (a tile's remove key, a switch, a help key) keep their look and get room around them that takes
+  the tap, under a finger. Such a key is the box its room is placed in (`position: relative` or `absolute`): the bot's
+  key in the phone's dock was not, and its ring, placed in the dock instead, took every tap meant for Add tile and
+  Save & send (docs/LAYOUTBOT.md, "On a phone").
 
 ## Home and detail pages
 
@@ -130,6 +297,10 @@ Most kinds reuse existing designs. A tall tile (1 × 2) keeps the single-column 
 Taller standard tiles extend the existing header. Media uses the selected playback or volume controls below track information. Selecting **Album cover** uses the artwork as a dimmed background on boards that support pictures, on every size: a card of one row has it behind its name and state too, its words light and its icon in a dark circle (older firmware put it in the icon's place). While nothing plays, a player whose library has covers shows them there, darkened: two along the shorter side of a taller card, one strip as high as the card on a card of one row (`rest_mosaic.py`). A thermostat of two rows shows its temperature between − and + and a bar with one segment per mode (the active one filled; an airco shows heat and cool first, the rest behind "…"). Off is not on the bar: a tap on the tile's circle turns the thermostat on or off (firmware 0.3.3). Light brightness and other sliders reuse the existing large controls. Unavailable entities keep their unavailable state and their detail action.
 
 Controls remain an explicit choice in the tile inspector. Increasing height preserves a previously selected group and does not enable a default group on a previously unconfigured tile. There is one selected group per tile, and additional height alone does not combine playback with volume. Two choices are combined groups on purpose: climate's **Temperature − / + and mode keys** (on a tile of two rows or more) and a cover's position or buttons with **Slat tilt**. Single-row tiles and existing full-page designs keep their original renderer; only the album cover lies behind a single-row card too.
+
+A thermostat's tile says its mode, the temperature it is set to and the room's temperature under its name: "Cool · 19° · Now 22.5°" (firmware 0.68.0, `tile_controls::climate_tile_line`). While the second line is **Automatic**, chips under it choose the parts: **Mode**, **Action** (what it is doing, Home Assistant's `hvac_action`), **Set to** and **Now**. The choice is kept in the tile's second line as `show:` and the parts in that order (`show:mode,now`), and the three parts a thermostat says by itself are stored as nothing at all. A thermostat that is off says Off and, when chosen, the room's temperature. Where the tile's own − and + show the temperature it is set to, the line leaves it out, and a tile too narrow for the whole line drops the room's temperature first, then the mode (`tile_controls::climate_tile_shorter`), so the temperature it is set to stays readable beside a long word for the mode. A screen with older firmware reads `show:` as Automatic and says its own line.
+
+A tile's name and its second line roll by when they are too wide for the tile: LVGL's own circular scroll, after a short reading pause and with a pause each round, each round easing in and out (gently off, quickest midway, slowing to a stop where it began: `marquee_ease`), and they stand still when they fit (firmware dev, `Tile::name_scroll` and `Tile::sub_scroll`, the same `marquee()` a player's title uses). Two switches under Second line turn each off, **Roll a long name** and **Roll a long second line**; only the off choice is stored, as `name_scroll` and `sub_scroll` set to `off` (in the page document `labelScroll` and `subtitleScroll`). Off, the name ends in dots and the second line takes its shorter wording or dots, as before; a line that rolls keeps all its words, so it takes no shorter wording. A big number never rolls: it takes a smaller face. The editor's mockup rolls them the same way (`MarqueeText`). A screen with older firmware reads neither option and ends both in dots. `tools/render/run.py <variant> --only marquee` draws a rolling line and name and the same two with their roll off on the host, frame by frame (`marquee-NN.png`, the times in `marquee.txt`), and warns when nothing moved.
 
 The layout measures the available content rectangle, active fonts and physical touch sizes. Optional text gives way before touch targets. A control group that cannot fit an unusually dense custom grid is left in the detail view instead of drawing overlapping buttons. Source artwork is cropped, dimmed and rounded by the add-on at exactly the tile's pixels, one picture per tile (docs/CAMERA.md, "A picture per tile"), and each picture is bounded by the size cap on its own; a missing or changed picture returns to the normal tile palette. The editor fetches prepared pixels through its relative Ingress API, never a Home Assistant token or source URL.
 

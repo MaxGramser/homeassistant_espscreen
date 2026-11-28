@@ -5,9 +5,9 @@
 # Not the ESP32-S3-Touch-LCD-7B (packages/boards/waveshare-esp32s3-7b.yaml), which is an RGB panel behind a CH32V003
 # expander. This board has no expander: its backlight and touch hang on ordinary P4 pins.
 #
-# This file builds for rev3 silicon ("chip revision: v3.x" in the boot log; `engineering_sample: false`), which is what
-# Waveshare ships now. A board with pre-v3 silicon of the same name does not boot this firmware and the other way round,
-# so it needs `engineering_sample: true` in its Override YAML (docs/WAVESHAREP47B.md). A community member ran this file
+# This file builds for rev3 silicon ("chip revision: v3.x" in the boot log) by default, which is what Waveshare ships
+# now. ESP Screen Manager reads the chip of a board it installs and builds for the revision it finds, so a board with
+# pre-v3 silicon of the same name gets a firmware of its own (docs/CHIP_REVISIONS.md). A community member ran this file
 # on a board with rev3 silicon (picture, touch, brightness, standby and wake); the project has not tried it on one.
 # The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel
 # (Waveshare's schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default.
@@ -30,12 +30,18 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "wavesharep47b"
+  # The chip revision this board ships with, the default when the chip has not been read (hardware/esp32p4-core.yaml,
+  # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
+  CHIP_REVISION: "301"
   DEVICE_NAME: "wavesharep47b-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare P4 7B"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 7 inches. The panel is 1024 x 600
   # itself, so it lies down without a turn.
@@ -75,9 +81,6 @@ esphome:
 
 esp32:
   flash_size: 32MB
-  # Rev3 silicon: a pre-v3 firmware does not boot it, and the other way round (docs/WAVESHAREP47B.md). A pre-v3 board
-  # of this name sets this to true in its Override YAML.
-  engineering_sample: false
   framework:
     advanced:
       # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
@@ -110,11 +113,10 @@ output:
     zero_means_zero: true
 
 # ESPHome's panel model drives the EK79007 at 1024 x 600 with its init sequence and timings; the reset is GPIO33.
-# The platform is the repository's mipi_dsi_v3 copy (components/mipi_dsi_v3): it leaves the DSI clock for ESP-IDF to
-# choose, where the stock driver's fixed clock aborts on rev3 silicon while the display starts
-# (packages/boards/guition-jc8012p4a1-v3.yaml, GitHub #52).
+# On rev3 silicon the platform is the repository's mipi_dsi_v3 (DSI_PLATFORM, hardware/esp32p4-core.yaml): the stock
+# driver's fixed clock aborts there while the display starts (GitHub #52).
 display:
-  - platform: mipi_dsi_v3
+  - platform: ${DSI_PLATFORM}
     id: my_display
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     dimensions: {width: 1024, height: 600}

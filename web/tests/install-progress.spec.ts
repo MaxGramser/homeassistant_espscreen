@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
 import { afterBrowserBuild } from "../src/model/firmware-job";
-import { buildShare, followDetail, followTitle, installProgress, memoryNote, readyShare, writeShare } from "../src/model/install-progress";
+import { buildShare, followDetail, installProgress, memoryNote, readyShare, writeShare } from "../src/model/install-progress";
 
 const states = (p: ReturnType<typeof installProgress>) => p.steps.map((step) => `${step.key}:${step.state}${step.percent !== null ? `:${step.percent}` : ""}`);
 
@@ -77,7 +77,6 @@ describe("the steps of an installation", () => {
     expect(states(waiting)).toEqual(["prepare:waiting", "build:waiting", "write:waiting", "restart:waiting", "done:waiting"]);
     const follow = { saved: false, running: true, waiting: true, ahead: 2, ok: false, download: false, browser: false, writing: false,
       calibrate: false, built: false, stopped: false, name: "Hall", file: "hall.yaml" };
-    expect(followTitle(follow)).toBe(t("editor.installer.progress.waiting"));
     expect(followDetail(follow)).toBe(t("editor.installer.detail.waiting", 2));
     expect(followDetail({ ...follow, browser: true, ahead: 1 })).toBe(t("editor.installer.detail.waiting_browser", 1));
     expect(afterBrowserBuild("queued", "waiting")).toBeNull();

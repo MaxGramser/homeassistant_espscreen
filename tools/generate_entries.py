@@ -34,6 +34,9 @@ def components(board):
     text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board], all_variants=True))
     own = {path.name for path in (ROOT / 'components').iterdir() if path.is_dir() and path.name != 'smart_display'}
     named = re.findall(r'(?m)^\s*-?\s*platform: ([a-z0-9_]+)\s*$', text) + re.findall(r'(?m)^([a-z0-9_]+):', text)
+    # A platform a substitution picks names its choices as quoted words (DSI_PLATFORM in hardware/esp32p4-core.yaml
+    # picks mipi_dsi or mipi_dsi_v3 by the chip revision): every one of them is fetched, the build loads the one it takes.
+    named += re.findall(r'"([a-z0-9_]+)"', text)
     found = [name for name in dict.fromkeys(named) if name in own]
     return found + ['smart_display']
 

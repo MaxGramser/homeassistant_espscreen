@@ -291,11 +291,13 @@ class MessageTests(unittest.TestCase):
 
     def test_a_board_with_a_battery_says_so(self):
         # boards.json `battery` (profiles.battery): a board file with a sensor in the battery device class. Today the Tab5
-        # and the reTerminal D1001.
+        # and the reTerminal D1001, the reTerminal Sticky once its fuel gauge's level states that class in its file, and the
+        # reTerminal E1001 from its voltage on a pin (features/battery-voltage.yaml).
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         with_battery = sorted(entry for entry, shape in shapes.items() if shape.get('battery'))
         self.assertTrue(with_battery)
-        self.assertTrue(all('tab5' in entry or 'reterminald1001' in entry for entry in with_battery), with_battery)
+        self.assertTrue(all(any(board in entry for board in ('tab5', 'reterminald1001', 'reterminalsticky', 'reterminale1001'))
+                            for entry in with_battery), with_battery)
         glyphs = re.search(r'WIFI_GLYPHS\[5\] = \{WIFI_OFF_GLYPH, (0x\w+), (0x\w+), (0x\w+), (0x\w+)\}', FIRMWARE).groups()
         self.assertIn('export const WIFI_GLYPHS = ["F092E", ' + ', '.join(f'"{g[2:].upper()}"' for g in glyphs) + ']', EDITOR)
         self.assertIn('constexpr uint32_t WIFI_OFF_GLYPH = 0xF092E;', FIRMWARE)
@@ -408,12 +410,13 @@ class ParityTests(unittest.TestCase):
     def test_second_hand_runs_only_while_the_screen_is_awake(self):
         for name in PROFILES:
             text = profiles.text(name)
-            self.assertIn('runtime_tiles::screen_awake = []() { return !id(display_dimmed); };', text, name)
+            self.assertIn('runtime_tiles::screen_awake = []() { return !screen_standby::the().in_standby(); };', text, name)
         for name in ('packages/cyd.yaml', 'packages/guition.yaml'):
             self.assertIn('runtime_tiles::screen_awake', profiles.text(name), name)
         self.assertIn('inline bool awake() { return !screen_awake || screen_awake(); }', TILES)
         second_hand = TILES.split('inline void second_hand(', 1)[1].split('\n}', 1)[0]
-        self.assertIn('set_hidden(p,!(awake() && now.is_valid()));', second_hand)
+        # And never on a still glass (paper, docs/PAPER.md): a hand that steps each second would be a print each second.
+        self.assertIn('set_hidden(p,!(awake() && now.is_valid() && !screen_motion::still()));', second_hand)
         self.assertIn('part_line(w,18,w.points+28,2,w.hand_width)', second_hand)
         tick = TILES.split('inline void tick() {', 1)[1]
         # The classic dial and the calm dial (firmware 0.3.6+) both move their hand; a digital or flip clock has none.

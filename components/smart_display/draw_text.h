@@ -14,10 +14,15 @@
 // component in this file.
 #include <lvgl.h>
 
+#include "ink_audit.h"
+
 namespace draw_text {
 inline void label(lv_layer_t *layer, lv_draw_label_dsc_t &dsc, const lv_area_t &area) {
   if (!dsc.text) return;
   dsc.text_local = 1;
+#ifdef USE_HOST
+  ink_audit::text(area, layer->_clip_area, dsc);  // the host render's ink audit: where this text stands
+#endif
   lv_draw_label(layer, &dsc, &area);
 }
 }  // namespace draw_text

@@ -16,8 +16,9 @@ import type { Capability, PageTile, Tile, TileOptions } from "../types";
 import { BUILTIN_CARDS, type BuiltinName } from "../types";
 import { PLUGIN_TILE, PLUGIN_TILE_OPTIONS } from "./plugins";
 import { canonicalMeter } from "./meter";
+import { climateParts, climatePartsChoice } from "./tile-text";
 
-const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
+const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", labelScroll: "name_scroll", subtitleScroll: "sub_scroll", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
   energyFlow: "flow", textTemplate: "template", callTo: "call_to", callKind: "call_kind",
@@ -73,6 +74,9 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
     const words = out.sub.slice(5).trim();
     out.sub = words ? `text:${words}` : "none";
   }
+  // A thermostat's own line keeps its parts in one order, the ones it says by itself are Automatic, and no other type
+  // has parts.
+  if (typeof out.sub === "string" && out.sub.startsWith("show:")) out.sub = entity.startsWith("climate.") ? climatePartsChoice(climateParts(out.sub)) : "auto";
   if (out.sub === "auto") delete out.sub;
   // Where a cover's slats stand open: Home Assistant's 100 is never stored, and no other tile has the choice.
   if (out.tilt_open !== undefined && (!entity.startsWith("cover.") || String(out.tilt_open) === "100")) delete out.tilt_open;
@@ -219,6 +223,8 @@ export function displayChoices(tile: Tile, panel: TilePanel) {
   const c = panel.caps, display = tileDisplay(tile), size = sizeOfTile(tile);
   const keys = ((rules.displays as Record<string, string[]>)[domainOf(tile)] || ["standard", "watch"]).filter((key) => {
     if (key === "forecast") return !c || c.displays.includes("forecast") || display === "forecast";
+    // The next hours, for a weather service that has an hourly forecast (Buienradar has days alone).
+    if (key === "hourly") return !c || c.displays.includes("hourly") || display === "hourly";
     if (key === "graph") return !c || c.displays.includes("graph") || display === "graph";
     // A meter (firmware 0.56.0) for a sensor whose history is numbers, as a graph has.
     if (key === "meter") return !c || c.displays.includes("meter") || display === "meter";
@@ -238,6 +244,7 @@ export function displayHint(tile: Tile, panel: TilePanel): Hint | null {
   let text = "";
   if (c && display === "graph" && !c.displays.includes("graph")) text = t("editor.tile.display.no_graph");
   else if (c && display === "forecast" && !c.displays.includes("forecast")) text = t("editor.tile.display.no_forecast");
+  else if (c && display === "hourly" && !c.displays.includes("hourly")) text = t("editor.tile.display.no_hourly");
   else if (c && display === "meter" && !c.displays.includes("meter")) text = t("editor.tile.display.no_meter");
   // A meter (firmware 0.56.0): an older screen shows the name and status until it is updated.
   else if (display === "meter" && !supports(0, 56, 0)) text = t("editor.tile.display.meter_needs_firmware");

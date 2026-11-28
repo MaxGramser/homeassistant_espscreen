@@ -117,20 +117,12 @@ inline const lv_font_t *fitting(std::initializer_list<const lv_font_t *> fonts, 
 
 // ---- colours: theme.h's roles, read by the face's own look (dark, light, or the screen's)
 inline bool dark_look(const SaverFace &f) { return f.look == SaverFace::DARK || (f.look == SaverFace::FOLLOW && theme::dark); }
-inline uint32_t role(theme::Role r, bool dark) { return dark ? theme::ROLES[r].dark : theme::ROLES[r].light; }
-struct Ink { bool dark; uint32_t face, ink, soft, tick, minor, hand, edge, accent, raised; };
+// A face's tones in its own look, as the glass shows them (theme::clock).
+struct Ink : theme::ClockTones { bool dark = false; };
 inline Ink ink(const SaverFace &f) {
   Ink k;
   k.dark = dark_look(f);
-  k.face = k.dark ? role(theme::CAMERA_PAGE, true) : role(theme::PAGE, false);
-  k.ink = role(theme::INK, k.dark);
-  k.soft = theme::mix(k.ink, k.face, 150);
-  k.tick = theme::mix(k.ink, k.face, k.dark ? 225 : 235);
-  k.minor = theme::mix(k.ink, k.face, k.dark ? 120 : 110);
-  k.hand = role(theme::CLOCK_HAND, k.dark);
-  k.edge = k.dark ? k.face : theme::mix(k.ink, k.face, 200);
-  k.accent = theme::ha::ORANGE;
-  k.raised = role(theme::CARD, k.dark);
+  static_cast<theme::ClockTones &>(k) = theme::clock(k.dark);
   return k;
 }
 
@@ -269,7 +261,7 @@ inline void glass(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int 
   const float inner = std::min(hx, hy);
   const int blade = std::max(6, (int) std::lround(S * 0.036f));
   const Hands h{cx, cy, inner * 0.62f, inner - major * 0.35f, inner - minor * 0.4f, S * 0.06f, blade, std::max(3, blade / 3),
-                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds};
+                std::max(2, (int) std::lround(S * 0.0055f)), k.hand, k.edge, k.accent, k.face, k.hands_rimmed, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
@@ -278,7 +270,8 @@ inline void glass(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int 
 // month, and the clock's row (the temperature and the entities) one to a line, as many as fit. On square glass the date
 // stands in a window at 3, as on a watch.
 inline void dial(lv_obj_t *stage, const SaverFace &f, const Ink &k, float cx, float cy, float R, bool window, const esphome::ESPTime &now) {
-  box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), k.raised, LV_RADIUS_CIRCLE);
+  // The dial: a raised disc on a lit glass, and on paper, where it has the page's own tone, a rim of ink.
+  theme::rim(box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), k.raised, LV_RADIUS_CIRCLE), true);
   auto &p = painter(stage);
   const float ro = R * 0.94f, major = R * 0.09f, minor = R * 0.045f;
   const int wmaj = std::max(3, (int) std::lround(R * 0.022f)) | 1, wmin = std::max(1, (int) std::lround(R * 0.008f));
@@ -314,7 +307,7 @@ inline void dial(lv_obj_t *stage, const SaverFace &f, const Ink &k, float cx, fl
   auto &hp = painter(stage, &layer);
   const int blade = std::max(5, (int) std::lround(R * 0.055f));
   const Hands h{cx, cy, R * 0.48f, R * 0.78f, R * 0.86f, R * 0.14f, blade, std::max(3, blade / 3), std::max(2, (int) std::lround(R * 0.011f)),
-                k.hand, k.edge, k.accent, k.face, !k.dark, f.seconds};
+                k.hand, k.edge, k.accent, k.face, k.hands_rimmed, f.seconds && !screen_motion::still()};
   hands(hp, h, now);
   keep_hands(layer, hp, h, now);
 }
@@ -440,9 +433,11 @@ inline void classic(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
 inline uint32_t mix32(uint32_t x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }
 inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, int Hh, const esphome::ESPTime &now) {
   const bool dk = k.dark;
-  const uint32_t cream = role(theme::BAUHAUS_CREAM, dk), black = role(theme::BAUHAUS_BLACK, dk), red = role(theme::BAUHAUS_RED, dk);
-  const uint32_t colours[] = {red, role(theme::BAUHAUS_YELLOW, dk), role(theme::BAUHAUS_BLUE, dk), black, cream};
-  const uint32_t hand = dk ? role(theme::BAUHAUS_CREAM, false) : role(theme::BAUHAUS_BLACK, false);
+  // The school's colours, the clock's hands and marks and its dial, as the glass shows them (theme::bauhaus).
+  const theme::BauhausTones tones = theme::bauhaus(dk);
+  const uint32_t cream = tones.cream, black = tones.black, red = tones.red;
+  const uint32_t colours[] = {red, tones.yellow, tones.blue, black, cream};
+  const uint32_t hand = tones.hand, mark = tones.mark;
   const int S = std::min(W, Hh);
   lv_obj_set_style_bg_color(stage, theme::rgb(cream), 0);
   const int n = 3, cell = std::max(1, S / n);
@@ -471,13 +466,13 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
   const float turn = period * 2.39996f, reach = S * 0.05f;
   const float cx = W / 2.f + std::cos(turn) * reach, cy = Hh / 2.f + std::sin(turn) * reach, R = S * 0.36f;
   // A ring in the hands' colour keeps the clock its own object, also where a shape of its colour touches it.
-  auto *face = box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), dk ? black : cream, LV_RADIUS_CIRCLE);
+  auto *face = box(stage, (int) (cx - R), (int) (cy - R), (int) (2 * R), (int) (2 * R), tones.face, LV_RADIUS_CIRCLE);
   lv_obj_set_style_border_width(face, std::max(2, (int) (R * 0.035f)), 0);
   lv_obj_set_style_border_color(face, theme::rgb(hand), 0);
   auto &p = painter(stage);
   for (int i = 0; i < 12; ++i) {
     const float a = i * PI / 6;
-    p.dot(cx + std::sin(a) * R * 0.84f, cy - std::cos(a) * R * 0.84f, i % 3 ? R * 0.025f : R * 0.05f, i % 3 ? hand : red);
+    p.dot(cx + std::sin(a) * R * 0.84f, cy - std::cos(a) * R * 0.84f, i % 3 ? R * 0.025f : R * 0.05f, i % 3 ? hand : mark);
   }
   if (!now.is_valid()) return;
   lv_obj_t *layer = nullptr;
@@ -485,8 +480,8 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
   const int w = std::max(6, (int) (R * 0.09f));
   hp.line(cx, cy, cx + std::sin(hour_angle(now)) * R * 0.48f, cy - std::cos(hour_angle(now)) * R * 0.48f, w, hand);
   hp.line(cx, cy, cx + std::sin(minute_angle(now)) * R * 0.72f, cy - std::cos(minute_angle(now)) * R * 0.72f, w * 2 / 3, hand);
-  hp.dot(cx, cy, w * 0.75f, red);
-  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, red, red, false, f.seconds};
+  hp.dot(cx, cy, w * 0.75f, mark);
+  const Hands h{cx, cy, 0, 0, R * 0.78f, 0, w, 0, std::max(2, w / 4), hand, hand, mark, mark, false, f.seconds && !screen_motion::still()};
   if (h.seconds) second_marks(hp, h, now.second);
   keep_hands(layer, hp, h, now);
 }
@@ -494,7 +489,7 @@ inline void bauhaus(lv_obj_t *stage, const SaverFace &f, const Ink &k, int W, in
 // ---- the face on the glass: drawn whole into the screensaver's root, every minute
 // Glass and Classic stand a fraction further along a slow circle every minute, up to a millimetre from their place.
 inline lv_point_t drift(const esphome::ESPTime &now) {
-  if (!now.is_valid()) return {0, 0};
+  if (!now.is_valid() || screen_motion::still()) return {0, 0};  // paper keeps no shadow of a face that stands
   const auto at = saver_view::drift(now.hour * 60 + now.minute, ui::mm(1));
   return {(int32_t) at.x, (int32_t) at.y};
 }

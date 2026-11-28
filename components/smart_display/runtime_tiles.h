@@ -9,6 +9,7 @@
 #include <string_view>
 #include "runtime_model.h"
 #include "redraw_log.h"
+#include "action_log.h"
 #include "loop_stack.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
@@ -53,6 +54,8 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "cover_paint.h"
 #include "alert_overlay.h"
 #include "screen_motion.h"
+#include "still_glass.h"
+#include "glass_kind.h"
 #include "theme.h"
 #include "tile_icon.h"
 #include "screen_settings.h"
@@ -67,6 +70,8 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "history_view.h"
 #include "camera_view.h"
 #include "picture_fetch.h"
+#include "file_fetch.h"
+#include "kept_sound.h"
 #include "live_spots.h"
 #include "pressure.h"
 #include "live_view.h"
@@ -137,6 +142,10 @@ using screen_text::plural;
 using screen_text::tr;
 namespace txt = screen_text::txt;
 inline bool enabled = false;
+// The calm look of a page at rest on a glass that keeps its picture (docs/PAPER.md, "Standby is rest"; calm() below
+// sets it): a tile shows what it tells and nothing a finger works, and the page bar is gone. The top bar stays as it
+// is: a page without it sat out of balance (the owner at the first paper screen, 2026-11-27).
+inline bool calm_look = false;
 // Swiping, rotation and going back to page 1 live in settings_screen, next to the other settings the
 // screen can change itself; these names stay as the way the rest of the firmware reaches them.
 using settings_screen::swipe_pages;
@@ -342,6 +351,7 @@ inline lv_obj_t *saver_root = nullptr;      // the clock
 // The words over the screensaver's picture (firmware 0.32.0+): drawn again with the next track's picture, and
 // `saver_words_due` until it has come.
 inline lv_obj_t *saver_first = nullptr, *saver_second = nullptr;
+inline lv_obj_t *saver_band = nullptr;  // on paper: the black the words and keys stand on (saver_words)
 inline bool saver_words_due = false;
 // A player's keys over its cover (firmware 0.33.0+): volume up, volume down, play or pause. They take their own tap, so
 // the screen stays in standby; a touch anywhere else wakes it. What a key changes shows at once and is squared with Home
@@ -453,6 +463,10 @@ inline const char *weather_icon(const std::string &condition);
 inline const char *weather_text(const std::string &condition);
 inline std::string timer_text(const Tile &t);
 inline std::string countdown(uint32_t seconds);
+// The seconds left of something, as this glass shows them: each one, or in the steps of a still glass (still_glass.h).
+inline uint32_t shown_left(uint32_t seconds) { return screen_motion::still() ? still_glass::counted(seconds) : seconds; }
+// How often a picture that is fetched again and again is fetched on this glass.
+inline uint32_t picture_pace(uint32_t every) { return every && screen_motion::still() ? still_glass::picture_every(every) : every; }
 // The alarm panel (firmware 0.3.3+), further down beside the other cards.
 inline void alarm_refused(const std::string &entity);
 inline void alarm_state_arrived(unsigned index, const std::string &before);
@@ -641,8 +655,27 @@ inline void persist_settings() {
 }
 // One page of a picker's names (op "options", app 0.2.83+), for the light's effects page.
 inline std::function<void(const std::string &, unsigned, unsigned, std::vector<std::string> &&)> options_received;
+// What a card was painted from (GitHub #349): everything the palette pass of render_slot reads, kept as one value and
+// compared whole. A card skips that pass only when all of it is as it was. The pass once compared a list of fields and
+// the state's colour was missing from it (a thermostat from Auto to Heat on a kept page came back in its old colour); a
+// new input of the pass goes in here, and web/wasm/test_kept_colour.mjs changes one input at a time on a kept page.
+struct PaintedFrom {
+  int palette = -1;     // available, active, the slider's colour, a picture over the card, a lock's colour and question;
+                        // -1: not painted yet, or asked to paint again (Widgets::paint_again)
+  uint64_t look = 0;    // the card's face, "Background: none", its look and ground in a section
+  uint32_t accent = 0;  // the state's colour, a lamp's own while it is on
+  bool key = false, page = false, letterbox = false, bar = false;  // a bedside key, a page tile, a letterboxed picture, the slider's bar
+  std::string mode;     // the parts the card draws (extra_mode), each painted its own way
+  bool operator==(const PaintedFrom &o) const {
+    return palette == o.palette && look == o.look && accent == o.accent && key == o.key && page == o.page &&
+           letterbox == o.letterbox && bar == o.bar && mode == o.mode;
+  }
+};
 struct Widgets {
-  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; int cached_active = -1; lv_obj_t *slider{}, *progress{}, *unit{};
+  lv_obj_t *tile{}, *title{}, *value{}, *circle{}, *icon{}; size_t index{}; lv_obj_t *slider{}, *progress{}, *unit{};
+  // What the card's colours were last painted from (render_slot); paint_again() makes the next render paint them.
+  PaintedFrom painted;
+  void paint_again() { painted = PaintedFrom{}; }
   const lv_font_t *value_font{}, *icon_font{};
   // Wide cards span both columns; custom cards (clock, forecast, graph) draw into `extra`.
   // Full (firmware 0.2.62+) takes the whole page: the double-width card's head on top, a control at the bottom.
@@ -654,14 +687,7 @@ struct Widgets {
   // (alarm_tile_look). They belong to the card, not to the slot: a kept page's cards leave the glass with their
   // animation and come back with it (firmware 0.16.0+; before, a ring kept beating on a card whose lock had settled).
   uint8_t alarm_look=0; uint32_t alarm_mark=0;
-  // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
-  // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
-  // which an idle timer never sends).
-#ifdef SD_MOD_SECTIONS
-  uint64_t cached_paint=UINT64_MAX;  // with the card's look and ground (render_slot)
-#else
-  uint32_t cached_paint=UINT32_MAX;
-#endif
+  uint32_t counted=0;  // what a still glass last showed of a time that counts down here (still_glass.h)
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -991,9 +1017,9 @@ inline void watch_busy() { if (!busy_timer) busy_timer = lv_timer_create(busy_wa
 struct WatchedCall { uint32_t id = 0, since = 0; };
 // The screen's own alert card (firmware 0.38.0): the first tap Home Assistant leaves without an answer explains itself
 // once per start, through the same card an automation shows (packages/core.yaml binds it). Such an alert of the
-// screen's own sends no esphome.screen_alert event when it closes (own_alert), so no automation takes it for its own.
+// screen's own sends no esphome.screen_alert event when it closes (alert_life.h, own_next), so no automation takes it for its own.
 inline void (*hint_alert)(const std::string &title, const std::string &text) = nullptr;
-inline bool own_alert = false, own_alert_next = false, unanswered_told = false;
+inline bool unanswered_told = false;
 inline std::array<WatchedCall, 4> watched_calls{};
 inline const char *const NO_ANSWER = "no answer";
 // Returns whether Home Assistant will answer this one (a free place among the four).
@@ -1070,6 +1096,37 @@ inline void expire_calls(uint32_t now) {
   }
 }
 #endif
+// The line in Home Assistant's logbook for an action that went out (action_log.h; docs/ARCHITECTURE.md, "An action's
+// line in the logbook"): `logbook.log` on the entity, with this screen's name, the page on the glass and the tile of
+// the entity on it. It asks for no answer and takes none of the four watched places; a Home Assistant without the
+// logbook only writes a line in its own log. The host has no name and writes nothing.
+inline std::string screen_name();
+inline const std::string &media_entity(const Tile &t);
+inline action_log::Recent logged_actions;
+inline void log_action(const std::string &entity) {
+  const std::string screen = screen_name();
+  if (screen.empty() || !logged_actions.due(entity, esphome::millis())) return;
+  const int page = shown_page ? *shown_page : 0;
+  // The tile on this page that shows the entity, or plays on it (a card's media keys act on the speaker it follows).
+  std::array<Placement, TILES_MAX> places;
+  place(model, places);
+  std::string tile;
+  for (size_t i = 0; i < model.count && i < grid.max_tiles() && tile.empty(); ++i)
+    if (places[i].page == page && (model.tiles[i].entity == entity || media_entity(model.tiles[i]) == entity)) tile = model.tiles[i].name;
+  const std::string message = action_log::message(tr(txt::status_logbook_tile), tr(txt::status_logbook_page), screen, model.title_of(page), tile);
+  esphome::api::HomeassistantActionRequest request;
+  request.service = api_text::of("logbook.log");
+  request.data.init(3);
+  const std::string *const values[] = {&screen, &message, &entity};
+  const char *const keys[] = {"name", "message", "entity_id"};
+  for (int i = 0; i < 3; ++i) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(*values[i]);
+    request.data.push_back(entry);
+  }
+  esphome::api::global_api_server->send_homeassistant_action(request);
+}
 // Marks every tile of the entity busy and sends; `watch` asks Home Assistant for an answer (a tap).
 // `busy`: the tiles of the entity wait for the answer (the busy sheet, greyed keys); a wish (docs/OPTIMISTIC.md) shows
 // its value instead and waits for nothing.
@@ -1084,6 +1141,7 @@ inline bool send_action(esphome::api::HomeassistantActionRequest &request, const
   if (watch) watched = watch_call(request, entity);
 #endif
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   return watched;
 }
 // `key2` and `value2`: a second field, for a thermostat's range (both ends in one call, firmware 0.19.0).
@@ -1141,6 +1199,7 @@ inline void step_action(const std::string &service, const std::string &entity, c
   target.key = api_text::of("entity_id"); target.value = api_text::of(entity); request.data.push_back(target);
   if (!key.empty()) { field.key = api_text::of(key); field.value = api_text::of(value); request.data.push_back(field); }
   esphome::api::global_api_server->send_homeassistant_action(request);
+  log_action(entity);
   ESP_LOGI("runtime_action", "Sent %s%s%s to %s", service.c_str(), value.empty() ? "" : " ", value.c_str(), entity.c_str());
 }
 // A remote's key (firmware 0.22.0+): remote.send_command with one command, sent as a remote sends it. It changes no state,
@@ -1354,6 +1413,9 @@ inline constexpr int CLIMATE_MODE_FIRST=200,CLIMATE_ROW_FIRST=210,CLIMATE_POWER=
 inline void climate_paint_ends(const Tile &t);
 // The power key of a light or fan card (firmware 0.2.80), in the same top bar.
 inline constexpr int LIGHT_POWER=240;
+// A group's key in a card's top bar: its page over the card, of covers (the cover card, firmware 0.57.0) or of lamps (the
+// light card of a group that only dims or switches, GitHub #458). Handled in detail_lvgl.h.
+inline constexpr int GROUP_PAGE=720;
 // The rows of the select card (render_select_detail): option i is SELECT_OPTION_FIRST + i.
 inline constexpr int SELECT_OPTION_FIRST=900;
 // A remote's keypad (firmware 0.22.0+): key i of Extra::keypad is REMOTE_KEY_FIRST + i.
@@ -1454,6 +1516,10 @@ inline void favorite_key_event(lv_event_t *e){
 // The card with its picture, or while its picture is on its way the same card with the spinner every picture card
 // has; false on a board without pictures and when the app has none, and the tile is drawn as an ordinary one.
 inline bool render_favorite_card(Widgets &w,const Tile &t,int width,int height){
+  // Where the glass shades nothing a picture is no ground for words (tile_picture_place), and this card without its
+  // picture is two lines in a corner of an empty card: the tile is an ordinary one there, its glyph in its disc, and a
+  // tap plays it.
+  if(!theme::shades()){set_loading(w,false,width,height);return false;}
   tile_picture_place(w,t,0,0,0);
   const bool photo=w.picture&&!lv_obj_has_flag(w.picture,LV_OBJ_FLAG_HIDDEN),waiting=!photo&&t.pictured()&&tile_picture_waiting(w,t);
   set_loading(w,waiting,width,height);
@@ -1988,6 +2054,11 @@ inline void render_slot(size_t slot) {
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
   if(w.loading&&!(t.live()||t.is_map()||t.favorite()))lv_obj_add_flag(w.loading,LV_OBJ_FLAG_HIDDEN);
+  // A name wider than its room rolls by and stands still when it fits (dev, Tile::name_scroll), as the second line
+  // does below; with the scroll off it ends in dots. The mode goes before the words, which LVGL's dots write into.
+  // A still glass rolls nothing (screen_motion::still(), docs/MOTION.md): there the name ends in dots too.
+  if(t.name_scroll&&!screen_motion::still())marquee(w.title,true);
+  else if(lv_label_get_long_mode(w.title)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.title,LV_LABEL_LONG_DOT);
   label(w.title, t.name.empty() ? t.entity : t.name);
   label(w.icon, icon_for(t));
   bool watch=t.display=="watch";
@@ -2014,14 +2085,9 @@ inline void render_slot(size_t slot) {
   else if (tile_controls::text_value(t)) value = tile_controls::text_shown(t);
   else if (d == "light" && t.state == "on" && tile_controls::effect_running(t.extra().effect)) value = t.extra().effect;
   else if (d == "light" && t.state == "on" && std::isfinite(t.brightness)) value = screen_text::percent(static_cast<int>(std::lround(std::clamp(t.brightness, 0.0f, 255.0f) * 100 / 255)));
-  // An airco that is off says so, with the room's temperature when it knows it, as Home Assistant's tile does
-  // (firmware 0.2.71+); while it runs, the tile shows the temperature it is set to, written as Home Assistant writes
-  // it: 68°, 21.5° (firmware 0.19.0; before, always one decimal).
-  else if (d == "climate" && t.state == "off") { value = tile_controls::climate_mode_text(t.state); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
-  else if (d == "climate" && std::isfinite(t.target)) value = tile_controls::temperature_text(t.target);
-  // Without one temperature to reach (a range, dry, fan only) the line is Home Assistant's own tile line for a
-  // thermostat, its state and the room's temperature (state-display: climate ["state", "current_temperature"]).
-  else if (d == "climate") { value = tile_controls::climate_mode_text(tile_controls::lower_case(t.state)); if (std::isfinite(t.current)) value += " · " + tile_controls::temperature_text(t.current); }
+  // A thermostat says the parts its tile chose, its mode, the temperature it is set to and the room's by default:
+  // "Cool · 19° · Now 22.5°", or Off and the room's temperature (firmware 0.68.0, tile_controls::climate_tile_line).
+  else if (d == "climate") value = tile_controls::climate_tile_line(t, tile_controls::climate_parts(t.subtitle), false);
   // A humidifier says what it is doing (or On, Off) and the humidity it measures: Home Assistant's tile line for it,
   // state and current_humidity, with its action in the state's place, as its dialog writes it (firmware 0.42.0+).
   else if (d == "humidifier") value = tile_controls::climate_card_status(t, true);
@@ -2062,6 +2128,11 @@ inline void render_slot(size_t slot) {
   if(t.runs() && !t.running && t.state=="on")value_short=last_run_text(t.last_run,true);
   // A lock-only tile's word where the whole of it does not fit.
   if(d=="lock"&&lock_noting(t))value_short=tr(txt::lock_lock_only_short);
+  // A thermostat's line without the room's temperature, then without its mode as well, where the whole has no room.
+  if(d=="climate"&&fresh()&&t.available()&&!refused&&!set_by_hand){
+    const unsigned parts=tile_controls::climate_parts(t.subtitle);
+    value_short=tile_controls::climate_tile_shorter(t,parts,false);
+  }
   // A vacuum's status ends on its battery; the unavailable and refused words and a line chosen by hand do not (#293).
   if(fresh() && t.available() && !refused){value_tail=tile_controls::vacuum_tail(t);value+=value_tail;}
   // A humidifier's humidity stays readable when its action word does not fit ("Humidif… · 38%").
@@ -2071,8 +2142,9 @@ inline void render_slot(size_t slot) {
   // control of a wide card stands and where the editor's mockup draws it. A single card keeps the strip under
   // its head (mini below), and so does a wide card too narrow for a panel.
   const bool taller=t.row_span()>1 && !w.full;
-  const bool inline_panel=(w.wide||taller) && !w.full && t.inline_control=="slider" && !tile_controls::inline_kind(d).empty();
-  bool with_panel=(w.wide||taller||preset_cell(w,t)) && !t.builtin() && !watch && fresh() && t.available() &&
+  // A page at rest (calm_look) has no panel and no slider: nothing there is worked until the screen wakes.
+  const bool inline_panel=!calm_look && (w.wide||taller) && !w.full && t.inline_control=="slider" && !tile_controls::inline_kind(d).empty();
+  bool with_panel=!calm_look && (w.wide||taller||preset_cell(w,t)) && !t.builtin() && !watch && fresh() && t.available() &&
                   (inline_panel || (!t.controls.empty() && t.inline_control!="slider"));
   // A panel needs its own width plus the icon and some name; a narrow wide card stays a plain card. What it
   // needs is what it takes: the cells its controls fill (layout_panel), or the toggle and the run key their own
@@ -2085,21 +2157,38 @@ inline void render_slot(size_t slot) {
     if(content_width(w)<panel_need+pm.text_gap+ui::px(lt?54:36)+ui::px(60))with_panel=false;
   }
   // A wide card with a panel says what its control is doing, unless the second line was set by hand.
-  if(with_panel && !set_by_hand){std::string status=tile_controls::status_text(t);if(!status.empty()){value=status;value_short.clear();value_tail.clear();}}
+  // A thermostat's is its own line with what its -/+ already shows left out (tile_controls::climate_tile_line).
+  if(with_panel && !set_by_hand){
+    std::string status=d=="climate"?tile_controls::climate_tile_line(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):tile_controls::status_text(t);
+    if(!status.empty()){
+      value=status;value_tail.clear();
+      value_short=d=="climate"?tile_controls::climate_tile_shorter(t,tile_controls::climate_parts(t.subtitle),tile_controls::panel_kind(t)=="setpoint"):std::string();
+    }
+  }
   // A wish Home Assistant takes long to square says so where the state stands (docs/OPTIMISTIC.md).
   if(!t.builtin() && wish_slow(t.entity,esphome::millis())){value=tr(txt::tile_updating);value_short.clear();value_tail.clear();}
+  // A second line wider than its room rolls by and stands still when it fits (dev, Tile::sub_scroll); with the scroll
+  // off it ends in dots, as before. A big number never rolls: it takes a smaller face instead (the watch block below).
+  // The mode goes first: LVGL's dots write themselves into the text, the roll keeps it whole. A still glass rolls
+  // nothing, so the line takes its shorter wording there (fit_value) instead of words nobody gets to see.
+  const bool roll=t.sub_scroll&&!watch&&!screen_motion::still();
+  if(roll)marquee(w.value,true);
+  else if(lv_label_get_long_mode(w.value)!=LV_LABEL_LONG_DOT)lv_label_set_long_mode(w.value,LV_LABEL_LONG_DOT);
   label(w.value, value);
   // Only a thermostat with controls takes a tap on its circle (climate_circle_event); every other card's circle is
   // part of the card and the card's own tap.
-  if((d=="climate"||d=="humidifier")&&with_panel)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
-  bool mini=t.inline_control=="slider" && !watch && t.available() && !with_panel;
+  // And only while its power key can do something (tile_controls::climate_power).
+  if((d=="climate"||d=="humidifier")&&with_panel&&tile_controls::climate_power(t)!=tile_controls::ClimatePower::NONE)lv_obj_add_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);else lv_obj_remove_flag(w.circle,LV_OBJ_FLAG_CLICKABLE);
+  bool mini=!calm_look && t.inline_control=="slider" && !watch && t.available() && !with_panel;
   // The card's size class is the look's, never the cell's momentary height: a class that flips when the rows
   // grow (page buttons off) would reuse a clock's numeral labels as tick lines.
   bool large_tile=ui::large();
   lap(swipe_profile::TEXT);
   // Cards that replace the name/status layout entirely.
   bool bedside=t.is_bedside() && w.full;
-  bool clock=t.is_clock(), forecast=d=="weather" && t.display=="forecast" && w.wide && t.extra().forecast.size()>0 && fresh() && t.available();
+  // The days ahead (forecast), or the next hours (hourly), which keep the days where a forecast has no hours.
+  const bool by_day=t.display=="forecast" || t.display=="hourly", by_hour=t.display=="hourly" && t.extra().hours.size()>=2;
+  bool clock=t.is_clock(), forecast=d=="weather" && by_day && w.wide && (t.extra().forecast.size()>0 || by_hour) && fresh() && t.available();
   bool sunpath=d=="sun" && t.display=="sunpath" && w.wide && !t.extra().sunrise.empty() && !t.extra().sunset.empty() && fresh() && t.available();
   bool graph=d=="sensor" && t.display=="graph" && t.has_history && !clock;
   // The energy card (firmware 0.47.0+) draws its own diagram, on any size it takes.
@@ -2221,7 +2310,7 @@ inline void render_slot(size_t slot) {
     label(w.value,value);
     lap(swipe_profile::GEOMETRY);
   }else if((taller||(w.full&&(tile_controls::cover_tilt_selected(t)||tile_controls::climate_modes_selected(t)))||
-            (!w.full&&t.row_span()==1&&t.inline_control!="slider"&&(cover_row_card(t)||preset_cell(w,t))))&&!custom&&!watch&&!graph&&
+            (!calm_look&&!w.full&&t.row_span()==1&&t.inline_control!="slider"&&(cover_row_card(t)||preset_cell(w,t))))&&!custom&&!watch&&!graph&&
      render_tall(w,t,with_panel,content_w,content_h)){
     lap(swipe_profile::GEOMETRY);
   }else if(w.full && !bedside){
@@ -2242,7 +2331,7 @@ inline void render_slot(size_t slot) {
     set_text_align(w.title,LV_TEXT_ALIGN_CENTER);set_text_align(w.value,LV_TEXT_ALIGN_CENTER);
     lv_obj_set_pos(w.title,0,top+circle+gap);lv_obj_set_width(w.title,content_w);
     lv_obj_set_pos(w.value,0,top+circle+gap+title_height+line_gap);lv_obj_set_width(w.value,content_w);
-    fit_value(w.value,value,value_short,value_tail,content_w);
+    fit_value(w.value,value,value_short,value_tail,content_w,roll);
     lap(swipe_profile::CUSTOM);
   }else if(custom){
     lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);
@@ -2326,14 +2415,14 @@ inline void render_slot(size_t slot) {
   lv_obj_set_width(w.title,std::max(1,text_room-text_x));
   int value_room=std::max(1,text_room-text_x);
   lv_obj_set_width(w.value,value_room);
-  fit_value(w.value,value,value_short,value_tail,value_room);
+  fit_value(w.value,value,value_short,value_tail,value_room,roll);
   if(one_line){
     lv_point_t need;lv_text_get_size(&need,lv_label_get_text(w.value),value_face,0,0,LV_COORD_MAX,LV_TEXT_FLAG_EXPAND);
     const int line_w=std::max(1,text_room-text_x),value_w=std::max(1,std::min((int)need.x+2,line_w*55/100));
     set_text_align(w.value,LV_TEXT_ALIGN_RIGHT);
     lv_obj_set_pos(w.value,text_room-value_w,text_y+title_height-value_height);lv_obj_set_width(w.value,value_w);
     lv_obj_set_width(w.title,std::max(1,line_w-value_w-(ui::px(large_tile?6:3))));
-    fit_value(w.value,value,value_short,value_tail,value_w);
+    fit_value(w.value,value,value_short,value_tail,value_w,roll);
   }
   if(watch){
     int gap=ui::px(large_tile?6:2),header=std::max(circle_size,title_height);
@@ -2442,24 +2531,30 @@ inline void render_slot(size_t slot) {
 #else
   const uint32_t paint=face.key()|(bare?1u<<25:0);  // a board without sections: every card in the screen's look on the page
 #endif
-  if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
-  w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
   uint32_t accent=lock_tile?lock_accent(t):tile_controls::accent(t);
   // A lamp's own colour goes through Home Assistant's contrast rule before it reaches the glass
   // (tile_controls::lamp_color, shared with the lamp page of a group): a white bulb keeps the amber of a lamp that is on.
   if(d=="light" && on && t.has_hs_color)
     accent=tile_controls::lamp_color(t.hue,t.saturation);
+  // Everything the pass below reads, compared whole (PaintedFrom): a card whose background alone changed (firmware 0.17.0)
+  // or whose colour alone changed (GitHub #349) is painted again, one whose inputs are all as they were is not.
+  const PaintedFrom from{palette_state, uint64_t(paint), accent, w.key, t.is_page(), letterboxed(w), slider_bar_shown(t, slider_on), w.extra_mode};
+  if (w.painted == from && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
+  w.painted = from;w.panel_dirty=false;
   uint32_t state_color=on?accent:theme::STATE_OFF;
   auto color=lv_color_hex(theme::state(state_color));
-  auto circle_color=lv_color_hex(available?theme::tint(state_color,38):theme::hex(theme::TRACK));
+  // A tile's disc and its glyph say on and off as a pair (theme::tile_disc), a key tile's too, whose circle is the
+  // tile itself and carries its words.
+  const theme::Dress disc_look=theme::tile_disc(state_color,available,w.key);
+  auto circle_color=lv_color_hex(disc_look.ground);
   // Very pale bulbs still need a visible icon: a touch darker on a light card, a touch lighter on a dark one.
-  auto icon_color=lv_color_hex(available?theme::icon(state_color):theme::hex(theme::OFF));
+  auto icon_color=lv_color_hex(disc_look.ink);
   // Off: a grey track without fill or handle, as in Home Assistant.
   const uint32_t fill=slider_on?accent:theme::STATE_OFF;
   auto fill_color=lv_color_hex(theme::state(fill));
   set_color(w.slider,LV_STYLE_BG_COLOR,fill_color,LV_PART_INDICATOR);
-  set_color(w.slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::tint(fill,51)),LV_PART_MAIN);
+  set_color(w.slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::track(fill)),LV_PART_MAIN);
   slider_bar(w.slider,slider_bar_shown(t,slider_on));
   // Every card, the one over the whole page too, is white or its own pastel (firmware 0.2.77+): the state shows in the
   // icon and the controls, as on the other sizes. Firmware 0.2.62 to 0.2.76 tinted a full-page card in its state colour
@@ -2483,15 +2578,17 @@ inline void render_slot(size_t slot) {
   }
   set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
+  theme::rim(w.circle,!w.key&&disc_look.rim>0);
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
   if(w.key){
     set_color(w.tile,LV_STYLE_BG_COLOR,circle_color);
     set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(available?theme::tint(state_color,38):theme::hex(theme::TRACK))),LV_STATE_PRESSED);
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
+    theme::rim(w.tile,disc_look.rim>0);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? theme::INK : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
+  auto value_color=w.key ? lv_color_hex(theme::on_key(state_color,available)) : theme::color(face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -2590,6 +2687,7 @@ inline lv_obj_t *boot_brand_create(lv_obj_t *parent) {
   if (brand_mark) {
     image = lv_image_create(box);
     lv_image_set_src(image, brand_mark);
+    theme::as_sign(image);  // the brand's mark is a sign, as the top bar's
     lv_obj_remove_flag(image, LV_OBJ_FLAG_CLICKABLE);
     mark = static_cast<const lv_image_dsc_t *>(brand_mark)->header.w;
     width = mark;
@@ -2663,7 +2761,7 @@ inline lv_obj_t *steps_create(lv_obj_t *parent, const std::vector<std::string> &
     lv_obj_set_size(mark, tile, tile);
     lv_obj_set_style_radius(mark, tile * 26 / 100, 0);
     lv_obj_set_style_bg_opa(mark, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(mark, theme::color(marks[i % 4]), 0);
+    lv_obj_set_style_bg_color(mark, lv_color_hex(theme::mark(theme::hex(marks[i % 4]))), 0);
     // On the middle of the first line.
     lv_obj_set_pos(mark, 0, y + (line - tile) / 2);
     auto *words = lv_label_create(box);
@@ -3001,7 +3099,8 @@ inline BootView boot_view(uint32_t now) {
       break;
   }
   // The time a step takes, once it takes long enough to wonder about (a normal start passes each step in a second).
-  if (waited >= 3000) status += (status.empty() ? "" : " \u00B7 ") + elapsed_text(waited);
+  // Not on a still glass: a clock that counts seconds would be a print for each of them.
+  if (waited >= 3000 && !screen_motion::still()) status += (status.empty() ? "" : " \u00B7 ") + elapsed_text(waited);
   if (!status.empty()) lines.push_back(status);
   for (const auto &line : lines) if (!line.empty()) view.facts += (view.facts.empty() ? "" : "\n") + line;
   return view;
@@ -3128,6 +3227,9 @@ inline const void *header_home_mark = nullptr;  // the Tessera mark of the home 
 inline const lv_font_t *header_back_font = nullptr;
 inline const lv_font_t *header_status_font = nullptr;  // the Wi-Fi item's bars (firmware 0.38.0)
 inline std::function<void()> back_home;
+// The home key held for half a second (firmware 0.64.0+): the screensaver at once, the way the standby time running
+// out brings it. True when the screen went to standby; core.yaml supplies it.
+inline std::function<bool()> hold_home;
 // The battery the top bar can show (firmware 0.41.0, docs/BATTERY.md): the first of the screen's sensors in Home
 // Assistant's `battery` device class (percent), and the first binary sensor in its `battery_charging` class. Whatever the
 // board measures them with, a fuel gauge, a power chip, a voltage on a pin and a formula or the Tab5's INA226, the
@@ -3196,6 +3298,8 @@ inline void draw_header(bool live) {
 inline std::function<void()> open_this_screen;
 inline void render_header() {
   if (!enabled) return;
+  // Only the home key: Back held is still Back.
+  header_renderer.on_leading_hold([]() { return !header_back() && hold_home && hold_home(); });
   header_renderer.on_status([]() {
     if (!allowed(esphome::millis(), 14, "header navigation")) return;
     if (open_this_screen) open_this_screen();
@@ -3495,7 +3599,7 @@ inline void key_shape(Widgets &w,bool key){
   // still, the next render starts it on the new one.
   alarm_still(key?w.circle:w.tile);
   w.alarm_look=LOOK_NONE;w.alarm_mark=0;
-  w.key=key;w.cached_active=-1;
+  w.key=key;w.paint_again();
 }
 // The keys of the bedside clock on this page where its layout puts them, once the grid has placed the clock's card.
 inline void place_keys(){
@@ -3551,7 +3655,7 @@ inline int place_page(int page, bool kept = false) {
     }
   for(size_t slot=0;slot<widgets.size();++slot){
     auto &w=widgets[slot];
-    if(!kept || w.index!=shown[slot])w.cached_active=-1;
+    if(!kept || w.index!=shown[slot])w.paint_again();
     w.index=shown[slot];
     w.wide=w.index<model.count && model.tiles[w.index].wide;w.full=w.index<model.count && model.tiles[w.index].full;
     const bool key=w.index<model.count && model.tiles[w.index].is_key();
@@ -3574,11 +3678,12 @@ inline int place_page(int page, bool kept = false) {
     }
     else{lv_obj_add_flag(w.tile,LV_OBJ_FLAG_HIDDEN);hide_extra(w);hide_panel(w);}
   }
-  set_hidden(nav_prev,!(sequential || detail));
-  for(auto *control:{nav_next,nav_number})set_hidden(control,!sequential);
+  // A page at rest has no page bar: its room stays, so no tile moves when the screen wakes.
+  set_hidden(nav_prev,calm_look || !(sequential || detail));
+  for(auto *control:{nav_next,nav_number})set_hidden(control,calm_look || !sequential);
   if(nav_back_label){
-    set_hidden(nav_back_label,!detail);
-    if(detail){
+    set_hidden(nav_back_label,calm_look || !detail);
+    if(detail && !calm_look){
       label(nav_back_label,tr(txt::navigation_back));
       set_color(nav_back_label,LV_STYLE_TEXT_COLOR,theme::color(theme::INK));
       if(header_text_font)set_font(nav_back_label,header_text_font);
@@ -3853,7 +3958,7 @@ inline void forget_kept() {
 #endif
   for (auto *set : kept_sets) if (set) for (auto &w : *set) {
     end_extra(w);
-    w.index = grid.max_tiles(); w.cached_active = -1; w.art_key.clear();
+    w.index = grid.max_tiles(); w.paint_again(); w.art_key.clear();
 #if LV_USE_IMAGE
     // Their pictures go with what they showed: a picture object still pointing at a copy counts as drawing it, and the
     // store frees nothing a card draws, so the old layout's pictures stayed beside the new ones until the set showed
@@ -4001,6 +4106,9 @@ inline uint32_t prepare_built_at = 0, last_freshen = 0;
 inline void prepare_done() {
   const bool shown = preparing.foreground;
   preparing.active = preparing.foreground = false;
+  // A glass of ink printed nothing of the pages being built (prepare_start): the first page is one whole print.
+  glass_moment::whole(esphome::millis());
+  glass_moment::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);  // from now on: kept pages up to date, when idle
   ESP_LOGI("kept", "pages prepared: %u of %u, PSRAM free %u B", preparing.done, preparing.total, (unsigned) psram_free());
   // The render takes the "Preparing pages" screen away; the header alone, as nothing on the cards changed.
@@ -4045,6 +4153,8 @@ inline void prepare_start() {
   if (!room_label || applied_page < 0 || pages < 2 || !kept_capacity()) return;
   preparing.active = true;
   preparing.foreground = true;
+  // A glass of ink waits with printing until the pages stand (paper_print.h: a hold ends by itself after a while).
+  glass_moment::hold(true, esphome::millis());
   preparing.done = 0;
   preparing.total = pages - 1;
   prepare_built_at = 0;
@@ -4057,6 +4167,7 @@ inline void prepare_start() {
 // Another layout is on its way: its pages are built once it is complete (prepare_start).
 inline void prepare_cancel() {
   preparing.active = preparing.foreground = false;
+  glass_moment::hold(false, esphome::millis());
   if (preparing.timer) lv_timer_set_period(preparing.timer, 300);
 }
 // The Page buttons setting changed (firmware 0.2.69+): the same page again, with the bar and the cards in their new places.
@@ -4066,7 +4177,7 @@ inline int applied_buttons=-1;
 inline void page_buttons_changed() {
   if(!shown_page || !nav_number || applied_page<0 || applied_buttons==(page_buttons?1:0))return;
   applied_buttons=page_buttons?1:0;
-  each_card([](Widgets &w){w.cached_active=-1;w.panel_dirty=true;});
+  each_card([](Widgets &w){w.paint_again();w.panel_dirty=true;});
   apply_page(applied_page);
 }
 
@@ -4174,7 +4285,7 @@ inline void tick() {
   // "This screen" on the settings page tells its network and links again every two seconds while it is open.
   if(settings_screen::root && settings_screen::current_page==4){
     static uint32_t told=0;
-    if(esphome::millis()-told>2000){told=esphome::millis();settings_screen::refresh();}
+    if(esphome::millis()-told>(screen_motion::still()?30000u:2000u)){told=esphome::millis();settings_screen::refresh();}
   }
   // The Wi-Fi item follows the signal (firmware 0.38.0) and the battery item its level and charging (firmware 0.41.0):
   // looked at every five seconds, drawn when what one of them says changes.
@@ -4232,14 +4343,24 @@ inline void tick() {
   uint32_t second=esphome::millis()/1000;
   if(second!=last_live_second){
     last_live_second=second;
+    // A still glass (docs/PAPER.md): what runs each second here runs each minute there, and a time that counts down
+    // is drawn when its step changes (still_glass.h), so a print keeps up with it.
+    const bool still=screen_motion::still();
+    const bool beat=!still||second%60==0;
+    const auto counts=[still](Widgets &w,uint32_t left){
+      if(!still)return true;
+      const uint32_t step=still_glass::counted(left);
+      if(step==w.counted)return false;
+      w.counted=step;return true;
+    };
     // Every plugin card on the glass counts on its own clock (docs/PLUGINS.md).
-    plugin_host::tick_cards(now_epoch());
+    if(beat)plugin_host::tick_cards(now_epoch());
     // The media card's bar runs on while the track plays (firmware 0.2.64+). A wait of its face that ran out paints the
     // card again (media_face_follow): a cover that waited for its colour long enough is asked for without it, and an old
     // cover whose next one did not come goes.
     if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_index<model.count && model.tiles[detail_index].domain()=="media_player"){
       if(media_face.recheck && static_cast<int32_t>(esphome::millis()-media_face.recheck)>=0){media_face.recheck=0;refresh_detail(detail_index);}
-      if(media_progress_fill && !media_seeking)media_bar_now(model.tiles[detail_index]);
+      if(media_progress_fill && !media_seeking && beat)media_bar_now(model.tiles[detail_index]);
     }
     auto now=now_time?now_time():esphome::ESPTime{};
     int minute=now.is_valid()?now.day_of_year*1440+now.hour*60+now.minute:-1;
@@ -4248,14 +4369,14 @@ inline void tick() {
     for(size_t slot=0;slot<grid.slots();++slot){
       auto &w=widgets[slot];if(!w.tile || w.index>=model.count || lv_obj_has_flag(w.tile,LV_OBJ_FLAG_HIDDEN))continue;
       const auto &t=model.tiles[w.index];
-      if(((t.is_clock() || t.is_bedside() || t.domain()=="calendar") && new_minute) || (t.domain()=="timer" && t.state=="active") || (t.domain()=="sun" && second%60==0))card(w.index);
+      if(((t.is_clock() || t.is_bedside() || t.domain()=="calendar") && new_minute) || (t.domain()=="timer" && t.state=="active" && counts(w,timer_left(t.extra().timer_end,now_epoch(),t.extra().duration))) || (t.domain()=="sun" && second%60==0))card(w.index);
       // An alarm's delay counts down on its tile; its heartbeat stops while the screen sleeps and starts when it wakes.
-      if(t.domain()=="alarm_control_panel"){if(alarm_left(t))card(w.index);alarm_tile_look(slot,&t);}
+      if(t.domain()=="alarm_control_panel"){if(const uint32_t left=alarm_left(t);left&&counts(w,left))card(w.index);alarm_tile_look(slot,&t);}
       if(t.domain()=="lock")alarm_tile_look(slot,&t);
       // A favourite whose start never came stops saying it starts (firmware 0.24.0+).
       if(t.favorite()&&w.index<TILES_MAX&&favorite_started_at[w.index]&&!favorite_starting(w.index,t))card(w.index);
       // A media tile over the whole page: its bar runs on while the track plays (firmware 0.2.64+).
-      if(w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN) && media_card::has_track(t.state))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
+      if(beat && w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN) && media_card::has_track(t.state))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
       // A cover kept while the next one was on its way, whose wait ran out: the card draws itself again without it. A
       // stream that just became one (media_live) draws it again with "Live".
       if(w.extra_mode=="media" && ((w.cover_hold && static_cast<int32_t>(esphome::millis()-w.cover_hold)>=0) || media_live(t)!=w.media_live))refresh_tile(w.index, redraw_log::TileWhy::picture);
@@ -4264,7 +4385,7 @@ inline void tick() {
       // belong to the card drawn before (a forecast's hour labels take part 18 too), until the fill draws the dial.
       // A single dial is drawn as "calendar", a wide or full one as "analog"; firmware 0.2.62-0.2.64 moved only the
       // latter, so the hand of a single clock stood still (0.2.65). Part 18 must be the hand's own line either way.
-      else if(w.parts[18] && lv_obj_check_type(w.parts[18],&lv_line_class) && w.points &&
+      else if(!still && w.parts[18] && lv_obj_check_type(w.parts[18],&lv_line_class) && w.points &&
               (((w.extra_mode=="analog" || w.extra_mode=="calendar") && t.display=="analog") || (w.extra_mode=="calm" && t.display=="dial")) && t.is_clock())second_hand(w,now);
     }
   }
@@ -4273,7 +4394,9 @@ inline void tick() {
 // A change of look (Dark mode). The paints follow by themselves (theme::set_dark); what the tiles, the top bar and an
 // open card painted in code is drawn again here, in the same pass, so no frame shows half of each look.
 inline void restyle() {
-  each_card([](Widgets &w) { w.cached_active = -1; w.panel_dirty = true; });
+  // On a glass of ink the whole look changed: one whole print, which leaves no trace of the other look.
+  glass_moment::whole(esphome::millis());
+  each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
@@ -4283,6 +4406,19 @@ inline void restyle() {
   if (room_label) { mark_all(redraw_log::Why::look_changed); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
+}
+// The page at rest, or awake again (screen_standby.h, Glass::calm; docs/PAPER.md, "Standby is rest"). Every card and
+// the page bar are drawn again in the other look, as one change of the whole page.
+inline void calm(bool on) {
+  if (calm_look == on) return;
+  calm_look = on;
+  ESP_LOGI("tiles", "The page %s", on ? "at rest: calm, no page bar" : "awake again");
+  each_card([](Widgets &w) { w.paint_again(); w.panel_dirty = true; });
+  if (room_label) {
+    if (applied_page >= 0 && navigation_ready()) place_page(applied_page, true);
+    mark_all(redraw_log::Why::look_changed);
+    render(room_label);
+  }
 }
 }
 
@@ -4328,7 +4464,7 @@ inline int glow_peak() { return theme::dark ? 150 : 255; }
 // slow enough on the way out to read as the page coming in rather than a blink.
 constexpr int GLOW_HOLD_MS = 90, GLOW_MS = 420;
 inline void swipe_glow(Edge edge) {
-  if (!room_label) return;
+  if (!room_label || screen_motion::still()) return;
   auto *page = lv_obj_get_parent(room_label);
   // The page's own glass, the way the top bar measures it, not the display: a screen that was turned, or built
   // standing up, then lights the edge the finger really came from.
@@ -4386,7 +4522,7 @@ inline void swipe_glow(Edge edge) {
 }
 
 namespace touch_input {
-// A finger arrived or left: the standby clock, the "back to page 1" clock and `touch_down`.
+// A finger arrived or left: the standby clock, the "back to page 1" clock and the finger itself (screen_standby::contact).
 inline std::function<void(bool down)> contact;
 // A touchscreen's report in the screen's own coordinates: ESPHome's LvglComponent::rotate_coordinates,
 // which already carries the board's quarter turn and the turn the user chose.
@@ -4600,7 +4736,7 @@ inline void cancel_layout_input(bool invalidate_widgets) {
   history_asked_entity.clear();
   history = History{};
   if (invalidate_widgets) {
-    for (auto &w : widgets) { w.index = grid.max_tiles(); w.cached_active = -1; }
+    for (auto &w : widgets) { w.index = grid.max_tiles(); w.paint_again(); }
     // The next layout's cover cards start at their primary control: an index may be another cover's now.
     cover_swapped.fill(0);
     forget_kept();

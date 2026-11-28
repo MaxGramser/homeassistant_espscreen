@@ -1,7 +1,9 @@
 // The page around the screens (stores/ui.ts): a toast that goes by itself, the view the address names, the phone's
 // editor of everyday changes, and what its start follows until it is stopped.
+import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
+import Toast from "../../src/components/Toast.vue";
 import { useUiStore } from "../../src/stores/ui";
 import { setMedia } from "../helpers/browser";
 
@@ -31,6 +33,23 @@ describe("the toast", () => {
     expect(ui.notice?.action?.run).toBe(run);
     ui.dismissToast();
     expect(ui.notice).toBeNull();
+  });
+
+  it("goes at a tap on its words, and its key does what it offers without sending the next toast away", async () => {
+    const ui = useUiStore();
+    const toast = mount(Toast, { attachTo: document.body });
+    ui.toast("Saved");
+    await nextTick();
+    await toast.find("#toast span").trigger("click");
+    expect(ui.notice).toBeNull();
+    // The key's own tap stays the key's: what it runs may show a toast of its own (Undone, with Redo), which stays.
+    const run = vi.fn(() => ui.toast("Undone"));
+    ui.toast("Tile removed", { label: "Undo", run });
+    await nextTick();
+    await toast.find("#toast button").trigger("click");
+    expect(run).toHaveBeenCalledOnce();
+    expect(ui.notice?.message).toBe("Undone");
+    toast.unmount();
   });
 });
 

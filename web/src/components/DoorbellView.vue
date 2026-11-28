@@ -2,8 +2,8 @@
 // The doorbell, a part of Events (EventsView, docs/DOORBELL.md): an automation fires esp_screens_doorbell with the
 // doorbell's camera, started by whatever rings at that house, for the screens it names. The page has one way in, the
 // wizard that builds that automation with the person's own doorbell, camera and screens and puts it into Home Assistant
-// (DoorbellWizard), the doorbell automations of Tessera under it, and, folded away, the event's fields for writing one
-// by hand and what comes back after a ring.
+// (DoorbellWizard), the doorbell automations of Tessera under it, the chime the screens play (SoundPicker), and,
+// folded away, the event's fields for writing one by hand and what comes back after a ring.
 import { computed, ref } from "vue";
 import { useAutomations } from "../composables/useAutomations";
 import { t } from "../i18n";
@@ -15,6 +15,7 @@ import { useUiStore } from "../stores/ui";
 import AutomationList from "./events/AutomationList.vue";
 import DoorbellWizard from "./events/DoorbellWizard.vue";
 import Icon from "./ui/Icon.vue";
+import SoundPicker from "./sounds/SoundPicker.vue";
 import theme from "virtual:esp-screens-theme";
 
 const ui = useUiStore();
@@ -55,6 +56,8 @@ const mock = {
       <h2>{{ t("editor.events.install.listed") }}</h2>
       <AutomationList :listed="automations.listed.value" :empty="t('editor.doorbell.hero.empty')" :refresh="automations.refresh" :remove="automations.remove" />
     </section>
+
+    <SoundPicker kind="doorbell" />
 
     <details class="card event-more" id="doorbell-by-hand">
       <summary>{{ t("editor.doorbell.by_hand.title") }}</summary>

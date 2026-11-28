@@ -5,9 +5,8 @@
 # 1280 x 800 at 149 dpi, the standard look, a grid of 5 x 5 cells either way it hangs: the same glass as the 10.1-inch
 # Guition JC8012P4A1. The panel itself is 800 x 1280 (portrait); LVGL turns the picture and the touch together. The
 # display, touch and backlight settings are the ones of a configuration a community member runs on this board, with a
-# pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log, `engineering_sample: true` from hardware/esp32p4-c6.yaml). A
-# board with rev3 silicon ("chip revision: v3.x") does not start this firmware: it is the board waveshare101v3
-# (waveshare101-v3.yaml, docs/WAVESHARE101.md). The project has not tried this file on a pre-v3 board itself. The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
+# pre-v3 ESP32-P4 ("chip revision: v1.3" in the boot log). The same board with rev3 silicon ("chip revision: v3.x") is
+# waveshare101v3, which assumes rev3 when nobody has read the chip; ESP Screen Manager reads the chip and builds for the revision it finds (CHIP_REVISION, docs/CHIP_REVISIONS.md), whichever of the two was chosen. The project has not tried this file on a pre-v3 board itself. The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
 # 10.1-inch shares with the 7-inch ESP32-P4-WIFI6-Touch-LCD-7, wired as on the Waveshare P4 86 panel (Waveshare's
 # schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default. Experimental:
 # nobody has tried the audio on this board yet. The microSD slot and the MIPI-CSI camera port are not configured.
@@ -29,12 +28,15 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare101"
   DEVICE_NAME: "waveshare101-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 10"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together. 1509 diagonal pixels over 10.1 inches.
@@ -66,15 +68,3 @@ esphome:
   # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
   # as on the Waveshare P4 86 panel. A board file's min_version wins over the core's.
   min_version: 2026.9.0
-
-# ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-P4-NANO-10.1` brings the JD9365's init
-# sequence and timings for two lanes. The model does not bring the reset pin: GPIO27 on this board, without which the
-# panel never answers.
-display:
-  - platform: mipi_dsi
-    id: my_display
-    model: WAVESHARE-P4-NANO-10.1
-    reset_pin: GPIO27
-    dimensions: {width: 800, height: 1280}
-    update_interval: never
-    auto_clear_enabled: false

@@ -69,6 +69,7 @@ text_sensor:
   - platform: template
     id: pressure_state
     name: "Pressure"
+    disabled_by_default: true
     icon: "mdi:gauge"
     entity_category: diagnostic
     update_interval: never
@@ -83,8 +84,8 @@ api:
       then:
         - lambda: |-
             if (entity.empty()) { runtime_tiles::camera_close(); return; }
-            id(last_use_ms) = millis();
-            id(wake_display).execute();
+            screen_standby::the().use(millis());
+            screen_standby::the().wake(millis());
             std::string name = entity;
             for (size_t i = 0; i < runtime_tiles::model.count; ++i)
               if (runtime_tiles::model.tiles[i].entity == entity) { name = runtime_tiles::model.tiles[i].name; break; }
@@ -117,7 +118,7 @@ interval:
   # live_view.h; nothing on the other boards).
   - interval: 50ms
     then:
-      - lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'
+      - lambda: 'picture_fetch::tick(); file_fetch::tick(); kept_sound::loop(); runtime_tiles::live_tick();'
 
 lvgl:
   style_definitions:
@@ -154,7 +155,7 @@ lvgl:
                             condition:
                               lambda: 'return screen_input::touch_guard.accept(millis(), 14) && !runtime_tiles::alert_camera.empty();'
                             then:
-                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, id(alert_title_text));'
+                              - lambda: 'runtime_tiles::camera_open(runtime_tiles::alert_camera, alert_life::the().title());'
                       widgets:
                         - label:
                             id: alert_image_icon

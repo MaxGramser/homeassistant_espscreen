@@ -48,9 +48,11 @@ class ProbeTile : public tessera::Tile {
       plugin_->tile0_mark_ = mark_;
       plugin_->tile0_ink_ = 0;
     }
-    // The large digits (0.9): taller than VALUE, with the digits of a value and without the letters of a word.
-    ESP_LOGI(TAG, "tile=%d fonts digits=%d value=%d covers=%d,%d", tile_, ui::line_height(Font::DIGITS),
-             ui::line_height(Font::VALUE), (int) ui::covers("-21,5°", Font::DIGITS), (int) ui::covers("open", Font::DIGITS));
+    // The large digits (0.9): taller than VALUE, with the digits of a value and without the letters of a word. The
+    // clocks' digits (0.29): half a page's two digits, larger than DIGITS, and the page's own, at least as large.
+    ESP_LOGI(TAG, "tile=%d fonts digits=%d value=%d covers=%d,%d large=%d page=%d clock=%d", tile_, ui::line_height(Font::DIGITS),
+             ui::line_height(Font::VALUE), (int) ui::covers("-21,5°", Font::DIGITS), (int) ui::covers("open", Font::DIGITS),
+             ui::line_height(Font::DIGITS_LARGE), ui::line_height(Font::DIGITS_PAGE), (int) ui::covers("07:45", Font::DIGITS_PAGE));
     // The tones for a block (0.9): the badge in GOOD's green, and the four tones' colours, each its own.
     ui::set_fill(badge_, tessera::Tone::GOOD, theme::ACCENT);
     ESP_LOGI(TAG, "tile=%d tones good=%06X busy=%06X alert=%06X normal=%06X fill=%06X", tile_,

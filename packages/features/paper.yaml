@@ -1,0 +1,37 @@
+# ESP Screens - a glass of e-paper, for a board that includes this file in place of features/backlight.yaml
+# (docs/PAPER.md).
+#
+# The board file names its panel as a display of ESPHome's `epaper_spi` with `id: paper_panel`, with the driver's
+# partial refresh on (`full_update_every: 255`: the paper glass asks for the whole refreshes itself) and
+# `update_interval: never`. This file puts the paper glass on it, the display LVGL draws on (`my_display`,
+# components/paper_glass): every pixel becomes one of the panel's inks, and a printer decides when the panel refreshes.
+#
+# What follows from paper is said here once, for every such board:
+# - It has no light of its own. The three places the shared tree sets a backlight are empty, there is no brightness to
+#   set, and an alert does not blink.
+# - It keeps its picture without power, so its standby is rest, not dark: the page stays readable, or the screensaver
+#   shows where one is set (components/smart_display/screen_standby.h).
+# - LVGL draws only while the panel is not refreshing.
+# - Its letters and icons are built without soft edges. A panel of two inks cannot show them, they cost a quarter of
+#   the flash, and on the glass they read sharper (a reTerminal Sticky, 2026-11-27).
+substitutions:
+  # The inks the panel prints with: 2 is black and white. A board whose panel prints four greys states 4.
+  PAPER_INKS: "2"
+  LVGL_WAITS_FOR_GLASS: "true"
+  FONT_TEXT_BPP: 1
+  FONT_ICON_BPP: 1
+  # No light: nothing to set, to start or to bring up for an update.
+  SET_BACKLIGHT: ""
+  BOOT_BACKLIGHT: ""
+  OTA_BACKLIGHT: ""
+  BACKLIGHT_DIMMABLE: "false"
+  ALERT_BLINKS: "0"
+
+display:
+  - platform: paper_glass
+    id: my_display
+    panel: paper_panel
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    inks: ${PAPER_INKS}

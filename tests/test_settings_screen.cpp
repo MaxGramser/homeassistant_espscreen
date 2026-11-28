@@ -97,7 +97,7 @@ int main() {
   // rows go, the Night page goes from the menu, and the switch that ties page 1 to standby goes with them.
   {
     const Row &auto_standby = row_named(light, "Auto standby");
-    const Row &standby_after = row_named(light, "Standby after");
+    const Row &standby_after = row_named(light, "After");  // as under Back to Home: "Standby after" was cut on a narrow glass
     const Row &standby_switch = row_named(light, "Screen on in standby");
     const Row &night_page = row_named(pages[0], "Night");
     const Row &night_mode = row_named(pages[2], "Night mode");
@@ -341,6 +341,29 @@ int main() {
   dimmable = true;  can_standby = true;   assert(features() == "dimmable standby battery");
   dimmable = false; can_standby = false;  assert(features() == "battery");
   battery_status::level = nullptr;
+  // A glass of ink has no light (docs/PAPER.md): it says so, and has no row for a brightness or a night. Standby
+  // stays: it is the picture the glass keeps while it rests. So does the dark look: ink and paper traded.
+  const bool lit_before = lit;
+  lit = false; dimmable = false; can_standby = true;
+  assert(features() == "standby paper");
+  for (const auto &row : light_rows) {
+    const bool stays = row.label == screen_text::txt::settings_dark_mode || row.label == screen_text::txt::settings_auto_standby ||
+                       row.label == screen_text::txt::settings_after;
+    assert(visible_row(row) == stays);
+  }
+  for (const auto &row : night_rows) assert(!visible_row(row));
+  // Its first page is Display there, in the menu and over the page, and Night, with no row left, is no page: asked
+  // for by its number it is the menu. A number past the last page is none on any screen.
+  assert(std::string(page_title(pages[1])) == "Display");
+  assert(visible_row(row_named(pages[0], "Display")) && !visible_row(row_named(pages[0], "Brightness")));
+  assert(offered(0) && offered(1) && !offered(2) && offered(3) && offered(4) && !offered(99));
+  lit = true;
+  assert(std::string(page_title(pages[1])) == "Brightness" && offered(2));
+  assert(!visible_row(row_named(pages[0], "Display")) && visible_row(row_named(pages[0], "Brightness")));
+  for (const auto &row : light_rows)
+    if (row.label == screen_text::txt::settings_standby_lit) assert(visible_row(row));
+  assert(visible_row(night_rows[0]));
+  lit = lit_before;
   dimmable = dimmable_before; can_standby = standby_before;
 
   // ---- a plugin's rows (docs/PLUGINS.md): their own words, read and written through their context ----

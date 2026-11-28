@@ -87,7 +87,7 @@ class ReferenceTests(unittest.TestCase):
                 self.assertEqual(ALERT_LIMITS[look][field], int(values[key]),
                                  f'core.ALERT_LIMITS[{look!r}][{field!r}] is the {look} look\'s {key}: change both')
         self.assertEqual(reference['limit_boards']['compact'], ['CYD', 'Hosyond'])
-        self.assertEqual(reference['limit_boards']['standard'], ['Guition', 'Waveshare', 'Sunton', 'M5Stack Tab5', 'reTerminal D1001', 'CrowPanel', 'SenseCAP', 'Freenove', 'WT32'])
+        self.assertEqual(reference['limit_boards']['standard'], ['Guition', 'Waveshare', 'Sunton', 'M5Stack Tab5', 'reTerminal D1001', 'CrowPanel', 'SenseCAP', 'reTerminal Sticky', 'reTerminal E1001', 'Freenove', 'WT32'])
 
     def test_colours_icons_and_the_timeout_are_the_firmwares(self):
         facts = firmware_facts()
