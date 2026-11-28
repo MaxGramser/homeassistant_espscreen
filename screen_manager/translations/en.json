@@ -2100,9 +2100,10 @@
       "plugins": "Plugins",
       "tiles": {
         "view": "How the library shows entities",
-        "tiles": "Tiles",
+        "best": "Best fit",
         "list": "List",
-        "tiles_title": "Show every entity as the tiles it can be, at their sizes",
+        "best_title": "Show every entity as the tile that suits its kind best. Point at a tile to see all its sizes.",
+        "size_title": "Show every entity at {size}, or the largest it takes under that",
         "list_title": "Show the entities as a list",
         "placed": "On this screen",
         "add_size": "Add {name} as a tile of {columns} × {rows}"

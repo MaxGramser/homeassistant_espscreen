@@ -2100,9 +2100,10 @@
       "no_room": "Sin estancia",
       "tiles": {
         "view": "Cómo muestra la biblioteca las entidades",
-        "tiles": "Mosaicos",
+        "best": "Ideal",
         "list": "Lista",
-        "tiles_title": "Mostrar cada entidad como los mosaicos que puede ser, en sus tamaños",
+        "best_title": "Muestra cada entidad como la tarjeta que mejor va con su tipo. Señala una tarjeta para ver todos sus tamaños.",
+        "size_title": "Muestra cada entidad en {size}, o en el mayor tamaño que tenga por debajo",
         "list_title": "Mostrar las entidades como lista",
         "placed": "En esta pantalla",
         "add_size": "Añadir {name} como mosaico de {columns} × {rows}"

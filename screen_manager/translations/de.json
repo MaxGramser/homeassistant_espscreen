@@ -2100,9 +2100,10 @@
       "no_room": "Ohne Raum",
       "tiles": {
         "view": "Wie die Bibliothek Entitäten zeigt",
-        "tiles": "Kacheln",
+        "best": "Passend",
         "list": "Liste",
-        "tiles_title": "Jede Entität als die Kacheln zeigen, die sie sein kann, in ihren Größen",
+        "best_title": "Jede Entität als die Kachel zeigen, die am besten zu ihrer Art passt. Auf eine Kachel zeigen, um alle Größen zu sehen.",
+        "size_title": "Jede Entität in {size} zeigen, oder in der größten Größe, die sie darunter hat",
         "list_title": "Die Entitäten als Liste zeigen",
         "placed": "Auf diesem Bildschirm",
         "add_size": "{name} als Kachel von {columns} × {rows} hinzufügen"

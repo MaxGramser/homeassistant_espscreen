@@ -2,6 +2,7 @@
 # Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
 # docs/CATALOGUE.md says what every key means.
 domain: image
+shelf: square                 # the size the library shows it at
 memory: {bytes: 144, extras: false}
 firmware: 0.2.57   # the first firmware that draws this type
 # The library shows it with the picture itself from two cells up (docs/CATALOGUE.md, "The library's tiles").

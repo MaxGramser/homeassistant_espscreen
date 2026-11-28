@@ -1,8 +1,9 @@
-// The library's Tiles view (editor/library-tiles.ts): an entity as the tiles it can be on this screen, at up to three
-// sizes, each as rich as the screen draws it there, and only what the add-on saves.
+// The library's shelf (editor/library-tiles.ts): an entity as the tiles it can be on this screen, at up to three sizes,
+// each as rich as the screen draws it there and only what the add-on saves, and the one of them the shelf shows.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screenFixture } from "./helpers/fixtures";
-import { samplesOf } from "../src/editor/library-tiles";
+import { samplesOf, shelfSample, shelfTile } from "../src/editor/library-tiles";
+import type { ShelfView } from "../src/model/library";
 import { addTile } from "../src/editor/tiles";
 import { optionsSave } from "../src/model/tile-options";
 import { useDocumentStore } from "../src/stores/document";
@@ -58,5 +59,36 @@ describe("the tiles the library offers", () => {
     const square = samplesOf("climate.living").at(-1)!;
     await addTile("climate.living", square.tile);
     expect(useDocumentStore().layout?.tiles.find((tile) => tile.entity === "climate.living")?.options).toMatchObject({ size: "square", controls: "setpoint_mode" });
+  });
+});
+
+describe("the one tile the shelf shows of an entity", () => {
+  beforeEach(() => screen());
+  const shown = (id: string, view: ShelfView) => shelfSample(samplesOf(id), view, id)?.size;
+
+  it("shows each type at the size that suits it best (catalogue shelf), and one cell where its type names none", () => {
+    expect(shown("light.hall", "best")).toBe("wide");
+    expect(shown("sensor.power", "best")).toBe("wide");
+    expect(shown("media_player.kitchen", "best")).toBe("square");
+    expect(shown("switch.fan", "best")).toBe("single");
+  });
+
+  it("at a chosen size shows that size, and the largest the entity takes under it where it does not take it", () => {
+    expect(shown("cover.blind", "small")).toBe("single");
+    expect(shown("cover.blind", "wide")).toBe("wide");
+    expect(shown("cover.blind", "large")).toBe("square");
+    const largest = samplesOf("switch.fan").at(-1)?.size;
+    expect(shown("switch.fan", "large")).toBe(largest);
+    expect(shown("switch.fan", "small")).toBe("single");
+  });
+
+  it("falls back to the largest it has under its best on a screen that has no such size", () => {
+    screen(["single", "wide", "full"]);
+    expect(shown("media_player.kitchen", "best")).toBe("wide");
+  });
+
+  it("hands the key that adds what is in focus the very tile the shelf shows", () => {
+    expect(shelfTile("light.hall", "best")?.options?.size).toBe("wide");
+    expect(shelfTile("light.hall", "small")?.options?.size).toBeUndefined();
   });
 });

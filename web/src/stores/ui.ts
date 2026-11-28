@@ -6,6 +6,7 @@ import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, ref, shallowRef } from "vue";
 import type { RouteLocationRaw } from "vue-router";
 import { t } from "../i18n";
+import { LIBRARY_VIEWS, type LibraryView } from "../model/library";
 import { whenBarFontsLoad } from "../model/topbar";
 import { flagSerializer, usePreference } from "../composables/usePreference";
 import { showText } from "../composables/useConfirm";
@@ -201,9 +202,10 @@ export const useUiStore = defineStore("ui", () => {
   const search = ref("");
   const room = ref("");
   const hidePlaced = ref(false);
-  // How the library shows what can go on a page (app 0.4.10x): as the tiles themselves, at their sizes, or as the list of
-  // entities it always was. Remembered in this browser.
-  const libraryView = usePreference<"tiles" | "list">("esp-screens.library-view", "tiles", { serializer: { read: (raw) => (raw === "list" ? "list" : "tiles"), write: (view) => view } });
+  // How the library shows what can go on a page (model/library.ts LibraryView): on its shelf, every entity as one tile at
+  // the size that suits it best or at one size for all, or as the list of entities it always was. Remembered in this
+  // browser; what an older page kept as "tiles" is the shelf at its best.
+  const libraryView = usePreference<LibraryView>("esp-screens.library-view", "best", { serializer: { read: (raw) => (LIBRARY_VIEWS.includes(raw as LibraryView) ? raw as LibraryView : "best"), write: (view) => view } });
 
   // ---- The tip beside a tile that grew (app 0.4.89, components/GrowTip.vue) ----
   // Which tile, the size it had and has, and the control set its growing put on it (null: it kept its own). Asking is

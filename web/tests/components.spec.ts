@@ -1443,19 +1443,19 @@ describe("a favourite from a pasted link (app 0.4.84)", () => {
   });
 });
 
-describe("the library's Tiles view (docs/PAGES.md, \"The library\")", () => {
+describe("the library's shelf (docs/PAGES.md, \"The library\")", () => {
   beforeEach(() => { useUiStore().libraryOpen = true; });
 
-  it("is the default: every entity as the real tiles it can be, and the list one click away and remembered", async () => {
+  it("is the default: every entity as one real tile at the size that suits it, and the list one click away and remembered", async () => {
     const library = mount(Library, { attachTo: document.body });
-    expect(useUiStore().libraryView).toBe("tiles");
+    expect(useUiStore().libraryView).toBe("best");
     const shelf = library.find(".shelf");
     expect(shelf.exists()).toBe(true);
     expect(library.find(".ent:not(.ent-section)").exists()).toBe(false);
-    // The mockup's own cards, a size each, said under it.
-    expect(shelf.findAll(".sample .tile").length).toBeGreaterThan(0);
-    expect(shelf.find(".sample-foot").text()).toContain("1 × 1");
-    await library.findAll(".lib-view button")[1].trigger("click");
+    // The mockup's own card, one an entity, without words under it.
+    expect(shelf.findAll(".sample .tile").length).toBe(1);
+    expect(shelf.find(".sample-foot").exists()).toBe(false);
+    await library.findAll(".lib-view button").at(-1)!.trigger("click");
     expect(useUiStore().libraryView).toBe("list");
     expect(localStorage.getItem("esp-screens.library-view")).toBe("list");
     expect(library.find(".shelf").exists()).toBe(false);
@@ -1463,14 +1463,53 @@ describe("the library's Tiles view (docs/PAGES.md, \"The library\")", () => {
     library.unmount();
   });
 
-  it("adds the tile it showed, at its size, on a click", async () => {
+  it("offers the shelf at its best, at each of the screen's sizes, and the list", () => {
     const library = mount(Library, { attachTo: document.body });
-    const shelf = library.findAll(".shelf").find((item) => item.attributes("id") === "lib-light.b")!;
-    const samples = shelf.findAll(".sample");
-    await samples.at(-1)!.trigger("click");
+    // A key with an icon has its glyph before its word.
+    expect(library.findAll(".lib-view button").map((key) => key.text().replace(/^[^A-Za-z0-9]+/, ""))).toEqual(["Best fit", "1 × 1", "2 × 1", "2 × 2", "List"]);
+    library.unmount();
+  });
+
+  it("adds the tile it showed, at its size, on a click: a light as a row of two, and as one cell once that size is chosen", async () => {
+    const library = mount(Library, { attachTo: document.body });
+    const cell = () => library.findAll(".shelf").find((item) => item.attributes("id") === "lib-light.b")!;
+    await cell().find(".sample").trigger("click");
     await flushPromises();
-    const added = useDocumentStore().layout!.tiles.find((tile) => tile.entity === "light.b");
+    const tiles = () => useDocumentStore().layout!.tiles.filter((tile) => tile.entity === "light.b");
+    expect(tiles().at(-1)?.options?.size).toBe("wide");
+    useDocumentStore().undo();
+    await library.findAll(".lib-view button")[1].trigger("click");
+    expect(useUiStore().libraryView).toBe("small");
+    await cell().find(".sample").trigger("click");
+    await flushPromises();
+    expect(tiles().at(-1)?.options?.size).toBeUndefined();
+    library.unmount();
+  });
+
+  it("opens a card with all of an entity's sizes over the tile the pointer rests on, and adds the one that is clicked", async () => {
+    const library = mount(Library, { attachTo: document.body });
+    const cell = library.findAll(".shelf").find((item) => item.attributes("id") === "lib-light.b")!;
+    await cell.trigger("pointerenter", { pointerType: "mouse" });
+    expect(document.body.querySelector(".lib-sizes")).toBeNull();
+    await new Promise((done) => setTimeout(done, 420));
+    const card = document.body.querySelector<HTMLElement>(".lib-sizes")!;
+    expect(card).not.toBeNull();
+    const samples = [...card.querySelectorAll<HTMLElement>(".sample")];
+    expect(samples.length).toBeGreaterThan(1);
+    expect(card.querySelector(".sample-foot")?.textContent).toContain("1 × 1");
+    samples.at(-1)!.click();
+    await flushPromises();
+    const added = useDocumentStore().layout!.tiles.filter((tile) => tile.entity === "light.b").at(-1);
     expect(added?.options?.size).toBe(samples.length > 2 ? "square" : "wide");
+    expect(document.body.querySelector(".lib-sizes")).toBeNull();
+    library.unmount();
+  });
+
+  it("opens no card for a finger: a touch places the tile", async () => {
+    const library = mount(Library, { attachTo: document.body });
+    await library.find(".shelf").trigger("pointerenter", { pointerType: "touch" });
+    await new Promise((done) => setTimeout(done, 420));
+    expect(document.body.querySelector(".lib-sizes")).toBeNull();
     library.unmount();
   });
 });
@@ -1483,7 +1522,7 @@ describe("a device's extras in the library", () => {
       { id: "sensor.a_signal", name: "Signal", area: "Kitchen", state: "-60", category: "diagnostic" },
     );
   });
-  for (const view of ["tiles", "list"] as const)
+  for (const view of ["best", "list"] as const)
     it(`stand folded under the rest of their room in the ${view} view, and open on a click`, async () => {
       useUiStore().libraryView = view;
       const library = mount(Library, { attachTo: document.body });

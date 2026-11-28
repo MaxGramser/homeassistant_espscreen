@@ -2100,9 +2100,10 @@
       "no_room": "Senza stanza",
       "tiles": {
         "view": "Come la libreria mostra le entità",
-        "tiles": "Riquadri",
+        "best": "Ideale",
         "list": "Elenco",
-        "tiles_title": "Mostra ogni entità come i riquadri che può essere, nelle loro dimensioni",
+        "best_title": "Mostra ogni entità come la tessera più adatta al suo tipo. Punta una tessera per vedere tutte le sue misure.",
+        "size_title": "Mostra ogni entità in {size}, o nella misura più grande che ha sotto",
         "list_title": "Mostra le entità come elenco",
         "placed": "Su questo schermo",
         "add_size": "Aggiungi {name} come riquadro {columns} × {rows}"

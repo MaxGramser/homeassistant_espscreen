@@ -100,7 +100,8 @@ controls:                     # direct controls on a card; the first is the defa
     one_row: setpoint                     # what a card one row high draws instead
     room: {feature: cover_rows}           # a screen with this feature lays the control out by its card's room (cover_tile.h)
 grow: [setpoint_mode]         # what a tile that grows suggests first, the richest first (see "A tile that grows")
-showcase: graph               # the face the library's Tiles view shows it in from two cells up (see "The library's tiles")
+showcase: graph               # the face the library shows it in from two cells up (see "The library's tiles")
+shelf: wide                   # the size the library's shelf shows it at: single, wide or square (see "The library's tiles")
 inline:                       # the small slider beside the name
   needs: {actions: [{action: light.turn_on, field: brightness_pct}]}
 toggle: {actions: [lock.lock]}   # what On / off as a tap needs; without this key: <domain>.toggle listed by Home Assistant
@@ -178,13 +179,17 @@ writes the suggestion with the new size as one step of undo, and `web/src/compon
 
 ## The library's tiles
 
-The library's Tiles view (docs/PAGES.md, "The library") shows every entity as the tiles it can be, at up to three
+The library (docs/PAGES.md, "The library") knows every entity as the tiles it can be, at up to three
 sizes, each as rich as the screen draws it there:
 
 - From two cells up a tile takes the face its type names in `showcase` (a sensor's curve, a player's album cover, a
   camera's live picture), where the inspector would offer it for this entity on this board and the save takes it.
 - Of the control sets that fit the size, it takes the one with the most parts (a thermostat's temperature with its
   modes, a light's brightness with its presets), the type's `grow` order deciding between equals.
+- The shelf shows one tile an entity, at the size its type names in `shelf`: the size at which a tile of that type
+  says most for the room it takes (a light's slider, a sensor's curve in a row of two; a player's cover, a camera's
+  picture in two rows of two). A type without `shelf` stands at the size its tile starts at, one cell for most. On a
+  screen that has no such size the entity stands at the largest it takes under it.
 - A type without `showcase` keeps its usual face. A weather has none yet: the editor's mockup does not draw a forecast.
 
 `web/src/editor/library-tiles.ts` holds the rule. It only chooses among what the catalogue and the add-on's rules

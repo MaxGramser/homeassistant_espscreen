@@ -31,7 +31,7 @@ VERSION = re.compile(r'^\d+\.\d+\.\d+$')
 FIRST_TYPES = frozenset('alarm_control_panel automation binary_sensor button camera climate cover fan image input_boolean input_button '
                         'input_number input_select light lock media_player number person scene screen script select sensor sun switch '
                         'timer vacuum weather'.split())
-TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'send_after', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow', 'showcase'}
+TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'send_after', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow', 'showcase', 'shelf'}
 # What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md): `bytes`
 # measured on a board with PSRAM, `extras` whether it keeps a block of extras. Every type says it, so a new one cannot
 # leave the screen's memory budget guessing; the most a tile may keep is a sanity bound, not a rule.
@@ -238,6 +238,11 @@ def normalise(tile, types, translations, facts, commands=None):
         showcase = data.get('showcase')
         if showcase is not None and showcase not in displays:
             fail(where, f'showcase names {showcase}, which is no display here')
+        # The size the library's shelf shows a tile of this type at, the one that suits it best (docs/CATALOGUE.md,
+        # "The library's tiles"): one cell, a row of two, or two rows of two. A type without it stands at the size it starts at.
+        shelf = data.get('shelf')
+        if shelf is not None and shelf not in ('single', 'wide', 'square'):
+            fail(where, f'shelf names {shelf}, which is not single, wide or square')
         picture = data.get('picture')
         if picture is not None:
             check_keys(f'{where} picture', picture, {'fit', 'overlay', 'refresh'})
@@ -290,6 +295,7 @@ def normalise(tile, types, translations, facts, commands=None):
             'inline': option(f'{where} inline', domain, 'slider', data['inline'], {}) if 'inline' in data else None,
             **({'grow': grow} if grow else {}),
             **({'showcase': showcase} if showcase else {}),
+            **({'shelf': shelf} if shelf else {}),
             'toggle': needs(f'{where} toggle', domain, data['toggle']) if 'toggle' in data else None,
             'taps': list(data.get('taps') or []),
             'guards': list(data.get('guards') or []),

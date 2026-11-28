@@ -2100,9 +2100,10 @@
       "plugins": "Plugins",
       "tiles": {
         "view": "Hoe de bibliotheek entities toont",
-        "tiles": "Tegels",
+        "best": "Mooist",
         "list": "Lijst",
-        "tiles_title": "Toon elke entity als de tegels die hij kan zijn, op hun maten",
+        "best_title": "Toon elke entity als de tegel die het best bij zijn soort past. Wijs een tegel aan om al zijn maten te zien.",
+        "size_title": "Toon elke entity op {size}, of op de grootste maat die hij daaronder heeft",
         "list_title": "Toon de entities als lijst",
         "placed": "Op dit scherm",
         "add_size": "Voeg {name} toe als tegel van {columns} × {rows}"

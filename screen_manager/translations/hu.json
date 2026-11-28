@@ -2100,9 +2100,10 @@
       "no_room": "Helyiség nélkül",
       "tiles": {
         "view": "Hogyan mutatja a könyvtár az entitásokat",
-        "tiles": "Csempék",
+        "best": "Legjobb",
         "list": "Lista",
-        "tiles_title": "Minden entitás azokként a csempékként, amelyek lehet, a méreteikben",
+        "best_title": "Minden entitás azzal a csempével, amely a típusához a legjobban illik. Mutasson egy csempére az összes méretéért.",
+        "size_title": "Minden entitás {size} méretben, vagy az alatta lévő legnagyobb méretében",
         "list_title": "Az entitások listaként",
         "placed": "Ezen a kijelzőn",
         "add_size": "{name} hozzáadása {columns} × {rows} méretű csempeként"

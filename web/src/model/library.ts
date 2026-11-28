@@ -26,6 +26,11 @@ export const FILTERS = [
 const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button", text: "input_text" };
 /** How many rows stand on the page at first, and how many more come as the list is scrolled. */
 export const ROWS_AT_ONCE = 120;
+/** How the library shows what a tile can show (docs/PAGES.md "The library"): on its shelf, every entity as one tile at the
+ * size that suits its type best or at one size for all, or as the list of entities. */
+export type ShelfView = "best" | "small" | "wide" | "large";
+export type LibraryView = ShelfView | "list";
+export const LIBRARY_VIEWS: LibraryView[] = ["best", "small", "wide", "large", "list"];
 
 /** How many tiles each entity has on the screen. */
 export function tileCounts(tiles: readonly Tile[]) {

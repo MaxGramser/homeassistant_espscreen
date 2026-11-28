@@ -2100,9 +2100,10 @@
       "no_room": "Sans pièce",
       "tiles": {
         "view": "Comment la bibliothèque montre les entités",
-        "tiles": "Tuiles",
+        "best": "Idéal",
         "list": "Liste",
-        "tiles_title": "Montrer chaque entité sous forme des tuiles qu'elle peut être, à leurs tailles",
+        "best_title": "Afficher chaque entité avec la tuile qui convient le mieux à son type. Pointez une tuile pour voir toutes ses tailles.",
+        "size_title": "Afficher chaque entité en {size}, ou dans la plus grande taille qu’elle a en dessous",
         "list_title": "Montrer les entités sous forme de liste",
         "placed": "Sur cet écran",
         "add_size": "Ajouter {name} comme tuile de {columns} × {rows}"

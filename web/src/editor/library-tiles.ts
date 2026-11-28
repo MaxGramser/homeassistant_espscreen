@@ -1,11 +1,13 @@
-// The library's Tiles view (components/LibraryShelf.vue, docs/PAGES.md "The library"): an entity shown as the tiles it
-// can be on this screen, at up to three sizes, each as rich as the screen draws it there. A click or a drag puts that
-// very tile on the page. What a size may hold comes from the catalogue and the add-on's rules, as everywhere else in
+// The library's shelf (components/LibraryShelf.vue, docs/PAGES.md "The library"): an entity shown as the tiles it can be
+// on this screen, at up to three sizes, each as rich as the screen draws it there. The shelf shows one of them, the size
+// that suits its type best or the one the person chose, and the card that opens over it shows them all. A click or a
+// drag puts that very tile on the page. What a size may hold comes from the catalogue and the add-on's rules, as everywhere else in
 // the editor (model/tile-options.ts): this file only chooses among what they offer. Tested by library-tiles.test.ts.
 import { canonicalOptions, controlSets, displayChoices, optionsSave } from "../model/tile-options";
-import { controlParts, growOrder, resolveControls, showcaseOf } from "../model/catalogue";
+import { controlParts, growOrder, resolveControls, shelfOf, showcaseOf } from "../model/catalogue";
 import { dimensions } from "../model/layout";
 import { presetsOf, starterPresets } from "../model/light-presets";
+import type { ShelfView } from "../model/library";
 import type { Size } from "../model/sizes";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -33,6 +35,38 @@ export function samplesOf(id: string): Sample[] {
   // whole page: that is the inspector's choice, and it would stand larger than the page beside it.
   if (!samples.some((item) => item.size === first) && offered.includes(first) && first !== "full") samples.push(sample(first, start));
   return samples;
+}
+
+const STEP: Record<Exclude<ShelfView, "best">, number> = { small: 0, wide: 1, large: 2 };
+const stepOf = (size: Size) => SHOWN.findIndex((choices) => choices.includes(size));
+/** The size the shelf's three steps stand for on this screen, for the words of their keys: a grid without a 2 x 2 has
+ * the tall one as its largest. */
+export function shelfSizes(): Size[] {
+  const { grid } = useDocumentStore().editorLayout;
+  return [SHOWN[0][0], SHOWN[1][0], grid.columns >= 2 && grid.rows >= 2 ? "square" : "tall"];
+}
+/** The one tile of `samples` the shelf shows. Best: the size its type names (catalogue `shelf`), else the size the tile
+ * starts at. A chosen size: that size, and where the entity does not take it the largest it takes under it, so nothing
+ * leaves the shelf for the size it is shown at. An entity that only comes larger stands at its smallest. */
+export function shelfSample(samples: Sample[], view: ShelfView, entity: string, start?: Size): Sample | undefined {
+  if (!samples.length) return undefined;
+  const wanted = view === "best" ? (shelfOf(entity.split(".")[0]) ?? start ?? "single") : null;
+  if (wanted) {
+    const exact = samples.find((item) => item.size === wanted);
+    if (exact) return exact;
+  }
+  const step = wanted ? stepOf(wanted) : STEP[view as Exclude<ShelfView, "best">];
+  // A size outside the three steps (a calendar's own, the energy card's) has no step: it stands as it starts.
+  if (step < 0) return samples[samples.length - 1];
+  for (let at = step; at >= 0; at--) {
+    const match = samples.find((item) => stepOf(item.size) === at);
+    if (match) return match;
+  }
+  return samples[0];
+}
+/** The tile the shelf shows of an entity, for the key that adds what is in focus (Library.vue). */
+export function shelfTile(id: string, view: ShelfView): Tile | undefined {
+  return shelfSample(samplesOf(id), view, id, startTile(id).options?.size as Size | undefined)?.tile;
 }
 
 /** The tile at a size as rich as the screen draws it there: from two cells up the face its type is shown in (catalogue

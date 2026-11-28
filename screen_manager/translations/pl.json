@@ -2100,9 +2100,10 @@
       "no_room": "Bez pomieszczenia",
       "tiles": {
         "view": "Jak biblioteka pokazuje encje",
-        "tiles": "Kafelki",
+        "best": "Najlepszy",
         "list": "Lista",
-        "tiles_title": "Pokaż każdą encję jako kafelki, którymi może być, w ich rozmiarach",
+        "best_title": "Pokaż każdą encję jako kafelek, który najlepiej pasuje do jej rodzaju. Wskaż kafelek, aby zobaczyć wszystkie rozmiary.",
+        "size_title": "Pokaż każdą encję w rozmiarze {size} lub w największym, jaki ma poniżej",
         "list_title": "Pokaż encje jako listę",
         "placed": "Na tym ekranie",
         "add_size": "Dodaj {name} jako kafelek {columns} × {rows}"

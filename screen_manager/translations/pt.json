@@ -2100,9 +2100,10 @@
       "no_room": "Sem divisão",
       "tiles": {
         "view": "Como a biblioteca mostra as entidades",
-        "tiles": "Mosaicos",
+        "best": "Ideal",
         "list": "Lista",
-        "tiles_title": "Mostrar cada entidade como os mosaicos que pode ser, nos seus tamanhos",
+        "best_title": "Mostra cada entidade como o mosaico que melhor se adequa ao seu tipo. Aponte para um mosaico para ver todos os tamanhos.",
+        "size_title": "Mostra cada entidade em {size}, ou no maior tamanho que tiver abaixo disso",
         "list_title": "Mostrar as entidades como lista",
         "placed": "Neste ecrã",
         "add_size": "Adicionar {name} como mosaico de {columns} × {rows}"

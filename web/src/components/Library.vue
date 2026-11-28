@@ -5,17 +5,19 @@
 // entity stand in a column on the left and the entities beside them, grouped by room until a search ranks them.
 // Its top edge drags it taller or lower, and both are remembered.
 // A click adds the entity to the marked empty cell or the first free one; a drag puts it exactly where it lands.
-// Two views of the same results (docs/PAGES.md "The library"): Tiles, the default, draws every entity as the tiles it can
-// be at its sizes (LibraryShelf.vue), List the rows it always had. A room's extras (Home Assistant's settings, diagnosis
+// Two views of the same results (docs/PAGES.md "The library"): the shelf, the default, draws every entity as one tile, at
+// the size that suits its type best or at one size for all (LibraryShelf.vue), with a card of all its sizes over the
+// tile that is pointed at (LibrarySizes.vue); List has the rows it always had. A room's extras (Home Assistant's settings, diagnosis
 // and hidden entities) stand folded under the rest in both.
 import { useElementSize, useEventListener, useInfiniteScroll, useTimeoutFn } from "@vueuse/core";
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
 import { glyph } from "../model/topbar";
+import { dimensions } from "../model/layout";
 import { isExtra, entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, ROWS_AT_ONCE, shortName as short, tileCounts,
-  type Entry, type LibraryFilter } from "../model/library";
+  type Entry, type LibraryFilter, type LibraryView, type ShelfView } from "../model/library";
 import { tilePalette } from "../model/tile-palette";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
@@ -24,6 +26,9 @@ import { isEditableTarget } from "../composables/isEditableTarget";
 import { question } from "../composables/useConfirm";
 import Icon from "./ui/Icon.vue";
 import LibraryShelf from "./LibraryShelf.vue";
+import LibrarySizes, { type Anchor } from "./LibrarySizes.vue";
+import { shelfSizes, shelfTile } from "../editor/library-tiles";
+import { useDragStore } from "../stores/drag";
 import UiSegmented from "./ui/UiSegmented.vue";
 import { cardContent, cardHeight, frameOf } from "../model/ui-scale";
 import { useCanvasStore } from "../stores/canvas";
@@ -47,6 +52,7 @@ const inv = useInventoryStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
 const canvas = useCanvasStore();
+const dragging = useDragStore();
 
 // Open: on a wider page the drawer along the bottom, remembered; on a phone (app 0.4.40) a sheet that opens for a tile
 // and goes once it is added, closed or swiped away. Closing it there forgets the cell it was opened for.
@@ -116,10 +122,12 @@ const flat = computed(() => allGroups.value.flatMap((group) => group.entities));
 // Everything is listed, but a home's thousand entities don't stand on the page at once: the rows come as the list is
 // scrolled towards them, and a new search or kind starts at the top again.
 const list = ref<HTMLElement | null>(null);
-const tilesView = computed(() => ui.libraryView === "tiles" && !ui.phone);
-// The Tiles view draws three cards an entity: a screenful of shelves and two more ahead come at once (shelvesInView,
-// below), more as the list is scrolled.
-const step = computed(() => (tilesView.value ? shelvesInView.value * 3 : ROWS_AT_ONCE));
+const tilesView = computed(() => ui.libraryView !== "list" && !ui.phone);
+// What the shelf shows of every entity: the size that suits it best, or the one size the person chose.
+const shelfView = computed<ShelfView>(() => (ui.libraryView === "list" ? "best" : ui.libraryView));
+// The shelf draws a real card an entity: three screenfuls of them come at once (tilesInView, below), more as the list is
+// scrolled.
+const step = computed(() => (tilesView.value ? Math.max(24, tilesInView.value * 3) : ROWS_AT_ONCE));
 const rows = ref(ROWS_AT_ONCE);
 // While browsing a room's extras stand folded apart and are left out of the window: they come whole when unfolded.
 const groups = computed(() => {
@@ -165,58 +173,94 @@ const mainOf = (group: { entities: Entry[] }) => group.entities;
 const extrasOf = (group: { extras: Entry[] }) => group.extras;
 function unfold(key: string) { const next = new Set(unfolded.value); if (next.has(key)) next.delete(key); else next.add(key); unfolded.value = next; }
 const extraKinds = (list: Entry[]) => [...new Set(list.map((e) => (e.category ?? "hidden")))].map((kind) => t(`editor.library.extras.${kind}`)).join(", ");
-// ---- The Tiles view's scale (docs/PAGES.md "The library") ----
-// Every card at one scale, so the sizes compare. The sizes of a shelf stand on one line in the strip's width, and the
-// tallest, a card of two rows as the page draws it, fills the height the list has under a shelf's own name and sizes;
-// never larger than on the page, and for the height never smaller than LEAST_SCALE of it, under which its words stop
-// being readable (the drawer opens that high instead).
-// What a shelf and the drawer take beside the cards is measured from what they draw (their CSS), not counted here.
-const LEAST_SCALE = 0.5;
-// The list's height with its padding: what a shelf has to stand in.
+// ---- The shelf's grid and scale (docs/PAGES.md "The library") ----
+// The shelf is a wide page of the screen: its tiles stand in a grid of the screen's own cells, each on the cells it
+// takes there, the gaps between them the glass's own, so a tile of two cells is as wide as two tiles of one with their
+// gap. Every card at one scale, so they compare: LINES lines of one-row tiles fill the height the list has beside a
+// room's title and the strip's own padding, so a low drawer shows many, never larger than on the page, and never
+// smaller than LEAST_SCALE of it, under which its words stop being readable (the drawer opens that high instead). A row
+// of two always fits the strip's width.
+// What the list takes beside the cards is measured from what it draws (its CSS), not counted here.
+const LEAST_SCALE = 0.5, LINES = 3;
+// The list's height with its padding: what the shelf has to stand in.
 const { height: listHeight } = useElementSize(list, undefined, { box: "border-box" });
-const shelfChrome = ref(0), drawerChrome = ref(0), strip = ref({ width: 0, gap: 0 });
+const shelfChrome = ref(0), drawerChrome = ref(0), stripWidth = ref(0);
 // A measure is taken a frame after the drawing it reads, and kept only when it moved by more than a pixel: what it
 // changes is drawn again and measured once more, and that settles instead of going round. The frame is what keeps the
 // page alive: a measure in the same tick as the drawing (nextTick) chains every pass into one microtask queue, and a
 // scale that flips between two values then never lets the browser draw again (it froze the page at 1440 x 1000).
 const settle = (target: { value: number }, next: number) => { if (Math.abs(target.value - next) > 1) target.value = next; };
 function measureShelves() {
-  const shelf = list.value?.querySelector<HTMLElement>(".shelf"), row = shelf?.querySelector<HTMLElement>(".shelf-row");
-  if (row) {
-    const css = getComputedStyle(row);
-    const width = row.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight), gap = parseFloat(css.columnGap) || 0;
-    if (Math.abs(strip.value.width - width) > 1 || strip.value.gap !== gap) strip.value = { width, gap };
-  }
-  // What the first shelf takes beside its cards, from the top of the list: the room's title above it, its name, the
-  // strip's padding and the sizes' words, on a shelf whose cards stand on one line.
-  const tallest = Math.max(0, ...[...(shelf?.querySelectorAll<HTMLElement>(".sample-glass") ?? [])].map((glass) => glass.offsetHeight));
-  // The cards stand on the strip's floor: on one line they all end at the same height.
-  const oneLine = row && new Set([...row.querySelectorAll<HTMLElement>(".sample")].map((sample) => Math.round(sample.offsetTop + sample.offsetHeight))).size <= 1;
-  if (shelf && tallest && oneLine) {
-    const bottom = shelf.getBoundingClientRect().bottom - list.value!.getBoundingClientRect().top + list.value!.scrollTop;
-    settle(shelfChrome, bottom + parseFloat(getComputedStyle(list.value!).paddingBottom) - tallest);
+  const stripEl = list.value?.querySelector<HTMLElement>(".lib-strip"), first = stripEl?.querySelector<HTMLElement>(".sample-glass");
+  if (stripEl) {
+    const css = getComputedStyle(stripEl);
+    settle(stripWidth, stripEl.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight));
+    // What stands beside the first line of cards, from the top of the list: the room's title above the strip and the
+    // strip's own padding, above the cards and under them.
+    if (first) {
+      const top = first.getBoundingClientRect().top - list.value!.getBoundingClientRect().top + list.value!.scrollTop;
+      settle(shelfChrome, top + parseFloat(css.paddingBottom) + parseFloat(getComputedStyle(list.value!).paddingBottom));
+    }
   }
   const aside = list.value?.closest<HTMLElement>(".library");
   if (aside && open.value && list.value!.clientHeight) settle(drawerChrome, aside.offsetHeight - list.value!.clientHeight);
 }
-const shelfTwoRows = computed(() => {
-  const shape = doc.screenShape as Parameters<typeof cardHeight>[0], grid = doc.editorLayout.grid, glass = Number(canvas.deviceStyle["--glass"]) || 1;
-  return cardHeight(shape, grid.rows, Math.min(2, grid.rows), 0, canvas.pageBarShown) * glass;
-});
-// The widest shelf the screen offers: one cell, a row of two and two rows of two side by side (library-tiles.ts SHOWN).
-const shelfWidth = computed(() => {
+// One cell of the screen as the mockup draws it, and the gaps between two: a row of two less two cells, two rows less
+// two cells, so the shelf's grid lays its tiles out exactly as the glass does.
+const cell = computed(() => {
   const shape = doc.screenShape as Parameters<typeof cardContent>[0], grid = doc.editorLayout.grid, glass = Number(canvas.deviceStyle["--glass"]) || 1;
-  const card = (columns: number) => (cardContent(shape, grid.columns, Math.min(columns, grid.columns)) + 2 * frameOf(shape).tile_pad + 2) * glass;
-  return card(1) + 2 * card(2);
+  const width = (columns: number) => (cardContent(shape, grid.columns, Math.min(columns, grid.columns)) + 2 * frameOf(shape).tile_pad + 2) * glass;
+  const height = (rows: number) => cardHeight(shape, grid.rows, Math.min(rows, grid.rows), 0, canvas.pageBarShown) * glass;
+  const one = { width: width(1), height: height(1) };
+  return { ...one, gapX: grid.columns >= 2 ? Math.max(0, width(2) - 2 * one.width) : 8, gapY: grid.rows >= 2 ? Math.max(0, height(2) - 2 * one.height) : 8,
+    two: { width: width(2), height: height(2) } };
 });
+const shelfTwoRows = computed(() => cell.value.two.height);
 const shelfZoom = computed(() => {
-  const byHeight = (listHeight.value - shelfChrome.value) / Math.max(1, shelfTwoRows.value);
-  const byWidth = strip.value.width ? (strip.value.width - 2 * strip.value.gap) / Math.max(1, shelfWidth.value) : 1;
-  // One line comes first: a narrow list makes the cards smaller still, rather than break a shelf in two.
+  const lines = LINES * cell.value.height + (LINES - 1) * cell.value.gapY;
+  const byHeight = (listHeight.value - shelfChrome.value) / Math.max(1, lines);
+  const byWidth = stripWidth.value ? stripWidth.value / Math.max(1, cell.value.two.width) : 1;
   return Math.min(1, byWidth, Math.max(LEAST_SCALE, byHeight));
 });
-// How many shelves a screenful of the list holds.
-const shelvesInView = computed(() => Math.max(1, Math.ceil(listHeight.value / Math.max(1, shelfTwoRows.value * shelfZoom.value + shelfChrome.value))));
+// How many cells a line of the strip holds, and the widest a tile can stand there.
+const shelfColumns = computed(() => {
+  const step = (cell.value.width + cell.value.gapX) * shelfZoom.value;
+  return Math.max(1, Math.floor((stripWidth.value + cell.value.gapX * shelfZoom.value) / Math.max(1, step)));
+});
+const shelfMaxWidth = computed(() => (shelfColumns.value * cell.value.width + (shelfColumns.value - 1) * cell.value.gapX) * shelfZoom.value);
+const stripStyle = computed(() => ({
+  gridTemplateColumns: `repeat(auto-fill, ${cell.value.width * shelfZoom.value}px)`, gridAutoRows: `${cell.value.height * shelfZoom.value}px`,
+  gap: `${cell.value.gapY * shelfZoom.value}px ${cell.value.gapX * shelfZoom.value}px` }));
+// How many tiles a screenful of the list holds, counted as tiles of one cell.
+const tilesInView = computed(() => shelfColumns.value * Math.max(1, Math.ceil(listHeight.value / Math.max(1, (cell.value.height + cell.value.gapY) * shelfZoom.value))));
+
+// ---- The card with all of an entity's sizes, over the tile that is pointed at ----
+// It opens once the pointer has rested on a tile a moment, so crossing the shelf opens nothing, and follows at once to the
+// next tile while it is open. It stays while the pointer is on the tile or on the card, and goes a moment after it left
+// both, when the list scrolls, when a tile is placed and when the search changes. The arrow keys open it on the result
+// they stand on. While a tile is dragged it only hides, since the tile in the pointer may be one of its own.
+const peek = ref<{ id: string; anchor: Anchor } | null>(null);
+const peekEntity = computed(() => (peek.value ? flat.value.find((entity) => entity.id === peek.value!.id) ?? null : null));
+let peekIn = 0, peekOut = 0;
+function showPeek(id: string, el: HTMLElement) {
+  const box = el.getBoundingClientRect();
+  peek.value = { id, anchor: { left: box.left, top: box.top, bottom: box.bottom } };
+}
+function pointAt(id: string, el: HTMLElement) {
+  if (dragging.active) return;
+  window.clearTimeout(peekIn); window.clearTimeout(peekOut);
+  if (peek.value?.id === id) return;
+  peekIn = window.setTimeout(() => showPeek(id, el), peek.value ? 110 : 380);
+}
+function pointAway() {
+  window.clearTimeout(peekIn); window.clearTimeout(peekOut);
+  peekOut = window.setTimeout(() => { peek.value = null; }, 220);
+}
+const keepPeek = () => window.clearTimeout(peekOut);
+function closePeek() { window.clearTimeout(peekIn); window.clearTimeout(peekOut); peek.value = null; }
+watch(() => [ui.search, ui.filter, ui.room, ui.libraryView, open.value, tilesView.value], closePeek);
+watch(() => dragging.active, (active) => { if (!active) closePeek(); });
+onBeforeUnmount(closePeek);
 
 // ---- Keyboard: type anywhere to search, arrows to walk, Enter to add ----
 const search = ref<HTMLInputElement | null>(null);
@@ -225,9 +269,14 @@ const addable = (e: Entry) => !placed(e.id) && !full.value;
 // The arrows walk the results round, the one in focus scrolled into view; Enter adds it; a new search starts at the first.
 const results = useListNavigation(flat, {
   wrap: true,
-  onPick: (entity) => (addable(entity) ? (addTile(entity.id), true) : false),
+  onPick: (entity) => (addable(entity) ? (addTile(entity.id, tilesView.value ? shelfTile(entity.id, shelfView.value) : undefined), closePeek(), true) : false),
   resetOn: () => [ui.search, ui.filter, ui.room],
-  onMove: (index) => { if (index >= rows.value) rows.value = index + step.value; nextTick(() => (list.value?.querySelector(".ent.active, .shelf.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })); },
+  onMove: (index) => { if (index >= rows.value) rows.value = index + step.value; nextTick(() => {
+    const row = list.value?.querySelector<HTMLElement>(".ent.active, .shelf.active");
+    row?.scrollIntoView?.({ block: "nearest" });
+    // The result the arrows stand on shows all its sizes, as the one under the pointer does.
+    if (row?.classList.contains("shelf") && flat.value[index]) showPeek(flat.value[index].id, row);
+  }); },
 });
 const active = results.active;
 function onSearchKey(e: KeyboardEvent) {
@@ -273,7 +322,19 @@ const heightChosen = (() => { try { return localStorage.getItem("esp-screens.lib
 const height = ref(heightChosen ? keptHeight.value : Math.min(300, Math.max(MIN, Math.round(window.innerHeight * 0.3))));
 const maxHeight = () => Math.max(MIN, Math.round(window.innerHeight * 0.7));
 function toggle() { open.value = !open.value; }
-function showView(view: string) { ui.libraryView = view === "list" ? "list" : "tiles"; open.value = true; }
+function showView(view: string) { ui.libraryView = view as LibraryView; open.value = true; }
+// The view's keys: the shelf at its best, the shelf at each of the screen's three sizes in its own cells, and the list.
+// Two sizes that come to the same cells on this screen (a grid of one column) stand once.
+const viewSegments = computed(() => {
+  const grid = doc.editorLayout.grid, seen = new Set<string>();
+  const sizes = (["small", "wide", "large"] as const).map((view, at) => { const { columns, rows } = dimensions(shelfSizes()[at], grid); return { view, words: `${columns} × ${rows}` }; })
+    .filter((size) => !seen.has(size.words) && seen.add(size.words));
+  return [{ value: "best", label: t("editor.library.tiles.best"), icon: "view-grid-outline" as const, title: t("editor.library.tiles.best_title") },
+    ...sizes.map((size) => ({ value: size.view, label: size.words, title: t("editor.library.tiles.size_title", { size: size.words }) })),
+    { value: "list", label: t("editor.library.tiles.list"), icon: "format-list-bulleted" as const, title: t("editor.library.tiles.list_title") }];
+});
+// A size this screen folds into another is shown as the one that stands for it.
+const viewShown = computed(() => (viewSegments.value.some((segment) => segment.value === ui.libraryView) ? ui.libraryView : "best"));
 
 // Typing in the folded bar opens the drawer on what it finds.
 watch(() => ui.search, (q) => { if (q) open.value = true; });
@@ -301,7 +362,7 @@ const shownHeight = computed(() => (tilesView.value
   ? Math.max(height.value, Math.min(maxHeight(), drawerChrome.value + shelfChrome.value + shelfTwoRows.value * LEAST_SCALE)) : height.value));
 // Measured again whenever what they draw changes: the shelves, the view, the drawer, and the scale itself, after which
 // a shelf that wrapped stands on one line and can be measured.
-watch([() => groups.value, tilesView, open, listHeight, shelfZoom], () => requestAnimationFrame(measureShelves), { immediate: true });
+watch([() => groups.value, tilesView, open, listHeight, shelfZoom, () => ui.libraryView], () => requestAnimationFrame(measureShelves), { immediate: true });
 // The first window is the view's own, and a screenful more measured than the list holds gets its shelves at once.
 watch(step, (next, before) => { if (before === undefined || rows.value < next) rows.value = next; }, { immediate: true });
 function onResizeKey(e: KeyboardEvent) {
@@ -335,10 +396,7 @@ function onResizeKey(e: KeyboardEvent) {
         <kbd v-if="!ui.search && !searching" aria-hidden="true">/</kbd>
       </label>
       <span v-if="!open" class="lib-count">{{ t("editor.library.entities", count) }}</span>
-      <UiSegmented v-if="!ui.phone" class="lib-view" :label="t('editor.library.tiles.view')" :model-value="ui.libraryView" :segments="[
-        { value: 'tiles', label: t('editor.library.tiles.tiles'), icon: 'view-grid-outline', title: t('editor.library.tiles.tiles_title') },
-        { value: 'list', label: t('editor.library.tiles.list'), icon: 'format-list-bulleted', title: t('editor.library.tiles.list_title') }]"
-        @update:model-value="showView" />
+      <UiSegmented v-if="!ui.phone" class="lib-view" :label="t('editor.library.tiles.view')" :model-value="viewShown" :segments="viewSegments" @update:model-value="showView" />
     </div>
     <div class="lib-body" id="library-body" :inert="!open || undefined">
       <div class="lib-rail">
@@ -363,7 +421,7 @@ function onResizeKey(e: KeyboardEvent) {
           <UiSwitch id="hide-placed" :model-value="ui.hidePlaced" @update:model-value="(on: boolean) => (ui.hidePlaced = on)" />
         </div>
       </div>
-      <div ref="list" class="lib-list" id="results" role="listbox" aria-live="polite" :aria-label="t('editor.library.title')" @scroll.passive="loadSoon.start()">
+      <div ref="list" class="lib-list" id="results" role="listbox" aria-live="polite" :aria-label="t('editor.library.title')" @scroll.passive="loadSoon.start(); closePeek()">
         <section v-if="sectionOffered" class="lib-group lib-layout">
           <div class="lib-grid">
             <button type="button" class="ent ent-section" id="lib-section" @click="addSectionHere">
@@ -375,9 +433,10 @@ function onResizeKey(e: KeyboardEvent) {
         </section>
         <section v-for="group in groups" :key="group.key" class="lib-group">
           <h4 v-if="group.title" class="lib-group-title">{{ group.title }} <small>{{ group.count }}</small></h4>
-          <div v-if="tilesView" class="lib-shelves">
-            <LibraryShelf v-for="entity in mainOf(group)" :key="entity.id" :entity="entity" :name="short(entity)" :detail="detail(entity)" :mark="mark(entity.id)"
-              :disabled="placed(entity.id) || full" :zoom="shelfZoom" :max-height="shelfZoom * shelfTwoRows" :active="!!ui.search && flat[active]?.id === entity.id" @add="(tile) => addTile(entity.id, tile)" />
+          <div v-if="tilesView" class="lib-strip" :style="stripStyle">
+            <LibraryShelf v-for="entity in mainOf(group)" :key="entity.id" :entity="entity" :name="short(entity)" :mark="mark(entity.id)" :view="shelfView"
+              :disabled="placed(entity.id) || full" :zoom="shelfZoom" :max-height="shelfZoom * shelfTwoRows" :max-width="shelfMaxWidth" :columns="shelfColumns"
+              :active="!!ui.search && flat[active]?.id === entity.id" @add="(tile) => { addTile(entity.id, tile); closePeek(); }" @point="(el) => pointAt(entity.id, el)" @leave="pointAway" />
           </div>
           <div v-else class="lib-grid">
             <button v-for="entity in mainOf(group)" :id="`lib-${entity.id}`" :key="entity.id" type="button" class="ent" role="option"
@@ -415,12 +474,20 @@ function onResizeKey(e: KeyboardEvent) {
       </div>
     </div>
   </aside>
+  <Teleport to="body">
+    <LibrarySizes v-if="peek && peekEntity && tilesView" :key="peek.id" :class="{ away: dragging.active }" :entity="peekEntity" :name="short(peekEntity)" :detail="detail(peekEntity)" :mark="mark(peekEntity.id)"
+      :disabled="placed(peekEntity.id) || full" :zoom="shelfZoom" :max-height="shelfZoom * shelfTwoRows" :anchor="peek.anchor"
+      @add="(tile) => { addTile(peekEntity!.id, tile); closePeek(); }" @pointerenter="keepPeek" @pointerleave="pointAway" />
+  </Teleport>
 </template>
 
 <style scoped>
-/* The scrollbar's room is kept, so the shelves' width does not change as the list comes to need one (Library.vue scale). */
-#results:has(.lib-shelves) { scrollbar-gutter: stable; }
-.lib-shelves { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+/* The scrollbar's room is kept, so the strip's width does not change as the list comes to need one (Library.vue scale). */
+#results:has(.lib-strip) { scrollbar-gutter: stable; }
+/* A room's strip of glass: the screen's own page (model/glass-colours.ts), its tiles in the screen's own grid. */
+.lib-strip { display: grid; justify-content: start; align-items: start; padding: 12px; border-radius: 12px; background: var(--glass-page); }
+/* While a tile is dragged the card with its sizes stays, unseen, so the tile in the pointer keeps its source. */
+.away { opacity: 0; pointer-events: none; }
 .lib-extras { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 8px; border-radius: 8px; color: var(--muted); font-size: 12px; width: 100%; text-align: left; }
 .lib-extras:hover { background: var(--surface-2); color: var(--ink-2); }
 .lib-extras span { font-weight: 500; }

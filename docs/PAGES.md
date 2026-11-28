@@ -52,24 +52,33 @@ the picture, and the Sidebar tests in `tests/components.spec.ts` the rows.
 
 ### The library
 
-The library shows what a tile can show in one of two views, switched at its top right and remembered in the browser:
+The library shows what a tile can show on a shelf or in a list, switched at its top right and remembered in the browser:
 
-- **Tiles** (the default): every entity as the tiles it can be on this screen, side by side on a strip of the screen's
-  background: one cell, a row of two and two rows of two (the tall size where the grid has no 2 x 2), each size the
-  screen or the type does not take left out. These are the mockup's own cards (`TileCard`) at the sizes the glass gives
-  them, scaled alike so the sizes compare, and each is as rich as the screen draws it there: from two cells up the face
-  its type is shown in (catalogue `showcase`, docs/CATALOGUE.md "The library's tiles"), and of the control sets that
-  fit, the one with the most parts. A light shown with presets gets a first set that suits it (`starterPresets` in
-  `web/src/model/light-presets.ts`). Only a tile the add-on saves is shown. A click puts that very tile on the marked
-  cell or the first free one, a drag where it is let go. `web/src/editor/library-tiles.ts` chooses the tiles,
-  `web/src/components/LibraryShelf.vue` draws one entity. A phone keeps the list.
-  The cards scale with the drawer: a card of two rows fills the height the list has under a shelf's name and sizes, never
-  larger than on the page and never under half of it, and the drawer opens at least that high. The strip they stand
-  on takes the screen's own colours, the firmware's roles (`web/src/model/glass-colours.ts`), as the page mockup does.
-  A plugin's tile stands on the shelf as the plugin's own code draws it, at each size, with the plugin's own example
-  (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards"); a plugin without a module for the preview keeps its
-  placeholder face, as on a page.
-- **List**: the entities as rows, as the library always was.
+- **The shelf** (the default): every entity as one tile, the mockup's own card (`TileCard`), in a strip of the screen's
+  glass for each room. The strip is a wide page of the screen: its tiles stand in the screen's own cells, each on the
+  cells it takes on a page, with the glass's own gaps, at one scale, so a low drawer shows many and they compare. Three
+  lines of tiles fill the drawer's height; a taller drawer shows them larger, up to their size on the page, and then
+  more lines.
+- **Which tile** is the view's choice (`shelfSample` in `web/src/editor/library-tiles.ts`). **Best fit** shows each
+  entity at the size that suits its type best: the size its type names in the catalogue (`shelf`, docs/CATALOGUE.md
+  "The library's tiles": a light as a row of two with its slider, a player as two rows with its cover), else the size
+  the tile starts at. **1 x 1**, **2 x 1** and **2 x 2** (the tall size where the grid has no 2 x 2) show every entity at
+  that size, and one that does not take it at the largest it takes under it, so nothing leaves the shelf for the size
+  it is shown at. A click puts that very tile on the marked cell or the first free one, a drag where it is let go, and
+  Enter adds the result the arrows stand on as the shelf shows it.
+- **All of an entity's sizes** open in a card over its tile once the pointer has rested on it a moment, and on the
+  result the arrow keys stand on (`LibrarySizes.vue`): its name in full, where it is, and one cell, a row of two and two
+  rows of two side by side, each as rich as the screen draws it there (the face its type is shown in, catalogue
+  `showcase`, and of the control sets that fit the one with the most parts), with its cells and its controls under it. A
+  click or a drag takes one. The card follows the pointer from tile to tile while it is open, stays while the pointer is
+  on it, and goes when the pointer leaves both, the list scrolls, a tile is placed or the search changes. A finger opens
+  no card: a touch places the tile, and the view's sizes are how a touch screen gets another size.
+- A light shown with presets gets a first set that suits it (`starterPresets` in `web/src/model/light-presets.ts`). Only
+  a tile the add-on saves is shown. The strip takes the screen's own colours, the firmware's roles
+  (`web/src/model/glass-colours.ts`), as the page mockup does. A plugin's tile stands on the shelf as the plugin's own
+  code draws it (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards"); a plugin without a module for the preview
+  keeps its placeholder face, as on a page. `LibraryShelf.vue` draws one entity's tile, `LibrarySample.vue` one tile.
+- **List**: the entities as rows, as the library always was. A phone keeps the list.
 
 A device's extras stand apart, the way Home Assistant's device page puts them apart from the controls: a setting
 (`entity_category: config`, such as a lamp's power-on behaviour), a reading for diagnosis (`diagnostic`) and an entity
