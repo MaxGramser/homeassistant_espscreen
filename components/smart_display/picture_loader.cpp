@@ -58,6 +58,15 @@ void Loader::end(uint32_t now, bool may_load) {
     remember(jobs_[i].owner, jobs_[i].want.key);
     jobs_.erase(jobs_.begin() + i);
   }
+  // Whose picture each slot's own download holds, where no store took it over.
+  for (auto &held : held_) held = Held{};
+  if (in_slot)
+    for (const auto &job : jobs_) {
+      if (!in_slot(job.want.slot, job.want.key)) continue;
+      Held &held = held_[static_cast<size_t>(job.want.slot)];
+      held.ahead = (held.key.empty() || held.ahead) && job.want.rank == Rank::AHEAD;
+      held.key = job.want.key;
+    }
   for (auto &job : jobs_) settle(job, now);
   // A picture the store held already: its owner is told once, the same way as after a download.
   for (auto &job : jobs_)
@@ -68,6 +77,8 @@ void Loader::end(uint32_t now, bool may_load) {
   size_t coming = 0;
   for (const auto &job : jobs_) if (on_its_way_ahead(job)) coming += job.want.bytes;
   for (auto &job : jobs_) {
+    // One that leaves its slot to the picture drawn from it does not load, so there is nothing to ask for.
+    if (stands_aside(job)) continue;
     // One fetched ahead asks once nothing on the glass waits: the app's work for it should not hold up theirs. One
     // that would not fit the spare room is not asked for at all: it loads when its page comes back.
     if (job.want.rank == Rank::AHEAD) {
@@ -171,6 +182,7 @@ void Loader::settle(Job &job, uint32_t now) {
   const bool held = kept && kept(job.want.key, at);
   if (held) {
     job.kept_at = at;
+    job.slotted = held_[static_cast<size_t>(job.want.slot)].key == job.want.key;
     // Once is enough for a picture that does not refresh; one that does is fresh until its turn comes again.
     if (!job.want.every || now - at < job.want.every) {
       if (job.phase != Phase::DONE) job.told = false;
@@ -184,8 +196,19 @@ void Loader::settle(Job &job, uint32_t now) {
   if (job.phase == Phase::DONE) job.phase = job.url.empty() ? Phase::NEW : Phase::LINKED;
 }
 
+bool Loader::stands_aside(const Job &job) const {
+  const Held &held = held_[static_cast<size_t>(job.want.slot)];
+  if (held.key.empty() || held.key == job.want.key) return false;
+  // The glass before a page out of sight, whichever came first; among the glass's own, and among those of pages out
+  // of sight, the one that had its turn.
+  const bool ahead = job.want.rank == Rank::AHEAD;
+  return ahead != held.ahead ? ahead : job.slotted;
+}
+
 bool Loader::waiting(const Job &job, uint32_t now) const {
   if (job.phase == Phase::DONE || job.phase == Phase::NONE) return false;
+  // One that stands aside waits for nothing: it loads when the picture in its slot is no longer wanted.
+  if (stands_aside(job)) return false;
   // A picture that refreshes and has one on the glass is not waiting for it.
   if (job.want.every && job.kept_at && now - job.kept_at < job.want.every * 2) return false;
   return true;
@@ -217,7 +240,7 @@ bool Loader::before(const Job &a, const Job &b) {
 }
 
 bool Loader::should_load(const Job &job, uint32_t now) const {
-  if (job.phase != Phase::LINKED) return false;
+  if (job.phase != Phase::LINKED || stands_aside(job)) return false;
   // A failed load is tried again after the gap; a picture that refreshes keeps its rhythm, after a failure too: a camera
   // tile that found no connection (the screen's sockets all taken by its live streams and the video's viewers) asked
   // again every second and logged every failure (a reTerminal D1001 with five live cameras on a page, 2026-10-25).

@@ -143,7 +143,7 @@ inline void slot_letgo(picture_loader::Slot slot) {
 }
 // A download ended (picture_fetch, any slot; packages/features/camera.yaml): the store takes the picture over under its
 // key, a 304 keeps what the store has, and its owner shows it. Without room in the store the owner draws the download
-// itself until the slot loads another picture.
+// itself until the slot loads another picture; the loader then lets that picture keep its slot (loader.in_slot).
 inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
   const uint32_t now = esphome::millis();
   auto &hooks = slot_hooks(slot);
@@ -334,6 +334,9 @@ inline void loader_bind() {
     for (int s = 0; s < 3; ++s) if (slot_key[s] == key) { at = slot_at[s]; return true; }
     return false;
   };
+  // A picture the store did not take over (picture_done: every place of it on a card, or a host program without a
+  // store) is its slot's own download. The loader gives such a picture one turn in its slot (picture_loader.h).
+  loader.in_slot = [](picture_loader::Slot slot, const std::string &key) { return slot_key[static_cast<int>(slot)] == key; };
   loader.load = [](picture_loader::Slot slot, const std::string &url, const std::string &key) {
     if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);
     picture_memory("before", key.substr(0, key.find('|')).c_str(), 0);

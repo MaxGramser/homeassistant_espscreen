@@ -229,8 +229,11 @@ inline void tile_pictures_reset() {
   });
   slot_letgo(picture_loader::Slot::LIVE);
 }
-// A download let go of its slot (a board without the store, or a picture the store had no room for, drew it): every
-// card that drew it lets go first and draws itself again.
+// A download let go of its slot (a picture the store had no place for, or a host program without the store, drew it):
+// every card that drew it lets go first and draws itself again. The words over the picture take the card's own ink in
+// the same moment (style_tall reads whether the picture is there): the card is drawn again a tenth of a second later
+// (ui_refresh), and until then a favourite stood with its white name on its own white card (the host render,
+// 2026-11-27, one run in four while its tiles took turns).
 inline void tile_pictures_letgo() {
 #if LV_USE_IMAGE
   auto *download = camera_live.source ? camera_live.source() : nullptr;
@@ -243,7 +246,9 @@ inline void tile_pictures_letgo() {
         lv_obj_add_flag(picture, LV_OBJ_FLAG_HIDDEN);
         took = true;
       }
-    if (took && w.index < model.count) refresh_tile(w.index, redraw_log::TileWhy::picture);
+    if (!took || w.index >= model.count) return;
+    { CardScope look(w); style_tall(w, model.tiles[w.index]); }
+    refresh_tile(w.index, redraw_log::TileWhy::picture);
   });
 #endif
 }

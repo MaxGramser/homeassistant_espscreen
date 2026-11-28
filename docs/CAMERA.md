@@ -641,6 +641,10 @@ through, how much it matters, and how the app is asked for it. One loader decide
   owner still holds stays, so a page that comes back has its pictures at once; when the store is full, by bytes or by
   places, the picture used longest ago that nothing draws makes way (`picture_store.h`). The screen's log says what
   the store holds whenever that changes (`store: 5 pictures, 578 of 1638 KB (cover tile tile cover tile), 0 to go`).
+- **A picture without a place in the store has one turn.** When every place of the store holds a picture a card still
+  draws, the next picture stays its slot's own download and goes when that slot loads another. One that left its slot
+  that way stands aside while the other owner's picture is drawn from it, so the last one stays and nothing loads twice;
+  a picture for a page out of sight never takes a slot from the glass (docs/PICTURES.md, "Memory").
 
 ## The screen's own camera as video in Home Assistant
 

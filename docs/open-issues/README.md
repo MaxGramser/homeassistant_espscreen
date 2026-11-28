@@ -16,7 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
-| [pictured-tiles-take-turns-without-a-store.md](pictured-tiles-take-turns-without-a-store.md) | On the host render as a board without PSRAM, a page of four pictured tiles downloads them in turn four times a second without end and shows only the last; once a favourite stood with white words and no picture. On dev too; not looked at on a real board without PSRAM | 2026-11-27 |
+| [pictured-tiles-take-turns-without-a-store.md](pictured-tiles-take-turns-without-a-store.md) | Pictures the store took none of loaded in turn without end, four times a second for the four pictured tiles of a page on the host render, and a favourite stood in white words on a white card for a moment. No board is without a store, but a P4 board whose 48 places are all on cards reaches the same path. Solved 2026-11-28 in the loader; the store's own rule for places is left open | 2026-11-27 |
 | [tab5-does-not-render-on-the-host.md](tab5-does-not-render-on-the-host.md) | The Tab5 does not build in the render harness (`tools/render/run.py tab5`): three layers of its hardware are handled since 2026-11-26, ESPHome still refuses its `esphome:` block. The Waveshare 3.5 was fixed in the same round. | 2026-11-26 |
 | [watchdog-reset-after-an-update.md](watchdog-reset-after-an-update.md) | A Guition 4 inch reports "Other Watchdog" for the restart after an update, on 0.64.0 and on a firmware before it, and the app records it as a crash; the other boards do not | 2026-11-24 |
 | [preview-last-run-in-utc.md](preview-last-run-in-utc.md) | The editor's preview shows when a script or scene last ran in UTC where the screen shows local time: the preview's stand-in for ESPHome's local time uses `gmtime` | 2026-11-24 |

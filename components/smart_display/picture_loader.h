@@ -20,12 +20,17 @@
 // - A picture its owner moved on from (another track, a map whose people moved, a page whose covers changed) is
 //   forgotten: the store lets it go once nothing draws it. What an owner still holds stays, so a page that comes back
 //   shows its pictures at once; picture_store makes room with the one used longest ago when it needs to.
+// - A picture no store took over is drawn from its slot's own download (`in_slot`) and goes when the next one loads into
+//   that slot. One that left its slot that way stands aside while another owner's picture is drawn from it: loading it
+//   again would only take that one off the glass, which would then want its own turn again, without end. So each such
+//   picture loads once and the last one stays; and one for a page out of sight never takes a slot from the glass.
 //
 // The class here, its larger bodies in picture_loader.cpp (a compilation unit of its own: docs/RELEASING.md, "The Xtensa
 // literal range"). Pure bookkeeping, free of LVGL and ESPHome: tests/test_picture_loader.cpp drives it on a PC, runtime_tiles.h binds it
 // to the store, picture_fetch and the app's answers. The rhythm of a picture that refreshes (a camera) and the waits
 // before asking again are camera_view's.
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -70,6 +75,10 @@ class Loader {
   std::function<void(Slot)> cancel;
   // A picture its owner moved on from: the store may let it go once nothing draws it.
   std::function<void(const std::string &key)> forget;
+  // Whether `key` is drawn from the slot's own download: no store took it over (the store has no place for it, or the
+  // screen has no store, as tools/render's host program without KEPT_PAGES_HOST), so its owner draws the download itself
+  // until the slot loads another picture. Unbound: every picture that came is kept.
+  std::function<bool(Slot, const std::string &key)> in_slot;
   // Whether a picture of `bytes` fetched ahead for a page out of sight fits the store's spare room now, beside `coming`:
   // the pictures fetched ahead that were let in already and are not in the store yet (picture_store::Store::fits_ahead,
   // GitHub #415). Unbound: every one does.
@@ -148,8 +157,13 @@ class Loader {
     uint8_t failures = 0, empties = 0, attempts = 0;
     bool seen = false;
     bool told = false;   // the owner heard that its picture is here
+    bool slotted = false;  // its picture was last had from its slot's own download (in_slot), not from the store
   };
   std::vector<Job> jobs_;
+  // The picture each slot's own download holds for an owner that wants it (in_slot), "" for none, and whether only pages
+  // out of sight want it. Read once a round (end), before anything is decided.
+  struct Held { std::string key; bool ahead = false; };
+  std::array<Held, 3> held_{};
   bool fits_ahead(const Job &job, size_t coming) const { return !room_ahead || room_ahead(job.want.bytes, coming); }
   bool on_its_way_ahead(const Job &job) const {
     return job.want.rank == Rank::AHEAD && (job.phase == Phase::ASKED || job.phase == Phase::LINKED || job.phase == Phase::LOADING);
@@ -184,6 +198,10 @@ class Loader {
   // What the store says, every round: a picture it holds is here, one it lost is asked for again.
   void settle(Job &job, uint32_t now);
   bool waiting(const Job &job, uint32_t now) const;
+  // Whether `job` leaves its slot to the picture drawn from it now: another owner's, that no store took over. One for a
+  // page out of sight always does when that picture is on the glass; otherwise one that had its own turn in the slot
+  // and left it. The glass never stands aside for a page out of sight.
+  bool stands_aside(const Job &job) const;
   bool should_ask(const Job &job, uint32_t now) const;
   // Which of two pictures ready to load goes first: the one that matters more; of equal ones (the pictures of a page's
   // tiles), one that has no picture yet before a refresh, then the oldest picture, so cameras at the same pace take

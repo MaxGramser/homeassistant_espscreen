@@ -137,6 +137,16 @@ that moment, the one on the glass and the one that comes, and never three; every
 cannot give its buffer away (the editor's WASM preview) is copied once into one the store owns. A 304 for a picture the
 store let go meanwhile is loaded whole again (`runtime_tiles::picture_done`).
 
+A picture the store does not take over stays its slot's own download, and its owner draws that until the slot loads
+another picture. That happens where every one of the store's places (`picture_store::ENTRIES`, 48) holds a picture a
+card still draws, on the glass or on a kept page, and in tools/render's host program without `KEPT_PAGES_HOST=1`, which
+has no store at all; every board that draws pictures has PSRAM and so a store. Such a picture has one turn in its slot
+(`picture_loader::Loader::in_slot`): once it left the slot for another owner's picture it stands aside while that one is
+drawn from it, and a picture for a page out of sight never takes a slot from the glass. So of several pictures that
+share a slot without a place in the store, each loads once and the last one stays. Without that rule they loaded in
+turn without end, each download taking the last picture off the glass (tests/test_picture_loader.cpp: 240 downloads a
+minute for four tiles, four with the rule).
+
 ### Unchanged pictures
 
 A still's ETag is the hash of its bytes (`picture_links.Link`), so the same picture behind another link has the same
