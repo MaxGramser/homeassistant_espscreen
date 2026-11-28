@@ -1,7 +1,8 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_keyboard.cpp -o /tmp/test_keyboard && /tmp/test_keyboard
 // The keyboard alone (components/smart_display/keyboard.h, docs/KEYBOARD.md), with no caller: what a key types, the
 // limit of the field, and the sheet it plans on the faces of several boards. Everything a caller hands it is an
-// argument: a second layout that lives only here (AZERTY, with rows of 10, 10 and 6 keys and accents of its own), a
+// argument: a second layout that lives only here (AZERTY, with rows of 10, 10 and 6 keys and accents of its own), the
+// QWERTZ of a screen built in German (rows of 11, 11 and 7: tests/test_keyboard_qwertz.cpp builds as such a screen), a
 // send key that is a word, the hint, the suggestions and whether their row keeps its room, a field of a text entity
 // (a start value, the most and the fewest characters as Home Assistant counts them, and a masked field).
 #include "../components/smart_display/keyboard.h"
@@ -88,10 +89,10 @@ static void inside(const Scene &s, int w, int h, const Measure &m, const char *w
 }
 
 static void layouts() {
-  assert(layout("qwerty") == &qwerty() && layout("dvorak") == nullptr);
-  for (const Layout *l : {&qwerty(), &AZERTY}) {
-    // Three rows that fit the planner: ten at most beside each other, seven between shift and backspace.
-    assert(l->rows[0] <= 10 && l->rows[1] <= 10 && l->rows[2] <= 7 && keys(*l) == 26);
+  assert(layout("qwerty") == &qwerty() && layout("qwertz") == &qwertz() && layout("dvorak") == nullptr);
+  for (const Layout *l : {&qwerty(), &qwertz(), &AZERTY}) {
+    // Three rows that fit the planner: eleven at most beside each other, seven between shift and backspace.
+    assert(l->rows[0] <= 11 && l->rows[1] <= 11 && l->rows[2] <= 7 && keys(*l) == (l == &qwertz() ? 29 : 26));
     for (uint8_t page = 0; page < 3; ++page)
       for (bool shift : {false, true})
         for (int k = 0; k < keys(*l); ++k) assert(page_keys(*l, page, shift)[k] && *page_keys(*l, page, shift)[k]);
@@ -100,6 +101,22 @@ static void layouts() {
   assert(accents_of(qwerty(), 2, false).size() == 5 && accents_of(AZERTY, 2, false).size() == 4);
   assert(accents_of(AZERTY, 22, true).size() == 1 && std::string(accents_of(AZERTY, 22, true)[0]) == "Ç");
   assert(accents_of(AZERTY, 0, false).empty() && accents_of(AZERTY, 99, false).empty());
+  // QWERTZ: z and y change places, ü, ö and ä end the first two rows on a grid of eleven, ß stands beside the 0 and
+  // is the first accent of s. QWERTY and AZERTY keep the grid of ten.
+  const Layout &de = qwertz();
+  assert(columns(qwerty()) == 10 && columns(AZERTY) == 10 && columns(de) == 11);
+  assert(std::string(de.letters[5]) == "z" && std::string(de.letters[22]) == "y" && std::string(de.capitals[5]) == "Z");
+  assert(std::string(de.letters[10]) == "ü" && std::string(de.letters[20]) == "ö" && std::string(de.letters[21]) == "ä");
+  assert(std::string(de.capitals[10]) == "Ü" && std::string(de.capitals[20]) == "Ö" && std::string(de.capitals[21]) == "Ä");
+  assert(std::string(de.digits[9]) == "0" && std::string(de.digits[10]) == "ß");
+  assert(std::string(accents_of(de, 12, false)[0]) == "ß" && accents_of(de, 10, false).empty() && accents_of(de, 6, true).size() == 4);
+  // The same accents on both: the strip of a letter does not depend on the layout it is on.
+  assert(accents_of(de, 2, false).size() == accents_of(qwerty(), 2, false).size());
+  // A screen's layout follows the language it is built in; this test builds without SCREEN_KEYBOARD_QWERTZ, so QWERTY.
+  assert(&standard() == &qwerty() && &layout_of(Spec()) == &qwerty());
+  for (const char *code : {"de", "de-AT", "de-CH"}) assert(std::string(layout_for(code)) == "qwertz");
+  for (const char *code : {"en", "nl", "fr", "pt-BR", "ru", "deu", "dk", ""}) assert(std::string(layout_for(code)) == "qwerty");
+  assert(std::string(layout_for(nullptr)) == "qwerty" && layout(layout_for("de")) == &qwertz());
 }
 
 static void typing() {
@@ -131,6 +148,20 @@ static void typing() {
   assert(q.text == "Hi q" && typed(q) == "Hi q");
   reset(q, "  x  ");
   assert(typed(q) == "x");
+  // QWERTZ: an umlaut is a key of its own, ß is on the page of digits, and z is where QWERTY has y.
+  Spec de;
+  de.layout = &qwertz();
+  Entry g;
+  reset(g);
+  press(g, 15, de); press(g, 3, de); press(g, 20, de);  // G r ö
+  press(g, K_PAGE, de); press(g, 10, de); press(g, K_PAGE, de);  // ß
+  press(g, 2, de);
+  assert(g.text == "Größe");
+  press(g, K_SPACE, de); press(g, 5, de); press(g, 22, de); press(g, K_SHIFT, de); press(g, 21, de);
+  assert(g.text == "Größe zyÄ");
+  assert(hold(g, 12, de));
+  press(g, ACCENT, de);  // ß, the first accent of s
+  assert(g.text == "Größe zyÄß");
 }
 
 static void sheets() {
@@ -202,6 +233,34 @@ static void sheets() {
     Scene fa;
     plan(fa, m, b.width, b.height, top, fe, fr);
     assert(count(fa, KEY) == 32 && has_text(fa, "Ç") && find(fa, KEY, ACCENT)->y < find(fa, KEY, 22)->y);
+    // QWERTZ: eleven keys in each of the first two rows, one under the other, narrower than QWERTY's ten and still
+    // keys a finger can hit; the third row of seven in the middle between shift and backspace, as QWERTY's.
+    Spec de = k;
+    de.layout = &qwertz();
+    Entry ge;
+    reset(ge);
+    Scene z;
+    const Place pz = plan(z, m, b.width, b.height, top, ge, de);
+    inside(z, b.width, b.height, m, "QWERTZ", b.name);
+    assert(pz.top == p.top && pz.whole == p.whole);
+    assert(count(z, KEY) == 34 && has_text(z, "Ü") && has_text(z, "Ö") && has_text(z, "Ä") && has_text(z, "Z"));
+    for (int i = 0; i < 11; ++i) assert(find(z, KEY, 11 + i)->x == find(z, KEY, i)->x && find(z, KEY, 11 + i)->y > find(z, KEY, i)->y);
+    for (const auto &h : z.hits) if (h.kind == KEY && h.h < ui::mm(13) / 2) { printf("%s: a QWERTZ key of %d px\n", b.name, h.h); assert(false); }
+    assert(find(z, KEY, 0)->w < find(s, KEY, 0)->w && find(z, KEY, 0)->h == find(s, KEY, 0)->h);
+    // The same width for the row: it begins where QWERTY's does and ends within the pixels a key's width rounds away.
+    const int zend = find(z, KEY, 10)->x + find(z, KEY, 10)->w, qend = find(s, KEY, 9)->x + find(s, KEY, 9)->w;
+    assert(find(z, KEY, 0)->x == find(s, KEY, 0)->x && std::abs(zend - qend) < 11);
+    const auto *zs = find(z, KEY, K_SHIFT), *zb = find(z, KEY, K_BACK);
+    const int zl = find(z, KEY, 22)->x - (zs->x + zs->w), zr = zb->x - (find(z, KEY, 28)->x + find(z, KEY, 28)->w);
+    assert(zl > 0 && zr > 0 && std::abs(zl - zr) <= 1);
+    // The bottom row and the page keys stand where QWERTY has them.
+    for (int code : {K_PAGE, K_SPACE, K_ENTER}) assert(find(z, KEY, code)->y == find(s, KEY, code)->y);
+    // Held, the u shows its accents above it, inside the sheet.
+    assert(hold(ge, 6, de));
+    Scene za;
+    plan(za, m, b.width, b.height, top, ge, de);
+    inside(za, b.width, b.height, m, "QWERTZ accents", b.name);
+    assert(count(za, KEY) == 34 + 4 && find(za, KEY, ACCENT)->y < find(za, KEY, 6)->y);
   }
   // Glass too short for keys under `top`: the whole glass, with a key that puts it away.
   ui::configure(165, "standard");

@@ -169,8 +169,8 @@ static void typing() {
   assert(e.shift);
   for (int i = 0; i < 200; ++i) press(e, 10);
   assert(e.text.size() <= TEXT_BYTES);
-  // Every character a key types is one of its page's 26, on every page.
-  for (uint8_t page = 0; page < 3; ++page) for (int k = 0; k < 26; ++k) assert(page_keys(page, false)[k] && *page_keys(page, false)[k]);
+  // Every character a key types is one of its page's keys (26 on QWERTY, 29 on the QWERTZ of a German screen).
+  for (uint8_t page = 0; page < 3; ++page) for (int k = 0; k < keyboard::keys(keyboard::standard()); ++k) assert(page_keys(page, false)[k] && *page_keys(page, false)[k]);
   assert(accents_of(2, true).size() == accents_of(2, false).size());
 }
 
@@ -197,13 +197,14 @@ static void full() {
     inside(p.content, b.width, p.content.height, m, "the list", b.name);
     assert(count(p.fixed, H_CLOSE) == 1 && count(p.content, H_FIELD) == 1 && count(p.content, H_ROW) == 11 && count(p.content, H_CLEAR) == 1);
     assert(p.overlay.hits.empty() && !p.covered && p.scroll_y > 0 && p.scroll_y + p.scroll_h == b.height);
-    // The keyboard: inside the glass, 26 keys and five more, every one a finger can hit, the list above it or the
-    // whole glass where that leaves no room.
+    // The keyboard: inside the glass, the layout's keys and five more, every one a finger can hit, the list above it or
+    // the whole glass where that leaves no room.
     st.keys = true;
     reset(st.entry, "Bu");
     plan_full(p, m, b.width, b.height, "Shopping list", d, {}, wd, st);
     inside(p.overlay, b.width, b.height, m, "the keyboard", b.name);
-    assert(count(p.overlay, H_KEY) == 31 && count(p.overlay, H_SEND) == 1);
+    const int letters = keyboard::keys(keyboard::standard()) + 5;
+    assert(count(p.overlay, H_KEY) == letters && count(p.overlay, H_SEND) == 1);
     assert(count(p.content, H_FIELD) == 0);
     for (const auto &h : p.overlay.hits)
       if (h.kind == H_KEY) {
@@ -215,7 +216,7 @@ static void full() {
     assert(hold(st.entry, 2));
     plan_full(p, m, b.width, b.height, "Shopping list", d, {}, wd, st);
     inside(p.overlay, b.width, b.height, m, "the accents", b.name);
-    assert(count(p.overlay, H_KEY) == 31 + (int) accents_of(2, st.entry.shift).size());
+    assert(count(p.overlay, H_KEY) == letters + (int) accents_of(2, st.entry.shift).size());
     // An item's sheet and the question before what is done goes take every touch.
     Full sheet; sheet.sheet = 0;
     plan_full(p, m, b.width, b.height, "Shopping list", d, {}, wd, sheet);

@@ -18,6 +18,8 @@ It is in two parts, as the touch feedback is (docs/PLUGINS.md, "Touch feedback")
   the caller's page above it, it takes the whole glass, so its keys stay at least 6.5 mm high, and it gets a close key
   in front of the field.
 - Three pages: letters, digits (`123`) and signs (`#+=`). The first letter is a capital.
+- The letters of the screen's language: QWERTZ on a screen built in German, QWERTY on every other (see "The layout of a
+  screen").
 - Holding a letter shows its accents in a strip above it (é è ê ë for e); a tap takes one. Holding backspace keeps
   erasing.
 - A tap on a key darkens it at once, and a key repaints only the keyboard's own sheet, never the caller's page.
@@ -29,7 +31,7 @@ What a caller asks for is one `keyboard::Spec`:
 
 | Field | What it is | Default |
 |---|---|---|
-| `layout` | The keys (see "A new layout"); `keyboard::layout("qwerty")` finds one by name. | QWERTY |
+| `layout` | The keys (see "A new layout"); `keyboard::layout("qwerty")` finds one by name. | the screen's own (`keyboard::standard()`, see "The layout of a screen") |
 | `hint` | The words in the empty field. | none |
 | `suggestions` | Texts in a row above the keys. A tap on one is the caller's. | none |
 | `keep_row` | The row of suggestions keeps its room while it has none to show, so the keys never move under a finger while the suggestions follow what is typed. | no |
@@ -97,29 +99,53 @@ fonts (`faces`) and the `measure` the caller hands it, the same the caller plans
 The keyboard's places in a `Scene` are its own kinds of `calendar_card::Hit` (69 to 73). A caller that also puts the
 keyboard into a scene of its own, as the to-do card's plan does for its tests, keeps its own kinds off them.
 
+## The layout of a screen
+
+A screen types on the layout of the language it is built in, the LANGUAGE substitution ESP Screens writes into its
+YAML (docs/TRANSLATING.md): QWERTZ for German (`de`, `de-AT`, `de-CH`), QWERTY for every other language. There is no
+setting for it, and nothing changes it while the screen runs.
+
+- `components/smart_display/keyboard_build.py` makes the choice (`LAYOUTS`) when the firmware is built and defines
+  `SCREEN_KEYBOARD_QWERTZ` for a German screen.
+- `keyboard::standard()` is the layout of every Spec that names none: QWERTZ with that define, QWERTY without it. So the
+  firmware holds the one table its language types on, and the other is not in it.
+- Every caller that names no layout takes it: the to-do card (`module_todo.h`) and a text entity's field
+  (`module_text_edit.h`). A caller that names one keeps it.
+- The browser preview carries every language, so it cannot choose when it is built: `preview_language()` in
+  `web/wasm/firmware_preview.cpp` asks `keyboard::layout_for()` for the layout of the language it shows.
+  `tests/test_keyboard_layout.py` keeps that list equal to `keyboard_build.LAYOUTS`.
+
+QWERTZ is a German keyboard as phones show it: z and y change places, ü, ö and ä are keys of their own at the end of the
+first two rows, and ß stands beside the 0 on the page of digits, as on a German keyboard, and first among the accents
+of s. The page of digits has the German quotes („ “), the page of signs § and the ² and ³ of m² and m³. Its first two rows
+have eleven keys, so its keys are a tenth narrower than QWERTY's (5.4 mm instead of 6 mm on a 4 inch screen of 480
+pixels); they are as high as QWERTY's.
+
 ## A new layout
 
 A layout is a table in `keyboard.h`, like `qwerty()`:
 
 - the letters and the capitals, a page of digits and a page of signs, each with the same number of keys;
-- three rows of letters, at most 10, 10 and 7 keys (the third row stands between shift and backspace, the first two on
-  a grid of ten, a shorter row in its middle);
-- the accents of a letter, at most six, in lower and upper case;
+- three rows of letters, at most 11, 11 and 7 keys (the third row stands between shift and backspace, the first two on
+  a grid of ten, or of eleven when one of them has eleven, a shorter row in its middle);
+- the accents of a letter, at most six, in lower and upper case (`LATIN_ACCENTS` for a Latin layout);
 - the labels of the keys that change the page (`123`, `#+=`, `abc`).
 
 Add the table and a line in `keyboard::layout()`, and the planner, the sheet and every caller take it as it is.
-`tests/test_keyboard.cpp` keeps a layout of its own (AZERTY, 10, 10 and 6 keys) to prove that no more is needed.
+`tests/test_keyboard.cpp` keeps a layout of its own (AZERTY, 10, 10 and 6 keys) to prove that no more is needed. A
+language that should type on it gets its line in `keyboard_build.LAYOUTS` and `keyboard::layout_for()`, and a define
+in `keyboard_build.DEFINES` that `keyboard::standard()` takes.
 
 What it costs:
 
 - **A Latin layout** (AZERTY, QWERTZ, a Nordic or a Polish one) costs a few hundred bytes of tables, and only on a
-  screen whose firmware uses the keyboard. Its letters are already in the fonts.
+  screen whose firmware uses the keyboard. Its letters are already in the fonts. On the ESP32 QWERTY's table is 663
+  bytes and QWERTZ's 728 (pointers and their strings), and the accents both use another 825. A screen carries one of
+  the two, so a German screen pays 65 bytes more than an English one.
 - **Another script** (Greek, Cyrillic, Hebrew) needs its letters in the five text fonts of `packages/core.yaml`, at
   every size of every board, which costs flash on every screen, the 4 MB ones first (docs/TRANSLATING.md and
   `SCRIPT_GLYPHS` already do this for a screen built in such a language). `tests/test_keyboard_glyphs.py` fails until
   every character of every layout is in those fonts, and every icon the keyboard draws is in the fixed icon set.
-
-There is no choice of layout on the screen yet: a caller names the one it wants.
 
 ## What a board pays for it
 
@@ -137,8 +163,13 @@ the same code differently; a symbol of the keyboard in its image is what says it
 ## Tests
 
 - `tests/test_keyboard.cpp`: the keyboard alone, on the faces of six boards: what a key types and the limit of the
-  field, every place inside the glass and every key a finger can hit, a second layout, a send key that is a word or a
-  caller's icon, the row of suggestions with and without its room, the accents of a letter, the whole glass.
+  field, every place inside the glass and every key a finger can hit, a second layout, QWERTZ on its grid of eleven,
+  a send key that is a word or a caller's icon, the row of suggestions with and without its room, the accents of a
+  letter, the whole glass.
+- `tests/test_keyboard_qwertz.cpp`: a build of a German screen (`SCREEN_KEYBOARD_QWERTZ`): a Spec that names no
+  layout and the to-do card's keys type on QWERTZ.
+- `tests/test_keyboard_layout.py`: the layout of each language, the define the component adds, and that
+  `keyboard_build.py`, `keyboard.h` and the preview agree.
 - `tests/test_keyboard_glyphs.py`: every character of every layout is in the screens' fonts.
 - `tests/test_keyboard.cpp` (`entity_field`): characters and not bytes, the faded send key under `least`, a start
   value, the cursor (typing and erasing in the middle, never two spaces side by side), the dots of a masked field and
@@ -154,6 +185,7 @@ the same code differently; a symbol of the keyboard in its image is what says it
 |---|---|
 | A key, a page or the sheet | `keyboard.h`, `tests/test_keyboard.cpp`, this document; the key positions `tools/render/run.py` works out for the to-do card (`todo_panel`, `keys`) |
 | A layout | `keyboard.h` (its table and `layout()`), `tests/test_keyboard_glyphs.py` runs on it; for another script, `packages/core.yaml` (the text fonts' glyphs) |
+| The layout of a language | `keyboard_build.py` (`LAYOUTS`, `DEFINES`), `keyboard.h` (`layout_for()`, `standard()`), `tests/test_keyboard_layout.py`, this document |
 | The finger, the shade of a key, the callbacks | `keyboard_lvgl.h`, its callers (`module_todo.cpp`), this document |
 | A new caller | its own module or file, docs/KEYBOARD.md's list of callers below, and the CYD's size if it is shared code |
 

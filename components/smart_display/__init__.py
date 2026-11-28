@@ -14,7 +14,7 @@ import esphome.config_validation as cv
 from esphome.components import socket
 from esphome.core import CORE
 
-from . import engine_build, hw_build, modules, p4_build, screen_text_gen
+from . import engine_build, hw_build, keyboard_build, modules, p4_build, screen_text_gen
 
 CODEOWNERS = []
 AUTO_LOAD = ["json"]
@@ -103,6 +103,10 @@ async def to_code(config):
         cg.add_cxx_build_flag('-fcallgraph-info=su')
     wanted = config[CONF_LANGUAGE]
     cg.add_define("SCREEN_CAMERA_ORIENTATION", config[CONF_CAMERA_ORIENTATION])
+    # The keyboard of the screen's language (keyboard_build.py, docs/KEYBOARD.md): QWERTZ for German, QWERTY for any
+    # other, and only that layout's table in the firmware.
+    for define in keyboard_build.defines(wanted):
+        cg.add_define(define)
     language, code = screen_text_gen.definitions(wanted)
     if language != wanted:
         # ESP Screens only writes languages it has; a hand-written one it lacks builds in the nearest it does have.

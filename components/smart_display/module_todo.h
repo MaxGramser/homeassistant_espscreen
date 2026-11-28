@@ -267,8 +267,8 @@ inline const keyboard::Spec &keys() {
   }();
   return k;
 }
-inline const char *const *page_keys(uint8_t page, bool shift) { return keyboard::page_keys(keyboard::qwerty(), page, shift); }
-inline std::vector<const char *> accents_of(int key, bool shift) { return keyboard::accents_of(keyboard::qwerty(), key, shift); }
+inline const char *const *page_keys(uint8_t page, bool shift) { return keyboard::page_keys(keyboard::standard(), page, shift); }
+inline std::vector<const char *> accents_of(int key, bool shift) { return keyboard::accents_of(keyboard::standard(), key, shift); }
 inline void press(Entry &e, int key) { keyboard::press(e, key, keys()); }
 inline bool hold(Entry &e, int key) { return keyboard::hold(e, key, keys()); }
 
