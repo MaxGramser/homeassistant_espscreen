@@ -17,7 +17,7 @@ external_components:
   - source:
       type: local
       path: ../components
-    components: [paper_glass, no_touch, smart_display]
+    components: [no_touch, paper_glass, smart_display]
 
 api:
   encryption:
