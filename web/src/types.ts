@@ -20,6 +20,9 @@ export type TileOptions = {
   guard?: string;
   // Where a cover's slats stand open: "100" (Home Assistant's rule, never stored) or "50".
   tilt_open?: string;
+  // A name and a second line too wide for their room roll by; "off" ends them in dots (never "on": that is the default).
+  name_scroll?: "off";
+  sub_scroll?: "off";
   send_after?: string;
   // A light's presets (docs/LIGHT_PRESETS.md, light_presets.py): at most four, each a brightness with a white shade or a
   // colour, and whether each disc shows its brightness (stored only when it does).
@@ -114,7 +117,7 @@ export type PageTile = {
   // A footprint is a rectangle. The renderer's capabilities decide which
   // rectangles it supports; the page's grid is never user-overridable.
   placement: { row: number; column: number; columns: number; rows: number };
-  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string;
+  appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; labelScroll?: "off"; subtitleScroll?: "off"; fit?: string; overlay?: string;
     mapEntities?: string[]; mapFraming?: string; mapDistance?: string; mapFollow?: string; mapMarkers?: string; mapNames?: string;
     mapZones?: string; mapStreets?: string; mapLook?: string; energyFlow?: string;
     // The Call tile: whom it calls and how (docs/CALLS.md).

@@ -42,7 +42,8 @@ inline lv_obj_t *detail_shape(lv_obj_t *parent,int x,int y,int w,int h,theme::Ro
 //   `shorter`  another wording of the whole line, taken when the full one doesn't fit ("Yest. 9:15 PM");
 //   `tail`     the end that has to stay readable (a robot's battery): the words in front of it take the dots,
 //              "Angedockt / 10 %" becomes "Angedo… / 10 %".
-// A line that fits, or a room too small for the tail itself, is left to LVGL as before.
+// A line that fits, or a room too small for the tail itself, is left to LVGL as before. A line that rolls (`roll`,
+// Tile::sub_scroll) keeps all its words: it moves to show them, so no other wording and no dots are needed.
 // True when `face` has a glyph for every character of `text`: a board's fonts carry listed glyphs only, and a
 // letter outside the list draws as nothing.
 inline bool face_covers(const lv_font_t *face,const std::string &text){
@@ -50,9 +51,9 @@ inline bool face_covers(const lv_font_t *face,const std::string &text){
   while(uint32_t cp=header_bar::next_codepoint(text,i))if(!lv_font_get_glyph_dsc(face,&dsc,cp,0))return false;
   return true;
 }
-inline void fit_value(lv_obj_t *obj,const std::string &value,const std::string &shorter,const std::string &tail,int room){
+inline void fit_value(lv_obj_t *obj,const std::string &value,const std::string &shorter,const std::string &tail,int room,bool roll=false){
   const lv_font_t *font=lv_obj_get_style_text_font(obj,LV_PART_MAIN);
-  if(!font||room<=0||text_width(value,font)<=room)return;
+  if(roll||!font||room<=0||text_width(value,font)<=room)return;
   // `shorter` may hold several lines, a line break between them, each shorter than the one before: the first that fits.
   for(size_t at=0;at<shorter.size();){
     size_t end=shorter.find('\n',at);

@@ -54,6 +54,10 @@
       "look": "standard"
     },
     {
+      "dpi": 235,
+      "look": "standard"
+    },
+    {
       "dpi": 254,
       "look": "standard"
     },
@@ -66,5 +70,5 @@
       "look": "standard"
     }
   ],
-  "plugin_abi": "1cc6c3f2fa9755ec"
+  "plugin_abi": "9182a7c07718cd2c"
 }

@@ -2405,6 +2405,12 @@
         "part_now": "Nu",
         "hint_parts": "Kies wat de regel zegt. Staat de ingestelde temperatuur al tussen de − en + van de tegel, dan laat de regel die weg."
       },
+      "scroll": {
+        "name": "Lange naam laten rollen",
+        "name_hint": "Een naam die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes.",
+        "line": "Lange tweede regel laten rollen",
+        "line_hint": "Een tweede regel die te breed is voor de tegel rolt rond en staat stil als hij past. Uit eindigt hij op puntjes of een kortere tekst."
+      },
       "slider": {
         "label": "Kleine slider op de tegel",
         "nothing": "Home Assistant heeft niets wat een slider bij deze entiteit kan aanpassen. Kies Nee."

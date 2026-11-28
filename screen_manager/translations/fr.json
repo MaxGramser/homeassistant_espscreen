@@ -2896,6 +2896,12 @@
         "part_now": "Maintenant",
         "hint_parts": "Choisissez ce que dit la ligne. Là où le − et le + de la tuile affichent déjà la consigne, la ligne l'omet."
       },
+      "scroll": {
+        "name": "Faire défiler un nom long",
+        "name_hint": "Un nom trop large pour la tuile défile en boucle et s'arrête quand il tient. Désactivé, il finit par des points.",
+        "line": "Faire défiler une deuxième ligne longue",
+        "line_hint": "Une deuxième ligne trop large pour la tuile défile en boucle et s'arrête quand elle tient. Désactivé, elle finit par des points ou une forme plus courte."
+      },
       "slider": {
         "label": "Petit curseur sur la tuile",
         "nothing": "Home Assistant n'a rien qu'un curseur puisse régler pour cette entité. Choisissez Non."

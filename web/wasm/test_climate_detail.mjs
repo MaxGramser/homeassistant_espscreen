@@ -38,8 +38,9 @@ for (const shape of SHAPES) {
 
   const all = objects();
   const labels = all.filter((o) => o.type === 'label');
-  // The card's own labels: on large glass the page stays under the card, its tile's labels first in the tree.
-  const status = labels.findLast((o) => /Now/.test(o.text ?? ''));
+  // The card's own labels: the page stays under the card, and the tile's own line there says "Now" too since it rolls
+  // and keeps all its words. A tile's labels belong to its card on the page (`card` 0 and up), the open card's to none.
+  const status = labels.findLast((o) => o.card === -1 && /Now/.test(o.text ?? ''));
   if (!status) {  // glass with no room for the line puts the state under the number instead
     assert.ok(labels.some((o) => /Heat/.test(o.text ?? '')), `${shape.key}: the state somewhere (${labels.map((o) => o.text).join(' | ')})`);
     console.log(`  ${shape.key}: the state under the number`);

@@ -3637,6 +3637,60 @@ class Run:
             await self.alarm_until(lambda c: not c['open'], 'Back never closed the card')
         return 1
 
+    async def marquee_round(self, grid):
+        """A long name and a long second line rolling by (`--only marquee`, Tile::name_scroll and sub_scroll), frame by
+        frame: an airco in fan-only mode whose line does not fit, a lamp whose name does not fit, and the same two with
+        their roll off, ended in dots or a shorter wording as before. Snapshots one after another (render() waits for two
+        equal ones, which a moving line never gives), each kept as marquee-NN.png with its time since the first in
+        marquee.txt, and marquee-sheet.png with them all. The rolling ones must move and the still ones must not."""
+        from core import extras, state_message
+        airco = {'state': 'fan_only', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Airco', 'current_temperature': 22.5, 'temperature': 20, 'min_temp': 16, 'max_temp': 32,
+            'target_temp_step': 0.5, 'hvac_modes': ['off', 'heat_cool', 'cool', 'heat', 'fan_only', 'dry'],
+            'fan_modes': ['auto'], 'fan_mode': 'auto', 'supported_features': 393}}
+        lamp = {'state': 'on', 'last_changed': MOMENT.isoformat(), 'attributes': {
+            'friendly_name': 'Lampen in de hal bij de voordeur', 'brightness': 180, 'color_mode': 'brightness',
+            'supported_color_modes': ['brightness']}}
+        states = {'climate.airco': airco, 'light.hall': lamp, 'climate.airco_still': airco, 'light.hall_still': lamp}
+        names = {'climate.airco': 'Airco', 'light.hall': 'Lampen in de hal bij de voordeur',
+                 'climate.airco_still': 'Airco (off)', 'light.hall_still': 'Lampen in de hal bij de voordeur (off)'}
+        still = {'climate.airco_still': {'sub_scroll': 'off'}, 'light.hall_still': {'name_scroll': 'off'}}
+        region = dict(keepalive=120, clock_24h=True, numbers='comma', group_min=1, percent_space=False)
+        tiles_in = [dict(entity=entity, name=names[entity], options=still.get(entity, {}), slot=slot)
+                    for slot, entity in enumerate(states)]
+        record = send_layout.migrate_legacy(dict(title='Marquee', tiles=tiles_in), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        values = [state_message(index, tile, states, extras(tile, states)) for index, tile in enumerate(tiles)]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        frames, first, times = [], None, []
+        count, every = int(os.environ.get('MARQUEE_FRAMES', '24')), float(os.environ.get('MARQUEE_EVERY', '0.25'))
+        for n in range(count):
+            image = await self.snapshot(self.out / 'marquee.ppm')
+            now = time.monotonic()
+            first = first if first is not None else now
+            times.append(now - first)
+            image.save(self.out / f'marquee-{n:02d}.png')
+            frames.append(image)
+            await asyncio.sleep(every)
+        (self.out / 'marquee.ppm').unlink(missing_ok=True)
+        (self.out / 'marquee.txt').write_text(''.join(f'marquee-{n:02d}.png {t:6.2f} s\n' for n, t in enumerate(times)))
+        w, h = frames[0].size
+        across = 4
+        sheet = Image.new('RGB', (across * (w + 8), ((count + across - 1) // across) * (h + 24)), 'white')
+        draw = ImageDraw.Draw(sheet)
+        for n, (image, t) in enumerate(zip(frames, times)):
+            x, y = (n % across) * (w + 8), (n // across) * (h + 24)
+            draw.text((x + 4, y + 4), f'{n:02d}  {t:5.2f} s', fill=(0, 0, 0))
+            sheet.paste(image, (x, y + 20))
+        sheet.save(self.out / 'marquee-sheet.png')
+        changed = sum(a.tobytes() != b.tobytes() for a, b in zip(frames, frames[1:]))
+        if not changed:
+            self.warnings.append('marquee: no frame differs from the one before: nothing rolled')
+        return 1
+
     async def remote_panel(self, grid):
         """A remote (firmware 0.22.0, GitHub #117) the way it is used: a tap opens its card, as Home Assistant's tile card
         opens its dialog, with the power key in the top bar and the activities where the remote has them; the tap option
@@ -4930,6 +4984,8 @@ class Run:
             return 1, await self.lock_panel(grid)
         if self.only == 'automation':
             return 1, await self.automation_panel(grid)
+        if self.only == 'marquee':
+            return 1, await self.marquee_round(grid)
         if self.only == 'remote':
             return 1, await self.remote_panel(grid)
         if self.only == 'bedside':
@@ -5065,7 +5121,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alertlife', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby', 'paper'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alertlife', 'marquee', 'alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'climate', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby', 'paper'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--grid', help='another grid than the board\'s own, COLUMNSxROWS (2x4), as New screen builds a screen '

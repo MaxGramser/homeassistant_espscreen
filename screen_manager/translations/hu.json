@@ -2896,6 +2896,12 @@
         "part_now": "Most",
         "hint_parts": "Válaszd ki, mit mondjon a sor. Ahol a csempe − és + gombja már mutatja a beállított hőmérsékletet, a sor kihagyja."
       },
+      "scroll": {
+        "name": "Hosszú név görgetése",
+        "name_hint": "A csempénél szélesebb név körbe-körbe gördül, és megáll, ha elfér. Kikapcsolva pontokkal végződik.",
+        "line": "Hosszú második sor görgetése",
+        "line_hint": "A csempénél szélesebb második sor körbe-körbe gördül, és megáll, ha elfér. Kikapcsolva pontokkal vagy rövidebb változattal végződik."
+      },
       "slider": {
         "label": "Kis csúszka a csempén",
         "nothing": "A Home Assistantban nincs olyan érték ennél az entitásnál, amit csúszkával módosítani lehetne. Válaszd a Nem lehetőséget."

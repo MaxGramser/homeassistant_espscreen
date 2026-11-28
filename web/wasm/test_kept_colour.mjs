@@ -23,8 +23,11 @@ const CASES = [
   { why: 'available to unavailable', before: light('light.hall', 'Hall', 'on'), after: light('light.hall', 'Hall', 'unavailable') },
   { why: 'on to off', before: light('light.desk', 'Desk', 'on'), after: light('light.desk', 'Desk', 'off') },
 ];
-const TILES = [{ ...light('light.home', 'Home', 'on'), slot: 0, o: {} },
-  ...CASES.map((c, n) => ({ ...c.before, slot: cells + n, o: {} }))];
+// The cards are compared pixel for pixel at two moments, so no line of them rolls (the tile's two switches off): a
+// thermostat's line is wider than a cell of this glass, and a line that rolls stands somewhere else at each moment.
+const STILL = { name_scroll: 'off', sub_scroll: 'off' };
+const TILES = [{ ...light('light.home', 'Home', 'on'), slot: 0, o: STILL },
+  ...CASES.map((c, n) => ({ ...c.before, slot: cells + n, o: STILL }))];
 
 const m = await createModule({ wasmBinary });
 assert.equal(m._preview_init(width, height, 170, columns, rows), 1);

@@ -31,6 +31,7 @@ NEEDS_NONE = {
     ('history_card_lvgl.h', 'history_bar'): 'the history timeline of the open card',
     ('tile_widgets_lvgl.h', 'extra_draw'): 'its fill colour is captured in render_slot, inside the card scope',
     ('ink_audit.h', 'task'): "the host render's recorder of what LVGL draws (docs/GLASS_KINDS.md): it paints nothing",
+    ('media_card_lvgl.h', 'marquee_ease'): "it gives a rolling label's animation its curve: no colour asked, nothing painted",
 }
 
 

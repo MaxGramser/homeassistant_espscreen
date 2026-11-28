@@ -2405,6 +2405,12 @@
         "part_now": "Now",
         "hint_parts": "Choose what the line says. Where the tile's own − and + show the temperature it is set to, the line leaves it out."
       },
+      "scroll": {
+        "name": "Roll a long name",
+        "name_hint": "A name too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots.",
+        "line": "Roll a long second line",
+        "line_hint": "A second line too wide for the tile rolls by, round and round, and stands still when it fits. Off, it ends in dots or a shorter wording."
+      },
       "slider": {
         "label": "Small slider on the tile",
         "nothing": "Home Assistant has nothing a slider can change for this entity. Choose No."

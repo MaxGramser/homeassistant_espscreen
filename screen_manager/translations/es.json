@@ -2896,6 +2896,12 @@
         "part_now": "Ahora",
         "hint_parts": "Elige qué dice la línea. Donde el − y el + del mosaico ya muestran la temperatura ajustada, la línea la omite."
       },
+      "scroll": {
+        "name": "Desplazar un nombre largo",
+        "name_hint": "Un nombre demasiado ancho para el mosaico se desplaza en bucle y se detiene cuando cabe. Desactivado, termina en puntos.",
+        "line": "Desplazar una segunda línea larga",
+        "line_hint": "Una segunda línea demasiado ancha para el mosaico se desplaza en bucle y se detiene cuando cabe. Desactivado, termina en puntos o en una forma más corta."
+      },
       "slider": {
         "label": "Control deslizante pequeño en el mosaico",
         "nothing": "Home Assistant no tiene nada que un control deslizante pueda cambiar en esta entidad. Elige No."

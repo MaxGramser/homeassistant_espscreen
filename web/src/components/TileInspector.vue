@@ -321,6 +321,14 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
             @input="writeSubText(($event.target as HTMLInputElement).value)" />
         </template>
       </PropRow>
+      <!-- A name and a second line too wide for the tile roll by, round and round, and stand still when they fit
+           (firmware dev, Tile::name_scroll and sub_scroll); off, they end in dots. On unless "off" is stored. -->
+      <SwitchRow v-if="!bedside && !key && !mapCard && !energyTile && !meterCard" class="name-scroll-choice" :label="t('editor.tile.scroll.name')"
+        :description="t('editor.tile.scroll.name_hint')" :model-value="tile.options?.name_scroll !== 'off'"
+        @update:model-value="(on) => setTileOption(tile, 'name_scroll', on ? undefined : 'off')" />
+      <SwitchRow v-if="!bedside && !key && !mapCard && !energyTile && !meterCard && subKind !== 'none'" class="sub-scroll-choice" :label="t('editor.tile.scroll.line')"
+        :description="t('editor.tile.scroll.line_hint')" :model-value="tile.options?.sub_scroll !== 'off'"
+        @update:model-value="(on) => setTileOption(tile, 'sub_scroll', on ? undefined : 'off')" />
       <PrecisionRow v-if="lookShown && precisionShown" :entity="tile.entity" />
       <PropRow v-if="lookShown && display === 'live'" :label="t('editor.tile.refresh.label')" icon="refresh">
         <ChoiceField :choices="refreshChoices" :value="refresh" :aria-label="t('editor.tile.refresh.label')" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
