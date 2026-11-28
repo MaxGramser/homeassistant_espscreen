@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
+      "backlight_pwm": "PWM podświetlenia",
+      "dimmest_level": "Najniższy poziom",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -191,10 +193,29 @@
       "hours_minutes": "{h} godz. {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Wtyczki",
       "microphone_gain": "Wzmocnienie mikrofonu",
       "automatic_gain": "Automatyczne wzmocnienie",
-      "echo_cancellation": "Usuwanie echa"
+      "call_ringtone": "Dzwonek",
+      "do_not_disturb": "Nie przeszkadzać",
+      "call_voice_switching": "Przełączanie głosu",
+      "echo_cancellation": "Usuwanie echa",
+      "loop_pages": "Strony w pętli"
+    },
+    "doorbell": {
+      "sound_on": "Dźwięk wł.",
+      "sound_off": "Dźwięk wył.",
+      "door": "Drzwi",
+      "door_confirm": "Dotknij ponownie, by otworzyć",
+      "door_sent": "Wysłano",
+      "talk": "Mów",
+      "tap_talk": "Dotknij, aby mówić",
+      "talking": "Mówisz",
+      "tap_stop": "Dotknij, aby zakończyć",
+      "connecting": "Łączenie",
+      "talk_busy": "Ktoś inny mówi",
+      "talk_failed": "Brak połączenia"
     },
     "tile": {
       "tap_to_open": "Otwórz",
@@ -213,7 +234,8 @@
       "color": "Kolor",
       "color_temperature": "Temperatura barwy",
       "brightness": "Jasność",
-      "waiting": "Czekam..."
+      "waiting": "Czekam...",
+      "presets": "Ustawienia"
     },
     "effects": {
       "effect": "Efekt",
@@ -636,6 +658,42 @@
       "calendars": "Kalendarze",
       "also": "+{x} teraz",
       "booked": "Zarezerwowano na ekranie"
+    },
+    "todo": {
+      "open": "{x} do zrobienia",
+      "all_done": "Wszystko zrobione",
+      "more": "+{x} więcej",
+      "completed": "Ukończone",
+      "add": "Dodaj pozycję",
+      "added": "Dodano: {x}",
+      "rename": "Zmień nazwę",
+      "remove": "Usuń",
+      "cancel": "Anuluj",
+      "clear": "Usunąć ukończone ({x})?",
+      "waiting": "Wczytywanie",
+      "empty": "Nic na liście",
+      "yesterday": "Wczoraj"
+    },
+    "call": {
+      "title": "Zadzwoń",
+      "calling": "Dzwonienie",
+      "calling_video": "Dzwonienie wideo",
+      "video": "Rozmowa wideo",
+      "audio": "Rozmowa",
+      "decline": "Odrzuć",
+      "answer": "Odbierz",
+      "ended": "Rozmowa zakończona",
+      "declined": "Odrzucono",
+      "busy": "Zajęty",
+      "no_answer": "Brak odpowiedzi",
+      "quiet": "Nie przeszkadzać",
+      "gone": "Niedostępny",
+      "available": "Dostępny",
+      "sound_only": "Dostępny, tylko dźwięk",
+      "in_call": "W trakcie rozmowy",
+      "offline": "Offline",
+      "missed_at": "Nieodebrane połączenie",
+      "no_screens": "Brak innego ekranu do połączenia"
     }
   },
   "addon": {
@@ -695,7 +753,8 @@
         "firmware_first": "Dla tych kafelków najpierw zainstaluj na ekranie firmware {version} lub nowszy.",
         "entity_gone": "Wybrana encja już nie istnieje. Wyszukaj nową encję.",
         "ids_too_long": "Identyfikatory encji tych kafelków są razem za długie, by zmieścić się w jednej wiadomości do ekranu; usuń kilka kafelków.",
-        "favorite_play": "Wybierz, co odtwarza ten ulubiony."
+        "favorite_play": "Wybierz, co odtwarza ten ulubiony.",
+        "text_template": "Kafelek szablonu potrzebuje szablonu o długości najwyżej 4000 znaków."
       },
       "top_bar": {
         "invalid": "Nieprawidłowy górny pasek; odśwież stronę zarządzania.",
@@ -866,12 +925,17 @@
         "layout_conflict": "Układ został zmieniony w innym edytorze; wczytaj go ponownie i porównaj wersję roboczą",
         "adaptation": "Siatka ekranu uległa zmianie; wymagane jest jawne dostosowanie układu",
         "normalization": "Opcje kafelków wymagają normalizacji przed zapisaniem strony",
+        "on_tile": "Strona {page}, kafelek „{tile}”: {problem}",
         "ambiguous_tile": "Zdarzenie kafelka ma niejednoznaczne źródło; podaj jego stronę",
         "save_first": "Zapisz układ stron przed zapisaniem ustawień",
         "destination_exists": "Ekran docelowy ma już zapisany układ",
         "update_tall": "Zaktualizuj ekran, aby używać tych rozmiarów kafelków",
         "memory": "Ekran nie ma wystarczającej ilości wolnej pamięci dla tego układu. Użyj mniejszej liczby kafelków.",
-        "grid_range": "Ten ekran nie przyjmuje siatki tej wielkości. Wybierz inną siatkę obok podglądu."
+        "grid_range": "Ten ekran nie przyjmuje siatki tej wielkości. Wybierz inną siatkę obok podglądu.",
+        "section_title": "Sekcja potrzebuje nazwy o długości najwyżej 48 bajtów.",
+        "section_tiles": "Kafelki sekcji muszą być w jej obrębie, a kafelek na całą stronę nigdy nie jest w sekcji.",
+        "section_overlap": "Sekcje i luźne kafelki nie mogą zajmować tych samych komórek.",
+        "sections_full": "Strona ma najwyżej 16 sekcji."
       },
       "feedback": {
         "invalid": "Tej odpowiedzi nie można udostępnić. Wybierz tak lub nie do końca i tylko wymienione problemy.",
@@ -923,7 +987,8 @@
         "like_not_listed": "Polubić można tylko wtyczki z katalogu Tessery.",
         "rate_not_installed": "Najpierw dodaj wtyczkę do jednego z ekranów, wtedy możesz ją ocenić.",
         "rate_failed": "Gwiazdki nie zostały wysłane. Spróbuj za chwilę.",
-        "count_failed": "Nie udało się wyłączyć liczenia: Tessera była nieosiągalna. Spróbuj za chwilę."
+        "count_failed": "Nie udało się wyłączyć liczenia: Tessera była nieosiągalna. Spróbuj za chwilę.",
+        "forget_running": "Ekran nadal używa tej wtyczki. Najpierw zdejmij ją z ekranu."
       },
       "extras": {
         "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
@@ -942,6 +1007,41 @@
         "not_paired": "Najpierw sparuj serwer kompilacji.",
         "unknown": "Serwer kompilacji nie zna już Tessera. Sparuj go ponownie.",
         "pending": "Serwer kompilacji jeszcze nie zaakceptował Tessera."
+      },
+      "build_files": {
+        "automatic": "Automatyczne czyszczenie może być tylko włączone albo wyłączone.",
+        "level": "Wybierz, które pliki kompilacji usunąć.",
+        "cleaning": "Pliki kompilacji są już czyszczone.",
+        "building": "Ekran jest kompilowany albo czeka na kompilację. Wyczyść pliki kompilacji, gdy skończy."
+      },
+      "video": {
+        "not_written": "Nie udało się zapisać Tessera video w {folder}: {reason}.",
+        "not_installed": "Najpierw zainstaluj Tessera video."
+      },
+      "report": {
+        "depth": "Wybierz raport podstawowy albo pełny.",
+        "busy": "Raport z tego ekranu jest jeszcze zbierany.",
+        "no_profile": "YAML tego ekranu nie jest w folderze ESPHome tego dodatku, więc stąd nie ma czego raportować.",
+        "not_found": "Tego raportu już nie ma. Zrób nowy.",
+        "not_ready": "Raport nie jest jeszcze gotowy.",
+        "failed": "Zbieranie raportu zatrzymało się ({reason}). Spróbuj ponownie.",
+        "consent": "Zaznacz pole, aby wysłać raport.",
+        "note": "Notatka może mieć najwyżej 2000 znaków.",
+        "email": "To nie wygląda jak adres e-mail.",
+        "too_large": "Raport jest za duży, by go wysłać. Pobierz go i załącz do zgłoszenia na GitHubie.",
+        "retry": "Tessera nie przyjęła teraz raportu. Spróbuj ponownie za minutę albo pobierz go.",
+        "offline": "Nie można stąd połączyć się z Tessera. Zamiast tego pobierz raport.",
+        "invalid": "Tessera odrzuciła raport. Pobierz go i załącz do zgłoszenia na GitHubie."
+      },
+      "automations": {
+        "not_allowed": "Home Assistant nie pozwolił aplikacji zapisać automatyzacji. Aplikacja potrzebuje dostępu administratora.",
+        "refused": "Home Assistant odrzucił automatyzację: {reason}",
+        "not_ours": "Tej automatyzacji nie utworzyła Tessera, więc aplikacja jej nie rusza.",
+        "invalid": "Tej automatyzacji nie można zapisać ({part})."
+      },
+      "icons": {
+        "request": "To nie jest lista ikon.",
+        "too_many": "Ekran mieści najwyżej {most} własnych ikon."
       }
     },
     "status": {
@@ -1012,14 +1112,20 @@
         },
         "light": {
           "toggle": "Przełącznik wł./wył.",
-          "brightness": "Suwak jasności"
+          "brightness": "Suwak jasności",
+          "presets": "Ustawienia",
+          "brightness_presets": "Suwak jasności i ustawienia"
         },
         "fan": {
           "toggle": "Przełącznik wł./wył.",
           "speed": "Suwak prędkości"
         },
         "vacuum": {
-          "buttons": "Start, stop, stacja"
+          "buttons": "Start, stop, stacja",
+          "map": "Mapa",
+          "rooms": "Wybór pokoi",
+          "routines": "Procedury",
+          "map_rooms": "Mapa i pokoje"
         },
         "cover": {
           "buttons": "Otwórz, stop, zamknij",
@@ -1136,6 +1242,14 @@
           "label": "Wybudź przy ruchu",
           "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
         },
+        "backlight_pwm": {
+          "label": "PWM podświetlenia",
+          "hint": "Jak szybko podświetlenie włącza się i wyłącza, by przyciemniać. 150 Hz przyciemnia każdy egzemplarz tej płytki, ale niektóre piszczą poniżej 20 kHz: wybierz 20 kHz, gdy twój piszczy, 15 kHz, gdy 20 kHz nie przyciemnia równomiernie."
+        },
+        "dimmest_level": {
+          "label": "Najniższy poziom",
+          "hint": "Najniższy poziom podświetlenia jako część pełnej mocy. Podnieś go, gdy ekran przy najniższej jasności pozostaje czarny lub migocze."
+        },
         "microphone_gain": {
           "label": "Wzmocnienie mikrofonu",
           "hint": "Analogowe wzmocnienie mikrofonu. Początkowo 30 dB; wzmocnienie sygnału odniesienia odtwarzania pozostaje stałe."
@@ -1143,6 +1257,18 @@
         "automatic_gain": {
           "label": "Automatyczne wzmocnienie",
           "hint": "Pozwala kodekowi mikrofonu regulować poziom nagrania. Niezależne od usuwania echa."
+        },
+        "call_ringtone": {
+          "label": "Dzwonek",
+          "hint": "Wyłączone: przy połączeniu ekran zapala się i pokazuje, kto dzwoni, bez dźwięku."
+        },
+        "do_not_disturb": {
+          "label": "Nie przeszkadzać",
+          "hint": "Włączone: połączenie do tego ekranu jest od razu odrzucane, a dzwoniący czyta dlaczego. Dzwonek do drzwi nadal dzwoni."
+        },
+        "call_voice_switching": {
+          "label": "Przełączanie głosu",
+          "hint": "Włączone: mikrofon strony, która słucha, cichnie, aby głos nie wracał jako echo. Wyłączone: obie strony mogą mówić jednocześnie. Mały klawisz w rozmowie zmienia to dla tej rozmowy."
         },
         "echo_cancellation": {
           "label": "Usuwanie echa",
@@ -1390,7 +1516,8 @@
         "alert_outline": "Ostrzeżenie",
         "cog": "Ustawienia",
         "broom": "Sprzątanie",
-        "diabetes": "Cukrzyca"
+        "diabetes": "Cukrzyca",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1399,7 +1526,9 @@
         "nightstand": "Zegar przy łóżku",
         "page": "Przejdź do strony {page}",
         "map": "Mapa",
-        "energy": "Energia"
+        "energy": "Energia",
+        "text": "Szablon",
+        "call": "Zadzwoń"
       },
       "identify": {
         "title": "To jest {name}",
@@ -1470,6 +1599,65 @@
         "directory": "Folder",
         "music": "Muzyka"
       }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "Kamera",
+          "help": "Encja kamery dzwonka. Ekran, który streamuje (ESP32-P4), pokazuje ją na żywo z dźwiękiem; każdy inny pokazuje jej obraz w alercie. Wymagane."
+        },
+        "title": {
+          "label": "Tytuł",
+          "help": "Jak ekran nazywa dzwonek, u góry widoku i jako tytuł alertu. Puste bierze nazwę kamery."
+        },
+        "screen": {
+          "label": "Ekran",
+          "help": "Które ekrany dostają dzwonek: nazwa urządzenia (np. kitchen-screen), nazwa w Home Assistant albo pomieszczenie. Lista obejmuje kilka. Pomiń dla każdego ekranu. Nazwa, która nie pasuje do żadnego ekranu, nic nie wysyła."
+        },
+        "timeout": {
+          "label": "Limit czasu",
+          "help": "Sekundy, przez które dzwonek zostaje, gdy nikt go nie dotknie, od {min} do {max}. Puste to {default}. Dotknięcie utrzymuje go otwartym."
+        },
+        "keep_minutes": {
+          "label": "Zachowaj nieodebrany",
+          "help": "Minuty, przez które nieodebrany dzwonek zostaje na górnym pasku ekranów z jego widokiem, liczone od dzwonka, od 1 do {most}. Puste lub 0: aż ktoś go otworzy."
+        },
+        "sound": {
+          "label": "Dźwięk",
+          "help": "Czy dźwięk dzwonka gra od razu, gdy dzwoni, tam gdzie ekran ma głośnik. Puste lub true: widok otwiera się z włączonym dźwiękiem. false: otwiera się cicho (studio, sypialnia), a dotknięcie Dźwięku go włącza."
+        },
+        "chime": {
+          "label": "Gong",
+          "help": "Czy ekran gra swój gong, gdy ktoś dzwoni, tam gdzie ma głośnik. Puste lub true: gra. false: dzwoni bez niego, a widok i tak się otwiera."
+        },
+        "lock": {
+          "label": "Zamek",
+          "help": "Encja zamka, którą przycisk drzwi widoku odblokowuje po drugim dotknięciu; przycisk pokazuje jego stan. Zamek, który prosi o kod, potrzebuje kodu domyślnego w Home Assistant (ustawienia zamka). Pomiń, by nie mieć przycisku drzwi."
+        },
+        "door_action": {
+          "label": "Akcja drzwi",
+          "help": "Zamiast zamka: akcja Home Assistant, którą przycisk drzwi wykonuje po drugim dotknięciu, np. script.open_gate lub button.press. `door_data` podaje jej pola (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Dane drzwi",
+          "help": "Pola `door_action`, np. entity_id."
+        }
+      },
+      "endings": {
+        "answered": "Ktoś go dotknął: odebrany i zamknięty na innych ekranach",
+        "closed": "Przycisk zamknięcia lub coś innego, co go zamknęło",
+        "missed": "Nikt go nie dotknął przed limitem czasu",
+        "seen": "Nieodebrany dzwonek otwarto ponownie z górnego paska"
+      }
+    },
+    "layoutbot": {
+      "none": "Layoutbot potrzebuje w Home Assistant zadania AI Task, które potrafi generować dane (Ustawienia > Urządzenia oraz usługi, integracja AI).",
+      "notes": {
+        "unknown": "Pominięto {entity}: to nie jest encja tego Home Assistant.",
+        "no_page": "Nie ma strony {page}.",
+        "kept": "Layoutbot pominął {count} Twoich kafelków: stoją luzem na ostatniej stronie."
+      },
+      "nothing_to_restructure": "Na tej stronie nie ma jeszcze kafelków urządzeń do przebudowania. Dodaj kilka i zapytaj ponownie."
     }
   },
   "editor": {
@@ -1487,6 +1675,8 @@
       "read_current_data": "Odczytaj bieżące dane",
       "results": "1 wynik. Pisz dalej, aby zawęzić. | {n} wyniki. Pisz dalej, aby zawęzić. | {n} wyników. Pisz dalej, aby zawęzić.",
       "close": "Zamknij",
+      "expand": "Pokaż więcej",
+      "collapse": "Pokaż mniej",
       "remove": "Usuń",
       "loading": "Ładowanie…",
       "back": "← Wstecz",
@@ -1497,9 +1687,10 @@
       "plugins": "Wtyczki",
       "new_screen": "Nowy ekran",
       "firmware": "Firmware i USB",
-      "alerts": "Alerty",
+      "events": "Zdarzenia",
       "settings": "Ustawienia",
-      "new_screen_detail": "Podłącz i zainstaluj"
+      "new_screen_detail": "Podłącz i zainstaluj",
+      "manual": "Instrukcja"
     },
     "api": {
       "failed": "Nie udało się. Odśwież stronę i spróbuj ponownie."
@@ -1796,6 +1987,7 @@
       "search_label": "Dodaj encję",
       "filters": {
         "all": "Wszystkie",
+        "plugin": "Wtyczki",
         "light": "Światła",
         "climate": "Klimat",
         "switch": "Przełączniki",
@@ -1810,6 +2002,7 @@
         "vacuum": "Odkurzacze",
         "sensor": "Sensory",
         "media_player": "Media",
+        "camera": "Kamery",
         "weather": "Pogoda",
         "number": "Wartości",
         "select": "Selektory",
@@ -1819,7 +2012,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Zamki",
         "humidifier": "Nawilżacze",
-        "calendar": "Kalendarze"
+        "calendar": "Kalendarze",
+        "todo": "Listy zadań",
+        "text": "Teksty"
       },
       "room": "Obszar",
       "hide_placed": "Ukryj dodane",
@@ -1827,6 +2022,8 @@
       "again": "Już jest na tym ekranie; dodaj ponownie, aby mieć kolejny kafelek",
       "all_placed": "Wszystko z tej listy jest już na tym ekranie.",
       "none_found": "Nie znaleziono encji. Spróbuj innej nazwy, obszaru lub filtra.",
+      "found_elsewhere": "Nic w tym wyborze, ale w całej bibliotece pasuje 1 encja. | Nic w tym wyborze, ale w całej bibliotece pasują {n} encje. | Nic w tym wyborze, ale w całej bibliotece pasuje {n} encji.",
+      "search_everything": "Pokaż wszystkie wyniki",
       "full": "Ten ekran mieści 1 kafelek. | Ten ekran mieści {n} kafelki. | Ten ekran mieści {n} kafelków.",
       "full_update": "Ten ekran mieści 1 kafelek; zaktualizuj jego firmware, aby zmieścić 48. | Ten ekran mieści {n} kafelki; zaktualizuj jego firmware, aby zmieścić 48. | Ten ekran mieści {n} kafelków; zaktualizuj jego firmware, aby zmieścić 48.",
       "hint": "Przeciągnij na stronę albo kliknij +, aby dodać w pierwszym wolnym miejscu. ⌘K przeszukuje wszystko.",
@@ -1837,6 +2034,11 @@
     "plugins": {
       "title": "Wtyczki",
       "intro": "Dodatki do ekranów: kafelki na stronę, coś więcej dla całego ekranu albo sprzęt na płytce. Wtyczka jest wbudowywana w firmware ekranu, więc dla każdego ekranu wybierasz, które dostaje.",
+      "risk": {
+        "title": "Wtyczki na własne ryzyko",
+        "text": "Każda wtyczka zajmuje część pamięci i czasu procesora ekranu. Kilka dobrze działa razem, ale wiele naraz (na przykład asystent głosowy, proxy Bluetooth i kamera) może zapełnić pamięć i sprawić, że ekran zwolni, zawiesi się lub uruchomi ponownie. Możesz spróbować, ale dodawaj jedną lub dwie naraz i sprawdzaj, czy ekran działa stabilnie. Gdy zacznie sprawiać problemy, najpierw usuń najnowsze.",
+        "many": "Liczba wtyczek na ekranie {screen} po tej kompilacji: {n}. Tak wiele może sprawić, że ekran będzie niestabilny: jeśli sprawia problemy, usuń kilka."
+      },
       "search": "Szukaj po nazwie, autorze lub funkcji",
       "filter": "Pokaż",
       "from_tessera": "Od Tessera",
@@ -1856,7 +2058,8 @@
         "fits_none": "Nie pasuje do żadnego z Twoich ekranów",
         "failed": "Kompilacja nie powiodła się",
         "not_running": "Nie działa na ekranie",
-        "queued": "Czeka na swoją kolej"
+        "queued": "Czeka na swoją kolej",
+        "runs_other": "Na ekranie działa wersja {version}"
       },
       "source": {
         "link": "Z linku",
@@ -1913,6 +2116,8 @@
         "title": "Co dodaje",
         "tile": "Kafelek „{name}”",
         "tile_sizes": "Od {min} do {max} na stronie",
+        "tile_sizes_or_page": "Od {min} do {max} na stronie albo cała strona",
+        "tile_only_page": "Cała strona",
         "tap": "Akcja po dotknięciu „{name}”",
         "tap_on": "Na kafelkach {domains}",
         "card": "„{name}”, własny widok na ekranie",
@@ -1926,7 +2131,10 @@
         "ha_none": "Nie wykonuje żadnych akcji w Home Assistant",
         "network": "Łączy się z {hosts}",
         "network_none": "Nie łączy się z niczym poza Home Assistant",
-        "read": "Odczytuje te encje z Home Assistant"
+        "read": "Odczytuje te encje z Home Assistant",
+        "sends": "Wysyła do {host}: {what}",
+        "sends_option": "{attributes} encji, którą wybierzesz dla {option}",
+        "sends_state": "stan"
       },
       "warning": "Wtyczka działa na Twoim ekranie z pełnym dostępem do niego, także do jego Wi-Fi i akcji, które ekran może wykonywać w Home Assistant, a jej kompilacja działa w tej aplikacji, gdzie ma dostęp do Twojej konfiguracji Home Assistant. Dodawaj tylko wtyczki od autorów, którym ufasz, albo najpierw przeczytaj kod.",
       "room": {
@@ -2046,7 +2254,8 @@
         "keep": "Zostaw",
         "keep_named": "Zostaw {name}",
         "minutes": "Każda kompilacja trwa kilka minut.",
-        "off_set": "Przygotowana do usunięcia"
+        "off_set": "Przygotowana do usunięcia",
+        "risk": "Na własne ryzyko: każda wtyczka zajmuje pamięć, a zbyt wiele może sprawić, że ekran będzie niestabilny."
       },
       "maker": {
         "title": "Stwórz własną wtyczkę",
@@ -2231,7 +2440,13 @@
         "text": "Pomóż innym znaleźć dobre wtyczki. Polubienia i gwiazdki wysyłane są tylko, gdy je dajesz, a liczenie tylko, gdy jest włączone.",
         "asking": "Proś o gwiazdki kilka dni po nowej wtyczce",
         "asking_hint": "Karta nad ekranem, po jednej wtyczce."
-      }
+      },
+      "forget": {
+        "go": "Usuń z listy",
+        "note": "Żaden ekran nie używa tej wtyczki. Usuń ją z listy, aby zapomnieć link.",
+        "note_folder": "Żaden ekran nie używa tej wtyczki z jej folderu. Usunięcie przenosi folder do config/tessera-plugins/.removed/{id}, gdzie możesz go skasować na dobre."
+      },
+      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}."
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",
@@ -2243,6 +2458,9 @@
       "from_fetch": "Opcje pochodzą z własnego źródła danych wtyczki, przez Tessera.",
       "on_screen": "Na ekranie",
       "sizes": "Od {min} do {max}; przeciągnij krawędź kafelka, aby zmienić jego rozmiar.",
+      "sizes_or_page": "Od {min} do {max} albo cała strona; przeciągnij krawędź kafelka, aby zmienić jego rozmiar.",
+      "sizes_only_page": "Ten kafelek zawsze zajmuje całą stronę.",
+      "whole_page": "Cała strona",
       "placeholder": "Edytor pokazuje symbol zastępczy: to, co rysuje wtyczka, widać na samym ekranie.",
       "now": "teraz",
       "minutes": "{n} min",
@@ -2257,7 +2475,14 @@
       "remove": "Usuń {name}",
       "type": "Wpisz i naciśnij Enter",
       "full": "Ekran nie przyjmie więcej dla tego kafelka: jego opcje są pełne.",
-      "count": "{n} z {max}"
+      "count": "{n} z {max}",
+      "show_all": "Pokaż wszystkie encje",
+      "show_fitting": "Pokaż tylko pasujące",
+      "not_set": "Nie ustawiono",
+      "fill_device": "Wypełnij z urządzenia",
+      "fill_device_hint": "Wybierz urządzenie, a jego czujniki zostaną wpisane poniżej. Każdy możesz potem zmienić.",
+      "fill_device_none": "Żadne urządzenie nie ma dwóch lub więcej z tych czujników",
+      "fill_device_count": "1 czujnik | {n} czujniki | {n} czujników"
     },
     "memory": {
       "label": "Pamięć na kafelki",
@@ -2307,7 +2532,10 @@
       "alarm_control_panel": "Panel alarmowy",
       "lock": "Zamek",
       "humidifier": "Nawilżacz",
-      "calendar": "Kalendarz"
+      "calendar": "Kalendarz",
+      "todo": "Lista zadań",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standardowy",
@@ -2379,7 +2607,11 @@
       "refresh": {
         "label": "Odświeżanie",
         "seconds": "Co {n} s",
-        "live": "Na żywo"
+        "live": "Na żywo",
+        "paused": "Na żywo wstrzymane",
+        "cap": "Ten ekran pokazuje na żywo {n} kamery naraz; pozostałe pokazują obraz co 15 sekund. Przy dwóch kamerach każda działa płynniej niż przy czterech.",
+        "cap_one": "Ten ekran pokazuje na żywo jedną kamerę naraz; pozostałe pokazują obraz co 15 sekund.",
+        "streams": "W użyciu {used} z {most} transmisji na żywo, na wszystkich ekranach. Kamera ponad ten limit pokazuje obraz co 15 sekund."
       },
       "picture": {
         "fit": {
@@ -2461,6 +2693,39 @@
         "room_hint": "Ekran rysuje je tam, gdzie kafelek ma na nie miejsce (firmware 0.57.0 lub nowszy): pod nazwą na pojedynczym kafelku, obok niej na podwójnej szerokości. Gdzie się nie mieszczą, kafelek wygląda jak bez nich.",
         "tilt": "",
         "tilt_hint": ""
+      },
+      "presets": {
+        "label": "Ustawienia",
+        "preset": "Ustawienie {n}",
+        "swatch_aria": "Ustawienie {n}, jasność {b}%",
+        "white": "Biel",
+        "colour": "Kolor",
+        "level": "Tylko jasność",
+        "white_shade": "Odcień bieli",
+        "kelvin": "{k} K",
+        "hue": "Barwa",
+        "degrees": "{h}°",
+        "saturation": "Nasycenie",
+        "brightness": "Jasność",
+        "percent": "{n}%",
+        "use_light": "Użyj obecnego stanu światła",
+        "use_light_off": "Włącz światło, aby przejąć jego jasność i kolor.",
+        "add": "Dodaj ustawienie",
+        "add_first": "Dodaj pierwsze ustawienie",
+        "levels": "Pokazuj jasność na ustawieniach",
+        "levels_hint": "Wpisuje jasność małą czcionką w każde koło. Ustawienie samej jasności zawsze ją pokazuje.",
+        "hint": "Dotknięcie ustawienia ustawia światło za jednym razem; pierścień oznacza to, które światło teraz pokazuje. Kliknij, aby zmienić, przeciągnij, aby zmienić kolejność.",
+        "hint_empty": "Do czterech okrągłych klawiszy, jak ulubione kolory w Home Assistant, każdy z własną jasnością. Nowe zaczyna od tego, co światło teraz pokazuje.",
+        "own": "Własne ustawienie",
+        "device": "Preset lampy",
+        "effect": "Efekt",
+        "search": "Szukaj",
+        "none_found": "Nic nie znaleziono",
+        "device_kind": "Rodzaj",
+        "device_preset": "Preset",
+        "device_playlist": "Playlista",
+        "device_hint": "Preset samej lampy ustawia jej własny kolor, efekt i jasność.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Po dotknięciu",
@@ -2714,6 +2979,110 @@
         "none": "Bez sterowania",
         "never": "Nie pokazuj ponownie",
         "done": "Gotowe"
+      },
+      "look": {
+        "title": "Jak ma wyglądać?",
+        "text": "Ten czujnik zaczyna jako wskaźnik. Wskaż wygląd, aby zobaczyć go na kafelku; zmienisz to później w Widoku.",
+        "ring": "Wskaźnik: pierścień",
+        "tape": "Wskaźnik: skala",
+        "bar": "Wskaźnik: pasek",
+        "graph": "Wykres z ostatnich godzin",
+        "watch": "Duża wartość",
+        "standard": "Tylko wartość",
+        "never": "Nie pokazuj ponownie",
+        "done": "Gotowe"
+      },
+      "text": {
+        "title": "Szablon",
+        "hint": "Napisz tekst z szablonami Home Assistant, jak w Narzędzia deweloperskie › Szablon. Home Assistant go wypełnia, a ekran pokazuje wynik i na bieżąco go aktualizuje. Gdy wynik jest pusty, kafelek znika.",
+        "manual": "Jak napisać szablon",
+        "field": "Szablon",
+        "placeholder": "Wpisz tekst albo {'{{'}, aby odczytać stan…",
+        "keys": {
+          "space": "Spacja",
+          "complete": "uzupełnij",
+          "next": "następne pole",
+          "comment": "komentarz"
+        },
+        "result": "Na ekranie",
+        "bytes": "{n} z {of} bajtów",
+        "empty": "Wynik jest pusty: ekran nic tu nie pokazuje.",
+        "access": "Szablon działa w Home Assistant z uprawnieniami aplikacji Tessera, więc może odczytać każdą encję.",
+        "markup": {
+          "label": "Formatowanie",
+          "heading": "Nagłówek",
+          "bullet": "Punktor",
+          "table": "Tabela",
+          "bold": "Pogrubienie",
+          "good": "Zielony tekst",
+          "alert": "Czerwony tekst",
+          "accent": "Niebieski tekst"
+        },
+        "complete": {
+          "now": "teraz",
+          "state": "Stan: {state}"
+        },
+        "examples": {
+          "title": "Zacznij od przykładu:",
+          "lights": "Włączone światła",
+          "open": "Otwarte drzwi i okna",
+          "weather": "Pogoda",
+          "lights_heading": "Włączone światła",
+          "all_off": "Wszystkie światła są wyłączone",
+          "open_heading": "Otwarte",
+          "now": "Teraz",
+          "humidity": "Wilgotność"
+        },
+        "listen": {
+          "label": "Odświeża się przy",
+          "time": "czasie",
+          "none": "Nie czyta żadnej encji: zmienia się tylko po zmianie szablonu.",
+          "all": "Czyta wszystkie stany: Home Assistant przelicza go najwyżej raz na minutę. Wskaż encje lub domenę (states.light), aby śledził od razu."
+        },
+        "lint": {
+          "unknown": "{id} nie istnieje w Home Assistant",
+          "replace": "Zastąp przez {id}"
+        }
+      },
+      "todo": {
+        "title": "Lista zadań",
+        "plain": "Ta płytka nie pokaże listy zadań: potrzebna jest płytka z 8 MB pamięci flash lub więcej. Usuń ten kafelek.",
+        "needs_firmware": "Lista zadań wymaga firmware 0.61.0 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie.",
+        "order": {
+          "label": "Kolejność",
+          "hint": "Tak, jak porządkuje je karta listy zadań Home Assistant",
+          "none": "Jak w Home Assistant",
+          "alpha_asc": "Nazwa, od A do Z",
+          "alpha_desc": "Nazwa, od Z do A",
+          "duedate_asc": "Termin, najbliższy najpierw",
+          "duedate_desc": "Termin, najdalszy najpierw"
+        },
+        "completed": "Ukończone pozycje",
+        "completed_hint": "Pod otwartymi, przekreślone, gdzie jest miejsce",
+        "due": "Terminy",
+        "due_hint": "Dzień obok pozycji; spóźnione na czerwono",
+        "screen": "Na ekranie",
+        "add": "Dodawanie pozycji",
+        "add_hint": "Klawisz plus na kafelku i pole na liście otwierają klawiaturę ekranu",
+        "suggest": "Podpowiadaj nazwy",
+        "suggest_hint": "Podczas pisania klawiatura proponuje to, co wcześniej odhaczono; dotknięcie przywraca to na listę",
+        "clear": "Usuwanie ukończonych",
+        "clear_hint": "Klawisz na liście usuwa po pytaniu wszystko, co odhaczone"
+      },
+      "call": {
+        "section": "Połączenie",
+        "who": "Dzwoni do",
+        "who_hint_all": "Dotknięcie otwiera listę ekranów.",
+        "who_hint_one": "Dotknięcie od razu dzwoni do tego ekranu.",
+        "everyone": "Wybór z listy",
+        "kind": "Rodzaj połączenia",
+        "kind_hint": "Wideo wymaga wtyczki Screen camera z jej częścią Video na obu ekranach, w przeciwnym razie jest to połączenie z dźwiękiem.",
+        "video": "Wideo, gdy to możliwe",
+        "sound": "Tylko dźwięk"
+      },
+      "text_entity": {
+        "edit": "Dotknięcie otwiera wartość w polu z klawiaturą ekranu. Hasło widać jako kropki.",
+        "view_only": "Ta płytka pokazuje tylko wartość: zmiana na ekranie wymaga płytki z 8 MB pamięci flash lub więcej."
       }
     },
     "precision": {
@@ -2750,7 +3119,9 @@
       "search_label": "Szukaj ikony",
       "none_text_only": "Bez ikony, tylko tekst",
       "aria": "Ikona: {name}",
-      "none_found": "Nie znaleziono ikony."
+      "none_found": "Nie znaleziono ikony.",
+      "own": "Ikony tego ekranu",
+      "more": "Więcej ikon"
     },
     "inspect": {
       "title": "Bieżące dane",
@@ -2868,7 +3239,8 @@
         "swipe_pages": "Przesuwanie stron",
         "page_buttons": "Przyciski stron",
         "home_button": "Pokaż przycisk strony głównej",
-        "rotation": "Obrót"
+        "rotation": "Obrót",
+        "loop_pages": "Strony w pętli"
       },
       "actions": {
         "calibrate": {
@@ -3058,6 +3430,23 @@
         "reinstall_all_confirm": "Zainstalować ponownie 1 ekran z najnowszej wersji dev? Uruchomi się ponownie, gdy dostanie firmware. | Zainstalować ponownie {n} ekrany z najnowszej wersji dev? Kompilują się po kolei i każdy uruchamia się ponownie, gdy dostanie firmware. | Zainstalować ponownie {n} ekranów z najnowszej wersji dev? Kompilują się po kolei i każdy uruchamia się ponownie, gdy dostanie firmware.",
         "reinstall_all_go": "Zainstaluj ponownie"
       },
+      "video": {
+        "title": "Wideo w Home Assistant",
+        "text": "Ekran z częścią Wideo wtyczki Kamera ekranu pokazuje swoją kamerę na żywo w Home Assistant, z dźwiękiem: kamera Wideo przy urządzeniu ekranu, w przeglądarce i w aplikacji. Home Assistant potrzebuje do tego integracji Tessera video.",
+        "install": "Zainstaluj w Home Assistant",
+        "install_again": "Zainstaluj ponownie",
+        "update": "Zaktualizuj integrację",
+        "newer": "Zainstalowana · nowsza wersja jest gotowa",
+        "waits_restart": "Zainstalowana · uruchom ponownie Home Assistant, aby ją wczytać",
+        "running": "● Działa w Home Assistant",
+        "restart": "Uruchom ponownie Home Assistant",
+        "restart_confirm": "Uruchomić ponownie Home Assistant teraz? Zniknie na minutę lub dwie, a z nim pulpity i automatyzacje.",
+        "restarting": "Home Assistant uruchamia się ponownie. Wideo ekranów wróci w ciągu minuty po jego powrocie.",
+        "installed": "Tessera video zainstalowana. Uruchom ponownie Home Assistant raz, aby ją wczytać.",
+        "screens": "Ekrany z wideo: {names}",
+        "no_screens": "Żaden ekran nie ma jeszcze wideo: dodaj Kamerę ekranu z częścią Wideo do ekranu P4 z kamerą.",
+        "writes": "Zapisuje folder {path}; ponowna instalacja go zastępuje. Tessera sama dodaje każdy ekran z wideo."
+      },
       "claude": {
         "installed": "Umiejętność zainstalowana. Claude Code od razu ją wykrywa.",
         "installed_restart": "Umiejętność zainstalowana. Uruchom ponownie Claude Code jeden raz, aby znalazł nowy folder umiejętności.",
@@ -3161,6 +3550,32 @@
         "forget_confirm": "Zapomnieć {name}? Ekrany znów kompilują się tutaj. Aby usunąć tam także Tessera, usuń ją ze sparowanych urządzeń serwera kompilacji.",
         "forget_go": "Zapomnij",
         "unavailable": "Ta Tessera nie może rozmawiać z serwerem kompilacji."
+      },
+      "build_files": {
+        "title": "Pliki kompilacji",
+        "intro": "Każda kompilacja firmware'u zostawia pliki, dzięki czemu kolejna kompilacja tego samego ekranu jest szybka. Kopie zapasowe Home Assistanta ich nie obejmują.",
+        "measuring": "Mierzenie…",
+        "total": "{size} łącznie",
+        "folders": "Foldery kompilacji",
+        "folders_detail": "1 ekran | {count} ekrany | {count} ekranów",
+        "cache": "Pamięć podręczna kompilacji",
+        "tools": "ESP-IDF i pobrane pliki",
+        "clean": "Wyczyść foldery kompilacji",
+        "cleaning": "Czyszczenie…",
+        "clean_confirm": "Usunąć foldery kompilacji wszystkich ekranów? Zwolni to {size}. Następna kompilacja każdego ekranu skompiluje wszystko od nowa i potrwa o kilka minut dłużej, na Raspberry Pi jeszcze dłużej. Układy, wtyczki i ustawienia pozostaną bez zmian.",
+        "clean_all": "Usuń także pamięć podręczną kompilacji i ESP-IDF",
+        "clean_all_confirm": "Usunąć wszystkie pliki kompilacji, także pamięć podręczną kompilacji i ESP-IDF? Zwolni to {size}. Następna kompilacja pobierze ESP-IDF od nowa, około 1 GB, i skompiluje wszystko od początku, co na Raspberry Pi może zająć pół godziny. Układy, wtyczki i ustawienia pozostaną bez zmian.",
+        "clean_go": "Wyczyść",
+        "cleaned": "Wyczyszczono: znów wolne {size}.",
+        "cleaned_nothing": "Wyczyszczono.",
+        "busy": "Ekran jest kompilowany. Możesz wyczyścić, gdy skończy.",
+        "auto_label": "Czyść po kompilacji",
+        "auto_hint": "Od następnej kompilacji usuwa foldery kompilacji, gdy nic już się nie kompiluje. Oszczędza miejsce, ale każda kolejna kompilacja ekranu kompiluje wszystko od nowa i trwa o kilka minut dłużej.",
+        "auto_on": "Foldery kompilacji są czyszczone po kompilacji.",
+        "auto_off": "Foldery kompilacji zostają dla szybszych kompilacji.",
+        "offer": "Zwolnij {size}",
+        "not_now": "Nie teraz",
+        "large": "Foldery kompilacji zajmują {size}. Wyczyszczenie ich zwalnia większość miejsca, które zajmują kompilacje."
       }
     },
     "firmware": {
@@ -3356,6 +3771,14 @@
         "change": "Zmień Wi-Fi i zainstaluj ponownie",
         "failed": "Tessera nie może sama dodać {name} do Home Assistant. Dodaj go samodzielnie poniżej."
       },
+      "known": {
+        "title": "Ta płytka jest już w Home Assistant jako {name}",
+        "text": "Home Assistant trzyma jedno urządzenie ESPHome na płytkę (jej adres MAC), więc {new} nie da się dodać, dopóki jest {name}. Zainstaluj {name} ponownie albo zastąp: gdy firmware będzie na płytce, {name} zniknie z Home Assistant razem z encjami, a {new} zajmie jego miejsce.",
+        "reinstall": "Zainstaluj {name} ponownie",
+        "replace": "Zastąp {name} przez {new}",
+        "replaced": "{name} usunięto z Home Assistant; {new} zajmuje jego miejsce.",
+        "go_firmware": "W Firmware i USB wybierz profil {name} i „Zainstaluj z tej przeglądarki”."
+      },
       "memory": {
         "low_title": "Mało wolnej pamięci na maszynie Home Assistant",
         "low": "Wolne jest {free} pamięci, więc firmware kompiluje się mniejszą liczbą kompilatorów naraz ({jobs} zamiast {cores}). Trwa to dłużej, ale się mieści.",
@@ -3375,8 +3798,6 @@
       "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem."
     },
     "alerts": {
-      "eyebrow": "Alerty · ściąga",
-      "title": "Powiadomienie na cały ekran, z automatyzacji.",
       "intro": "Każdy ekran ma akcję {action}. Wyświetla ona kartę nad wszystkim, budzi ekran i utrzymuje normalną jasność podświetlenia, dopóki ktoś nie dotknie przycisku albo nie upłynie limit czasu. Sam Home Assistant nie pokazuje dla akcji ESPHome żadnych objaśnień ani list rozwijanych; wszystko, co możesz wypełnić, znajdziesz tutaj.",
       "loading": "Ściąga wciąż się ładuje; chwileczkę.",
       "example": {
@@ -3386,7 +3807,6 @@
       },
       "sections": "Sekcje",
       "nav": {
-        "try": "Wypróbuj",
         "screens": "Twoje ekrany",
         "howto": "W automatyzacji",
         "all": "Wszystkie ekrany",
@@ -3400,10 +3820,6 @@
         "choice": "Dwa przyciski"
       },
       "try": {
-        "text": "Wyślij teraz jeden alert z tymi samymi polami, które wysyła automatyzacja. Ekran pokaże kartę, a przy włączonym miganiu mignie podświetleniem.",
-        "screen": "Ekran",
-        "all": "Wszystkie ekrany (gotowe: {ready})",
-        "not_ready": "{name} · niegotowy",
         "title": "Tytuł",
         "subtitle": "Podtytuł",
         "icon": "Ikona",
@@ -3415,10 +3831,6 @@
         "sending": "Wysyłanie…",
         "send": "Wyślij alert",
         "sent_all": "Wysłano na {n} ekran. | Wysłano na {n} ekrany. | Wysłano na {n} ekranów.",
-        "sent_to": "Wysłano na ekran {name}.",
-        "sent_one": "Wysłano na ekran.",
-        "skipped": "Pominięto 1 ekran (offline lub stary firmware). | Pominięto {n} ekrany (offline lub stary firmware). | Pominięto {n} ekranów (offline lub stary firmware).",
-        "left_empty": "Puste pola: {fields}.",
         "nothing": "Żaden ekran nie mógł go pokazać: sprawdź, czy któryś ekran jest online i ma firmware {version} lub nowszy."
       },
       "white": "Biały (domyślny)",
@@ -3532,7 +3944,80 @@
         "text": "Dodaj {second}, aby uzyskać drugi przycisk na lewo od pierwszego, żeby osoba przy ekranie mogła wybrać, np. Nie teraz i Otwórz. {first_color} i {second_color} nadają przyciskowi własny kolor, zielony na tak i czerwony na nie. Która odpowiedź jest po której stronie, decydujesz ty: pierwszy przycisk jest zawsze po prawej.",
         "event": "Przez zdarzenie każde z tych pól jest opcjonalne, a {second_action} z {second_data} uruchamia akcję z drugiego przycisku, tak jak {action} z pierwszego. Ekran z oprogramowaniem starszym niż {version} pokazuje alert z jednym przyciskiem.",
         "direct": "Wywołujesz ekran bezpośrednio? Jego akcja {choice} przyjmuje pola show_alert oraz te trzy; drugi przycisk kończy alert z {ending}."
-      }
+      },
+      "wizard": {
+        "camera": "Kamera (opcjonalnie)",
+        "no_camera": "Brak kamery",
+        "screens_hint": "Nic nie wybrano: każdy ekran, który może pokazać alert.",
+        "description": "Utworzono w Zdarzeniach Tessery: alert na ekranach.",
+        "title": "Nowa automatyzacja alertu",
+        "with_picture": "Pokazuje obraz z kamery",
+        "without_picture": "Pokazuje alert bez obrazu",
+        "summary": {
+          "says": "Treść",
+          "buttons": "Przyciski"
+        },
+        "steps": {
+          "trigger": {
+            "title": "Co go uruchamia?",
+            "help": "Wybierz, co sprawia, że alert się pojawia: czujnik, który się włącza, pomocnik przełącznika, przycisk lub zdarzenie. Używasz tego w automatyzacji, którą już masz? Wtedy możesz pominąć ten krok."
+          },
+          "words": {
+            "title": "Co mówi?",
+            "help": "Krótki tytuł i linia pod nim. Widzisz kartę tak, jak rysuje ją ekran."
+          },
+          "look": {
+            "title": "Jak wygląda?",
+            "help": "Ikona, kolor, jeśli chcesz obraz z kamery, i czy miga."
+          },
+          "screens": {
+            "title": "Które ekrany?",
+            "help": "Wybierz ekrany, które go pokazują, i jak długo zostaje."
+          },
+          "try": {
+            "title": "Wypróbuj",
+            "help": "Wyślij go teraz raz, dokładnie tak, jak zrobi to automatyzacja. Spójrz na swoje ekrany."
+          },
+          "add": {
+            "title": "Zakończ",
+            "help": "Zrób z tego osobną automatyzację albo skopiuj akcję do automatyzacji, którą już masz."
+          },
+          "buttons": {
+            "title": "Które przyciski?",
+            "help": "Jeden przycisk albo dwa do wyboru. Każdy po naciśnięciu może coś zrobić w Home Assistant albo tylko zamknąć alert."
+          }
+        },
+        "buttons": {
+          "one": "Jeden przycisk",
+          "one_detail": "OK, Idę, Widziane: zamyka alert i może zrobić jedną rzecz.",
+          "two": "Dwa przyciski",
+          "two_detail": "Wybór, np. Otwórz i Nie teraz, każdy z własną akcją.",
+          "first": "Prawy przycisk",
+          "second": "Lewy przycisk",
+          "second_example": "Nie teraz",
+          "color": "Kolor",
+          "own_color": "Własny kolor",
+          "does": "Po naciśnięciu",
+          "only_close": "Tylko zamyka alert",
+          "no_actions": "Ta encja nie ma akcji, która nie potrzebuje niczego więcej. Wybierz inną.",
+          "closes": "zamyka alert",
+          "only": "Przycisk"
+        },
+        "try_action": "Uwaga: naciśnięcie przycisku z akcją naprawdę ją wykonuje, także teraz.",
+        "route": {
+          "event": "Wysyłany jako zdarzenie {event}: jedyna droga, która niesie kamerę, akcję przycisku i wybór ekranów. Aplikacja daje każdemu ekranowi alert w formie, którą zna jego firmware.",
+          "one_button": "{screens}: firmware starsze niż {version}, pokazuje tylko prawy przycisk.",
+          "action": "Aplikacja wykonuje akcję przycisku raz, na którymkolwiek ekranie zostanie naciśnięty. Po upływie czasu lub nowym alercie nic się nie dzieje.",
+          "no_picture": "{screens}: pokazuje alert bez obrazu z kamery."
+        }
+      },
+      "hero": {
+        "title": "Alert na twoich ekranach",
+        "text": "Karta nad wszystkim na ekranie, z przyciskiem: gdy ktoś jest przy drzwiach, pranie jest gotowe albo okno zostało otwarte. Kreator prowadzi cię krok po kroku i dodaje automatyzację do Home Assistant.",
+        "create": "Utwórz automatyzację alertu",
+        "empty": "Nie ma jeszcze automatyzacji alertu. Utwórz ją powyżej, a pojawi się tutaj."
+      },
+      "reference": "Napisz samodzielnie"
     },
     "override": {
       "eyebrow": "Zaawansowane · lokalne nadpisanie",
@@ -3570,9 +4055,14 @@
     "mockup": {
       "home": "Dom",
       "unknown": "Nieznany",
-      "calendar_free": "Wolne"
+      "calendar_free": "Wolne",
+      "todo_open": "{x} do zrobienia",
+      "todo_all_done": "Wszystko zrobione",
+      "todo_more": "+{x} więcej"
     },
     "pages": {
+      "repaired": "Strona {page}, kafelek „{tile}”: usunięto to, co nie pasowało ({what}).",
+      "repaired_tile": "Strona {page}: usunięto kafelek „{tile}”, już nie pasował.",
       "mode": "Tryb edytora",
       "simple": "Prosty",
       "advanced": "Zaawansowany",
@@ -3704,8 +4194,7 @@
       "comment_label": "Notatka (opcjonalnie)",
       "comment_hint": "Nie podawaj danych osobowych, logów, haseł ani kluczy API.",
       "report_title": "Chcesz, żeby to naprawić?",
-      "report_text": "Otwórz zgłoszenie na GitHubie. Twoja płytka, wersje i to, co nam napisałeś, są już wpisane. Dodaj log, a będziemy mogli to zbadać i o to dopytać.",
-      "report_open": "Otwórz zgłoszenie na GitHubie",
+      "report_text": "Wyślij raport: Tessera zbiera płytkę, wersje, logi i ostatnią awarię, najpierw ci je pokazuje i wysyła dopiero za twoją zgodą. Albo przeczytaj, co zrobić, gdy coś nie działa.",
       "add_details": "Dodaj szczegóły",
       "done": "Gotowe",
       "settings_title": "Opinia",
@@ -3738,7 +4227,9 @@
         "addon": "Wersja Tessera: {version}",
         "nothing_else": "Nic więcej: bez nazwy, konta, encji, logów ani ustawień Home Assistant. Każdy ekran udostępnia pod własnym losowym kluczem."
       },
-      "privacy": "Prywatność"
+      "privacy": "Prywatność",
+      "report_send": "Wyślij raport",
+      "report_manual": "Przeczytaj poradnik"
     },
     "webflash": {
       "target": "Zainstaluj z tej przeglądarki (Chrome lub Edge)",
@@ -3803,6 +4294,7 @@
       "packet_error": "Firmware odrzuciło pakiet podglądu: {message}",
       "stopped": "Podgląd firmware zatrzymany: {message}",
       "action_error": "Polecenie Home Assistant nie powiodło się: {message}",
+      "stale": "Ten podgląd jest starszy niż firmware: skompilowano go {date}, a firmware zmienił się od tego czasu, więc ekran może rysować coś, czego tu jeszcze nie widać.",
       "remove": "Podgląd i jego układ zapisany w tej przeglądarce.",
       "save": "Zapisz podgląd",
       "saved": "Zapisano w tej przeglądarce",
@@ -3876,7 +4368,9 @@
         "layout_imported": "zaimportowano układ",
         "changed": "zmieniono układ",
         "restored": "przywrócono niezapisane zmiany",
-        "taken_over": "przejęto zmiany z innej karty"
+        "taken_over": "przejęto zmiany z innej karty",
+        "auto_layout": "układ utworzony dla Ciebie",
+        "layoutbot": "zmiana Layoutbota"
       }
     },
     "draft": {
@@ -3930,6 +4424,12 @@
       "donated": "Już wpłaciłem",
       "thanks": "Dziękuję! Ta wiadomość już nie wróci."
     },
+    "funding": {
+      "title": "Szukam finansowania",
+      "body": "Mam pracę, która opłaca rachunki, i ona jest na pierwszym miejscu. Tessera wciąż rośnie, a ja po prostu nie mam tyle czasu, ile potrzebuje. Żeby projekt przetrwał, potrzebuję finansowania: żeby poświęcić mu tyle czasu, na ile zasługuje, albo zatrudnić kogoś do pomocy. Jeśli możesz pomóc, napisz do mnie e-mail.",
+      "mail": "Napisz do mnie",
+      "later": "Nie teraz"
+    },
     "build": {
       "plugins": "Kompiluje z wtyczkami",
       "install": "Instaluje",
@@ -3961,7 +4461,8 @@
           "fetch": "firmware nie wrócił",
           "bundle": "nie udało się spakować YAML"
         }
-      }
+      },
+      "icons": "Kompiluje z ikonami"
     },
     "grid": {
       "title": "Siatka",
@@ -4002,6 +4503,499 @@
       "move_to": "Przenieś na stronę",
       "add_here": "Dodaj tu kafelek",
       "paste_here": "Wklej tutaj"
+    },
+    "report": {
+      "button": "Mój ekran nie działa prawidłowo",
+      "card_title": "Coś nie gra?",
+      "card_hint": "Zbierz raport z tego, co aplikacja wie o tym ekranie, przeczytaj go i wyślij do Tessera, żebyśmy mogli znaleźć przyczynę.",
+      "eyebrow": "Rozwiązywanie problemów",
+      "title": "Mój ekran nie działa prawidłowo",
+      "title_named": "{name} nie działa prawidłowo",
+      "intro": "Aplikacja zbiera to, co wie o tym ekranie, do kilku plików. Czytasz je tutaj, a dopiero Wyślij przekazuje je do Tessera.",
+      "loading": "Odczytywanie tego, co wie aplikacja…",
+      "collects_title": "Co zawiera",
+      "collects": "Płytka i wersje ekranu, jego własny log (do 45 sekund, na żywo), dotyczące go wiersze z logu Home Assistant, log aplikacji i ostatni log kompilacji. Hasła, klucze, adresy sieciowe i nazwa ekranu są zamazane.",
+      "nothing_leaves": "Nic nie opuszcza Twojego Home Assistant, dopóki nie naciśniesz Wyślij. Każdy plik możesz najpierw przeczytać.",
+      "crash_title": "Ostatnia awaria",
+      "crash_line": "{reason}, {when}, {seen}",
+      "crash_seen": "raz w tym tygodniu | {n} razy w tym tygodniu | {n} razy w tym tygodniu",
+      "crash_lines": "Zdekodowane wiersze",
+      "full": "Dołącz też układ moich stron, nazwy encji i pozostałe wiersze logu Home Assistant. To bardzo pomaga znaleźć przyczynę.",
+      "note_label": "Co się stało? (opcjonalnie)",
+      "note_hint": "Co zobaczyłeś, co robiłeś tuż przed tym i jak często to się zdarza.",
+      "email_label": "Twój e-mail (opcjonalnie)",
+      "email_hint": "Jeśli możemy zadać Ci pytanie w tej sprawie.",
+      "remember_email": "Zapamiętaj mój e-mail w tej aplikacji",
+      "collect": "Zbierz",
+      "check_again": "Sprawdź ponownie",
+      "blockers": {
+        "no_profile": "YAML tego ekranu nie jest w folderze tej aplikacji, więc nie można zrobić dla niego raportu.",
+        "collecting": "Raport z tego ekranu jest już zbierany. Poczekaj chwilę i sprawdź ponownie."
+      },
+      "collecting": "Zbieranie…",
+      "collecting_hint": "To trwa do minuty: aplikacja przez chwilę nasłuchuje logu ekranu.",
+      "steps": {
+        "identity": "Odczytywanie tożsamości ekranu",
+        "profile": "Kopiowanie jego profilu",
+        "screen_log": "Nasłuchiwanie logu ekranu",
+        "ha_log": "Odczytywanie logu Home Assistant",
+        "addon_log": "Odczytywanie logu aplikacji",
+        "build_log": "Odczytywanie ostatniego logu kompilacji",
+        "crash": "Odczytywanie ostatniej awarii",
+        "zip": "Pakowanie plików"
+      },
+      "ready_title": "Gotowy do przeczytania",
+      "facts": {
+        "board": "Płytka",
+        "firmware": "Firmware",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "Wtyczki",
+        "crash": "Ostatnia awaria",
+        "none": "Brak",
+        "unknown": "Nieznane"
+      },
+      "warnings": {
+        "screen_offline": "Ekran jest offline: raport nie ma logu na żywo, tylko to, co zachowała aplikacja.",
+        "no_api_key": "Aplikacja nie ma klucza API do tego ekranu, więc nie udało się odczytać jego logu na żywo.",
+        "no_elf": "Brakuje pliku debugowania firmware, więc awarii nie da się wskazać po wierszach kodu.",
+        "ha_log_unavailable": "Nie udało się odczytać logu Home Assistant.",
+        "addon_log_unavailable": "Nie udało się odczytać własnego logu aplikacji.",
+        "no_crash_record": "Nie znaleziono zapisu awarii dla tego ekranu."
+      },
+      "files_title": "Pliki w raporcie",
+      "file_lines": "1 wiersz | {n} wiersze | {n} wierszy",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "Pobierz zip",
+      "send_title": "Wyślij do Tessera",
+      "send_text": "To trafia do Tessera i jest przechowywane przez {days} dni. Zawiera powyższe pliki, Twoją notatkę i Twój e-mail, jeśli go podałeś.",
+      "privacy": "Prywatność",
+      "with_note": "Z Twoją notatką.",
+      "with_email": "Możemy napisać na {email}.",
+      "change_note": "Zmień notatkę lub e-mail",
+      "consent": "Przeczytałem, co jest w raporcie, i zgadzam się wysłać go do Tessera.",
+      "send": "Wyślij",
+      "sending": "Wysyłanie…",
+      "sent": {
+        "title": "Wysłano, dziękujemy",
+        "quote": "Podaj ten numer referencyjny na GitHubie lub Discordzie, żebyśmy mogli znaleźć Twój raport.",
+        "copy": "Kopiuj",
+        "copied": "Numer referencyjny skopiowany.",
+        "selected": "Numer referencyjny jest zaznaczony: skopiuj go przez Ctrl+C lub ⌘C.",
+        "github": "Otwórz zgłoszenie na GitHubie",
+        "discord": "Zapytaj na Discordzie",
+        "new": "Zrób nowy raport"
+      },
+      "failed_title": "Nie udało się zrobić raportu",
+      "try_again": "Spróbuj ponownie"
+    },
+    "events": {
+      "eyebrow": "Zdarzenia · z Home Assistant",
+      "intro": "Co automatyzacja w Home Assistant może wysłać do twoich ekranów. Ty wybierasz wyzwalacz, ekrany i to, co pokazują.",
+      "alerts": "Alerty",
+      "doorbell": "Dzwonek",
+      "wizard": {
+        "suggested": "Twoje dzwonki:",
+        "none": "Nie znaleziono encji",
+        "pick_trigger": "Wybierz, co ją uruchamia",
+        "yaml": "Pokaż automatyzację jako YAML",
+        "kind": {
+          "doorbell": "Startuje, gdy dzwoni ten dzwonek (Doorbell rang w Home Assistant).",
+          "event": "Startuje za każdym razem, gdy wyzwoli się to zdarzenie.",
+          "on": "Startuje, gdy to się włączy.",
+          "press": "Startuje przy każdym naciśnięciu."
+        },
+        "back": "Wstecz",
+        "next": "Dalej",
+        "done": "Gotowe",
+        "other": "Coś innego",
+        "other_detail": "Dowolny twój czujnik, przełącznik, pomocnik, przycisk lub zdarzenie",
+        "every_screen": "Każdy ekran",
+        "summary": {
+          "starts": "Startuje od",
+          "screens": "Ekrany",
+          "title": "Nazwa w Home Assistant"
+        },
+        "domain": {
+          "binary_sensor": "Czujnik: z wyłączonego na włączony, na przykład gdy kogoś wykryje.",
+          "switch": "Przełącznik: gdy ktoś go włączy.",
+          "input_boolean": "Pomocnik przełącznika: gdy się włączy, na przykład z innej automatyzacji."
+        },
+        "finish": {
+          "label": "Jak chcesz tego użyć?",
+          "automation": "Utwórz automatyzację",
+          "automation_detail": "Tessera dodaje ją do Home Assistant, ze startem wybranym w kroku 1.",
+          "needs_trigger": "Najpierw wybierz w kroku 1, co ją uruchamia.",
+          "action": "Użyj we własnej automatyzacji",
+          "action_detail": "Skopiuj tylko akcję i wklej ją do automatyzacji, którą już masz.",
+          "paste": "W Home Assistant otwórz swoją automatyzację, dodaj akcję, wybierz w menu Edytuj w YAML i wklej to.",
+          "copy": "Kopiuj YAML"
+        }
+      },
+      "install": {
+        "add": "Dodaj do Home Assistant",
+        "saving": "Dodawanie…",
+        "saved": "Dodano. Działa od razu, bez restartu.",
+        "open": "Otwórz w Home Assistant",
+        "hint": "Nazywa się „{title}” w automatyzacjach Home Assistant, gdzie możesz ją dalej zmienić.",
+        "listed": "Z Tessery w Home Assistant",
+        "remove": "Usuń",
+        "remove_confirm": "Usunąć „{name}” z Home Assistant?",
+        "on": "Wł.",
+        "off": "Wył."
+      },
+      "alarm": "Alarm"
+    },
+    "doorbell": {
+      "intro": "Ktoś dzwoni, a twoje ekrany pokazują drzwi. Automatyzacja wysyła zdarzenie z kamerą dzwonka: ekran P4 budzi się, odtwarza gong i otwiera kamerę na żywo z dźwiękiem; każdy inny ekran pokazuje jej obraz w alercie. Działa każdy dzwonek, bez względu na wyzwalacz.",
+      "example": {
+        "title": "Drzwi wejściowe",
+        "when": "Przed chwilą",
+        "sound": "Dźwięk wł."
+      },
+      "try": {
+        "send": "Zadzwoń",
+        "views": "Otwarto na żywo na {n} ekranie. | Otwarto na żywo na {n} ekranach. | Otwarto na żywo na {n} ekranach.",
+        "alerts": "Pokazano jako alert na {n} ekranie. | Pokazano jako alert na {n} ekranach. | Pokazano jako alert na {n} ekranach.",
+        "nothing": "Żaden ekran go nie pokazał. Czy ekran jest online, a kamera jest encją kamery?"
+      },
+      "no_camera": "Brak kamery",
+      "fields": {
+        "title": "Tytuł",
+        "timeout": "Limit czasu (sekundy)",
+        "keep": "Zachowaj nieodebrany dzwonek na górnym pasku"
+      },
+      "screens": {
+        "view": "Na żywo z dźwiękiem",
+        "picture": "Alert z obrazem",
+        "plain": "Alert bez obrazu"
+      },
+      "after": {
+        "title": "Potem",
+        "text": "Raz na dzwonek aplikacja wysyła {answered}, gdy ktoś odebrał na ekranie, lub {missed}, gdy nikt tego nie zrobił. Oba zawierają kamerę i tytuł; answered podaje też ekran.",
+        "dismiss": "Aby zamknąć dzwonek na każdym ekranie, na przykład gdy drzwi się otwierają:"
+      },
+      "yaml": {
+        "missed_alias": "Nieodebrany dzwonek na mój telefon",
+        "missed_message": "Ktoś dzwonił do drzwi",
+        "description": "Utworzono w Zdarzeniach Tessery: dzwonek na ekranach."
+      },
+      "wizard": {
+        "title": "Nowa automatyzacja dzwonka",
+        "camera_hint": "Ekran P4 streamuje ją na żywo z dźwiękiem, jeśli kamera ma dźwięk; inne ekrany pokazują jej obraz.",
+        "screens_hint": "Nic nie wybrano: każdy ekran.",
+        "limits": "Nie każdy dzwonek potrafi wszystko: dźwięk jest tylko, gdy strumień kamery go ma. Rozmowa przyjdzie później.",
+        "more_cameras": "Inna kamera…",
+        "timeout_hint": "Jak długo dzwonek zostaje otwarty, gdy nikt nie dotknie ekranu. Puste: domyślnie.",
+        "summary": {
+          "camera": "Kamera",
+          "door": "Drzwi"
+        },
+        "steps": {
+          "rings": {
+            "title": "Co dzwoni?",
+            "help": "Wybierz, co mówi Home Assistant, że ktoś jest przy drzwiach. Najpierw twoje dzwonki; każdy czujnik, przycisk lub zdarzenie też zadziała. Używasz tego w automatyzacji, którą już masz? Wtedy możesz pominąć ten krok."
+          },
+          "camera": {
+            "title": "Która kamera?",
+            "help": "Kamera, którą ekrany pokazują, gdy ktoś dzwoni. Zwykle kamera samego dzwonka."
+          },
+          "door": {
+            "title": "Drzwi do otwarcia?",
+            "help": "Widok dzwonka może mieć przycisk, który po drugim dotknięciu otwiera drzwi: zamek albo inna akcja, np. skrypt lub przycisk bramy. Możesz to pominąć."
+          },
+          "screens": {
+            "title": "Które ekrany?",
+            "help": "Wybierz ekrany, które pokazują dzwonek. Przy każdym widać, co potrafi z nim zrobić."
+          },
+          "name": {
+            "title": "Nazwa i czas",
+            "help": "Tytuł na ekranie i jak długo dzwonek zostaje otwarty. Oba możesz zostawić puste."
+          },
+          "try": {
+            "title": "Wypróbuj",
+            "help": "Zadzwoń teraz raz, dokładnie tak, jak zrobi to automatyzacja. Spójrz na swoje ekrany."
+          },
+          "add": {
+            "title": "Zakończ",
+            "help": "Zrób z tego osobną automatyzację albo skopiuj akcję do automatyzacji, którą już masz."
+          }
+        },
+        "door": {
+          "none": "Bez przycisku drzwi",
+          "lock": "Zamek",
+          "action": "Inna akcja",
+          "pick_lock": "Wybierz zamek…",
+          "pick_action": "Wybierz, co otwiera…",
+          "code": "Ten zamek prosi o kod: przycisk pojawia się tylko, gdy zamek ma kod domyślny w Home Assistant (ustawienia zamka)."
+        },
+        "sound": {
+          "label": "Słyszeć dzwonek od razu",
+          "hint": "Widok dzwonka otwiera się z jego dźwiękiem włączonym. Wyłącz to dla cichego miejsca, np. studia: dźwięk czeka wtedy na dotknięcie Dźwięku."
+        },
+        "chime": {
+          "label": "Gong przy dzwonieniu",
+          "hint": "Ekran gra gong drzwiowy, gdy ktoś dzwoni. Wyłącz to, jeśli nie chcesz słyszeć ding-dong za każdym razem."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} godz.",
+          "open": "Aż ktoś go otworzy",
+          "hint": "Nieodebrany dzwonek zostaje tak długo po dzwonku na górnym pasku ekranów, z informacją, jak dawno to było. Dotknięcie otwiera dzwonek ponownie."
+        }
+      },
+      "hero": {
+        "title": "Twój dzwonek na twoich ekranach",
+        "text": "Ktoś dzwoni, a twoje ekrany pokazują, kto stoi przy drzwiach: na żywo z dźwiękiem na ekranie P4, jako obraz lub alert na pozostałych. Kreator prowadzi cię krok po kroku i dodaje automatyzację do Home Assistant.",
+        "create": "Utwórz automatyzację dzwonka",
+        "empty": "Nie ma jeszcze automatyzacji dzwonka. Utwórz ją powyżej, a pojawi się tutaj."
+      },
+      "by_hand": {
+        "title": "Napisz automatyzację samodzielnie"
+      }
+    },
+    "drawer": {
+      "resize": "Szerokość ustawień: przeciągnij lub użyj strzałek; kliknij dwukrotnie, aby przywrócić"
+    },
+    "screen_icons": {
+      "eyebrow": "Ikony",
+      "title": "Ikony: {name}",
+      "intro": "Każdy ekran ma stały zestaw ikon. Tutaj dodajesz do {room} kolejnych. Ikony są częścią firmware, więc zmiana trafia na ekran dopiero po ponownej kompilacji.",
+      "count": "Dodano {n} z {room}",
+      "on_screen": "Na tym ekranie",
+      "none_yet": "Jeszcze żadnej. Wybierz z ikon poniżej.",
+      "waiting": "1 ikona czeka na kompilację | {n} ikony czekają na kompilację | {n} ikon czeka na kompilację",
+      "leaving": "1 ikona zniknie przy następnej kompilacji | {n} ikony znikną przy następnej kompilacji | {n} ikon zniknie przy następnej kompilacji",
+      "changes": "Skompiluj, aby te zmiany trafiły na ekran. Zajmuje to kilka minut, a ekran uruchomi się ponownie.",
+      "build": "Skompiluj {name}",
+      "building": "Kompilowanie z tymi ikonami…",
+      "all_up_to_date": "Wszystkie wybrane ikony są na ekranie.",
+      "everywhere": "Umieść na każdym ekranie",
+      "everywhere_ask": "To zastąpi dodane ikony {n} ekranu i go skompiluje. | To zastąpi dodane ikony {n} ekranów i skompiluje je jeden po drugim. Ekran z 4 MB pamięci flash zostaje bez zmian. | To zastąpi dodane ikony {n} ekranów i skompiluje je jeden po drugim. Ekran z 4 MB pamięci flash zostaje bez zmian.",
+      "everywhere_yes": "Skompiluj {n} ekran | Skompiluj {n} ekrany | Skompiluj {n} ekranów",
+      "everywhere_done": "Czekają na kompilację: {names}",
+      "everywhere_off": "Wyłączone, więc nie skompilowano: {names}",
+      "from_ha": "Używane w Twoim Home Assistant",
+      "from_ha_hint": "Ikony Twoich encji, których ten ekran jeszcze nie potrafi narysować.",
+      "add_all": "Dodaj wszystkie",
+      "all": "Wszystkie ikony",
+      "search": "Szukaj we wszystkich ikonach",
+      "search_label": "Szukaj we wszystkich ikonach",
+      "nothing": "Żadna ikona nie ma takiej nazwy.",
+      "fixed": "Już na każdym ekranie",
+      "full": "Ten ekran nie ma już miejsca.",
+      "in_use": "{icon} jest na {n} kafelku tego ekranu. Po następnej kompilacji pokaże on swoją automatyczną ikonę. | {icon} jest na {n} kafelkach tego ekranu. Po następnej kompilacji pokażą one swoje automatyczne ikony. | {icon} jest na {n} kafelkach tego ekranu. Po następnej kompilacji pokażą one swoje automatyczne ikony.",
+      "remove": "Usuń",
+      "own_yaml": "Ten ekran jest kompilowany z własnego pliku YAML. Zapisz to jako {file} obok niego, dodaj poniższą linię pod packages: i skompiluj go tam.",
+      "loading": "Ładowanie ikon…",
+      "card_title": "Ikony",
+      "card_hint": "Dodaj do {room} ikon do tych, które ten ekran już ma.",
+      "card_button": "Wybierz ikony",
+      "card_count": "Dodano: {n}",
+      "card_waiting": "Czeka na kompilację: {n}",
+      "card_no_room": "Ta płytka ma 4 MB pamięci flash i nie ma miejsca na więcej ikon."
+    },
+    "sections": {
+      "untitled": "Sekcja",
+      "kind": "Sekcja",
+      "choose_tiles": "Najpierw wybierz kafelki sekcji.",
+      "one_page": "Kafelki sekcji są na jednej stronie: wybierz kafelki z jednej strony.",
+      "already_in": "Jeden z tych kafelków jest już w sekcji. Najpierw go wyjmij albo wybierz luźne kafelki.",
+      "no_full": "Kafelek na całą stronę nie może być w sekcji.",
+      "too_tall": "Te kafelki potrzebują więcej wierszy, niż ma strona. Wybierz mniej albo poszerz sekcję.",
+      "no_room": "Tu nie ma miejsca: przeszkadzają inne kafelki lub sekcje.",
+      "no_room_page": "Brak miejsca na sekcję na stronie {page}.",
+      "removed": "Sekcja usunięta, jej kafelki zostają na miejscu",
+      "removed_with_tiles": "Sekcja usunięta razem z kafelkami",
+      "resize_columns": "Poszerz lub zwęź sekcję",
+      "resize_rows": "Zwiększ lub zmniejsz wysokość sekcji",
+      "head_title": "Przeciągnij, aby przesunąć sekcję, kliknij, aby otworzyć ustawienia",
+      "aria": "Sekcja {title}",
+      "rename": "Zmień nazwę sekcji",
+      "title": "Nazwa",
+      "make": "Utwórz sekcję",
+      "add": "Dodaj sekcję",
+      "add_here": "Dodaj sekcję tutaj",
+      "library_hint": "Grupa kafelków z tytułem",
+      "make_now": "Utwórz sekcję",
+      "name_placeholder": "Nazwa, na przykład Światła",
+      "in_section": "W tej sekcji",
+      "update_screen": "Oprogramowanie tego ekranu nie rysuje jeszcze sekcji: pokazuje te same kafelki bez nich. Zaktualizuj ekran, aby je zobaczyć.",
+      "head": "Tytuł",
+      "no_icon": "Bez ikony",
+      "summary": "Podsumowanie",
+      "summary_none": "Brak",
+      "summary_search": "Szukaj encji",
+      "summary_none_found": "Nie znaleziono encji",
+      "summary_clear": "Bez podsumowania",
+      "summary_hint": "Stan jednej encji po prawej stronie tytułu, na przykład temperatura lub liczba włączonych świateł.",
+      "size": "Rozmiar",
+      "columns": "Kolumny",
+      "rows": "Wiersze",
+      "narrower": "Węższa",
+      "wider": "Szersza",
+      "lower": "Niższa",
+      "taller": "Wyższa",
+      "size_hint": "Sekcja rośnie tylko w puste komórki. Gdy stanie się za wąska dla swoich kafelków, przesuwają się one w kolejności czytania.",
+      "loose_hint": "1 luźny kafelek stoi obok sekcji. Luźne kafelki najlepiej czytają się jako osobny wiersz nad sekcjami. | {n} luźne kafelki stoją obok sekcji. Luźne kafelki najlepiej czytają się jako osobny wiersz nad sekcjami. | {n} luźnych kafelków stoi obok sekcji. Luźne kafelki najlepiej czytają się jako osobny wiersz nad sekcjami.",
+      "loose_row": "Zrób z nich wiersz",
+      "short_grid": "Na siatce z {rows} wierszami tytuł sekcji zabiera jej kafelkom dużo miejsca: każdy ma wtedy około {with} mm zamiast {without} mm. Kafelki poza sekcjami zachowują wysokość.",
+      "remove": "Usuń sekcję",
+      "remove_with_tiles": "Usuń sekcję i kafelki",
+      "settings": "Ustawienia sekcji",
+      "contrast": "Kontrastowe tło",
+      "contrast_hint": "Panel w kolorze przeciwnym do strony, ciemny za dnia i jasny w trybie ciemnym, aby ta sekcja się wyróżniała.",
+      "contrast_tiles": "Kafelki też w kontraście",
+      "contrast_tiles_hint": "Cała sekcja w drugim wyglądzie, również karty kafelków: ciemne karty na ciemnym panelu za dnia, jasne w trybie ciemnym."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Światła",
+        "covers": "Rolety i okna",
+        "climate": "Klimat",
+        "media": "Multimedia",
+        "security": "Bezpieczeństwo",
+        "actions": "Sceny",
+        "others": "Urządzenia",
+        "weather": "Pogoda",
+        "people": "Kto jest w domu",
+        "energy": "Energia",
+        "cameras": "Kamery",
+        "vacuum": "Odkurzacz",
+        "todo": "Listy",
+        "calendar": "Kalendarz"
+      },
+      "home": "Dom",
+      "all_lights": "Wszystkie światła",
+      "two_rooms": "{a} i {b}",
+      "room_list": "{list} i {last}",
+      "more_rooms": "{a} i {n} więcej",
+      "button": "Układ automatyczny",
+      "button_title": "Utwórz strony z obszarów i urządzeń Home Assistant",
+      "title": "Utworzyć układ dla Ciebie",
+      "intro": "Tessera sprawdza Twoje obszary i urządzenia w Home Assistant i tworzy strony dla tego ekranu: stronę lub sekcję na pomieszczenie, pogodę, alarm, osoby i kamery domu razem, większe kafelki tam, gdzie ekran ma na nie miejsce. Możesz to cofnąć i potem wszystko zmienić.",
+      "reading": "Odczytywanie Twojego domu…",
+      "failed": "Nie udało się odczytać Twojego domu: {error}",
+      "nothing": "Tessera nie znalazła jeszcze nic do pokazania na tym ekranie. Przypisz urządzeniom obszar w Home Assistant albo dodaj kafelki z biblioteki.",
+      "nothing_new": "Wszystko, co Tessera umieściłaby na tym ekranie, już na nim jest.",
+      "summary": "{pages} strona · kafelki: {tiles} | {pages} strony · kafelki: {tiles} | {pages} stron · kafelki: {tiles}",
+      "summary_sections": "{n} sekcja | {n} sekcje | {n} sekcji",
+      "from_rooms": "z {n} pomieszczenia | z {n} pomieszczeń | z {n} pomieszczeń",
+      "left_out": "Jeszcze {n} encja nie zmieściła się na tym ekranie; jest w bibliotece. | Jeszcze {n} encje nie zmieściły się na tym ekranie; są w bibliotece. | Jeszcze {n} encji nie zmieściło się na tym ekranie; są w bibliotece.",
+      "replace": "Zastąp strony",
+      "replace_hint": "Ekran dostanie te strony zamiast obecnych.",
+      "append": "Dodaj po obecnych stronach",
+      "append_hint": "Obecne strony zostają, nowe pojawią się po nich z tym, czego jeszcze nie ma na ekranie.",
+      "append_full": "Na tym ekranie nie zostało wolnych stron ani kafelków. Zastąp strony albo najpierw zrób miejsce.",
+      "make": "Utwórz układ",
+      "made": "Układ z {pages} stroną jest gotowy. Cofnij go wycofa. | Układ z {pages} stronami jest gotowy. Cofnij go wycofa. | Układ z {pages} stronami jest gotowy. Cofnij go wycofa.",
+      "offer_title": "Czy mam utworzyć pierwszy układ?",
+      "offer_text": "Tessera może ułożyć ten ekran na podstawie obszarów i urządzeń z Home Assistant. Potem możesz wszystko zmienić.",
+      "offer_make": "Utwórz pierwszy układ",
+      "offer_empty": "Zacznij od pustego"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Zapytaj Layoutbota",
+      "close": "Zamknij",
+      "hello": "Cześć! Powiedz, co ma pokazywać ten ekran, a ułożę jego strony. Zmieniam tylko układ, nigdy Twoje urządzenia.",
+      "privacy": "Korzystam z {agent} z Home Assistant. Trafiają tam Twoje pytanie, strony Twoich ekranów oraz identyfikatory, nazwy i obszary Twoich encji.",
+      "model_hint": "Pracuję znacznie lepiej z większym modelem niż z najtańszym. W Home Assistant dodaj dla mnie AI Task do swojej integracji AI, wyłącz „Zalecane ustawienia modelu”, wybierz większy model, a następnie wskaż go u góry tego czatu.",
+      "model_link": "Otwórz integracje",
+      "placeholder": "Zrób stronę z…",
+      "ask": "Zapytaj",
+      "send": {
+        "ask": "Wysłać to do: {which}?",
+        "yes": "Tak, wyślij",
+        "no": "Nie teraz",
+        "sending": "Wysyłanie…",
+        "sent": "Wysłano. Ekran pokaże to za chwilę.",
+        "not_all": "Nie wszystko zostało wysłane.",
+        "failed": "Nie udało się wysłać do: {which}.",
+        "declined": "Nie wysłano. Zapisz i wyślij zrobi to, kiedy zechcesz.",
+        "to": "Wysyłanie do: {name}",
+        "not_opened": "nie udało się otworzyć tego ekranu",
+        "not_saved": "nie został zapisany",
+        "unsaved": "otwarty ekran ma niezapisane zmiany",
+        "own": "Twoje własne zmiany od ostatniego zapisu też zostaną wysłane."
+      },
+      "busy": "Layoutbot układa Twoje strony",
+      "seconds": "{n} s",
+      "stop": "Zatrzymaj",
+      "stopped": "Zatrzymano. Nic się nie zmieniło.",
+      "nothing": "Nic się nie zmieniło.",
+      "stale": "Strony zmieniły się w trakcie mojego namysłu, więc zostały bez zmian. Zapytaj mnie jeszcze raz.",
+      "show": "Pokaż",
+      "undo": "Cofnij",
+      "undone": "Cofnięto",
+      "restructure": {
+        "page": "Przebuduj tę stronę",
+        "screen": "Przebuduj cały ekran"
+      },
+      "suggest": {
+        "lights_sections": "Umieść wszystkie światła na jednej stronie, z sekcją na każde pomieszczenie",
+        "lights": "Umieść wszystkie światła na jednej stronie",
+        "covers_sections": "Strona ze wszystkimi roletami i zasłonami, w dwóch sekcjach",
+        "covers": "Strona ze wszystkimi roletami i zasłonami",
+        "media": "Strona z muzyką ze wszystkimi głośnikami",
+        "climate": "Strona klimatu z ogrzewaniem i temperaturami"
+      },
+      "what": {
+        "pages": "1 nowa strona | {n} nowe strony | {n} nowych stron",
+        "added": "dodano 1 kafelek | dodano {n} kafelki | dodano {n} kafelków",
+        "removed": "zdjęto 1 kafelek | zdjęto {n} kafelki | zdjęto {n} kafelków",
+        "changed": "zmieniono stronę {pages} | zmieniono strony {pages} | zmieniono strony {pages}"
+      },
+      "connect": {
+        "title": "Połącz AI w Home Assistant",
+        "short": "Jeszcze nie połączono",
+        "body": "Układam strony tego ekranu na podstawie jednego zdania, na przykład „wszystkie światła na jednej stronie, sekcja na każde pomieszczenie”. Używam do tego AI, które połączysz z Home Assistant: dodaj jedną z tych integracji, a ja zrobię resztę.",
+        "cloud": "W chmurze, z własnym kluczem",
+        "local": "Na własnym komputerze",
+        "after": "Zadziała każda integracja AI z AI Tasks. Po jej dodaniu sprawdź tutaj ponownie.",
+        "again": "Sprawdź ponownie"
+      },
+      "notes": {
+        "page_full": "Strona {page} jest pełna, więc pominięto {count} kafelek. | Strona {page} jest pełna, więc pominięto {count} kafelki. | Strona {page} jest pełna, więc pominięto {count} kafelków.",
+        "memory_full": "Pamięć ekranu jest pełna, więc pominięto {count} kafelek. | Pamięć ekranu jest pełna, więc pominięto {count} kafelki. | Pamięć ekranu jest pełna, więc pominięto {count} kafelków.",
+        "left_out": "Na ekranie zabrakło miejsca na jeszcze {count} kafelek. | Na ekranie zabrakło miejsca na jeszcze {count} kafelki. | Na ekranie zabrakło miejsca na jeszcze {count} kafelków.",
+        "no_page": "Nie ma strony {page}.",
+        "not_drawn": "Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji.",
+        "restructure_no_room": "Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian. | Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian. | Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian."
+      },
+      "update_app": "Zaktualizuj aplikację Tessera: ten edytor sam rozmieszcza plany Layoutbota.",
+      "scope": {
+        "here": "Ten ekran",
+        "all": "Wszystkie ekrany"
+      },
+      "preview": "Zobacz"
+    },
+    "alarm": {
+      "hero_title": "Gdy alarm się włączy",
+      "hero_text": "Ktoś wchodzi albo alarm się włącza: ekrany budzą się same i otwierają klawiaturę na czerwono, z pozostałym czasem. Wpisz kod i alarm jest wyłączony. Nie potrzebujesz do tego automatyzacji; Tessera śledzi Twój alarm w Home Assistant.",
+      "none": "Home Assistant nie ma panelu alarmowego. Dodaj go, na przykład Manual alarm lub Alarmo, a pojawi się tutaj.",
+      "no_code": "Ten alarm nie wymaga kodu do rozbrojenia, więc ekrany otwierają jego kartę z przyciskiem Rozbrój zamiast klawiatury.",
+      "screens_label": "Ekrany, które otwierają klawiaturę",
+      "every_screen": "Każdy ekran",
+      "every_screen_hint": "Także ekran dodany później. Wyłącz, aby samemu wybrać ekrany.",
+      "none_chosen": "Żaden ekran nie otwiera klawiatury sam. Kafelek alarmu nadal otwiera ją jednym dotknięciem.",
+      "older": "Wymaga aktualizacji firmware, aby otworzyć ją bez kafelka alarmu na stronie.",
+      "send_label": "Wyślij kod po",
+      "send_off": "Przycisk OK",
+      "send_off_hint": "Kod zostaje wysłany po dotknięciu OK. Home Assistant nie podaje, ile cyfr ma kod.",
+      "send_on_hint": "Kod wysyła się sam po {digits} cyfrach, bez OK. Wybierz to tylko wtedy, gdy każdy kod tego alarmu ma {digits} cyfr: kod wysłany za wcześnie liczy się jako błędny.",
+      "saved": "Zapisano. Twoje ekrany dostaną to za chwilę.",
+      "how_title": "Jak to działa na ekranie",
+      "how_wake": "Gdy alarm odlicza, bo ktoś wszedł, albo się włącza, wybrane ekrany budzą się i otwierają klawiaturę. Podczas odliczania do uzbrojenia karta alarmu pokazuje zamiast tego przycisk Rozbrój.",
+      "how_keys": "Przyciski zajmują całe miejsce na ekranie, do rozmiaru klawiatury dużego telefonu. Usuń cofa ostatnią cyfrę.",
+      "how_wrong": "Trzy błędne kody blokują klawiaturę na 30 sekund, a każdy kolejny błędny kod podwaja ten czas, do 15 minut. Home Assistant dowiaduje się o każdym przez zdarzenie esphome.screen_alarm_code_refused, nigdy razem z kodem.",
+      "how_code": "Kod trafia do Home Assistant z akcją, tak jak wysyła go jego własna karta alarmu, i od razu jest usuwany na ekranie. Ekran nigdy go nie przechowuje ani nie zapisuje w logach.",
+      "how_tile": "Umieść alarm także na stronie: dotknięcie jego kafelka w każdej chwili otwiera kartę z przyciskiem dla każdego trybu."
     }
   }
 }

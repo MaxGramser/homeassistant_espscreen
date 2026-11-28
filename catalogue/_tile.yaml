@@ -12,5 +12,7 @@ history_hours: [1, 6, 24]
 # What a tile's own choices add to what its type keeps in the memory inside the screen's chip (docs/TILE_MEMORY.md): a tap
 # that runs an action of its own keeps that action, and a second line set to one of its values keeps that value; each of
 # them also keeps a block of extras on a tile whose type keeps none. And what the pages around the tiles keep: a page (its
-# title), and an item of its top bar that shows an entity (its text).
-memory: {action: 256, line: 96, page: 48, bar_text: 48}
+# title), an item of its top bar that shows an entity (its text), and a section of a page on a screen that draws sections
+# (its place in the page's list and the drawn one, 60 and 20 bytes on a 32-bit chip, and its title and summary of up to 48
+# bytes each; its LVGL objects, about 1 KB, are in PSRAM). module_sections.h holds the price to those sizes when it builds.
+memory: {action: 256, line: 96, page: 48, bar_text: 48, section: 224}

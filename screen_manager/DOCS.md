@@ -1,5 +1,11 @@
 # Installation and everyday use
 
+## LOOKING FOR FUNDING
+
+I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, [send me an email](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera).
+
+Max, maker of Tessera
+
 Tessera is the new name for ESP Screens; the app and your screens are the same. The [quick start](https://tessera-maxgramser.on-forge.com/docs/quick-start) and [the manual](https://tessera-maxgramser.on-forge.com/docs/) are on the Tessera website, with [the screens that work](https://tessera-maxgramser.on-forge.com/screens).
 
 Looking for e-ink? Tessera is for colour LCD touch screens. [Tesserae (tesserae.ink)](https://tesserae.ink) is a separate open-source project with a similar name, for calm dashboards on e-ink panels.

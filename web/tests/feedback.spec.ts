@@ -2,6 +2,7 @@
 // the versions, the chosen problems and the note (app 0.4.78), so only a log is left to add. A yes does not.
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { router } from "../src/router";
 import FeedbackPanel from "../src/components/FeedbackPanel.vue";
 import type { Screen } from "../src/types";
 
@@ -21,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("feedback card", () => {
-  it("sends a problem on to a GitHub bug report, filled in", async () => {
+  it("sends a problem on to the troubleshooting report, or the manual", async () => {
     const card = mount(FeedbackPanel, { props: { screen: screen(), mode: "card" } });
     expect(card.find(".fb-report").exists()).toBe(false);
     await card.findAll(".fb-actions .btn")[1].trigger("click");  // Not quite
@@ -30,24 +31,22 @@ describe("feedback card", () => {
     await card.find(".fb-comment textarea").setValue("Taps land a bit to the left.");
     await card.find(".fb-actions .btn.primary").trigger("click");  // Add details
     await flushPromises();
-    const report = card.find(".fb-actions a.btn");
-    expect(report.exists()).toBe(true);
-    expect(report.attributes("target")).toBe("_blank");
-    const url = new URL(report.attributes("href")!);
-    expect(url.origin + url.pathname).toBe("https://github.com/MaxGramser/homeassistant_espscreen/issues/new");
-    expect(url.searchParams.get("template")).toBe("bug_report.yml");
-    expect(url.searchParams.get("title")).toBe("[Bug]: Touch on ESP32-S3-4848S040");
-    expect(url.searchParams.get("versions")).toBe("add-on 0.4.78, firmware 0.47.0");
-    expect(url.searchParams.get("what-happened")).toBe("Taps land a bit to the left.\n\nBoard: ESP32-S3-4848S040 (guition)\nProblem: Touch");
+    expect(card.find(".fb-report").exists()).toBe(true);
+    const manual = card.find(".fb-actions a.btn");
+    expect(manual.attributes("target")).toBe("_blank");
+    expect(manual.attributes("href")).toBe("https://tessera-maxgramser.on-forge.com/docs/troubleshooting");
+    await card.find(".fb-actions .btn.primary").trigger("click");  // Send a report
+    await flushPromises();
+    expect(String(router.currentRoute.value.name)).toBe("report");
+    expect(router.currentRoute.value.params.id).toBe(screen().id);
   });
-  it("offers the report without details too", async () => {
+  it("offers the two ways without details too", async () => {
     const card = mount(FeedbackPanel, { props: { screen: screen(), mode: "card" } });
     await card.findAll(".fb-actions .btn")[1].trigger("click");  // Not quite
     await flushPromises();
     await card.findAll(".fb-actions .btn")[1].trigger("click");  // Done
-    const url = new URL(card.find(".fb-actions a.btn").attributes("href")!);
-    expect(url.searchParams.get("title")).toBeNull();
-    expect(url.searchParams.get("what-happened")).toBe("Board: ESP32-S3-4848S040 (guition)");
+    expect(card.find(".fb-actions .btn.primary").exists()).toBe(true);
+    expect(card.find(".fb-actions a.btn").attributes("href")).toContain("/docs/troubleshooting");
   });
   it("does not after a yes", async () => {
     const card = mount(FeedbackPanel, { props: { screen: screen(), mode: "card" } });

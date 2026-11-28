@@ -3,7 +3,7 @@
 # on the real firmware built for this computer. It is never on a screen, and never in the index.
 id: host_probe
 version: 1.0.0
-api: "0.18"
+api: "0.28"
 icon: puzzle-outline
 topics: [tech]
 maintainer: tessera
@@ -33,12 +33,15 @@ cards:
   - { id: detail, name: card, pictures: 1 }
   # A card that closes itself (or opens another) from its own calls, as the message from the harness says.
   - { id: closer, name: closer }
+# A popup that shows a picture (plugin API 0.27), from the host the probe's card uses.
+popups:
+  - { id: shot, pictures: 1 }
 tap_actions:
   - { id: open, label: open, domains: [sensor] }
 bar_items:
   - { id: mark, label: mark, example: mark }
 savers:
-  # A face of the music step (plugin API 0.14): the cover as a place (saver:picture), and a key that takes taps and
+  # A face of the music step (plugin API 0.14): the cover as a place (step:), and a key that takes taps and
   # wishes play or pause for the player on the glass.
   - { id: deck, name: deck, step: media, memory: 400, pictures: 1, taps: true }
   # A face of the clock: no pictures, and it moves itself (the host leaves it where it draws).

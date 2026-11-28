@@ -12,6 +12,12 @@
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
 # is added. Two entry files include this one: checkout/crowpanel101.yaml (a build on this computer) and
 # packages/crowpanel101.yaml (the package a screen builds from over GitHub).
+esphome:
+  # The panel watch reads the DPI panel's vsync callback (glass_dsi.cpp, esp_lcd_dpi_panel_event_callbacks_t on_vsync),
+  # which the ESP-IDF of ESPHome 2026.6.2 does not have: this board builds on 2026.9.0, the add-on's ESPHome, as the
+  # other ESP32-P4 boards do (CI's min_version build, 2026-10-29).
+  min_version: 2026.9.0
+
 packages:
   # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, with this board's own pins below.
   hardware: !include ../hardware/esp32p4-c6.yaml

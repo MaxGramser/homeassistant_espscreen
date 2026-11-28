@@ -18,7 +18,6 @@ import release  # noqa: E402
 import release_plugins  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import changelog as whats_new  # noqa: E402
-sys.path.insert(0, str(ROOT / 'tests'))
 import test_release_lint  # noqa: E402
 
 CHANGELOG = (ROOT / 'screen_manager/CHANGELOG.md').read_text()
@@ -86,7 +85,8 @@ class TheIssues(unittest.TestCase):
         notes = ('- **A fix** ([#169](https://github.com/MaxGramser/homeassistant_espscreen/issues/169)). Also #170 and '
                  'again #169, a pull request https://github.com/MaxGramser/homeassistant_espscreen/pull/151, not '
                  'a colour like &#35;1 or a heading anchor docs/PAGES.md#updating, nor another repository '
-                 'https://github.com/esphome/esphome/issues/9999.')
+                 'https://github.com/esphome/esphome/issues/9999, nor a wish on the website (wish #88) or another '
+                 "repository's issue named in words (espressif/esp-idf #19096).")
         self.assertEqual(release.issues_in(notes), [169, 170, 151])
 
     def test_a_real_section_reads(self):

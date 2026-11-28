@@ -1,13 +1,17 @@
 <script setup lang="ts">
-// Alerts: the cheatsheet for esphome.<node>_show_alert, built from the inventory. Trying one is AlertTry; the YAML to copy
-// is model/alert-yaml.ts.
+// Alerts, a part of Events (EventsView): one big way in, the wizard that builds an alert's automation and puts it into
+// Home Assistant (AlertWizard), the alert automations of Tessera under it, then the cheatsheet for writing one by hand
+// (esphome.<node>_show_alert and the event for every screen), built from the inventory; its YAML is model/alert-yaml.ts.
 import { computed, ref } from "vue";
 import { t } from "../i18n";
 import { actionYaml, allScreensYaml, choiceYaml, limitText, oneScreenYaml, screenValue, waitYaml, type AlertReference } from "../model/alert-yaml";
 import { iconGroupsMatching } from "../model/search";
 import { glyph } from "../model/topbar";
 import type { IconInfo } from "../types";
-import AlertTry from "./alerts/AlertTry.vue";
+import { useAutomations } from "../composables/useAutomations";
+import AlertWizard from "./events/AlertWizard.vue";
+import AutomationList from "./events/AutomationList.vue";
+import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
@@ -46,25 +50,22 @@ const orange = computed(() => alerts.value?.colors?.find((c: any) => c.name === 
 // A field's type in words (editor.alerts.fields.types); another type shows as it is.
 const typeName = (type: string) => (["string", "int", "bool"].includes(type) ? t(`editor.alerts.fields.types.${type}`) : type);
 function jump(id: string) { document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+const automations = useAutomations("alert");
+const wizard = ref(false);
 // The sections by id; each one's name in the bar is editor.alerts.nav.<the id without "alerts-">.
-const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", "alerts-one", "alerts-choice", "alerts-fields", "alerts-icons", "alerts-colors", "alerts-behaviour", "alerts-events", "alerts-tips"];
+const sections = ["alerts-screens", "alerts-howto", "alerts-all", "alerts-one", "alerts-choice", "alerts-fields", "alerts-icons", "alerts-colors", "alerts-behaviour", "alerts-events", "alerts-tips"];
 </script>
 
 <template>
-  <div class="panel wide alerts" id="alerts-dialog">
-    <div class="panel-head">
-      <div class="tx">
-        <span class="eyebrow">{{ t("editor.alerts.eyebrow") }}</span>
-        <h1>{{ t("editor.alerts.title") }}</h1>
-        <i18n-t keypath="editor.alerts.intro" tag="p" scope="global">
-          <template #action><code>show_alert</code></template>
-        </i18n-t>
-      </div>
-      <button type="button" class="btn quiet" id="close-alerts" @click="ui.go('')">{{ t("editor.common.back") }}</button>
-    </div>
+  <div class="alerts" id="alerts-dialog">
     <p v-if="!alerts" class="hint">{{ t("editor.alerts.loading") }}</p>
     <template v-else>
-      <div class="alert-hero">
+      <div class="card event-create" id="alerts-create">
+        <div class="event-create-text">
+          <h2>{{ t("editor.alerts.hero.title") }}</h2>
+          <p>{{ t("editor.alerts.hero.text") }}</p>
+          <button type="button" class="btn primary event-create-button" id="alert-wizard-open" @click="wizard = true"><Icon name="plus" />{{ t("editor.alerts.hero.create") }}</button>
+        </div>
         <div class="alert-mock" id="alert-mock" aria-hidden="true">
           <div class="alert-mock-card" :style="orange ? { background: orange.color } : undefined">
             <span class="mdi alert-mock-icon" id="alert-mock-icon">{{ doorbell ? glyph(doorbell.cp) : "" }}</span>
@@ -73,11 +74,21 @@ const sections = ["alerts-try", "alerts-screens", "alerts-howto", "alerts-all", 
             <span class="fake" id="alert-mock-button">{{ t("editor.alerts.example.button") }}</span>
           </div>
         </div>
+      </div>
+      <section class="card" id="alerts-automations">
+        <h2>{{ t("editor.events.install.listed") }}</h2>
+        <AutomationList :listed="automations.listed.value" :empty="t('editor.alerts.hero.empty')" :refresh="automations.refresh" :remove="automations.remove" />
+      </section>
+      <AlertWizard v-model:open="wizard" :save="automations.save" />
+      <div class="alerts-reference">
+        <h2>{{ t("editor.alerts.reference") }}</h2>
+        <i18n-t keypath="editor.alerts.intro" tag="p" class="events-intro" scope="global">
+          <template #action><code>show_alert</code></template>
+        </i18n-t>
         <nav class="alerts-nav" :aria-label="t('editor.alerts.sections')">
           <button v-for="id in sections" :key="id" type="button" :data-jump="id" @click="jump(id)">{{ t(`editor.alerts.nav.${id.slice("alerts-".length)}`) }}</button>
         </nav>
       </div>
-      <AlertTry />
       <section id="alerts-screens" class="card">
         <h2>{{ t("editor.alerts.nav.screens") }}</h2>
         <i18n-t keypath="editor.alerts.screens.text" tag="p" scope="global">

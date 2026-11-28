@@ -15,6 +15,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -27,7 +28,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -62,7 +65,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "water_heater",
     "weather",
@@ -118,6 +123,9 @@
       "standard",
       "live"
     ],
+    "input_text": [
+      "standard"
+    ],
     "media_player": [
       "standard",
       "watch",
@@ -145,6 +153,12 @@
       "standard",
       "watch",
       "sunpath"
+    ],
+    "text": [
+      "standard"
+    ],
+    "todo": [
+      "standard"
     ],
     "weather": [
       "standard",
@@ -202,7 +216,9 @@
     ],
     "light": [
       "toggle",
-      "brightness"
+      "brightness",
+      "presets",
+      "brightness_presets"
     ],
     "media_player": [
       "volume",
@@ -232,7 +248,11 @@
       "buttons"
     ],
     "vacuum": [
-      "buttons"
+      "buttons",
+      "map",
+      "rooms",
+      "routines",
+      "map_rooms"
     ]
   },
   "backgrounds": [
@@ -354,6 +374,7 @@
     "music-note",
     "outdoor-lamp",
     "palette",
+    "phone",
     "piano",
     "play",
     "playlist-music",
@@ -422,11 +443,13 @@
     "window-shutter-open"
   ],
   "builtins": [
+    "call",
     "clock",
     "energy",
     "map",
     "nightstand",
-    "settings"
+    "settings",
+    "text"
   ],
   "keyHolders": {
     "screen.nightstand": 3
@@ -445,6 +468,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -457,7 +481,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -498,6 +524,20 @@
       "monday"
     ],
     "bookText": 48
+  },
+  "todo": {
+    "orders": [
+      "none",
+      "alpha_asc",
+      "alpha_desc",
+      "duedate_asc",
+      "duedate_desc"
+    ]
+  },
+  "plugins": {
+    "optionsBytes": 1280,
+    "listMax": 16,
+    "optionMax": 24
   },
   "meter": {
     "styles": [

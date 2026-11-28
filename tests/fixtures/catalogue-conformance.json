@@ -17949,6 +17949,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "single"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18014,6 +18036,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "wide"
+}
+}
+},
+{
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "wide"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18079,6 +18123,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "tall"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "tall"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18144,6 +18210,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "square"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "square"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18209,6 +18297,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "full"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "full"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18274,6 +18384,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "1x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "1x1"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18339,6 +18471,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "1x3"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18404,6 +18558,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "3x1"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18469,6 +18645,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "2x3"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -18534,6 +18732,28 @@
 }
 },
 {
+"expect": "presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "presets",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "brightness_presets",
+"kind": "resolve",
+"tile": {
+"entity": "light.case",
+"options": {
+"controls": "brightness_presets",
+"size": "3x2"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -19531,6 +19751,970 @@
 "size": "3x2"
 },
 {
+"attributes": {},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "presets",
+"features": null,
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "presets",
+"kind": "drawable"
+},
+{
+"domain": "light",
+"expect": "none",
+"key": "presets",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "light",
+"expect": "none",
+"key": "presets",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "light",
+"expect": "presets",
+"key": "presets",
+"kind": "roomless",
+"size": "3x2"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness_presets",
+"features": null,
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"climate_range"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"cover_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "light",
+"expect": "brightness",
+"features": [
+"media_rows"
+],
+"key": "brightness_presets",
+"kind": "drawable"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "light",
+"expect": "brightness_presets",
+"key": "brightness_presets",
+"kind": "roomless",
+"size": "3x2"
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -29509,6 +30693,50 @@
 "tile": {
 "entity": "vacuum.case",
 "options": {
+"controls": "map",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
+"size": "single"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
 "controls": "none",
 "size": "single"
 }
@@ -29558,6 +30786,50 @@
 }
 },
 {
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "wide"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "wide"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "wide"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
+"size": "wide"
+}
+}
+},
+{
 "expect": null,
 "kind": "resolve",
 "tile": {
@@ -29607,6 +30879,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "tall"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "tall"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "tall"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "tall"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "tall"
 }
 }
@@ -29661,6 +30977,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "square"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "square"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "square"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "square"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "square"
 }
 }
@@ -29715,6 +31075,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "full"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "full"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "full"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "full"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "full"
 }
 }
@@ -29769,6 +31173,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "1x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "1x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "1x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "1x1"
+}
+}
+},
+{
+"expect": null,
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "1x1"
 }
 }
@@ -29823,6 +31271,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "1x3"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "1x3"
 }
 }
@@ -29877,6 +31369,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "3x1"
+}
+}
+},
+{
+"expect": "buttons",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "3x1"
 }
 }
@@ -29931,6 +31467,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "2x3"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "2x3"
 }
 }
@@ -29985,6 +31565,50 @@
 "entity": "vacuum.case",
 "options": {
 "controls": "buttons",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "map",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "rooms",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "routines",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "routines",
+"size": "3x2"
+}
+}
+},
+{
+"expect": "map_rooms",
+"kind": "resolve",
+"tile": {
+"entity": "vacuum.case",
+"options": {
+"controls": "map_rooms",
 "size": "3x2"
 }
 }
@@ -30501,6 +32125,1934 @@
 "domain": "vacuum",
 "expect": "buttons",
 "key": "buttons",
+"kind": "roomless",
+"size": "3x2"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map",
+"kind": "drawable"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "vacuum",
+"expect": "map",
+"key": "map",
+"kind": "roomless",
+"size": "3x2"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "rooms",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "rooms",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": null,
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "rooms",
+"kind": "drawable"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "vacuum",
+"expect": "rooms",
+"key": "rooms",
+"kind": "roomless",
+"size": "3x2"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "routines",
+"features": null,
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "routines",
+"kind": "drawable"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "vacuum",
+"expect": "routines",
+"key": "routines",
+"kind": "roomless",
+"size": "3x2"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "map_rooms",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 0
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "map_rooms",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8388607
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 1,
+"temperature": 21
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 2,
+"target_temp_high": 23,
+"target_temp_low": 19
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 3,
+"target_temp_high": 23,
+"target_temp_low": 19,
+"temperature": null
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "map",
+"features": null,
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"climate_range"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"cover_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"attributes": {
+"supported_features": 8
+},
+"domain": "vacuum",
+"expect": "buttons",
+"features": [
+"media_rows"
+],
+"key": "map_rooms",
+"kind": "drawable"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "single"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "wide"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "tall"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "square"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "full"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "1x1"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "1x3"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "3x1"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
+"kind": "roomless",
+"size": "2x3"
+},
+{
+"domain": "vacuum",
+"expect": "map_rooms",
+"key": "map_rooms",
 "kind": "roomless",
 "size": "3x2"
 }

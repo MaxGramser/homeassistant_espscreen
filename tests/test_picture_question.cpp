@@ -103,6 +103,25 @@ int main() {
                                                   {"live", "1280x715"}, {"sound", "1"}};
     assert(old == want);
   }
+  // The cap is named only over the common one (never on a board of 8 MB), and only for a picture of the whole glass:
+  // the full view and the screensaver. Every other owner's picture is its card's, within the common cap.
+  {
+    Question q;
+    q.sources = {camera_source("camera.porch")};
+    for (Owner owner : {Owner::VIEW, Owner::SAVER}) {
+      q.owner = owner;
+      q.cap = picture_store::MAX_BYTES;
+      assert(as_map(legacy(q)).count("cap") == 0 && json(q).find("\"cap\"") == std::string::npos);
+      q.cap = picture_store::MAX_BYTES + 1;
+      assert(as_map(legacy(q)).at("cap") == std::to_string(picture_store::MAX_BYTES + 1));
+      assert(json(q).find("\"cap\":" + std::to_string(picture_store::MAX_BYTES + 1)) != std::string::npos);
+    }
+    q.cap = 2u << 20;
+    for (Owner owner : {Owner::TILE, Owner::CARD, Owner::LIBRARY, Owner::PLUGIN_TILE, Owner::PLUGIN_CARD, Owner::PLUGIN_SAVER}) {
+      q.owner = owner;
+      assert(as_map(legacy(q)).count("cap") == 0);
+    }
+  }
   // A map tile's full view: its entity, its tile, the look, the person a finger picked and the keys' moves.
   {
     Question q;

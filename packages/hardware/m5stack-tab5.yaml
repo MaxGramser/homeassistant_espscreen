@@ -1,24 +1,12 @@
 # ESP Screens - M5Stack Tab5 hardware: early ESP32-P4 with ESP32-C6 Wi-Fi, I/O expander, DSI power and touch bus.
 packages:
-  build: !include esp-idf.yaml
+  # The chip, the watchdog, the PSRAM and the driver options every P4 shares (until 2026-10-25 a copy of its own here,
+  # without the 20 s watchdog and the driver's buffers in PSRAM).
+  core: !include esp32p4-core.yaml
 
 esp32:
   board: esp32-p4-evboard
-  variant: esp32p4
   flash_size: 16MB
-  cpu_frequency: 360MHz
-  engineering_sample: true
-  framework:
-    advanced:
-      execute_from_psram: true
-    sdkconfig_options:
-      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
-      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
-      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
-
-psram:
-  mode: hex
-  speed: 200MHz
 
 # The MIPI PHY's supply, not adjustable so the camera's MIPI-CSI can share it (hardware/esp32p4-c6.yaml says why).
 esp_ldo:

@@ -31,6 +31,10 @@
   --kind-bar: #101112;
   --shadow: 0 12px 40px rgba(20, 24, 40, 0.12), 0 1px 2px rgba(20, 24, 40, 0.06);
   --code-bg: #f1f3f6;
+  /* Layoutbot (components/LayoutBot.vue): its gradient, from the accent to violet, and the light of its sweep. */
+  --bot-a: #266df0;
+  --bot-b: #8b5cf6;
+  --bot-c: #38bdf8;
   --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
   --pop-shadow: 0 14px 38px rgba(20, 24, 40, 0.16), 0 2px 6px rgba(20, 24, 40, 0.08);
   --ui-font: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -66,11 +70,20 @@
     --kind-bar: #000000;
     --shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.45);
     --code-bg: #161616;
+    --bot-a: #4f7dff;
+    --bot-b: #9d74ff;
+    --bot-c: #4cc9f0;
     --pop-shadow: 0 16px 44px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar
-   mockup measures text in the firmware's Roboto. */
+   mockup and its cards write in the firmware's Roboto: 400 and 500, and 700 for a card's name. */
+/* Every icon there is, behind the fixed set's font: a browser fetches it only for an icon that set lacks (docs/ICONS.md). */
+@font-face {
+  font-family: "Every Icon";
+  src: url("../assets/mdi-all.woff") format("woff");
+  font-display: block;
+}
 @font-face {
   font-family: "Tile Icons";
   src: url("../assets/tile-icons.woff") format("woff");
@@ -86,5 +99,11 @@
   font-family: "Bar Roboto";
   font-weight: 500;
   src: url("../assets/bar-roboto-500.woff") format("woff");
+  font-display: block;
+}
+@font-face {
+  font-family: "Bar Roboto";
+  font-weight: 700;
+  src: url("../assets/bar-roboto-700.woff") format("woff");
   font-display: block;
 }

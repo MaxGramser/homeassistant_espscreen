@@ -12,9 +12,11 @@ docs/SCREENSAVER.md "Photos").
 import asyncio
 import io
 import json
+import re
 from pathlib import Path
 import sys
 import types
+from unittest import mock
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,13 +84,23 @@ class Options(unittest.TestCase):
         self.assertEqual(options('green'), {'colour': 'green'})
         self.assertNotEqual(options('green'), options('blue'))
 
+    def test_the_screen_reads_every_field_of_a_plugins_face(self):
+        # The protocol both ways (AGENTS.md, "Compatibility"): what the app sends of a plugin's face (`pf`), the screen
+        # reads, and nothing else.
+        choice = {'show': True, 'order': ['clock', 'media', 'photos', 'camera'], 'face': DIAL, 'plugins': {DIAL: {'options': {'colour': 'green'}}}}
+        sent = set(message(choice, {}, plugins={'faces': {DIAL: 'clock'}, 'steps': {}}, faces=True)['pf'])
+        receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
+        self.assertEqual(set(re.findall(r'\bpf\["(\w+)"\]', receiver)), sent,
+                         'the saver\'s `pf` the app sends (screen_saver.plugin_face) and the fields page_receiver.cpp reads '
+                         'of it are the same: change both')
+
     def test_the_screen_makes_the_saver_anew_for_other_options(self):
+        # The screen keeps a saver's options (`pf.o`) apart from the rest of its word, and paints a saver in place only
+        # for the same options: other options make it anew. That decision is saver_view::paints_in_place, which
+        # saver_sync asks and tests/test_saver_view.cpp proves (a new word, other options, another saver or step,
+        # nothing shown, a plugin that left). Here: the options the app sends are the ones the screen compares.
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
         self.assertIn('serializeJson(pf["o"], next.plugin_options);', receiver)
-        runtime = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
-        in_place = runtime[runtime.index('// The same plugin\'s saver for the same step with a new word'):]
-        in_place = in_place[:in_place.index('{\n')]
-        self.assertIn('saver_next.plugin_options == saver_now.plugin_options', in_place)
 
 
 class Pick(unittest.TestCase):
@@ -112,7 +124,7 @@ class Pick(unittest.TestCase):
         self.assertEqual(x['entity'], PLAYER)
         self.assertEqual((x['title'], x['artist'], x['state'], x['volume'], x['muted']), ('Song', 'Band', 'playing', 0.42, False))
         self.assertEqual((x['duration'], x['position'], x['position_at']), (200, 20, 1792224000))
-        self.assertEqual(x['picture'], 'saver:picture')
+        self.assertEqual(x['picture'], 'step:')
         self.assertTrue(x['mark'])
         self.assertEqual(x['features'], 4127)
 
@@ -250,11 +262,10 @@ class Manifest(unittest.TestCase):
     def test_the_step_picture_is_the_apps_own(self):
         face = {'pictures': 1, 'step': 'media', 'domains': []}
         manifest = {'id': 'vinyl', 'permissions': {'network': []}}
-        self.assertEqual(plugin_pictures.allowed('saver:picture', manifest, face), 'saver')
-        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, {**face, 'step': 'clock'}))
-        # Its name from plugin API 0.17 is the same source.
         self.assertEqual(plugin_pictures.allowed('step:', manifest, face), 'saver')
-        found = picture_legacy.read({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["saver:picture"]',
+        self.assertIsNone(plugin_pictures.allowed('step:', manifest, {**face, 'step': 'clock'}))
+        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, face))   # its old name, gone in 0.24
+        found = picture_legacy.read({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["step:"]',
                                      'atlas': '[[0,0,100,100,0,0]]'}, {'board': 'guition', 'firmware': '0.50.0'})
         self.assertEqual((found.kind, found.entity), ('psaver', DECK))
         self.assertEqual((found.question.owner.kind, found.question.owner.key, found.question.owner.index), ('plugin_saver', DECK, -1))
@@ -370,9 +381,13 @@ class Photos(unittest.TestCase):
         self.assertEqual(saver_photos.pixel_limit(SimpleNamespace(format='HEIF')), saver_photos.MAX_PIXELS_HEIF)
         self.assertGreaterEqual(saver_photos.MAX_PIXELS_HEIF, 48_000_000)
         self.assertLess(saver_photos.MAX_PIXELS_HEIF, saver_photos.MAX_PIXELS)
-        # The painter reads the same limit, so a photo readable() let through is not refused later.
-        source = (ROOT / 'screen_manager/app/picture_paint.py').read_text()
-        self.assertIn('saver_photos.pixel_limit(source)', source)
+        # The painter reads the same limit, so a photo readable() let through is not refused later: with a limit of a
+        # hundred pixels, it refuses a photo of 40 x 30 it paints otherwise.
+        raw = jpeg((40, 30))
+        picture_paint.paint(photo_question((80, 48)), [raw])
+        with mock.patch.object(saver_photos, 'pixel_limit', lambda image: 100):
+            with self.assertRaisesRegex(ValueError, 'too large'):
+                picture_paint.paint(photo_question((80, 48)), [raw])
 
     def test_a_crafted_picture_of_too_many_pixels_is_refused(self):
         from PIL import Image

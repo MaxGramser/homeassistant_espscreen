@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Video of a Tessera screen",
+        "description": "Choose a screen with Screen camera's part Video. Its camera Video shows up on the screen's device.",
+        "data": { "device": "Screen" }
+      }
+    },
+    "abort": {
+      "already_configured": "This screen has its video already.",
+      "unknown_device": "That device is not in Home Assistant."
+    }
+  },
+  "entity": { "camera": { "video": { "name": "Video" } } }
+}

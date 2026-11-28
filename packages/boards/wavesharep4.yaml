@@ -22,13 +22,9 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
-  # The P4 transport keeps the shared speaker/microphone/player interfaces. The codecs and the amplifier are the ones
-  # every Waveshare P4 board with this main board's audio shares (after the transport, so their values win over its
-  # defaults); the amplifier follows playback.
-  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
-  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
-  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
-  audio_amplifier: !include ../features/audio-amplifier.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -53,9 +49,6 @@ substitutions:
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "200Hz"                  # the backlight's PWM: at 100 Hz grey areas flickered (GitHub #209)
 
-  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
-  # without the AEC libraries (docs/P4_AUDIO.md). The wiring is hardware/wavesharep4-audio/codecs.yaml's.
-  P4_AUDIO_TRANSPORT: "aec"
 
 # ============================================================
 # No need to edit below this line.
@@ -105,8 +98,6 @@ display:
     update_interval: never
     auto_clear_enabled: false
 
-# The audio (both codecs on the touch panel's I2C bus, one I2S bus for both, the speaker's amplifier on GPIO53) is
-# hardware/wavesharep4-audio/codecs.yaml, shared with the other Waveshare P4 boards wired the same way.
 switch:
   # Ordinary HA controls, not settings: show them as switches and let the user choose tiles/automations.
   # Waveshare's bottom board and demo use active-high GPIO32/GPIO46. Always start de-energised.

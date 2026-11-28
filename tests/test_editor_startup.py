@@ -15,7 +15,6 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 import editor_sources  # noqa: E402
 
 SCRIPT = editor_sources.SCRIPT
@@ -26,8 +25,23 @@ class Startup(unittest.TestCase):
         self.assertNotIn('inventory.screens[0]', SCRIPT)
         # The ways into a screen are its button in the list and its row in the ⌘K search; both pass the chosen screen.
         # The logo goes home (app 0.4.0): select(null), nothing chosen, never another screen. A new preview screen opens
-        # itself (the session's createVirtualScreen). Choosing is the session's (stores/session.ts).
-        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^)]*)\)', SCRIPT)), {'screen.id', 'null'})
+        # itself (the session's createVirtualScreen). Layoutbot opens another screen only under the person's own tap on
+        # its Show or Yes, and Yes goes back to the screen the person was on (home). Choosing is the session's
+        # (stores/session.ts). On its way through the other screens Yes opens each in place of the browser's entry
+        # (select's `replace`), so Back never lands on one of them (web/tests/layoutbot-phone.spec.ts).
+        self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^),]*)[,)]', SCRIPT)),
+                         {'screen.id', 'null', 'other.id', 'home'},
+                         'a screen opens only when the person chooses it: a new select() needs a person\'s tap behind it')
+        bot = editor_sources.source('stores/layoutbot.ts')
+        for argument, function in (('other.id', 'preview'), ('other.id', 'deliver'), ('home', 'deliver')):
+            body = bot[bot.index(f'async function {function}('):]
+            self.assertIn(f'select({argument}', body[:body.index('\n  }\n')], f'layoutbot opens {argument} only in {function}')
+        self.assertEqual(len(re.findall(r'select\((?:other\.id|home)[,)]', SCRIPT)), 3, 'layoutbot opens another screen in preview and deliver only')
+        chat = editor_sources.component('LayoutBotChat')
+        self.assertEqual(re.findall(r'bot\.(preview|deliver)\(', SCRIPT), ['preview', 'deliver'],
+                         'Show and Yes in the chat are the only ways into preview and deliver')
+        self.assertIn('@click="bot.preview(other)"', chat)
+        self.assertIn('@click="bot.deliver(message)"', chat)
         self.assertIn('const asking = scr.selected ? select(null) : undefined;', editor_sources.source('stores/session.ts'))
         # In the list a click chooses the screen (app 0.2.108; its details fold behind a chevron since app 0.4.0); the
         # choosing is still select's. The overview's cards choose a screen the same way.

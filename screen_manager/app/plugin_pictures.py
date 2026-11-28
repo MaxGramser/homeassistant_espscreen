@@ -22,10 +22,8 @@ PICTURE_BYTES = 2 * 1024 * 1024  # one picture as it comes from its host; a post
 CACHE_BYTES = 16 * 1024 * 1024   # pictures kept by address, the least used going first
 KEEP_SECONDS = 6 * 3600        # a picture is fetched again after this long (a poster at the same address rarely changes)
 FAIL_SECONDS = 60              # an address that did not come is not tried again sooner
-# The screensaver step's own picture (0.14): the cover of the music on the glass, the photo of the photos step. A face of
-# that step names it instead of an address, and the app cuts the step's own picture to the place. `saver:picture` is its
-# name in API 0.14 to 0.16, `step:` from 0.17.
-SAVER_PICTURE = 'saver:picture'
+# The screensaver step's own picture (`step:`): the cover of the music on the glass, the photo of the photos step. A face
+# of that step names it instead of an address, and the app cuts the step's own picture to the place.
 SAVER_PICTURE_STEPS = ('media', 'photos')
 
 

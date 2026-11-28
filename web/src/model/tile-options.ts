@@ -9,7 +9,7 @@ import { t } from "../i18n";
 import rules from "./page-rules.json";
 import { isTallSize, isWideSize } from "./sizes";
 import { validateCardOptions } from "./page-validation";
-import { controlOption, controlParts, drawable, fits, growOrder, ofType, resolveControls, roomControls } from "./catalogue";
+import { controlOption, controlParts, drawable, featuresOf, fits, growOrder, oneCell, ofType, resolveControls, screenHolds } from "./catalogue";
 import { ACTS_ON_TAP, holdHintKey, SLIDER_DOMAINS, SWITCHES_ON_TAP, TOGGLE_BEFORE } from "./layout";
 import { coverPrimary, hasCoverTilt, withCoverTilt } from "./tall-controls";
 import type { Capability, PageTile, Tile, TileOptions } from "../types";
@@ -20,13 +20,14 @@ import { canonicalMeter } from "./meter";
 const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
-  energyFlow: "flow",
+  energyFlow: "flow", textTemplate: "template", callTo: "call_to", callKind: "call_kind",
   calendarStyle: "style", calendarEntities: "calendars", calendarPlaces: "places", calendarWords: "words", calendarHideWords: "hide_words",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
   calendarBookOn: "book_on", calendarBookPlace: "book_place", calendarBookTitle: "book_title",
+  todoOrder: "todo_order", todoCompleted: "todo_completed", todoDue: "todo_due", todoAdd: "todo_add", todoSuggest: "todo_suggest", todoClear: "todo_clear",
   meterStyle: "meter", meterMin: "min", meterMax: "max", meterSegments: "segments", meterColors: "colors", meterThresholds: "thresholds" } as const;
-const INTERACTION = ["tap", "inline", "controls", "action", "play", "speaker", "shuffle", "repeat"] as const;
+const INTERACTION = ["tap", "inline", "controls", "action", "play", "speaker", "shuffle", "repeat", "presets", "preset_levels"] as const;
 const PICTURE_OWN = ["refresh", ...Object.keys(rules.picture)];
 // A map card's own choices (app 0.4.33); its name on the picture is the live picture's `overlay`.
 const MAP = ofType("person")?.map;
@@ -40,6 +41,10 @@ export const CALENDAR_DEFAULTS: Record<string, unknown> = { style: rules.calenda
   all_day: true, tentative: true, private: false, ahead: rules.calendar.ahead[0], soon: 0, start_view: rules.calendar.startViews[0],
   week_start: rules.calendar.weekStarts[0], hours: null, week_numbers: false, book_on: "", book_place: "", book_title: "" };
 export const CALENDAR_OWN = Object.keys(CALENDAR_DEFAULTS);
+// A to-do card's own choices (todo_feed.validate) and what each means unstored.
+export const TODO_DEFAULTS: Record<string, unknown> = { todo_order: rules.todo.orders[0], todo_completed: true, todo_due: true, todo_add: true,
+  todo_suggest: true, todo_clear: true };
+export const TODO_OWN = Object.keys(TODO_DEFAULTS);
 
 // What a choice that asks a second step stands for while the inspector tries it: Perform action asks which action,
 // a value of the entity which value, words of your own the words. The step itself is checked when it is taken.
@@ -49,6 +54,7 @@ export const DEFAULTS: Record<string, unknown> = { sub: "auto", fit: rules.pictu
   framing: MAP?.framing[0], distance: MAP?.distance[0], follow: MAP?.follow[0], markers: MAP?.markers[0], names: MAP?.names[0],
   zones: MAP?.zones[0], streets: MAP?.streets[0], look: MAP?.look[0], flow: rules.energyFlow[0],
   ...Object.fromEntries(Object.entries(CALENDAR_DEFAULTS).filter(([key]) => !["places", "words", "hide_words", "calendars"].includes(key))),
+  ...TODO_DEFAULTS,
   // A sensor's meter (firmware 0.56.0, meter.validate): the ring and one segment are what nothing means.
   meter: rules.meter.styles[0], segments: rules.meter.segments[0], tilt_open: "100" };
 
@@ -60,6 +66,9 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   if (entity === MAP_TILE) { out.display = "map"; for (const field of ["inline", "controls", "history_hours", "sub"]) delete out[field]; }
   // The energy card draws its diagram on every size, with no face, slider, controls or second line of its own.
   if (entity === "screen.energy") for (const field of ["display", "inline", "controls", "history_hours", "sub"]) delete out[field];
+  // The template tile is its template (docs/TEXT_TILE.md): no face, slider, controls or second line, and a tap does nothing.
+  if (entity === "screen.text") for (const field of ["display", "inline", "controls", "history_hours", "sub", "tap", "action"]) delete out[field];
+  else delete out.template;
   if (typeof out.sub === "string" && out.sub.startsWith("text:")) {
     const words = out.sub.slice(5).trim();
     out.sub = words ? `text:${words}` : "none";
@@ -67,6 +76,8 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   if (out.sub === "auto") delete out.sub;
   // Where a cover's slats stand open: Home Assistant's 100 is never stored, and no other tile has the choice.
   if (out.tilt_open !== undefined && (!entity.startsWith("cover.") || String(out.tilt_open) === "100")) delete out.tilt_open;
+  // An alarm's code length is the alarm's, on the Events page (AlarmView), never a tile's: one saved on dev's tile goes.
+  delete out.send_after;
   // Perform action keeps its action; another tap choice leaves none behind.
   if (out.tap !== "action") delete out.action;
   // A live picture's pace and fill belong to the live picture, and their defaults are not stored. A bedside clock's key
@@ -82,11 +93,17 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   if (entity !== MAP_TILE) delete out.follow;
   // How power shows along a line is the energy card's own (catalogue/screen.yaml `energy`).
   if (entity !== "screen.energy") delete out.flow;
+  // A light's presets (light_presets.validate): a light's own, an empty list none, and their brightness shown only when it is.
+  if (!entity.startsWith("light.")) { delete out.presets; delete out.preset_levels; }
+  if (Array.isArray(out.presets) && !out.presets.length) delete out.presets;
+  if (out.preset_levels !== true) delete out.preset_levels;
   // A calendar card keeps its choices (firmware 0.56.0); no other tile has them, and an empty list is none.
   if (!entity.startsWith("calendar.")) for (const field of CALENDAR_OWN) delete out[field];
   for (const field of ["calendars", "places", "words", "hide_words"]) if (Array.isArray(out[field]) && !(out[field] as unknown[]).length) delete out[field];
   // The week's and the booking's choices are stored only when they differ from what nothing means (calendar_feed.validate).
   for (const field of ["week_start", "hours", "week_numbers", "book_on", "book_place", "book_title"]) if (out[field] === CALENDAR_DEFAULTS[field] || out[field] === null) delete out[field];
+  // A to-do card keeps its choices; no other tile has them.
+  if (!entity.startsWith("todo.")) for (const field of TODO_OWN) delete out[field];
   // A sensor's meter (firmware 0.56.0) keeps its look, its range, its colours and its thresholds while it is the meter;
   // a default is never stored (model/meter.ts, meter.validate).
   canonicalMeter(entity, out);
@@ -176,6 +193,10 @@ export type TilePanel = {
   attributes: Record<string, any>;
   /** The screen draws no thermostat range (its firmware's climate_range is false). */
   rangeless: boolean;
+  /** The screen's board has the vacuum card's module (docs/MODULES.md): its larger vacuum tile. */
+  vacuumTile?: boolean;
+  /** The screen's board has the light_presets module (docs/LIGHT_PRESETS.md): a light's presets on its tile. */
+  lightPresets?: boolean;
 };
 export type Hint = { text: string; warn: boolean };
 const option = (tile: Tile, key: string, fallback: unknown) => tile.options?.[key] ?? fallback;
@@ -237,8 +258,21 @@ export function displayHint(tile: Tile, panel: TilePanel): Hint | null {
  * or its domain's default (none on a card two rows high or the whole page). */
 export function tileControls(tile: Tile, panel: TilePanel, inlineKind: string) {
   const size = sizeOfTile(tile);
-  return isTallSize(size) && option(tile, "inline", "none") === "slider" ? inlineKind
-    : option(tile, "controls", ["tall", "full", "single"].includes(size) ? "none" : panel.catalogue?.default) as string;
+  if (isTallSize(size) && option(tile, "inline", "none") === "slider") return inlineKind;
+  const chosen = option(tile, "controls", ["tall", "full", "single"].includes(size) ? "none" : panel.catalogue?.default) as string;
+  // A light's slider and presets on a card one row high is its presets alone (catalogue one_row): shown as what it draws.
+  const item = domainOf(tile) === "light" ? controlOption("light", chosen) : undefined;
+  return item?.one_row && !item.room && !isTallSize(size) && size !== "full" ? item.one_row : chosen;
+}
+/** The features of the catalogue the screen draws, as drawable takes them: none on firmware without a thermostat's range,
+ * every one but the larger vacuum tile on a board without the vacuum card's module, else all (null). */
+export function panelFeatures(panel: TilePanel): Set<string> | null {
+  return featuresOf(panel);
+}
+/** Whether a card of one cell offers controls here: a control of its type the screen lays out by its room (a cover,
+ * firmware 0.57.0; a light's presets on a board with their module). */
+export function roomHere(tile: Tile, panel: TilePanel) {
+  return (ofType(domainOf(tile))?.controls ?? []).some((item) => item.room && screenHolds(item.room, panelFeatures(panel)));
 }
 /** The control sets the panel offers: a blind's slats are a switch of their own; room for it on a card of this size (the
  * mode keys and the slats ask a second row) and a screen that draws it for this entity (a range: firmware 0.19.0+), as
@@ -248,7 +282,9 @@ export function controlChoices(tile: Tile, panel: TilePanel, controls: string) {
   const primary = domain === "cover" ? coverPrimary(controls) : controls, tilt = domain === "cover" && hasCoverTilt(controls);
   const choices = (panel.catalogue?.choices || []).filter((ch) => domain !== "cover" || !hasCoverTilt(ch.key))
     .filter((ch) => ch.key === "none" || fits(controlOption(domain, ch.key), size, panel.columns))
-    .filter((ch) => ch.key === "none" || drawable(domain, ch.key, panel.attributes, panel.rangeless ? new Set<string>() : null) === ch.key)
+    // A card of one cell draws only a control the screen lays out by its room (catalogue.resolve_controls).
+    .filter((ch) => ch.key === "none" || !oneCell(size) || domain === "cover" || Boolean(controlOption(domain, ch.key)?.room))
+    .filter((ch) => ch.key === "none" || drawable(domain, ch.key, panel.attributes, panelFeatures(panel)) === ch.key)
     .filter((ch) => !c || ch.key === "none" || ch.key === primary || c.controls.includes(ch.key)).map((ch) => [ch.key, ch.label] as [string, string]);
   return offer(tile, panel, "controls", choices, primary, (key) => domain === "cover" ? withCoverTilt(key, tilt) : key);
 }
@@ -266,7 +302,7 @@ export function controlSets(tile: Tile, panel: TilePanel, size: string): string[
   if (size === "single" || !panel.catalogue) return [];
   return panel.catalogue.choices.map((choice) => choice.key).filter((key) => key !== "none"
     && fits(controlOption(domain, key), size, panel.columns)
-    && drawable(domain, key, panel.attributes, panel.rangeless ? new Set<string>() : null) === key
+    && drawable(domain, key, panel.attributes, panelFeatures(panel)) === key
     && (!c || c.controls.includes(key)) && choiceOffered(sized, "controls", key, true));
 }
 export type Growth = { sets: string[]; suggested: string | null; drawn: string; gained: boolean };
@@ -286,12 +322,16 @@ export function growthOf(tile: Tile, panel: TilePanel, before: string, after: st
   const earlier = controlSets(tile, panel, before);
   return { sets, suggested, drawn, gained: sets.some((key) => !earlier.includes(key)) };
 }
+/** Whether the panel shows a light's presets: a light whose control draws them, on a board with the light_presets module. */
+export function presetsOffered(tile: Tile, panel: TilePanel, controls: string) {
+  return domainOf(tile) === "light" && panel.lightPresets === true && ["presets", "brightness_presets"].includes(controls);
+}
 /** What the panel says of the control: a warning for one Home Assistant does not offer, else where it stands. */
 export function controlHint(tile: Tile, panel: TilePanel, controls: string): Hint {
   const c = panel.caps, size = sizeOfTile(tile);
   if (c && controls !== "none" && !c.controls.includes(controls)) return { text: t("editor.tile.controls.not_offered"), warn: true };
   return { text: panel.supports(0, 2, 19)
-    ? t(roomControls(domainOf(tile)) && !isTallSize(size) && size !== "full" ? "editor.tile.controls.room_hint"
+    ? t(roomHere(tile, panel) && !isTallSize(size) && size !== "full" ? "editor.tile.controls.room_hint"
       : isTallSize(size) ? "editor.tile.controls.tall_hint" : size === "full" ? "editor.tile.controls.full_hint" : "editor.tile.controls.wide_hint")
     : t("editor.tile.controls.needs_firmware"), warn: false };
 }

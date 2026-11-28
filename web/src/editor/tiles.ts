@@ -12,6 +12,7 @@ import * as pages from "../model/pages";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "../model/sizes";
 import { canonicalOptions, coupledOptions, growthOf, type TilePanel } from "../model/tile-options";
 import { PLUGIN_TILE_OPTIONS } from "../model/plugins";
+import { startLook } from "../model/sensor-look";
 import { energyFits } from "../model/ui-scale";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -20,7 +21,7 @@ import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useUiStore } from "../stores/ui";
-import type { ChildTile, Layout, Tile } from "../types";
+import type { ChildTile, Layout, Tile, SectionBlock } from "../types";
 
 const toast = (message: string) => useUiStore().toast(message);
 // The tile as the draft has it now: a tile from an older drawing of the mockup is found again by its id.
@@ -44,7 +45,7 @@ export function confirmMemory(entity: string): true | Promise<boolean> {
 // ---- Placing tiles ----
 // Apply an arrangement; a new tile joins the layout. True when anything changed.
 // `field`: typing in one field is one step of undo (app 0.4.2), as with editDocument.
-export function commitArrangement(result: { tile: Tile; slot: number }[], field?: string) {
+export function commitArrangement(result: { tile: Tile; slot: number }[], field?: string, blocks?: SectionBlock[]) {
   const doc = useDocumentStore();
   if (!doc.document || !doc.documentGrid) return false;
   try {
@@ -54,7 +55,7 @@ export function commitArrangement(result: { tile: Tile; slot: number }[], field?
     const count = Math.max(draft.pages.length, ...result.filter(({ tile }) => !tile.id).map(({ tile }) => pageTarget(tile.entity)));
     if (count > doc.editorLayout.grid.pages) throw new Error(t("addon.errors.pages.pages_full"));
     while (draft.pages.length < count) draft.pages.push(pages.emptyPage(draft.pages.at(-1)!.topbar));
-    const arranged = pages.arrangeTiles(draft, doc.screenGridOf(doc.documentGrid), result);
+    const arranged = pages.arrangeTiles(draft, doc.screenGridOf(doc.documentGrid), result, blocks);
     const existing = new Set(doc.document.pages.map((page) => page.id));
     for (const page of arranged.pages) if (!existing.has(page.id)) {
       const title = suggestedPageTitle(page, useInventoryStore().inventory.entities);
@@ -77,11 +78,22 @@ export function placeTile(tile: Tile, target: number) {
  * on this glass (app 0.4.77), since a 2 x 2 card is too low for it on some. */
 export function startTile(id: string): Tile {
   const tile = newTile(id, useScreenStore().coversByDefault);
+  // A sensor whose state is a number starts as a meter, its look and range fitting what it measures (model/sensor-look.ts),
+  // and LookTip offers the others once it landed.
+  if (id.startsWith("sensor.")) {
+    const look = startLook(id, useEntitiesStore().liveStates[id], useScreenStore().supports);
+    return look ? { ...tile, options: canonicalOptions(id, { ...tile.options, ...look }, false) } : tile;
+  }
   // A calendar card shows more as it gets more room (firmware 0.56.0): it starts 2 x 2 where the screen takes that size,
   // else double width, else in one cell.
   if (id.startsWith("calendar.")) {
     const sizes = tileSizeChoices(tile), size = ["square", "wide"].find((choice) => sizes.includes(choice as Size));
     return size ? { ...tile, options: { ...tile.options, size } } : tile;
+  }
+  // A plugin's tile starts at the smallest size its manifest takes: a tile of 2 x 2 and up never stands in one cell.
+  if (usePluginsStore().pluginTileOf(id)) {
+    const size = smallestPluginSize(tile);
+    return size && size !== "single" ? { ...tile, options: { ...tile.options, size } } : tile;
   }
   if (id !== "screen.energy") return tile;
   const { grid } = useDocumentStore().editorLayout;
@@ -112,6 +124,10 @@ export async function addTile(id: string) {
     }
     return;
   }
+  // A sensor's look follows what Home Assistant says of it: read it first when the library has not yet.
+  if (id.startsWith("sensor.") && !useEntitiesStore().liveStates[id]) await useEntitiesStore().reloadState(id);
+  if (!doc.layout) return;
+  const before = tileIds();
   const tile = startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
   const page = Math.max(0, doc.document!.pages.findIndex((page) => page.id === doc.selectedPageId));
   const at = marked?.kind === "cell" ? marked.slot : -1;
@@ -123,16 +139,26 @@ export async function addTile(id: string) {
     const added = doc.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
     if (added && useUiStore().phone) doc.markAdded(added);
     else if (added) insp.openTile(added);
+    offerLook(id, before);
   }
+}
+/** The ids of the open layout's tiles now, to tell a tile just added from those that were there. */
+export const tileIds = () => new Set((useDocumentStore().layout?.tiles ?? []).map((item) => item.id));
+/** A sensor just added as a meter: the tip beside it offers its other looks (LookTip), unless the person put the tips
+ * away. */
+export function offerLook(entity: string, before: Set<string | undefined>) {
+  const ui = useUiStore();
+  const added = useDocumentStore().layout?.tiles.find((item) => item.entity === entity && item.id && !before.has(item.id) && item.in === undefined);
+  if (added?.id && added.options?.display === "meter" && ui.lookTips && !ui.phone) ui.lookTip = { tileId: added.id };
 }
 export function removeTile(tile: Tile) {
   if (!tile.id) return;
   const doc = useDocumentStore();
   if (doc.editDocument((draft) => {
     for (const page of draft.pages) {
-      page.tiles = page.tiles.filter((item) => item.id !== tile.id);
+      pages.keepTiles(page, (item) => item.id !== tile.id);
       // A key goes from under its clock; a clock takes its keys with it.
-      for (const item of page.tiles) if (item.children) {
+      for (const item of pages.allTiles(page)) if (item.children) {
         item.children = item.children.filter((child) => child.id !== tile.id);
         if (!item.children.length) delete item.children;
       }
@@ -191,14 +217,9 @@ export function tileSizeChoices(tile: Tile): Size[] {
     if (!span || !spanOffered(span.columns, span.rows, grid) || (span.rows > 1 && !taller) || (span.columns === 1 && narrow)) continue;
     choices.push(size as Size);
   }
-  // A plugin's tile takes the sizes between its manifest's smallest and largest (design, docs: the plugins proposal).
   const plugin = usePluginsStore().pluginTileOf(tile.entity);
   if (!pageTarget(tile.entity) && !plugin) choices.push("full");
-  if (plugin) {
-    const least = dimensions(plugin.tile.min as Size, grid), most = dimensions(plugin.tile.max as Size, grid);
-    return choices.filter((size) => { const d = dimensions(size, grid);
-      return d.columns >= least.columns && d.rows >= least.rows && d.columns <= most.columns && d.rows <= most.rows; });
-  }
+  if (plugin) return pluginSizes(plugin.tile, choices, grid);
   // The energy card's diagram takes a size it fits (app 0.4.77): on a small glass a page of its own, never a single cell.
   if (tile.entity === "screen.energy") return choices.filter((size) => {
     const { columns, rows } = dimensions(size, grid);
@@ -206,13 +227,29 @@ export function tileSizeChoices(tile: Tile): Size[] {
   });
   return choices;
 }
+/** A plugin's tile takes the rectangles between its manifest's `min` and `max`, and the whole page with `full: true` or
+ * where its `max` reaches the grid (a 3 x 3 tile on a grid of 3 x 3 is the whole page; plugin API 0.25). */
+function pluginSizes(tile: { min: string | null; max: string | null; full?: boolean }, choices: Size[], grid: { columns: number; rows: number }): Size[] {
+  if (!tile.min || !tile.max) return tile.full ? ["full"] : [];
+  const least = dimensions(tile.min as Size, grid), most = dimensions(tile.max as Size, grid);
+  const sizes = choices.filter((size) => { const d = dimensions(size, grid);
+    return d.columns >= least.columns && d.rows >= least.rows && d.columns <= most.columns && d.rows <= most.rows; });
+  const reaches = most.columns >= grid.columns && most.rows >= grid.rows && least.columns <= grid.columns && least.rows <= grid.rows;
+  return tile.full || reaches ? [...sizes, "full"] : sizes;
+}
+/** The smallest size a plugin's tile takes on this screen, for a new tile and for leaving the whole page. */
+export function smallestPluginSize(tile: Tile): Size | null {
+  const { grid } = useDocumentStore().editorLayout;
+  const area = (size: Size) => { const d = dimensions(size, grid); return d.columns * d.rows; };
+  return tileSizeChoices(tile).sort((a, b) => area(a) - area(b))[0] ?? null;
+}
 /** Edge resizing keeps the anchor and every neighbouring tile in place. */
 export function resizeChoices(tile: Tile, axis: "columns" | "rows"): Size[] {
   const doc = useDocumentStore(), current = currentView(tile), { grid, fits, occupied } = doc.editorLayout;
   if (!current || !doc.layout || (axis === "rows" && !useInventoryStore().tallerTilesEnabled)) return [];
   const before = dimensions(sizeOf(current), grid), other = axis === "columns" ? "rows" : "columns";
   const taken = occupied(entriesOf(doc.layout).filter((entry) => entry.tile.id !== current.id));
-  const owned = doc.document?.pages.flatMap((page) => page.tiles).find((item) => item.id === current.id);
+  const owned = doc.document?.pages.flatMap(pages.allTiles).find((item) => item.id === current.id);
   return tileSizeChoices(current).filter((size) => {
     // The handles are the only way to size a tile (app 0.4.32), the whole page too: it keeps its top left corner, so a
     // tile there grows into the page and a page shrinks back into a tile.
@@ -227,7 +264,9 @@ export function resizeChoices(tile: Tile, axis: "columns" | "rows"): Size[] {
 export function tilePanel(tile: Tile): TilePanel {
   const inv = useInventoryStore(), scr = useScreenStore(), entities = useEntitiesStore();
   return { caps: entities.capabilities[tile.entity], supports: scr.supports, pictures: scr.pictures, catalogue: inv.inventory.controls?.[tile.entity.split(".")[0]],
-    columns: useDocumentStore().editorLayout.grid.columns, attributes: entities.liveOf(tile.entity)?.a || {}, rangeless: scr.currentScreen?.climate_range === false };
+    columns: useDocumentStore().editorLayout.grid.columns, attributes: entities.liveOf(tile.entity)?.a || {}, rangeless: scr.currentScreen?.climate_range === false,
+    vacuumTile: scr.currentScreen ? scr.currentScreen.vacuum_tile !== false : undefined,
+    lightPresets: scr.currentScreen ? scr.currentScreen.light_presets === true : undefined };
 }
 export function resizeTile(tile: Tile, size: Size, axis: "columns" | "rows") {
   const current = currentView(tile);
@@ -239,7 +278,7 @@ export function resizeTile(tile: Tile, size: Size, axis: "columns" | "rows") {
   const growth = grown ? growthOf(current, tilePanel(current), before, size) : null;
   const upgrade = growth?.suggested && growth.suggested !== growth.drawn ? growth.suggested : null;
   const done = doc.editDocument((draft) => {
-    const owned = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === current.id)!;
+    const owned = draft.pages.flatMap(pages.allTiles).find((item) => item.id === current.id)!;
     // Gaining height exposes choices, it never opts into a default control.
     // A Go to page tile has no controls at all (app 0.4.1): writing 'none' there made the add-on refuse the resize. Nor
     // has a plugin's tile (GitHub #224): it keeps only PLUGIN_TILE_OPTIONS, so a tile that got one before saves again.
@@ -340,7 +379,7 @@ export function retargetPageTile(tile: Tile, page: number) {
   }
   return doc.editDocument((draft) => {
     while (draft.pages.length < page) draft.pages.push(pages.emptyPage(draft.pages.at(-1)!.topbar));
-    const source = draft.pages.flatMap((item) => item.tiles).find((item) => item.id === tile.id);
+    const source = draft.pages.flatMap(pages.allTiles).find((item) => item.id === tile.id);
     if (!source || source.content.kind !== "navigation") throw new Error(t("addon.errors.pages.tile_missing"));
     // A link that follows Home stays one when the page it is sent to is the home page (app 0.4.2): it keeps following Home
     // when another page becomes it, instead of turning into a fixed link to this page.
@@ -352,7 +391,7 @@ export function retargetPageTile(tile: Tile, page: number) {
 // typing in one of the action's fields is one step of undo, as typing a name is.
 export function setTileAction(tile: Tile, action: { action: string; data?: Record<string, unknown> }, field?: string) {
   return useDocumentStore().editDocument((draft) => {
-    const found = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tile.id);
+    const found = draft.pages.flatMap(pages.allTiles).find((item) => item.id === tile.id);
     if (!found) throw new Error(t("addon.errors.pages.tile_missing"));
     found.interaction.tap = "action";
     found.interaction.action = pages.clone(action);
@@ -360,7 +399,7 @@ export function setTileAction(tile: Tile, action: { action: string; data?: Recor
 }
 export function setTileName(tile: Tile, value: string) {
   useDocumentStore().editDocument((draft) => {
-    const tiles = draft.pages.flatMap((page) => page.tiles);
+    const tiles = draft.pages.flatMap(pages.allTiles);
     const found = tiles.find((item) => item.id === tile.id) || tiles.flatMap((item) => item.children || []).find((child) => child.id === tile.id);
     if (found) found.appearance.label = value;
   }, `tile:${tile.id}`);
@@ -374,7 +413,7 @@ export function keyToCell(tile: Tile, slot: number) {
   const cells = grid.columns * grid.rows, columns = grid.columns;
   return doc.editDocument((draft) => {
     let child: ChildTile | undefined;
-    for (const page of draft.pages) for (const item of page.tiles) if (item.children) {
+    for (const page of draft.pages) for (const item of pages.allTiles(page)) if (item.children) {
       const found = item.children.find((c) => c.id === tile.id);
       if (found) { child = found; item.children = item.children.filter((c) => c !== found); if (!item.children.length) delete item.children; }
     }
@@ -389,7 +428,7 @@ export function keyToCell(tile: Tile, slot: number) {
  * goes along: its name, icon and tap. */
 export function placeKey(tile: Tile, holder: Tile, key: number) {
   return useDocumentStore().editDocument((draft) => {
-    const tiles = draft.pages.flatMap((page) => page.tiles), clock = tiles.find((item) => item.id === holder.id);
+    const tiles = draft.pages.flatMap(pages.allTiles), clock = tiles.find((item) => item.id === holder.id);
     if (!clock) return;
     const children = clock.children || [];
     const from = tile.id ? children.findIndex((child) => child.id === tile.id) : -1;
@@ -398,8 +437,8 @@ export function placeKey(tile: Tile, holder: Tile, key: number) {
       [children[from], children[to]] = [children[to], children[from]];
     } else {
       if (tile.id) for (const page of draft.pages) {
-        page.tiles = page.tiles.filter((item) => item.id !== tile.id);
-        for (const item of page.tiles) if (item !== clock && item.children) item.children = item.children.filter((child) => child.id !== tile.id);
+        pages.keepTiles(page, (item) => item.id !== tile.id);
+        for (const item of pages.allTiles(page)) if (item !== clock && item.children) item.children = item.children.filter((child) => child.id !== tile.id);
       }
       const child = pages.childOf(tile, tile.id || pages.instanceId());
       if (key < children.length) children[key] = child; else children.push(child);

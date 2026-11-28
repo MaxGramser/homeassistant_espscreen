@@ -31,7 +31,7 @@ VERSION = re.compile(r'^\d+\.\d+\.\d+$')
 FIRST_TYPES = frozenset('alarm_control_panel automation binary_sensor button camera climate cover fan image input_boolean input_button '
                         'input_number input_select light lock media_player number person scene screen script select sensor sun switch '
                         'timer vacuum weather'.split())
-TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow'}
+TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'send_after', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow'}
 # What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md): `bytes`
 # measured on a board with PSRAM, `extras` whether it keeps a block of extras. Every type says it, so a new one cannot
 # leave the screen's memory budget guessing; the most a tile may keep is a sanity bound, not a rule.
@@ -40,7 +40,9 @@ MOST_BYTES = 16384
 # The keys of a remote's card (keypad): up, down, left, right and OK always, the rest where the remote has them.
 KEYPAD_KEYS = ('up', 'down', 'left', 'right', 'ok', 'back', 'home', 'play', 'volume_up', 'volume_down', 'mute')
 OPTION = {'needs', 'screen', 'sizes', 'wide', 'rows', 'of', 'one_row', 'fallback', 'range', 'room'}
-NEEDS = {'actions', 'features', 'history', 'attributes', 'unless'}
+NEEDS = {'actions', 'features', 'history', 'attributes', 'unless', 'device'}
+# What the add-on finds on an entity's device that a need may name (catalogue.device_holds): a vacuum's map, its routines.
+DEVICE = {'map', 'routines'}
 SCREEN = {'firmware', 'feature', 'pictures', 'else'}
 
 
@@ -156,6 +158,10 @@ def normalise(tile, types, translations, facts, commands=None):
             out['history'] = 'line'
         if 'unless' in value:
             out['unless'] = needs(f'{where} unless', domain, value['unless'])
+        if 'device' in value:
+            if not value['device'] or set(value['device']) - DEVICE:
+                fail(where, f'device names what its device has: {", ".join(sorted(DEVICE))}')
+            out['device'] = list(value['device'])
         return out
 
     def screen(where, value):
@@ -282,6 +288,7 @@ def normalise(tile, types, translations, facts, commands=None):
             'taps': list(data.get('taps') or []),
             'guards': list(data.get('guards') or []),
             **({'tilt_open': [str(v) for v in data['tilt_open']]} if data.get('tilt_open') else {}),
+            **({'send_after': [str(v) for v in data['send_after']]} if data.get('send_after') else {}),
             'picture': picture,
             'map': map_options,
             'keypad': keypad(f'{where} keypad', data['keypad'], commands) if 'keypad' in data else None,
@@ -291,9 +298,9 @@ def normalise(tile, types, translations, facts, commands=None):
         }
     check_keys('catalogue/_tile.yaml', tile, {'taps', 'sizes', 'history_hours', 'memory'})
     choice = tile.get('memory')
-    if not isinstance(choice, dict) or set(choice) != {'action', 'line', 'page', 'bar_text'} or \
+    if not isinstance(choice, dict) or set(choice) != {'action', 'line', 'page', 'bar_text', 'section'} or \
             not all(type(choice[k]) is int and 0 <= choice[k] <= MOST_BYTES for k in choice):
-        fail('catalogue/_tile.yaml memory', f'needs action, line, page and bar_text, in bytes (0 to {MOST_BYTES})')
+        fail('catalogue/_tile.yaml memory', f'needs action, line, page, bar_text and section, in bytes (0 to {MOST_BYTES})')
     return {'version': 1, 'ha': facts['source'], 'tile': tile, 'domains': domains}
 
 
@@ -315,6 +322,8 @@ def header(catalogue):
               f'inline constexpr uint16_t ACTION_BYTES = {catalogue["tile"]["memory"]["action"]}, LINE_BYTES = {catalogue["tile"]["memory"]["line"]};',
               '// What a page keeps (its title) and an item of its top bar that shows an entity (its text).',
               f'inline constexpr uint16_t PAGE_BYTES = {catalogue["tile"]["memory"]["page"]}, BAR_TEXT_BYTES = {catalogue["tile"]["memory"]["bar_text"]};',
+              '// What a section of a page keeps (its place in two lists, its title and summary; module sections, docs/TILE_MEMORY.md).',
+              f'inline constexpr uint16_t SECTION_BYTES = {catalogue["tile"]["memory"]["section"]};',
               'inline constexpr Memory MEMORY[] = {' + ', '.join(
                   f'{{"{d}", {data["memory"]["bytes"]}, {"true" if data["memory"]["extras"] else "false"}}}'
                   for d, data in catalogue['domains'].items()) + '};',

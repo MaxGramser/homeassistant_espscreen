@@ -5,7 +5,7 @@
 // the one action for that screen (plugins/PluginOnScreen). Taking it off is said here, once, for either.
 import { computed, ref, watch } from "vue";
 import { editorLanguage, editorNumber, t, te } from "../i18n";
-import { changesBetween, flashShare, inEditorLanguage, text, type Plugin } from "../model/plugins";
+import { changesBetween, flashShare, inEditorLanguage, sendsLines, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
@@ -22,7 +22,7 @@ const ui = useUiStore();
 const plugins = usePluginsStore();
 
 const props = defineProps<{ plugin: Plugin; screen?: Screen | null }>();
-defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: [] }>();
 
 const label = computed(() => plugins.labelOf(props.plugin));
 const stage = computed(() => plugins.stageOf(props.plugin));
@@ -66,6 +66,10 @@ function confirmRemove() {
   const ask = confirming.value!;
   confirming.value = null;
   plugins.setAsideRemoval(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
+}
+// A plugin added with a link, or a folder someone was making, that no screen runs, is taken off the list again.
+async function forget() {
+  try { await plugins.forgetLink(props.plugin); emit("close"); } catch (error: any) { ui.toast(error.message); }
 }
 // A like, for any plugin of the index: the first one asks once whether it may count in a public number (plugin_likes.py).
 // A heart on a card in the list that had not asked yet opens these details with the question (likeAsk).
@@ -202,7 +206,7 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   <section v-if="label !== 'test'" class="pd-section">
     <h3>{{ t("editor.plugins.adds.title") }}</h3>
     <ul class="pd-list">
-      <li v-for="tile in plugin.tiles || []" :key="`tile-${tile.id}`"><Icon name="view-dashboard-outline" /><span><b>{{ t("editor.plugins.adds.tile", { name: text(tile.name) }) }}</b><small>{{ t("editor.plugins.adds.tile_sizes", { min: tile.min, max: tile.max }) }}</small></span></li>
+      <li v-for="tile in plugin.tiles || []" :key="`tile-${tile.id}`"><Icon name="view-dashboard-outline" /><span><b>{{ t("editor.plugins.adds.tile", { name: text(tile.name) }) }}</b><small>{{ !tile.min ? t("editor.plugins.adds.tile_only_page") : t(tile.full ? "editor.plugins.adds.tile_sizes_or_page" : "editor.plugins.adds.tile_sizes", { min: tile.min, max: tile.max }) }}</small></span></li>
       <li v-for="card in plugin.cards || []" :key="`card-${card.id}`"><Icon name="monitor-eye" /><span><b>{{ t("editor.plugins.adds.card", { name: text(card.name) }) }}</b></span></li>
       <li v-for="action in plugin.tap_actions || []" :key="`tap-${action.id}`"><Icon name="gesture-tap" /><span><b>{{ t("editor.plugins.adds.tap", { name: text(action.label) }) }}</b><small>{{ t("editor.plugins.adds.tap_on", { domains: action.domains.map(domainName).join(", ") }) }}</small></span></li>
       <li v-for="bar in plugin.bar_items || []" :key="`bar-${bar.id}`"><Icon name="page-layout-header" /><span><b>{{ t("editor.plugins.adds.bar", { name: text(bar.label) }) }}</b></span></li>
@@ -228,8 +232,15 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
       </span></li>
       <li v-if="plugin.permissions.read_entities?.length"><Icon name="eye-outline" /><span><b>{{ t("editor.plugins.may.read") }}</b><small><code v-for="entity in plugin.permissions.read_entities" :key="entity">{{ entity }}</code></small></span></li>
       <li><Icon name="wifi-strength-off-outline" /><span><b>{{ plugin.permissions.network.length ? t("editor.plugins.may.network", { hosts: plugin.permissions.network.join(", ") }) : t("editor.plugins.may.network_none") }}</b></span></li>
+      <!-- What its fetches send of this Home Assistant (plugin API 0.27): an attribute of an entity the person chooses. -->
+      <li v-for="line in sendsLines(plugin)" :key="`sends-${line.host}`" class="plugin-sends"><Icon name="tray-arrow-up" /><span><b>{{ line.what }}</b></span></li>
     </ul>
     <p v-if="!plugin.tessera" class="pd-warning" id="plugin-warning">{{ t("editor.plugins.warning") }}</p>
+  </section>
+
+  <section v-if="plugins.forgettable(plugin)" class="pd-section" id="plugin-forget">
+    <p class="pd-note">{{ plugin.source === "folder" ? t("editor.plugins.forget.note_folder", { id: plugin.id }) : t("editor.plugins.forget.note") }}</p>
+    <button type="button" class="btn" id="plugin-forget-go" @click="forget"><Icon name="delete-outline" />{{ t("editor.plugins.forget.go") }}</button>
   </section>
 
   <section v-if="label !== 'test'" class="pd-section">

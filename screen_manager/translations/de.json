@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Lautstärke",
       "wake_when_moved": "Bei Bewegung aufwecken",
+      "backlight_pwm": "Hintergrundlicht-PWM",
+      "dimmest_level": "Dunkelste Stufe",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
       "standby_after": "Standby nach",
@@ -191,10 +193,29 @@
       "hours_minutes": "{h} Std. {m}",
       "wifi": "WLAN",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Mikrofonverstärkung",
       "automatic_gain": "Automatische Verstärkung",
-      "echo_cancellation": "Echounterdrückung"
+      "call_ringtone": "Klingelton",
+      "do_not_disturb": "Nicht stören",
+      "call_voice_switching": "Sprachumschaltung",
+      "echo_cancellation": "Echounterdrückung",
+      "loop_pages": "Seiten im Kreis"
+    },
+    "doorbell": {
+      "sound_on": "Ton an",
+      "sound_off": "Ton aus",
+      "door": "Tür",
+      "door_confirm": "Zum Öffnen erneut tippen",
+      "door_sent": "Gesendet",
+      "talk": "Sprechen",
+      "tap_talk": "Tippen zum Sprechen",
+      "talking": "Sprechen",
+      "tap_stop": "Tippen zum Beenden",
+      "connecting": "Verbinden",
+      "talk_busy": "Jemand anderes spricht",
+      "talk_failed": "Keine Verbindung"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -213,7 +234,8 @@
       "color": "Farbe",
       "color_temperature": "Farbtemperatur",
       "brightness": "Helligkeit",
-      "waiting": "Warte..."
+      "waiting": "Warte...",
+      "presets": "Favoriten"
     },
     "effects": {
       "effect": "Effekt",
@@ -636,6 +658,42 @@
       "calendars": "Kalender",
       "also": "+{x} jetzt",
       "booked": "Am Bildschirm gebucht"
+    },
+    "todo": {
+      "open": "{x} offen",
+      "all_done": "Alles erledigt",
+      "more": "+{x} weitere",
+      "completed": "Erledigt",
+      "add": "Eintrag hinzufügen",
+      "added": "{x} hinzugefügt",
+      "rename": "Umbenennen",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "clear": "{x} erledigte entfernen?",
+      "waiting": "Laden",
+      "empty": "Nichts auf der Liste",
+      "yesterday": "Gestern"
+    },
+    "call": {
+      "title": "Anrufen",
+      "calling": "Ruft an",
+      "calling_video": "Videoanruf läuft",
+      "video": "Videoanruf",
+      "audio": "Anruf",
+      "decline": "Ablehnen",
+      "answer": "Annehmen",
+      "ended": "Anruf beendet",
+      "declined": "Abgelehnt",
+      "busy": "Im Gespräch",
+      "no_answer": "Keine Antwort",
+      "quiet": "Nicht stören",
+      "gone": "Nicht erreichbar",
+      "available": "Verfügbar",
+      "sound_only": "Verfügbar, nur Ton",
+      "in_call": "Im Gespräch",
+      "offline": "Offline",
+      "missed_at": "Verpasster Anruf",
+      "no_screens": "Kein Bildschirm zum Anrufen"
     }
   },
   "addon": {
@@ -695,7 +753,8 @@
         "firmware_first": "Installiere für diese Kacheln zuerst Bildschirm-Firmware {version} oder neuer.",
         "entity_gone": "Eine gewählte Entität gibt es nicht mehr. Such die neue Entität heraus.",
         "ids_too_long": "Die Entitäts-IDs dieser Kacheln sind zusammen zu lang für eine Nachricht an den Bildschirm; entferne ein paar Kacheln.",
-        "favorite_play": "Wähle, was dieser Favorit abspielt."
+        "favorite_play": "Wähle, was dieser Favorit abspielt.",
+        "text_template": "Eine Template-Kachel braucht ein Template mit höchstens 4000 Zeichen."
       },
       "top_bar": {
         "invalid": "Ungültige Kopfleiste; lade die Verwaltungsseite neu.",
@@ -866,12 +925,17 @@
         "layout_conflict": "Das Layout wurde in einem anderen Editor geändert; lade es neu und gleiche den Entwurf ab",
         "adaptation": "Das Bildschirmraster hat sich geändert; eine ausdrückliche Layoutanpassung ist erforderlich",
         "normalization": "Die Kacheleinstellungen müssen vor dem Speichern der Seite angepasst werden",
+        "on_tile": "Seite {page}, Kachel „{tile}“: {problem}",
         "ambiguous_tile": "Der Kachelbefehl hat mehrere mögliche Quellen; gib die Seite an",
         "save_first": "Speichere zuerst das Seitenlayout und danach die Einstellungen",
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
         "update_tall": "Aktualisiere den Bildschirm, um diese Kachelgrößen zu verwenden",
         "memory": "Der Bildschirm hat nicht genug freien Speicher für dieses Layout. Verwende weniger Kacheln.",
-        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster."
+        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster.",
+        "section_title": "Ein Bereich braucht einen Namen von höchstens 48 Bytes.",
+        "section_tiles": "Die Kacheln eines Bereichs müssen in ihm stehen, und eine Kachel über die ganze Seite steht nie in einem Bereich.",
+        "section_overlap": "Bereiche und lose Kacheln dürfen nicht auf denselben Zellen stehen.",
+        "sections_full": "Eine Seite hat höchstens 16 Bereiche."
       },
       "feedback": {
         "invalid": "Diese Antwort kann nicht geteilt werden. Wähle Ja oder Nicht ganz und nur die genannten Probleme.",
@@ -923,7 +987,8 @@
         "like_not_listed": "Nur Plugins aus dem Katalog von Tessera können ein Gefällt mir bekommen.",
         "rate_not_installed": "Setz das Plugin zuerst auf einen deiner Bildschirme, dann kannst du es bewerten.",
         "rate_failed": "Die Sterne wurden nicht gesendet. Versuch es gleich noch einmal.",
-        "count_failed": "Das Mitzählen ließ sich nicht ausschalten: Tessera war nicht erreichbar. Versuch es gleich noch einmal."
+        "count_failed": "Das Mitzählen ließ sich nicht ausschalten: Tessera war nicht erreichbar. Versuch es gleich noch einmal.",
+        "forget_running": "Ein Bildschirm nutzt dieses Plugin noch. Nimm es zuerst vom Bildschirm."
       },
       "extras": {
         "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
@@ -942,6 +1007,41 @@
         "not_paired": "Kopple zuerst einen Build-Server.",
         "unknown": "Der Build-Server kennt Tessera nicht mehr. Kopple ihn erneut.",
         "pending": "Der Build-Server hat Tessera noch nicht angenommen."
+      },
+      "build_files": {
+        "automatic": "Das automatische Aufräumen kann nur an oder aus sein.",
+        "level": "Wähle, welche Build-Dateien entfernt werden.",
+        "cleaning": "Die Build-Dateien werden schon aufgeräumt.",
+        "building": "Ein Bildschirm baut gerade oder wartet auf seinen Build. Räume die Build-Dateien auf, sobald er fertig ist."
+      },
+      "video": {
+        "not_written": "Tessera video konnte nicht nach {folder} geschrieben werden: {reason}.",
+        "not_installed": "Installiere zuerst Tessera video."
+      },
+      "report": {
+        "depth": "Wähle den einfachen oder den vollständigen Bericht.",
+        "busy": "Ein Bericht dieses Bildschirms wird noch gesammelt.",
+        "no_profile": "Die YAML dieses Bildschirms liegt nicht im ESPHome-Ordner dieses Add-ons, daher gibt es von hier nichts zu berichten.",
+        "not_found": "Dieser Bericht ist weg. Erstelle einen neuen.",
+        "not_ready": "Der Bericht ist noch nicht fertig.",
+        "failed": "Das Sammeln des Berichts ist abgebrochen ({reason}). Versuche es erneut.",
+        "consent": "Setze das Häkchen, um den Bericht zu senden.",
+        "note": "Halte die Anmerkung unter 2000 Zeichen.",
+        "email": "Das sieht nicht wie eine E-Mail-Adresse aus.",
+        "too_large": "Der Bericht ist zu groß zum Senden. Lade ihn herunter und hänge ihn stattdessen an ein GitHub-Issue an.",
+        "retry": "Tessera hat den Bericht gerade nicht angenommen. Versuche es in einer Minute erneut, oder lade ihn herunter.",
+        "offline": "Tessera ist von hier aus nicht erreichbar. Lade den Bericht stattdessen herunter.",
+        "invalid": "Tessera hat den Bericht abgelehnt. Lade ihn herunter und hänge ihn stattdessen an ein GitHub-Issue an."
+      },
+      "automations": {
+        "not_allowed": "Home Assistant hat der App das Speichern von Automatisierungen nicht erlaubt. Die App braucht den Zugriff eines Administrators.",
+        "refused": "Home Assistant hat die Automatisierung abgelehnt: {reason}",
+        "not_ours": "Diese Automatisierung wurde nicht von Tessera erstellt, die App lässt sie in Ruhe.",
+        "invalid": "Diese Automatisierung kann nicht gespeichert werden ({part})."
+      },
+      "icons": {
+        "request": "Das ist keine Liste von Symbolen.",
+        "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
       }
     },
     "status": {
@@ -1012,14 +1112,20 @@
         },
         "light": {
           "toggle": "Ein/Aus-Schalter",
-          "brightness": "Helligkeitsregler"
+          "brightness": "Helligkeitsregler",
+          "presets": "Voreinstellungen",
+          "brightness_presets": "Helligkeitsregler und Voreinstellungen"
         },
         "fan": {
           "toggle": "Ein/Aus-Schalter",
           "speed": "Drehzahlregler"
         },
         "vacuum": {
-          "buttons": "Start, Stopp, Station"
+          "buttons": "Start, Stopp, Station",
+          "map": "Karte",
+          "rooms": "Räume wählen",
+          "routines": "Routinen",
+          "map_rooms": "Karte und Räume"
         },
         "cover": {
           "buttons": "Öffnen, Stopp, Schließen",
@@ -1136,6 +1242,14 @@
           "label": "Bei Bewegung aufwecken",
           "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
         },
+        "backlight_pwm": {
+          "label": "Hintergrundlicht-PWM",
+          "hint": "Wie schnell das Hintergrundlicht zum Dimmen ein- und ausschaltet. 150 Hz dimmt jedes Gerät dieser Platine, manche pfeifen aber unter 20 kHz: wähle 20 kHz, wenn deins pfeift, 15 kHz, wenn 20 kHz nicht gleichmäßig dimmt."
+        },
+        "dimmest_level": {
+          "label": "Dunkelste Stufe",
+          "hint": "Die niedrigste Stufe des Hintergrundlichts, als Anteil seiner vollen Leistung. Erhöhe sie, wenn der Bildschirm bei der niedrigsten Helligkeit schwarz bleibt oder flackert."
+        },
         "microphone_gain": {
           "label": "Mikrofonverstärkung",
           "hint": "Analoge Mikrofonverstärkung. Beginnt bei 30 dB; die Verstärkung der Wiedergabereferenz bleibt fest."
@@ -1143,6 +1257,18 @@
         "automatic_gain": {
           "label": "Automatische Verstärkung",
           "hint": "Der Mikrofoncodec regelt den Aufnahmepegel automatisch. Unabhängig von der Echounterdrückung."
+        },
+        "call_ringtone": {
+          "label": "Klingelton",
+          "hint": "Aus: Bei einem Anruf leuchtet der Bildschirm auf und zeigt, wer anruft, ohne Ton."
+        },
+        "do_not_disturb": {
+          "label": "Nicht stören",
+          "hint": "Ein: Ein Anruf an diesen Bildschirm wird sofort abgelehnt und der Anrufer liest, warum. Die Türklingel läutet weiterhin."
+        },
+        "call_voice_switching": {
+          "label": "Sprachumschaltung",
+          "hint": "Ein: Das Mikrofon der Seite, die zuhört, wird leise, damit eine Stimme nicht als Echo zurückkommt. Aus: Beide Seiten können gleichzeitig sprechen. Eine kleine Taste im Anruf ändert es für diesen Anruf."
         },
         "echo_cancellation": {
           "label": "Echounterdrückung",
@@ -1390,7 +1516,8 @@
         "alert_outline": "Warnung",
         "cog": "Einstellungen",
         "broom": "Reinigung",
-        "diabetes": "Diabetes"
+        "diabetes": "Diabetes",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1399,7 +1526,9 @@
         "nightstand": "Nachttischuhr",
         "page": "Zu Seite {page}",
         "map": "Karte",
-        "energy": "Energie"
+        "energy": "Energie",
+        "text": "Template",
+        "call": "Anrufen"
       },
       "identify": {
         "title": "Das ist {name}",
@@ -1470,6 +1599,65 @@
         "directory": "Ordner",
         "music": "Musik"
       }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "Kamera",
+          "help": "Die Kamera-Entität der Türklingel. Ein Bildschirm, der streamt (ein ESP32-P4), zeigt sie live mit Ton; jeder andere zeigt ihr Bild in einem Alert. Pflicht."
+        },
+        "title": {
+          "label": "Titel",
+          "help": "Wie der Bildschirm die Türklingel nennt, oben in der Ansicht und als Titel des Alerts. Leer nimmt den Namen der Kamera."
+        },
+        "screen": {
+          "label": "Bildschirm",
+          "help": "Welche Bildschirme das Klingeln bekommen: ein Gerätename (wie kitchen-screen), der Name in Home Assistant oder ein Raum. Eine Liste erreicht mehrere. Weglassen für jeden Bildschirm. Ein Name, der zu keinem Bildschirm passt, sendet nichts."
+        },
+        "timeout": {
+          "label": "Timeout",
+          "help": "Sekunden, die das Klingeln bleibt, wenn niemand es berührt, {min} bis {max}. Leer ist {default}. Eine Berührung hält es offen."
+        },
+        "keep_minutes": {
+          "label": "Verpasst behalten",
+          "help": "Minuten, die ein Klingeln, das niemand beantwortet hat, in der oberen Leiste der Bildschirme mit seiner Ansicht bleibt, ab dem Klingeln gezählt, 1 bis {most}. Leer oder 0: bis jemand es öffnet."
+        },
+        "sound": {
+          "label": "Ton",
+          "help": "Ob der Ton der Türklingel beim Klingeln sofort spielt, wo der Bildschirm einen Lautsprecher hat. Leer oder true: Die Ansicht öffnet mit Ton an. false: Sie öffnet leise (ein Studio, ein Schlafzimmer), und ein Tippen auf Ton schaltet ihn ein."
+        },
+        "chime": {
+          "label": "Gong",
+          "help": "Ob der Bildschirm beim Klingeln seinen Gong spielt, wo er einen Lautsprecher hat. Leer oder true: Er spielt ihn. false: Er klingelt ohne, und die Ansicht öffnet trotzdem."
+        },
+        "lock": {
+          "label": "Schloss",
+          "help": "Eine Schloss-Entität, die die Türtaste der Klingelansicht nach einem zweiten Tippen entriegelt; die Taste zeigt ihren Zustand. Ein Schloss, das einen Code verlangt, braucht einen Standardcode in Home Assistant (die Einstellungen des Schlosses). Weglassen für keine Türtaste."
+        },
+        "door_action": {
+          "label": "Türaktion",
+          "help": "Statt eines Schlosses: eine Home-Assistant-Aktion, die die Türtaste nach einem zweiten Tippen ausführt, etwa script.open_gate oder button.press. `door_data` gibt ihre Felder (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Türdaten",
+          "help": "Die Felder von `door_action`, etwa entity_id."
+        }
+      },
+      "endings": {
+        "answered": "Jemand hat es berührt: abgenommen und auf den anderen Bildschirmen geschlossen",
+        "closed": "Die Schließen-Taste oder etwas anderes, das es schloss",
+        "missed": "Niemand hat es vor dem Timeout berührt",
+        "seen": "Ein verpasstes Klingeln wurde aus der oberen Leiste wieder geöffnet"
+      }
+    },
+    "layoutbot": {
+      "none": "Layoutbot braucht einen AI Task in Home Assistant, der Daten erzeugen kann (Einstellungen > Geräte & Dienste, eine KI-Integration).",
+      "notes": {
+        "unknown": "{entity} ausgelassen: Das ist keine Entität dieses Home Assistant.",
+        "no_page": "Es gibt keine Seite {page}.",
+        "kept": "Layoutbot hat {count} deiner Kacheln vergessen: Sie stehen lose auf der letzten Seite."
+      },
+      "nothing_to_restructure": "Auf dieser Seite gibt es noch keine Gerätekacheln zum Umstrukturieren. Füge ein paar hinzu und frag dann noch einmal."
     }
   },
   "editor": {
@@ -1487,6 +1675,8 @@
       "read_current_data": "Aktuelle Daten abrufen",
       "results": "1 Ergebnis. Tippe weiter, um die Suche einzugrenzen. | {n} Ergebnisse. Tippe weiter, um die Suche einzugrenzen.",
       "close": "Schließen",
+      "expand": "Mehr anzeigen",
+      "collapse": "Weniger anzeigen",
       "remove": "Entfernen",
       "loading": "Wird geladen…",
       "back": "← Zurück",
@@ -1497,9 +1687,10 @@
       "plugins": "Plugins",
       "new_screen": "Neuer Bildschirm",
       "firmware": "Firmware & USB",
-      "alerts": "Meldungen",
+      "events": "Events",
       "settings": "Einstellungen",
-      "new_screen_detail": "Verbinden und installieren"
+      "new_screen_detail": "Verbinden und installieren",
+      "manual": "Handbuch"
     },
     "api": {
       "failed": "Das hat nicht geklappt. Lade die Seite neu und versuche es noch einmal."
@@ -1796,6 +1987,7 @@
       "search_label": "Entität hinzufügen",
       "filters": {
         "all": "Alle",
+        "plugin": "Plugins",
         "light": "Leuchten",
         "climate": "Klima",
         "switch": "Schalter",
@@ -1810,6 +2002,7 @@
         "vacuum": "Staubsauger",
         "sensor": "Sensoren",
         "media_player": "Medien",
+        "camera": "Kameras",
         "weather": "Wetter",
         "number": "Werte",
         "select": "Auswahl",
@@ -1819,7 +2012,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Schlösser",
         "humidifier": "Luftbefeuchter",
-        "calendar": "Kalender"
+        "calendar": "Kalender",
+        "todo": "To-do-Listen",
+        "text": "Texte"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -1827,6 +2022,8 @@
       "again": "Schon auf diesem Bildschirm; nochmal hinzufügen für eine weitere Kachel",
       "all_placed": "Alles hier ist schon auf diesem Bildschirm.",
       "none_found": "Keine Entitäten gefunden. Versuche einen anderen Namen, Bereich oder Filter.",
+      "found_elsewhere": "Nichts in dieser Auswahl, aber 1 Entität passt in der ganzen Bibliothek. | Nichts in dieser Auswahl, aber {n} Entitäten passen in der ganzen Bibliothek.",
+      "search_everything": "Alle Treffer anzeigen",
       "full": "Dieser Bildschirm fasst 1 Kachel. | Dieser Bildschirm fasst {n} Kacheln.",
       "full_update": "Dieser Bildschirm fasst 1 Kachel; mit einem Firmware-Update sind es 48. | Dieser Bildschirm fasst {n} Kacheln; mit einem Firmware-Update sind es 48.",
       "hint": "Ziehe eine Entität auf eine Seite oder tippe auf +, um sie auf den ersten freien Platz zu setzen. ⌘K durchsucht alles.",
@@ -1837,6 +2034,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras für deine Bildschirme: Kacheln für eine Seite, etwas, das der ganze Bildschirm zusätzlich kann, oder Hardware auf der Platine. Ein Plugin wird in die Firmware eines Bildschirms gebaut, also wählst du pro Bildschirm, welche er bekommt.",
+      "risk": {
+        "title": "Plugins auf eigenes Risiko",
+        "text": "Jedes Plugin braucht einen Teil des Speichers und der Rechenzeit eines Bildschirms. Ein paar vertragen sich gut, aber viele auf einmal (etwa ein Sprachassistent, ein Bluetooth-Proxy und eine Kamera) können den Speicher füllen und einen Bildschirm langsam machen, einfrieren oder neu starten lassen. Du kannst es versuchen, aber füge eins oder zwei auf einmal hinzu und prüfe, ob der Bildschirm stabil bleibt. Wenn er Probleme macht, entferne zuerst die neuesten.",
+        "many": "{screen} hat nach diesem Build {n} Plugins. So viele können einen Bildschirm instabil machen: Wenn er Probleme macht, entferne einige."
+      },
       "search": "Nach Name, Autor oder Funktion suchen",
       "filter": "Zeigen",
       "from_tessera": "Von Tessera",
@@ -1856,7 +2058,8 @@
         "fits_none": "Passt auf keinen deiner Bildschirme",
         "failed": "Erstellen fehlgeschlagen",
         "not_running": "Läuft nicht auf dem Bildschirm",
-        "queued": "Wartet, bis es dran ist"
+        "queued": "Wartet, bis es dran ist",
+        "runs_other": "Auf dem Bildschirm läuft Version {version}"
       },
       "source": {
         "link": "Über einen Link",
@@ -1913,6 +2116,8 @@
         "title": "Was es hinzufügt",
         "tile": "Kachel „{name}“",
         "tile_sizes": "Von {min} bis {max} auf einer Seite",
+        "tile_sizes_or_page": "Von {min} bis {max} auf einer Seite, oder die ganze Seite",
+        "tile_only_page": "Die ganze Seite",
         "tap": "Tippaktion „{name}“",
         "tap_on": "Auf Kacheln von {domains}",
         "card": "„{name}“, eine eigene Ansicht auf dem Bildschirm",
@@ -1926,7 +2131,10 @@
         "ha_none": "Führt keine Aktionen in Home Assistant aus",
         "network": "Verbindet sich mit {hosts}",
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
-        "read": "Liest diese Entitäten aus Home Assistant"
+        "read": "Liest diese Entitäten aus Home Assistant",
+        "sends": "Sendet an {host}: {what}",
+        "sends_option": "{attributes} der Entität, die du für {option} wählst",
+        "sends_state": "Zustand"
       },
       "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {
@@ -2046,7 +2254,8 @@
         "keep": "Behalten",
         "keep_named": "{name} behalten",
         "minutes": "Jedes Erstellen dauert ein paar Minuten.",
-        "off_set": "Zum Entfernen vorgemerkt"
+        "off_set": "Zum Entfernen vorgemerkt",
+        "risk": "Auf eigenes Risiko: Jedes Plugin braucht Speicher, und zu viele können einen Bildschirm instabil machen."
       },
       "maker": {
         "title": "Eigenes Plugin erstellen",
@@ -2231,7 +2440,13 @@
         "text": "Hilf anderen, gute Plugins zu finden. Gefällt mir und Sterne gehen nur, wenn du sie gibst, das Mitzählen nur, solange es an ist.",
         "asking": "Ein paar Tage nach einem neuen Plugin nach Sternen fragen",
         "asking_hint": "Eine Karte über dem Bildschirm, ein Plugin nach dem anderen."
-      }
+      },
+      "forget": {
+        "go": "Aus der Liste entfernen",
+        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen.",
+        "note_folder": "Kein Bildschirm nutzt dieses Plugin aus seinem Ordner. Beim Entfernen wandert der Ordner nach config/tessera-plugins/.removed/{id}, wo du ihn endgültig löschen kannst."
+      },
+      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf."
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",
@@ -2243,6 +2458,9 @@
       "from_fetch": "Die Auswahl kommt aus der eigenen Datenquelle des Plugins, über Tessera.",
       "on_screen": "Auf dem Bildschirm",
       "sizes": "Von {min} bis {max}; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_or_page": "Von {min} bis {max}, oder die ganze Seite; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_only_page": "Diese Kachel nimmt immer eine ganze Seite ein.",
+      "whole_page": "Ganze Seite",
       "placeholder": "Der Editor zeigt einen Platzhalter: Was das Plugin zeichnet, erscheint auf dem Bildschirm selbst.",
       "now": "jetzt",
       "minutes": "{n} Min.",
@@ -2257,7 +2475,14 @@
       "remove": "{name} entfernen",
       "type": "Eingeben und Enter drücken",
       "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
-      "count": "{n} von {max}"
+      "count": "{n} von {max}",
+      "show_all": "Alle Entitäten anzeigen",
+      "show_fitting": "Nur Passende anzeigen",
+      "not_set": "Nicht festgelegt",
+      "fill_device": "Von einem Gerät ausfüllen",
+      "fill_device_hint": "Wähle ein Gerät, und seine Sensoren werden unten eingetragen. Du kannst jeden danach noch ändern.",
+      "fill_device_none": "Kein Gerät hat zwei oder mehr dieser Sensoren",
+      "fill_device_count": "1 Sensor | {n} Sensoren"
     },
     "memory": {
       "label": "Speicher für Kacheln",
@@ -2307,7 +2532,10 @@
       "alarm_control_panel": "Alarmanlage",
       "lock": "Schloss",
       "humidifier": "Luftbefeuchter",
-      "calendar": "Kalender"
+      "calendar": "Kalender",
+      "todo": "To-do-Liste",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "Standard",
@@ -2379,7 +2607,11 @@
       "refresh": {
         "label": "Auffrischen",
         "seconds": "Alle {n} s",
-        "live": "Live"
+        "live": "Live",
+        "paused": "Live pausiert",
+        "cap": "Dieser Bildschirm zeigt {n} Kameras gleichzeitig live; die anderen zeigen alle 15 Sekunden ein Bild. Mit zwei Kameras läuft jede flüssiger als mit vier.",
+        "cap_one": "Dieser Bildschirm zeigt eine Kamera gleichzeitig live; die anderen zeigen alle 15 Sekunden ein Bild.",
+        "streams": "{used} von {most} Live-Streams in Gebrauch, über alle Bildschirme. Eine Kamera darüber hinaus zeigt alle 15 Sekunden ein Bild."
       },
       "picture": {
         "fit": {
@@ -2461,6 +2693,39 @@
         "room_hint": "Der Bildschirm zeigt sie, wo die Kachel Platz dafür hat (Firmware 0.57.0 oder neuer): auf einer einfachen Kachel unter dem Namen, auf einer doppelt breiten daneben. Wo sie nicht passen, sieht die Kachel aus wie ohne sie.",
         "tilt": "",
         "tilt_hint": ""
+      },
+      "presets": {
+        "label": "Voreinstellungen",
+        "preset": "Voreinstellung {n}",
+        "swatch_aria": "Voreinstellung {n}, Helligkeit {b} %",
+        "white": "Weiß",
+        "colour": "Farbe",
+        "level": "Nur Helligkeit",
+        "white_shade": "Weißton",
+        "kelvin": "{k} K",
+        "hue": "Farbton",
+        "degrees": "{h}°",
+        "saturation": "Sättigung",
+        "brightness": "Helligkeit",
+        "percent": "{n} %",
+        "use_light": "Aktuellen Zustand der Leuchte übernehmen",
+        "use_light_off": "Schalte die Leuchte ein, um ihre Helligkeit und Farbe zu übernehmen.",
+        "add": "Voreinstellung hinzufügen",
+        "add_first": "Erste Voreinstellung hinzufügen",
+        "levels": "Helligkeit auf Voreinstellungen zeigen",
+        "levels_hint": "Schreibt die Helligkeit klein in jeden Kreis. Eine Voreinstellung nur mit Helligkeit zeigt sie immer.",
+        "hint": "Ein Tippen auf eine Voreinstellung stellt die Leuchte in einem Schritt darauf ein; der Ring zeigt, welche gerade leuchtet. Klicke eine an, um sie zu ändern, ziehe sie, um die Reihenfolge zu ändern.",
+        "hint_empty": "Bis zu vier runde Tasten, wie die Lieblingsfarben in Home Assistant, jede mit eigener Helligkeit. Eine neue beginnt mit dem, was die Leuchte gerade zeigt.",
+        "own": "Eigene Einstellung",
+        "device": "Preset der Lampe",
+        "effect": "Effekt",
+        "search": "Suchen",
+        "none_found": "Nichts gefunden",
+        "device_kind": "Art",
+        "device_preset": "Preset",
+        "device_playlist": "Playlist",
+        "device_hint": "Ein Preset der Lampe selbst setzt seine eigene Farbe, seinen Effekt und seine Helligkeit.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Beim Tippen",
@@ -2714,6 +2979,110 @@
         "none": "Keine Steuerung",
         "never": "Nicht mehr anzeigen",
         "done": "Fertig"
+      },
+      "look": {
+        "title": "Wie soll es aussehen?",
+        "text": "Dieser Sensor beginnt als Messanzeige. Zeige auf eine Darstellung, um sie auf der Kachel zu sehen; ändern kannst du sie später unter Anzeige.",
+        "ring": "Messanzeige: Ring",
+        "tape": "Messanzeige: Skala",
+        "bar": "Messanzeige: Balken",
+        "graph": "Diagramm der letzten Stunden",
+        "watch": "Großer Wert",
+        "standard": "Nur der Wert",
+        "never": "Nicht mehr anzeigen",
+        "done": "Fertig"
+      },
+      "text": {
+        "title": "Template",
+        "hint": "Schreibe Text mit Home-Assistant-Templates darin, wie unter Entwicklerwerkzeuge › Template. Home Assistant füllt ihn aus, und der Bildschirm zeigt das Ergebnis und hält es aktuell. Ist das Ergebnis leer, verschwindet die Kachel.",
+        "manual": "So schreibst du ein Template",
+        "field": "Template",
+        "placeholder": "Text tippen, oder {'{{'} um einen Zustand zu lesen…",
+        "keys": {
+          "space": "Leertaste",
+          "complete": "vervollständigen",
+          "next": "nächstes Feld",
+          "comment": "Kommentar"
+        },
+        "result": "Auf dem Bildschirm",
+        "bytes": "{n} von {of} Bytes",
+        "empty": "Das Ergebnis ist leer: Der Bildschirm zeigt hier nichts.",
+        "access": "Das Template läuft in Home Assistant mit den Rechten der Tessera-App und kann daher jede Entität lesen.",
+        "markup": {
+          "label": "Formatierung",
+          "heading": "Überschrift",
+          "bullet": "Aufzählungspunkt",
+          "table": "Tabelle",
+          "bold": "Fett",
+          "good": "Grüner Text",
+          "alert": "Roter Text",
+          "accent": "Blauer Text"
+        },
+        "complete": {
+          "now": "jetzt",
+          "state": "Zustand: {state}"
+        },
+        "examples": {
+          "title": "Mit einem Beispiel beginnen:",
+          "lights": "Eingeschaltete Lichter",
+          "open": "Offene Türen und Fenster",
+          "weather": "Wetter",
+          "lights_heading": "Lichter an",
+          "all_off": "Alle Lichter sind aus",
+          "open_heading": "Offen",
+          "now": "Jetzt",
+          "humidity": "Luftfeuchtigkeit"
+        },
+        "listen": {
+          "label": "Aktualisiert bei",
+          "time": "der Zeit",
+          "none": "Liest keine Entität: ändert sich nur, wenn du das Template änderst.",
+          "all": "Liest alle Zustände: Home Assistant aktualisiert es höchstens einmal pro Minute. Nenne die Entitäten oder eine Domain (states.light), damit es sofort folgt."
+        },
+        "lint": {
+          "unknown": "{id} gibt es in Home Assistant nicht",
+          "replace": "Ersetzen durch {id}"
+        }
+      },
+      "todo": {
+        "title": "To-do-Liste",
+        "plain": "Dieses Board kann keine To-do-Liste zeigen: dafür braucht es ein Board mit 8 MB Flash oder mehr. Entferne diese Kachel.",
+        "needs_firmware": "Die To-do-Liste braucht Firmware 0.61.0 oder neuer: nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
+        "order": {
+          "label": "Reihenfolge",
+          "hint": "Wie die To-do-Karte von Home Assistant sie ordnet",
+          "none": "Wie in Home Assistant",
+          "alpha_asc": "Name, A bis Z",
+          "alpha_desc": "Name, Z bis A",
+          "duedate_asc": "Fälligkeit, früheste zuerst",
+          "duedate_desc": "Fälligkeit, späteste zuerst"
+        },
+        "completed": "Erledigte Einträge",
+        "completed_hint": "Unter den offenen Einträgen, durchgestrichen, wo Platz ist",
+        "due": "Fälligkeiten",
+        "due_hint": "Der Tag neben einem Eintrag; überfällig ist rot",
+        "screen": "Auf dem Bildschirm",
+        "add": "Einträge hinzufügen",
+        "add_hint": "Eine Plus-Taste auf der Kachel und ein Feld in der Liste öffnen die Tastatur des Bildschirms",
+        "suggest": "Namen vorschlagen",
+        "suggest_hint": "Beim Tippen bietet die Tastatur an, was früher abgehakt wurde; ein Tipp setzt es zurück auf die Liste",
+        "clear": "Erledigte entfernen",
+        "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
+      },
+      "call": {
+        "section": "Anruf",
+        "who": "Ruft an",
+        "who_hint_all": "Ein Tippen öffnet die Liste der Bildschirme.",
+        "who_hint_one": "Ein Tippen ruft diesen Bildschirm sofort an.",
+        "everyone": "Aus der Liste wählen",
+        "kind": "Art des Anrufs",
+        "kind_hint": "Video braucht das Plugin Screen camera mit dem Teil Video auf beiden Bildschirmen, sonst wird es ein Anruf mit Ton.",
+        "video": "Video, wo möglich",
+        "sound": "Nur Ton"
+      },
+      "text_entity": {
+        "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
+        "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
       }
     },
     "precision": {
@@ -2750,7 +3119,9 @@
       "search_label": "Symbol suchen",
       "none_text_only": "Kein Symbol, nur Text",
       "aria": "Symbol: {name}",
-      "none_found": "Kein Symbol gefunden."
+      "none_found": "Kein Symbol gefunden.",
+      "own": "Symbole dieses Bildschirms",
+      "more": "Mehr Symbole"
     },
     "inspect": {
       "title": "Aktuelle Daten",
@@ -2868,7 +3239,8 @@
         "swipe_pages": "Zwischen Seiten wischen",
         "page_buttons": "Seitentasten",
         "home_button": "Home-Taste zeigen",
-        "rotation": "Drehung"
+        "rotation": "Drehung",
+        "loop_pages": "Seiten im Kreis"
       },
       "actions": {
         "calibrate": {
@@ -3058,6 +3430,23 @@
         "reinstall_all_confirm": "1 Bildschirm vom neuesten Dev-Stand neu installieren? Er startet neu, sobald die Firmware drauf ist. | {n} Bildschirme vom neuesten Dev-Stand neu installieren? Sie werden nacheinander gebaut, und jeder startet neu, sobald seine Firmware drauf ist.",
         "reinstall_all_go": "Neu installieren"
       },
+      "video": {
+        "title": "Video in Home Assistant",
+        "text": "Ein Bildschirm mit dem Teil Video von Bildschirmkamera zeigt seine Kamera live in Home Assistant, mit Ton: eine Kamera Video am Gerät des Bildschirms, im Browser und in der App. Home Assistant braucht dafür die Integration Tessera video.",
+        "install": "In Home Assistant installieren",
+        "install_again": "Erneut installieren",
+        "update": "Integration aktualisieren",
+        "newer": "Installiert · eine neuere Version ist bereit",
+        "waits_restart": "Installiert · Home Assistant neu starten, um sie zu laden",
+        "running": "● Läuft in Home Assistant",
+        "restart": "Home Assistant neu starten",
+        "restart_confirm": "Home Assistant jetzt neu starten? Es ist ein bis zwei Minuten weg, ebenso seine Dashboards und Automationen.",
+        "restarting": "Home Assistant startet neu. Das Video der Bildschirme folgt innerhalb einer Minute danach.",
+        "installed": "Tessera video installiert. Starte Home Assistant einmal neu, um sie zu laden.",
+        "screens": "Bildschirme mit Video: {names}",
+        "no_screens": "Noch kein Bildschirm hat Video: Füge Bildschirmkamera mit dem Teil Video zu einem P4-Bildschirm mit Kamera hinzu.",
+        "writes": "Schreibt den Ordner {path}; erneutes Installieren ersetzt ihn. Tessera fügt jeden Bildschirm mit Video selbst hinzu."
+      },
       "claude": {
         "installed": "Skill installiert. Claude Code nutzt ihn sofort.",
         "installed_restart": "Skill installiert. Starte Claude Code einmal neu, damit es den neuen Skills-Ordner findet.",
@@ -3161,6 +3550,32 @@
         "forget_confirm": "{name} vergessen? Bildschirme werden wieder hier gebaut. Um Tessera auch dort zu entfernen, entferne es aus den gekoppelten Geräten des Build-Servers.",
         "forget_go": "Vergessen",
         "unavailable": "Dieses Tessera kann nicht mit einem Build-Server sprechen."
+      },
+      "build_files": {
+        "title": "Build-Dateien",
+        "intro": "Jeder Firmware-Build lässt Dateien zurück, damit der nächste Build desselben Bildschirms schnell geht. Backups von Home Assistant lassen sie aus.",
+        "measuring": "Wird gemessen…",
+        "total": "{size} insgesamt",
+        "folders": "Build-Ordner",
+        "folders_detail": "1 Bildschirm | {count} Bildschirme",
+        "cache": "Compile-Cache",
+        "tools": "ESP-IDF und Downloads",
+        "clean": "Build-Ordner aufräumen",
+        "cleaning": "Räumt auf…",
+        "clean_confirm": "Die Build-Ordner aller Bildschirme entfernen? Das gibt {size} frei. Der nächste Build jedes Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger, auf einem Raspberry Pi noch mehr. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_all": "Auch Compile-Cache und ESP-IDF entfernen",
+        "clean_all_confirm": "Alle Build-Dateien entfernen, auch den Compile-Cache und ESP-IDF? Das gibt {size} frei. Der nächste Build lädt ESP-IDF erneut herunter, etwa 1 GB, und kompiliert alles von vorn, was auf einem Raspberry Pi eine halbe Stunde dauern kann. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_go": "Aufräumen",
+        "cleaned": "Aufgeräumt: {size} wieder frei.",
+        "cleaned_nothing": "Aufgeräumt.",
+        "busy": "Ein Bildschirm wird gebaut. Du kannst aufräumen, sobald er fertig ist.",
+        "auto_label": "Nach dem Build aufräumen",
+        "auto_hint": "Ab dem nächsten Build entfernt es die Build-Ordner, sobald nichts mehr gebaut wird. Spart Platz, aber jeder weitere Build eines Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger.",
+        "auto_on": "Build-Ordner werden nach dem Build aufgeräumt.",
+        "auto_off": "Build-Ordner bleiben für schnellere Builds.",
+        "offer": "{size} freigeben",
+        "not_now": "Nicht jetzt",
+        "large": "Die Build-Ordner belegen {size}. Wenn du sie aufräumst, wird der größte Teil des Platzes frei, den die Builds belegen."
       }
     },
     "firmware": {
@@ -3356,6 +3771,14 @@
         "change": "WLAN ändern und neu installieren",
         "failed": "Tessera kann {name} nicht selbst zu Home Assistant hinzufügen. Füge ihn unten selbst hinzu."
       },
+      "known": {
+        "title": "Dieses Board ist in Home Assistant schon als {name} bekannt",
+        "text": "Home Assistant führt pro Board (seiner MAC-Adresse) ein ESPHome-Gerät, darum kann {new} nicht hinzukommen, solange {name} da ist. Installiere {name} erneut, oder ersetze es: sobald die Firmware auf dem Board ist, verschwindet {name} mit seinen Entitäten aus Home Assistant und {new} tritt an seine Stelle.",
+        "reinstall": "{name} erneut installieren",
+        "replace": "{name} durch {new} ersetzen",
+        "replaced": "{name} wurde aus Home Assistant entfernt; {new} tritt an seine Stelle.",
+        "go_firmware": "Wähle unter Firmware & USB das Profil von {name} und „Aus diesem Browser installieren“."
+      },
       "memory": {
         "low_title": "Wenig freier Speicher auf der Home-Assistant-Maschine",
         "low": "{free} Speicher sind frei, darum erstellt die Firmware mit weniger Compilern gleichzeitig ({jobs} statt {cores}). Das dauert länger, passt aber.",
@@ -3375,8 +3798,6 @@
       "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst."
     },
     "alerts": {
-      "eyebrow": "Meldungen · Spickzettel",
-      "title": "Eine Vollbild-Benachrichtigung aus einer Automation.",
       "intro": "Jeder Bildschirm hat die Aktion {action}. Sie legt eine Karte über alles, weckt den Bildschirm und hält die Hintergrundbeleuchtung auf normaler Helligkeit, bis jemand auf die Taste tippt oder das Timeout abläuft. Home Assistant selbst zeigt für ESPHome-Aktionen keine Erklärungen oder Auswahllisten; alles, was du ausfüllen kannst, steht hier.",
       "loading": "Der Spickzettel wird noch geladen; einen Moment.",
       "example": {
@@ -3386,7 +3807,6 @@
       },
       "sections": "Abschnitte",
       "nav": {
-        "try": "Ausprobieren",
         "screens": "Deine Bildschirme",
         "howto": "In einer Automation",
         "all": "Alle Bildschirme",
@@ -3400,10 +3820,6 @@
         "choice": "Zwei Tasten"
       },
       "try": {
-        "text": "Sende jetzt eine Meldung mit denselben Feldern, die auch eine Automation sendet. Der Bildschirm zeigt die Karte und lässt bei eingeschaltetem Blinken seine Hintergrundbeleuchtung blinken.",
-        "screen": "Bildschirm",
-        "all": "Alle Bildschirme ({ready} bereit)",
-        "not_ready": "{name} · nicht bereit",
         "title": "Titel",
         "subtitle": "Untertitel",
         "icon": "Symbol",
@@ -3415,10 +3831,6 @@
         "sending": "Wird gesendet…",
         "send": "Meldung senden",
         "sent_all": "An {n} Bildschirm gesendet. | An {n} Bildschirme gesendet.",
-        "sent_to": "An {name} gesendet.",
-        "sent_one": "An den Bildschirm gesendet.",
-        "skipped": "1 übersprungen (offline oder alte Firmware). | {n} übersprungen (offline oder alte Firmware).",
-        "left_empty": "Leer gelassen: {fields}.",
         "nothing": "Kein Bildschirm konnte sie anzeigen: Prüfe, ob ein Bildschirm mit Firmware {version} oder neuer online ist."
       },
       "white": "Weiß (Standard)",
@@ -3532,7 +3944,80 @@
         "text": "Füge {second} hinzu für eine zweite Taste links neben der ersten, damit man am Bildschirm wählen kann, etwa Nicht jetzt und Öffnen. {first_color} und {second_color} geben einer Taste eine eigene Farbe, Grün für Ja und Rot für Nein. Welche Antwort auf welcher Seite steht, entscheidest du: Die erste Taste ist immer rechts.",
         "event": "Über das Event ist jedes dieser Felder optional, und {second_action} mit {second_data} führt eine Aktion von der zweiten Taste aus, wie {action} von der ersten. Ein Bildschirm mit Firmware älter als {version} zeigt die Meldung mit einer Taste.",
         "direct": "Rufst du einen Bildschirm direkt auf? Seine Aktion {choice} nimmt die Felder von show_alert und diese drei; die zweite Taste beendet die Meldung mit {ending}."
-      }
+      },
+      "wizard": {
+        "camera": "Kamera (optional)",
+        "no_camera": "Keine Kamera",
+        "screens_hint": "Nichts gewählt: jeder Bildschirm, der eine Meldung zeigen kann.",
+        "description": "Erstellt in den Events von Tessera: ein Alert auf den Bildschirmen.",
+        "title": "Neue Meldungs-Automation",
+        "with_picture": "Zeigt das Bild der Kamera",
+        "without_picture": "Zeigt die Meldung ohne Bild",
+        "summary": {
+          "says": "Text",
+          "buttons": "Tasten"
+        },
+        "steps": {
+          "trigger": {
+            "title": "Was startet sie?",
+            "help": "Wähle, wodurch die Meldung erscheint: ein Sensor, der angeht, ein Schalter-Helfer, ein Taster oder ein Ereignis. Nutzt du es in einer Automation, die du schon hast? Dann kannst du diesen Schritt überspringen."
+          },
+          "words": {
+            "title": "Was steht darauf?",
+            "help": "Ein kurzer Titel und eine Zeile darunter. Du siehst die Karte so, wie der Bildschirm sie zeichnet."
+          },
+          "look": {
+            "title": "Wie sieht sie aus?",
+            "help": "Ein Symbol, eine Farbe, wenn du willst ein Kamerabild, und ob sie blinkt."
+          },
+          "screens": {
+            "title": "Welche Bildschirme?",
+            "help": "Wähle die Bildschirme, die sie zeigen, und wie lange sie bleibt."
+          },
+          "try": {
+            "title": "Ausprobieren",
+            "help": "Sende sie jetzt einmal, genau wie die Automation es tun wird. Schau auf deine Bildschirme."
+          },
+          "add": {
+            "title": "Abschließen",
+            "help": "Mach eine eigene Automation daraus, oder kopiere die Aktion in eine Automation, die du schon hast."
+          },
+          "buttons": {
+            "title": "Welche Tasten?",
+            "help": "Eine Taste, oder zwei für eine Wahl. Jede kann beim Drücken etwas in Home Assistant tun oder nur die Meldung schließen."
+          }
+        },
+        "buttons": {
+          "one": "Eine Taste",
+          "one_detail": "OK, Komme, Gesehen: sie schließt die Meldung und kann eine Sache tun.",
+          "two": "Zwei Tasten",
+          "two_detail": "Eine Wahl, etwa Öffnen und Nicht jetzt, jede mit eigener Aktion.",
+          "first": "Rechte Taste",
+          "second": "Linke Taste",
+          "second_example": "Nicht jetzt",
+          "color": "Farbe",
+          "own_color": "Eigene Farbe",
+          "does": "Beim Drücken",
+          "only_close": "Schließt nur die Meldung",
+          "no_actions": "Diese Entität hat keine Aktion, die sonst nichts braucht. Wähle eine andere.",
+          "closes": "schließt die Meldung",
+          "only": "Die Taste"
+        },
+        "try_action": "Achtung: Eine Taste mit Aktion zu drücken führt sie wirklich aus, auch jetzt.",
+        "route": {
+          "event": "Gesendet als Ereignis {event}: der einzige Weg, der eine Kamera, die Aktion einer Taste und eine Wahl der Bildschirme mitnimmt. Die App gibt jedem Bildschirm die Meldung in der Form, die seine Firmware kennt.",
+          "one_button": "{screens}: Firmware älter als {version}, zeigt nur die rechte Taste.",
+          "action": "Die App führt die Aktion einer Taste einmal aus, auf welchem Bildschirm sie auch gedrückt wird. Nach dem Timeout oder einer neuen Meldung passiert nichts.",
+          "no_picture": "{screens}: zeigt die Meldung ohne das Bild der Kamera."
+        }
+      },
+      "hero": {
+        "title": "Eine Meldung auf deinen Bildschirmen",
+        "text": "Eine Karte über allem auf dem Bildschirm, mit einer Taste: wenn jemand an der Tür ist, die Wäsche fertig ist oder ein Fenster offen steht. Der Assistent führt dich hindurch und legt die Automation in Home Assistant an.",
+        "create": "Meldungs-Automation erstellen",
+        "empty": "Noch keine Meldungs-Automation. Erstelle oben eine, dann erscheint sie hier."
+      },
+      "reference": "Selbst schreiben"
     },
     "override": {
       "eyebrow": "Erweitert · lokale Anpassung",
@@ -3570,9 +4055,14 @@
     "mockup": {
       "home": "Zuhause",
       "unknown": "Unbekannt",
-      "calendar_free": "Frei"
+      "calendar_free": "Frei",
+      "todo_open": "{x} offen",
+      "todo_all_done": "Alles erledigt",
+      "todo_more": "+{x} weitere"
     },
     "pages": {
+      "repaired": "Seite {page}, Kachel „{tile}“: Unpassendes entfernt ({what}).",
+      "repaired_tile": "Seite {page}: Kachel „{tile}“ entfernt, sie passte nicht mehr.",
       "mode": "Editormodus",
       "simple": "Einfach",
       "advanced": "Erweitert",
@@ -3704,8 +4194,7 @@
       "comment_label": "Anmerkung (optional)",
       "comment_hint": "Bitte keine persönlichen Daten, Logs, Passwörter oder API-Schlüssel.",
       "report_title": "Soll es behoben werden?",
-      "report_text": "Eröffne ein Issue auf GitHub. Dein Board, die Versionen und was du uns gesagt hast, sind schon eingetragen. Füge ein Log hinzu, dann können wir es untersuchen und dich dazu fragen.",
-      "report_open": "GitHub-Issue eröffnen",
+      "report_text": "Schick einen Bericht: Tessera sammelt Board, Versionen, Logs und den letzten Absturz, zeigt sie dir zuerst und schickt sie erst, wenn du zustimmst. Oder lies nach, was du tun kannst, wenn etwas nicht funktioniert.",
       "add_details": "Details hinzufügen",
       "done": "Fertig",
       "settings_title": "Feedback",
@@ -3738,7 +4227,9 @@
         "addon": "Die Version von Tessera: {version}",
         "nothing_else": "Sonst nichts: kein Name, kein Konto, keine Entitäten, Logs oder Home-Assistant-Einstellungen. Jeder Bildschirm teilt unter einem eigenen zufälligen Schlüssel."
       },
-      "privacy": "Datenschutz"
+      "privacy": "Datenschutz",
+      "report_send": "Bericht senden",
+      "report_manual": "Fehlerbehebung lesen"
     },
     "webflash": {
       "target": "Aus diesem Browser installieren (Chrome oder Edge)",
@@ -3803,6 +4294,7 @@
       "packet_error": "Die Firmware hat ein Vorschaupaket abgelehnt: {message}",
       "stopped": "Firmware-Vorschau angehalten: {message}",
       "action_error": "Home Assistant-Befehl fehlgeschlagen: {message}",
+      "stale": "Diese Vorschau ist älter als die Firmware: Sie wurde am {date} erstellt und die Firmware hat sich seitdem geändert, also zeichnet ein Bildschirm vielleicht etwas, das hier noch nicht zu sehen ist.",
       "remove": "Die Vorschau und ihr gespeichertes Layout in diesem Browser.",
       "save": "Vorschau speichern",
       "saved": "In diesem Browser gespeichert",
@@ -3876,7 +4368,9 @@
         "layout_imported": "Layout importiert",
         "changed": "Layout geändert",
         "restored": "nicht gespeicherte Änderungen wiederhergestellt",
-        "taken_over": "Änderungen aus dem anderen Tab übernommen"
+        "taken_over": "Änderungen aus dem anderen Tab übernommen",
+        "auto_layout": "das für dich erstellte Layout",
+        "layoutbot": "Änderung von Layoutbot"
       }
     },
     "draft": {
@@ -3930,6 +4424,12 @@
       "donated": "Ich habe schon gespendet",
       "thanks": "Danke! Diese Frage kommt nicht wieder."
     },
+    "funding": {
+      "title": "Auf der Suche nach Finanzierung",
+      "body": "Ich habe einen Job, der die Rechnungen bezahlt, und der geht vor. Tessera wird immer größer, und mir fehlt schlicht die Zeit, die es braucht. Damit es weiterlebt, brauche ich eine Finanzierung: um ihm die Zeit zu geben, die es verdient, oder um jemanden einzustellen, der hilft. Wenn du helfen kannst, schreib mir eine E-Mail.",
+      "mail": "E-Mail an mich",
+      "later": "Nicht jetzt"
+    },
     "build": {
       "plugins": "Baut mit seinen Plugins",
       "install": "Installiert",
@@ -3961,7 +4461,8 @@
           "fetch": "die Firmware ist nicht zurückgekommen",
           "bundle": "das YAML konnte nicht gepackt werden"
         }
-      }
+      },
+      "icons": "Baut mit seinen Symbolen"
     },
     "grid": {
       "title": "Raster",
@@ -4002,6 +4503,499 @@
       "move_to": "Auf Seite verschieben",
       "add_here": "Hier eine Kachel hinzufügen",
       "paste_here": "Hier einfügen"
+    },
+    "report": {
+      "button": "Mein Bildschirm funktioniert nicht richtig",
+      "card_title": "Stimmt etwas nicht?",
+      "card_hint": "Stelle einen Bericht aus dem zusammen, was die App über diesen Bildschirm weiß, lies ihn und sende ihn an Tessera, damit wir die Ursache finden können.",
+      "eyebrow": "Fehlersuche",
+      "title": "Mein Bildschirm funktioniert nicht richtig",
+      "title_named": "{name} funktioniert nicht richtig",
+      "intro": "Die App sammelt, was sie über diesen Bildschirm weiß, in ein paar Dateien. Du liest sie hier, und erst Senden bringt sie zu Tessera.",
+      "loading": "Lese, was die App weiß…",
+      "collects_title": "Was hineinkommt",
+      "collects": "Board und Versionen des Bildschirms, sein eigenes Log (bis zu 45 Sekunden, live), die Zeilen des Home-Assistant-Logs über ihn, das Log der App und das letzte Build-Log. Passwörter, Schlüssel, Netzwerkadressen und der Name des Bildschirms werden geschwärzt.",
+      "nothing_leaves": "Nichts verlässt dein Home Assistant, bis du auf Senden drückst. Du kannst jede Datei vorher lesen.",
+      "crash_title": "Letzter Absturz",
+      "crash_line": "{reason}, {when}, {seen}",
+      "crash_seen": "diese Woche einmal gesehen | diese Woche {n} Mal gesehen",
+      "crash_lines": "Dekodierte Zeilen",
+      "full": "Auch mein Seitenlayout, die Namen der Entitäten und die übrigen Zeilen des Home-Assistant-Logs mitschicken. Das hilft sehr beim Finden der Ursache.",
+      "note_label": "Was ist passiert? (optional)",
+      "note_hint": "Was du gesehen hast, was du kurz davor getan hast und wie oft es vorkommt.",
+      "email_label": "Deine E-Mail (optional)",
+      "email_hint": "Falls wir dich dazu etwas fragen dürfen.",
+      "remember_email": "Meine E-Mail in dieser App merken",
+      "collect": "Sammeln",
+      "check_again": "Erneut prüfen",
+      "blockers": {
+        "no_profile": "Die YAML dieses Bildschirms liegt nicht im Ordner dieser App, daher lässt sich kein Bericht dafür erstellen.",
+        "collecting": "Ein Bericht dieses Bildschirms wird bereits gesammelt. Warte einen Moment und prüfe erneut."
+      },
+      "collecting": "Wird gesammelt…",
+      "collecting_hint": "Das dauert bis zu einer Minute: Die App hört eine Weile dem Log des Bildschirms zu.",
+      "steps": {
+        "identity": "Lese die Identität des Bildschirms",
+        "profile": "Kopiere sein Profil",
+        "screen_log": "Höre dem Log des Bildschirms zu",
+        "ha_log": "Lese das Home-Assistant-Log",
+        "addon_log": "Lese das Log der App",
+        "build_log": "Lese das letzte Build-Log",
+        "crash": "Lese den letzten Absturz",
+        "zip": "Packe die Dateien"
+      },
+      "ready_title": "Bereit zum Lesen",
+      "facts": {
+        "board": "Board",
+        "firmware": "Firmware",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "Plugins",
+        "crash": "Letzter Absturz",
+        "none": "Keiner",
+        "unknown": "Unbekannt"
+      },
+      "warnings": {
+        "screen_offline": "Der Bildschirm ist offline: Der Bericht hat kein Live-Log, nur was die App aufbewahrt hat.",
+        "no_api_key": "Die App hat keinen API-Schlüssel für diesen Bildschirm, daher konnte sein Live-Log nicht gelesen werden.",
+        "no_elf": "Die Debug-Datei der Firmware fehlt, daher lässt sich ein Absturz nicht nach seinen Codezeilen benennen.",
+        "ha_log_unavailable": "Das Home-Assistant-Log konnte nicht gelesen werden.",
+        "addon_log_unavailable": "Das eigene Log der App konnte nicht gelesen werden.",
+        "no_crash_record": "Für diesen Bildschirm wurde kein Absturz aufgezeichnet."
+      },
+      "files_title": "Dateien im Bericht",
+      "file_lines": "1 Zeile | {n} Zeilen",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "Zip herunterladen",
+      "send_title": "An Tessera senden",
+      "send_text": "Das geht an Tessera und wird {days} Tage aufbewahrt. Es enthält die Dateien oben, deine Anmerkung und deine E-Mail, falls du eine angegeben hast.",
+      "privacy": "Datenschutz",
+      "with_note": "Mit deiner Anmerkung.",
+      "with_email": "Wir dürfen an {email} schreiben.",
+      "change_note": "Anmerkung oder E-Mail ändern",
+      "consent": "Ich habe gelesen, was im Bericht steht, und bin einverstanden, ihn an Tessera zu senden.",
+      "send": "Senden",
+      "sending": "Wird gesendet…",
+      "sent": {
+        "title": "Gesendet, danke",
+        "quote": "Nenne diese Referenz auf GitHub oder Discord, damit wir deinen Bericht finden.",
+        "copy": "Kopieren",
+        "copied": "Referenz kopiert.",
+        "selected": "Die Referenz ist markiert: Kopiere sie mit Ctrl+C oder ⌘C.",
+        "github": "GitHub-Issue eröffnen",
+        "discord": "Auf Discord fragen",
+        "new": "Neuen Bericht erstellen"
+      },
+      "failed_title": "Der Bericht konnte nicht erstellt werden",
+      "try_again": "Erneut versuchen"
+    },
+    "events": {
+      "eyebrow": "Events · aus Home Assistant",
+      "intro": "Was eine Automatisierung in Home Assistant an deine Bildschirme senden kann. Du wählst den Auslöser, die Bildschirme und was sie zeigen.",
+      "alerts": "Alerts",
+      "doorbell": "Türklingel",
+      "wizard": {
+        "suggested": "Deine Türklingeln:",
+        "none": "Keine Entität gefunden",
+        "pick_trigger": "Wähle, womit es startet",
+        "yaml": "Automatisierung als YAML zeigen",
+        "kind": {
+          "doorbell": "Startet, wenn diese Türklingel klingelt (Doorbell rang von Home Assistant).",
+          "event": "Startet jedes Mal, wenn dieses Event auslöst.",
+          "on": "Startet, wenn dies angeht.",
+          "press": "Startet bei jedem Druck darauf."
+        },
+        "back": "Zurück",
+        "next": "Weiter",
+        "done": "Fertig",
+        "other": "Etwas anderes",
+        "other_detail": "Ein eigener Sensor, Schalter, Helfer, Taster oder ein Ereignis",
+        "every_screen": "Jeder Bildschirm",
+        "summary": {
+          "starts": "Startet bei",
+          "screens": "Bildschirme",
+          "title": "Name in Home Assistant"
+        },
+        "domain": {
+          "binary_sensor": "Ein Sensor: von aus nach an, zum Beispiel wenn er jemanden erkennt.",
+          "switch": "Ein Schalter: wenn jemand ihn einschaltet.",
+          "input_boolean": "Ein Schalter-Helfer: wenn er angeht, zum Beispiel durch eine andere Automation."
+        },
+        "finish": {
+          "label": "Wie willst du sie nutzen?",
+          "automation": "Automation erstellen",
+          "automation_detail": "Tessera legt sie in Home Assistant an, mit dem Start aus Schritt 1.",
+          "needs_trigger": "Wähle zuerst in Schritt 1, was sie startet.",
+          "action": "In einer eigenen Automation nutzen",
+          "action_detail": "Kopiere nur die Aktion und füge sie in eine Automation ein, die du schon hast.",
+          "paste": "Öffne in Home Assistant deine Automation, füge eine Aktion hinzu, wähle im Menü In YAML bearbeiten und füge dies ein.",
+          "copy": "YAML kopieren"
+        }
+      },
+      "install": {
+        "add": "Zu Home Assistant hinzufügen",
+        "saving": "Wird hinzugefügt…",
+        "saved": "Hinzugefügt. Es funktioniert sofort, ohne Neustart.",
+        "open": "In Home Assistant öffnen",
+        "hint": "Sie heißt „{title}“ in den Automatisierungen von Home Assistant, wo du sie weiter ändern kannst.",
+        "listed": "Von Tessera in Home Assistant",
+        "remove": "Entfernen",
+        "remove_confirm": "„{name}“ aus Home Assistant entfernen?",
+        "on": "An",
+        "off": "Aus"
+      },
+      "alarm": "Alarm"
+    },
+    "doorbell": {
+      "intro": "Jemand klingelt, und deine Bildschirme zeigen die Tür. Eine Automatisierung sendet das Event mit der Kamera der Türklingel: ein P4-Bildschirm wacht auf, spielt einen Gong und öffnet die Kamera live mit Ton; jeder andere Bildschirm zeigt ihr Bild in einem Alert. Jede Türklingel funktioniert, egal was die Automatisierung startet.",
+      "example": {
+        "title": "Haustür",
+        "when": "Gerade eben",
+        "sound": "Ton an"
+      },
+      "try": {
+        "send": "Klingeln",
+        "views": "Live geöffnet auf {n} Bildschirm. | Live geöffnet auf {n} Bildschirmen.",
+        "alerts": "Als Alert gezeigt auf {n} Bildschirm. | Als Alert gezeigt auf {n} Bildschirmen.",
+        "nothing": "Kein Bildschirm hat es gezeigt. Ist der Bildschirm online und die Kamera eine Kamera-Entität?"
+      },
+      "no_camera": "Keine Kamera",
+      "fields": {
+        "title": "Titel",
+        "timeout": "Timeout (Sekunden)",
+        "keep": "Verpasstes Klingeln in der oberen Leiste behalten"
+      },
+      "screens": {
+        "view": "Live mit Ton",
+        "picture": "Alert mit Bild",
+        "plain": "Alert ohne Bild"
+      },
+      "after": {
+        "title": "Danach",
+        "text": "Einmal pro Klingeln sendet die App {answered}, wenn jemand auf einem Bildschirm abgenommen hat, oder {missed}, wenn niemand es tat. Beide tragen die Kamera und den Titel; answered nennt auch den Bildschirm.",
+        "dismiss": "Um ein Klingeln auf jedem Bildschirm zu schließen, etwa wenn die Tür aufgeht:"
+      },
+      "yaml": {
+        "missed_alias": "Verpasste Türklingel aufs Handy",
+        "missed_message": "Es hat geklingelt",
+        "description": "Erstellt in den Events von Tessera: eine Türklingel auf den Bildschirmen."
+      },
+      "wizard": {
+        "title": "Neue Türklingel-Automation",
+        "camera_hint": "Ein P4-Bildschirm streamt sie live mit Ton, wenn die Kamera Ton hat; andere Bildschirme zeigen ihr Bild.",
+        "screens_hint": "Keiner gewählt: jeder Bildschirm.",
+        "limits": "Nicht jede Türklingel kann alles: Ton kommt nur, wenn der Stream der Kamera ihn hat. Zurücksprechen kommt später.",
+        "more_cameras": "Eine andere Kamera…",
+        "timeout_hint": "Wie lange ein Klingeln offen bleibt, wenn niemand den Bildschirm berührt. Leer: der Standard.",
+        "summary": {
+          "camera": "Kamera",
+          "door": "Tür"
+        },
+        "steps": {
+          "rings": {
+            "title": "Was klingelt?",
+            "help": "Wähle, was Home Assistant sagt, dass jemand vor der Tür steht. Deine Türklingeln stehen oben; jeder Sensor, Taster oder jedes Ereignis geht auch. Nutzt du es in einer Automation, die du schon hast? Dann kannst du diesen Schritt überspringen."
+          },
+          "camera": {
+            "title": "Welche Kamera?",
+            "help": "Die Kamera, die die Bildschirme beim Klingeln zeigen. Meist die eigene Kamera der Türklingel."
+          },
+          "door": {
+            "title": "Eine Tür zum Öffnen?",
+            "help": "Die Klingelansicht kann eine Taste haben, die nach einem zweiten Tippen die Tür öffnet: ein Schloss oder eine andere Aktion wie ein Skript oder die Taste eines Tors. Du kannst es weglassen."
+          },
+          "screens": {
+            "title": "Welche Bildschirme?",
+            "help": "Wähle die Bildschirme, die das Klingeln zeigen. Bei jedem steht, was er damit kann."
+          },
+          "name": {
+            "title": "Name und Dauer",
+            "help": "Der Titel auf dem Bildschirm und wie lange ein Klingeln offen bleibt. Beides darf leer bleiben."
+          },
+          "try": {
+            "title": "Ausprobieren",
+            "help": "Klingle jetzt einmal, genau wie die Automation es tun wird. Schau auf deine Bildschirme."
+          },
+          "add": {
+            "title": "Abschließen",
+            "help": "Mach eine eigene Automation daraus, oder kopiere die Aktion in eine Automation, die du schon hast."
+          }
+        },
+        "door": {
+          "none": "Keine Türtaste",
+          "lock": "Ein Schloss",
+          "action": "Eine andere Aktion",
+          "pick_lock": "Schloss wählen…",
+          "pick_action": "Wählen, was es öffnet…",
+          "code": "Dieses Schloss verlangt einen Code: Die Taste erscheint nur, wenn das Schloss einen Standardcode in Home Assistant hat (die Einstellungen des Schlosses)."
+        },
+        "sound": {
+          "label": "Die Türklingel sofort hören",
+          "hint": "Die Klingelansicht öffnet mit dem Ton der Türklingel an. Schalte das für einen ruhigen Ort aus, etwa ein Studio: Der Ton wartet dann auf ein Tippen auf Ton."
+        },
+        "chime": {
+          "label": "Gong beim Klingeln",
+          "hint": "Der Bildschirm spielt einen Türgong, wenn jemand klingelt. Schalte das aus, wenn du das Ding-Dong nicht jedes Mal hören willst."
+        },
+        "keep": {
+          "minutes": "{n} Min.",
+          "hours": "{n} Std.",
+          "open": "Bis jemand es öffnet",
+          "hint": "Ein Klingeln, das niemand beantwortet hat, bleibt so lange nach dem Klingeln in der oberen Leiste der Bildschirme, mit der Zeit seitdem. Ein Tippen darauf öffnet die Türklingel wieder."
+        }
+      },
+      "hero": {
+        "title": "Deine Türklingel auf deinen Bildschirmen",
+        "text": "Jemand klingelt, und deine Bildschirme zeigen, wer vor der Tür steht: live mit Ton auf einem P4-Bildschirm, als Bild oder Meldung auf den anderen. Der Assistent führt dich hindurch und legt die Automation in Home Assistant an.",
+        "create": "Türklingel-Automation erstellen",
+        "empty": "Noch keine Türklingel-Automation. Erstelle oben eine, dann erscheint sie hier."
+      },
+      "by_hand": {
+        "title": "Die Automation selbst schreiben"
+      }
+    },
+    "drawer": {
+      "resize": "Breite der Einstellungen: ziehen oder die Pfeiltasten nutzen; Doppelklick setzt sie zurück"
+    },
+    "screen_icons": {
+      "eyebrow": "Symbole",
+      "title": "Symbole von {name}",
+      "intro": "Jeder Bildschirm bringt einen festen Satz Symbole mit. Hier fügst du bis zu {room} weitere hinzu. Symbole sind Teil der Firmware, eine Änderung kommt also erst auf den Bildschirm, wenn er neu erstellt wird.",
+      "count": "{n} von {room} hinzugefügt",
+      "on_screen": "Auf diesem Bildschirm",
+      "none_yet": "Noch keine. Wähle aus den Symbolen unten.",
+      "waiting": "1 Symbol wartet auf das Erstellen | {n} Symbole warten auf das Erstellen",
+      "leaving": "1 Symbol verschwindet beim nächsten Erstellen | {n} Symbole verschwinden beim nächsten Erstellen",
+      "changes": "Erstelle die Firmware neu, um diese Änderungen auf den Bildschirm zu bringen. Das dauert ein paar Minuten, und der Bildschirm startet neu.",
+      "build": "{name} erstellen",
+      "building": "Wird mit diesen Symbolen erstellt…",
+      "all_up_to_date": "Alles, was du gewählt hast, ist auf dem Bildschirm.",
+      "everywhere": "Auf jeden Bildschirm bringen",
+      "everywhere_ask": "Das ersetzt die hinzugefügten Symbole von {n} Bildschirm und erstellt ihn neu. | Das ersetzt die hinzugefügten Symbole von {n} Bildschirmen und erstellt sie nacheinander neu. Ein Bildschirm mit 4 MB Flash bleibt, wie er ist.",
+      "everywhere_yes": "{n} Bildschirm erstellen | {n} Bildschirme erstellen",
+      "everywhere_done": "Warten auf das Erstellen: {names}",
+      "everywhere_off": "Aus, daher nicht erstellt: {names}",
+      "from_ha": "In deinem Home Assistant verwendet",
+      "from_ha_hint": "Symbole deiner Entitäten, die dieser Bildschirm noch nicht zeichnen kann.",
+      "add_all": "Alle hinzufügen",
+      "all": "Alle Symbole",
+      "search": "Alle Symbole durchsuchen",
+      "search_label": "Alle Symbole durchsuchen",
+      "nothing": "Kein Symbol hat diesen Namen.",
+      "fixed": "Schon auf jedem Bildschirm",
+      "full": "Dieser Bildschirm hat keinen Platz mehr.",
+      "in_use": "{icon} ist auf {n} Kachel dieses Bildschirms. Sie zeigt nach dem nächsten Erstellen ihr automatisches Symbol. | {icon} ist auf {n} Kacheln dieses Bildschirms. Sie zeigen nach dem nächsten Erstellen ihr automatisches Symbol.",
+      "remove": "Entfernen",
+      "own_yaml": "Dieser Bildschirm wird aus seinem eigenen YAML erstellt. Speichere dies als {file} daneben, füge die Zeile unten unter packages: ein und erstelle ihn dort.",
+      "loading": "Symbole werden geladen…",
+      "card_title": "Symbole",
+      "card_hint": "Füge zu den Symbolen dieses Bildschirms bis zu {room} weitere hinzu.",
+      "card_button": "Symbole wählen",
+      "card_count": "{n} hinzugefügt",
+      "card_waiting": "{n} warten auf das Erstellen",
+      "card_no_room": "Dieses Board hat 4 MB Flash und keinen Platz für weitere Symbole."
+    },
+    "sections": {
+      "untitled": "Bereich",
+      "kind": "Bereich",
+      "choose_tiles": "Wähle zuerst die Kacheln für den Bereich.",
+      "one_page": "Die Kacheln eines Bereichs stehen auf einer Seite: Wähle Kacheln einer Seite.",
+      "already_in": "Eine dieser Kacheln steht schon in einem Bereich. Nimm sie zuerst heraus oder wähle lose Kacheln.",
+      "no_full": "Eine Kachel über die ganze Seite kann nicht in einem Bereich stehen.",
+      "too_tall": "Diese Kacheln brauchen mehr Zeilen, als die Seite hat. Wähle weniger oder mache den Bereich breiter.",
+      "no_room": "Dafür ist hier kein Platz: Andere Kacheln oder Bereiche stehen im Weg.",
+      "no_room_page": "Kein Platz für den Bereich auf Seite {page}.",
+      "removed": "Bereich entfernt, seine Kacheln bleiben stehen",
+      "removed_with_tiles": "Bereich mit seinen Kacheln entfernt",
+      "resize_columns": "Bereich breiter oder schmaler machen",
+      "resize_rows": "Bereich höher oder niedriger machen",
+      "head_title": "Ziehen, um den Bereich zu verschieben, klicken für seine Einstellungen",
+      "aria": "Bereich {title}",
+      "rename": "Bereich umbenennen",
+      "title": "Name",
+      "make": "Bereich erstellen",
+      "add": "Abschnitt hinzufügen",
+      "add_here": "Abschnitt hier hinzufügen",
+      "library_hint": "Eine Gruppe von Kacheln mit Titel",
+      "make_now": "Bereich erstellen",
+      "name_placeholder": "Name, zum Beispiel Licht",
+      "in_section": "In diesem Bereich",
+      "update_screen": "Die Firmware dieses Bildschirms zeichnet noch keine Bereiche: Er zeigt dieselben Kacheln ohne sie. Aktualisiere den Bildschirm, um sie zu sehen.",
+      "head": "Titel",
+      "no_icon": "Kein Symbol",
+      "summary": "Zusammenfassung",
+      "summary_none": "Keine",
+      "summary_search": "Entitäten suchen",
+      "summary_none_found": "Keine Entität gefunden",
+      "summary_clear": "Keine Zusammenfassung",
+      "summary_hint": "Der Zustand einer Entität rechts neben dem Titel, etwa eine Temperatur oder wie viele Lampen an sind.",
+      "size": "Größe",
+      "columns": "Spalten",
+      "rows": "Zeilen",
+      "narrower": "Schmaler",
+      "wider": "Breiter",
+      "lower": "Niedriger",
+      "taller": "Höher",
+      "size_hint": "Ein Bereich wächst nur in leere Zellen. Wird er zu schmal für seine Kacheln, rücken sie in Lesereihenfolge nach.",
+      "loose_hint": "1 lose Kachel steht neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen. | {n} lose Kacheln stehen neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen.",
+      "loose_row": "Zur Zeile machen",
+      "short_grid": "Auf einem Raster mit {rows} Zeilen nimmt der Titel eines Bereichs seinen Kacheln viel Platz: Jede ist dann etwa {with} mm statt {without} mm hoch. Kacheln außerhalb von Bereichen behalten ihre Höhe.",
+      "remove": "Bereich entfernen",
+      "remove_with_tiles": "Bereich und Kacheln entfernen",
+      "settings": "Bereichseinstellungen",
+      "contrast": "Kontrasthintergrund",
+      "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht.",
+      "contrast_tiles": "Kacheln auch im Kontrast",
+      "contrast_tiles_hint": "Der ganze Bereich im anderen Aussehen, die Karten der Kacheln auch: dunkle Karten auf dunklem Feld am Tag, helle im Dunkelmodus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Licht",
+        "covers": "Rollos & Fenster",
+        "climate": "Klima",
+        "media": "Medien",
+        "security": "Sicherheit",
+        "actions": "Szenen",
+        "others": "Geräte",
+        "weather": "Wetter",
+        "people": "Wer ist zu Hause",
+        "energy": "Energie",
+        "cameras": "Kameras",
+        "vacuum": "Staubsauger",
+        "todo": "Listen",
+        "calendar": "Kalender"
+      },
+      "home": "Zuhause",
+      "all_lights": "Alle Lichter",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} und {n} weitere",
+      "button": "Automatisches Layout",
+      "button_title": "Seiten aus deinen Home-Assistant-Bereichen und -Geräten erstellen",
+      "title": "Ein Layout für dich erstellen",
+      "intro": "Tessera sieht sich deine Bereiche und Geräte in Home Assistant an und erstellt Seiten für diesen Bildschirm: eine Seite oder einen Abschnitt pro Raum, Wetter, Alarm, Personen und Kameras des Hauses zusammen, größere Kacheln, wo dieser Bildschirm Platz dafür hat. Du kannst es rückgängig machen und danach alles ändern.",
+      "reading": "Dein Zuhause wird gelesen…",
+      "failed": "Dein Zuhause konnte nicht gelesen werden: {error}",
+      "nothing": "Tessera hat noch nichts für diesen Bildschirm gefunden. Gib deinen Geräten in Home Assistant einen Bereich oder füge Kacheln aus der Bibliothek hinzu.",
+      "nothing_new": "Alles, was Tessera auf diesen Bildschirm setzen würde, ist schon darauf.",
+      "summary": "{pages} Seite · {tiles} Kacheln | {pages} Seiten · {tiles} Kacheln",
+      "summary_sections": "{n} Abschnitt | {n} Abschnitte",
+      "from_rooms": "aus einem Raum | aus {n} Räumen",
+      "left_out": "Eine weitere Entität fand keinen Platz auf diesem Bildschirm; sie ist in der Bibliothek. | {n} weitere Entitäten fanden keinen Platz auf diesem Bildschirm; sie sind in der Bibliothek.",
+      "replace": "Seiten ersetzen",
+      "replace_hint": "Der Bildschirm bekommt diese Seiten statt der jetzigen.",
+      "append": "Nach den jetzigen Seiten hinzufügen",
+      "append_hint": "Die jetzigen Seiten bleiben, die neuen kommen danach, mit dem, was noch nicht auf dem Bildschirm ist.",
+      "append_full": "Auf diesem Bildschirm sind keine Seiten oder Kacheln mehr frei. Ersetze die Seiten oder schaffe zuerst Platz.",
+      "make": "Layout erstellen",
+      "made": "Ein Layout mit {pages} Seite ist fertig. Rückgängig nimmt es zurück. | Ein Layout mit {pages} Seiten ist fertig. Rückgängig nimmt es zurück.",
+      "offer_title": "Soll ich ein erstes Layout für dich erstellen?",
+      "offer_text": "Tessera kann diesen Bildschirm aus deinen Home-Assistant-Bereichen und -Geräten einrichten. Danach kannst du alles ändern.",
+      "offer_make": "Erstes Layout erstellen",
+      "offer_empty": "Leer beginnen"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Layoutbot fragen",
+      "close": "Schließen",
+      "hello": "Hi! Sag mir, was dieser Bildschirm zeigen soll, und ich richte seine Seiten ein. Ich ändere nur das Layout, nie deine Geräte.",
+      "privacy": "Ich nutze {agent} aus Home Assistant. Deine Frage, die Seiten deiner Bildschirme und die IDs, Namen und Bereiche deiner Entitäten gehen dorthin.",
+      "model_hint": "Ich arbeite mit einem größeren Modell viel besser als mit dem günstigsten. Füge in Home Assistant deiner KI-Integration einen AI Task für mich hinzu, schalte „Empfohlene Modelleinstellungen“ aus, wähle ein größeres Modell und wähle es dann oben in diesem Chat aus.",
+      "model_link": "Integrationen öffnen",
+      "placeholder": "Erstelle eine Seite mit…",
+      "ask": "Fragen",
+      "send": {
+        "ask": "Soll ich es an {which} senden?",
+        "yes": "Ja, senden",
+        "no": "Nicht jetzt",
+        "sending": "Wird gesendet…",
+        "sent": "Gesendet. Der Bildschirm zeigt es gleich.",
+        "not_all": "Nicht alles wurde gesendet.",
+        "failed": "Senden an {which} fehlgeschlagen.",
+        "declined": "Nicht gesendet. Mit Speichern & senden geht das jederzeit.",
+        "to": "Senden an {name}",
+        "not_opened": "dieser Bildschirm konnte nicht geöffnet werden",
+        "not_saved": "es wurde nicht gespeichert",
+        "unsaved": "der geöffnete Bildschirm hat nicht gespeicherte Änderungen",
+        "own": "Deine eigenen Änderungen seit dem letzten Speichern gehen mit."
+      },
+      "busy": "Layoutbot richtet deine Seiten ein",
+      "seconds": "{n} s",
+      "stop": "Stopp",
+      "stopped": "Gestoppt. Nichts wurde geändert.",
+      "nothing": "Nichts wurde geändert.",
+      "stale": "Die Seiten haben sich geändert, während ich nachdachte, also habe ich sie gelassen, wie sie sind. Frag mich noch einmal.",
+      "show": "Zeigen",
+      "undo": "Rückgängig",
+      "undone": "Rückgängig gemacht",
+      "restructure": {
+        "page": "Strukturiere diese Seite um",
+        "screen": "Strukturiere den ganzen Bildschirm um"
+      },
+      "suggest": {
+        "lights_sections": "Setz alle Leuchten auf eine Seite, mit einem Bereich pro Raum",
+        "lights": "Setz alle Leuchten auf eine Seite",
+        "covers_sections": "Eine Seite mit allen Jalousien und Vorhängen, in zwei Bereichen",
+        "covers": "Eine Seite mit allen Jalousien und Vorhängen",
+        "media": "Eine Musikseite mit allen Lautsprechern",
+        "climate": "Eine Klimaseite mit der Heizung und den Temperaturen"
+      },
+      "what": {
+        "pages": "1 neue Seite | {n} neue Seiten",
+        "added": "1 Kachel hinzugefügt | {n} Kacheln hinzugefügt",
+        "removed": "1 Kachel entfernt | {n} Kacheln entfernt",
+        "changed": "Seite {pages} geändert | Seiten {pages} geändert"
+      },
+      "connect": {
+        "title": "Verbinde eine KI in Home Assistant",
+        "short": "Noch nicht verbunden",
+        "body": "Ich richte die Seiten dieses Bildschirms aus einem Satz ein, etwa „alle Leuchten auf eine Seite, ein Bereich pro Raum“. Dafür nutze ich die KI, die du mit Home Assistant verbindest: Füge eine dieser Integrationen hinzu, und ich erledige den Rest.",
+        "cloud": "In der Cloud, mit deinem eigenen Schlüssel",
+        "local": "Auf deinem eigenen Computer",
+        "after": "Jede KI-Integration mit AI Tasks funktioniert. Sobald sie hinzugefügt ist, schau hier erneut nach.",
+        "again": "Erneut prüfen"
+      },
+      "notes": {
+        "page_full": "Seite {page} ist voll, daher wurde {count} Kachel ausgelassen. | Seite {page} ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "memory_full": "Der Speicher des Bildschirms ist voll, daher wurde {count} Kachel ausgelassen. | Der Speicher des Bildschirms ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "left_out": "Der Bildschirm hatte keinen Platz für {count} weitere Kachel. | Der Bildschirm hatte keinen Platz für {count} weitere Kacheln.",
+        "no_page": "Es gibt keine Seite {page}.",
+        "not_drawn": "Der Bildschirm zeichnet keine Kachel für {count} Entität. | Der Bildschirm zeichnet keine Kachel für {count} Entitäten.",
+        "restructure_no_room": "Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren. | Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren."
+      },
+      "update_app": "Aktualisiere die Tessera-App: Dieser Editor platziert die Pläne von Layoutbot selbst.",
+      "scope": {
+        "here": "Dieser Bildschirm",
+        "all": "Alle Bildschirme"
+      },
+      "preview": "Ansehen"
+    },
+    "alarm": {
+      "hero_title": "Wenn der Alarm losgeht",
+      "hero_text": "Jemand kommt herein oder der Alarm geht los: Deine Bildschirme wachen von selbst auf und öffnen das Tastenfeld in Rot, mit der verbleibenden Zeit. Gib den Code ein, und der Alarm ist aus. Dafür brauchst du keine Automatisierung; Tessera folgt deinem Alarm in Home Assistant.",
+      "none": "Home Assistant hat keine Alarmanlage. Füge eine hinzu, etwa Manual alarm oder Alarmo, dann erscheint sie hier.",
+      "no_code": "Diese Alarmanlage verlangt zum Deaktivieren keinen Code, daher öffnen die Bildschirme ihre Karte mit einer Taste Deaktivieren statt des Tastenfelds.",
+      "screens_label": "Bildschirme, die das Tastenfeld öffnen",
+      "every_screen": "Jeder Bildschirm",
+      "every_screen_hint": "Auch ein Bildschirm, den du später hinzufügst. Schalte es aus, um die Bildschirme selbst zu wählen.",
+      "none_chosen": "Kein Bildschirm öffnet das Tastenfeld von selbst. Die Kachel der Alarmanlage öffnet es weiterhin mit einem Tippen.",
+      "older": "Braucht ein Firmware-Update, um es ohne die Kachel der Alarmanlage auf einer Seite zu öffnen.",
+      "send_label": "Code senden nach",
+      "send_off": "OK-Taste",
+      "send_off_hint": "Der Code geht, wenn du OK tippst. Home Assistant sagt nicht, wie viele Ziffern ein Code hat.",
+      "send_on_hint": "Der Code geht nach {digits} Ziffern von selbst, ohne OK. Wähle das nur, wenn jeder Code dieser Alarmanlage {digits} Ziffern hat: Ein zu früh gesendeter Code zählt als falsch.",
+      "saved": "Gespeichert. Deine Bildschirme haben es gleich.",
+      "how_title": "So funktioniert es auf dem Bildschirm",
+      "how_wake": "Wenn der Alarm herunterzählt, weil jemand hereingekommen ist, oder losgeht, wachen die gewählten Bildschirme auf und öffnen das Tastenfeld. Während er bis zum Scharfschalten herunterzählt, zeigt die Karte der Alarmanlage stattdessen eine Taste Deaktivieren.",
+      "how_keys": "Die Tasten nehmen den ganzen Platz des Bildschirms ein, bis zur Größe des Tastenfelds eines großen Telefons. Löschen nimmt die letzte Ziffer zurück.",
+      "how_wrong": "Drei falsche Codes sperren das Tastenfeld für 30 Sekunden, und jeder weitere falsche Code verdoppelt die Zeit, bis zu 15 Minuten. Home Assistant erfährt von jedem durch das Ereignis esphome.screen_alarm_code_refused, nie mit dem Code.",
+      "how_code": "Der Code geht mit der Aktion an Home Assistant, so wie ihn dessen eigene Alarmkarte sendet, und wird auf dem Bildschirm sofort gelöscht. Ein Bildschirm speichert oder protokolliert ihn nie.",
+      "how_tile": "Lege die Alarmanlage auch auf eine Seite: Ein Tippen auf ihre Kachel öffnet jederzeit die Karte mit einer Taste pro Modus."
     }
   }
 }

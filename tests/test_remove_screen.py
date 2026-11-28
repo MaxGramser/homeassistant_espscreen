@@ -15,7 +15,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from firmware import Firmware  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None

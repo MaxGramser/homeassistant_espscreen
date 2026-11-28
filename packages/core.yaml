@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.57.0"
+  SCREEN_FIRMWARE_VERSION: "0.62.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -50,6 +50,9 @@ substitutions:
   ROTATION_LANDSCAPE: "0"                          # the LVGL angle that lays the panel out lying down
   LVGL_ROTATION: "${ROTATION_LANDSCAPE}"           # which way it is built to hang (New screen writes it for one standing
                                                    # up); the editor turns it later without a build (runtime_tiles::hang)
+  # How the camera's sensor sits against the glass: 0 as the glass, 180 upside down (the Tab5). Only those two; the
+  # camera turns its picture upright from this and the screen's rotation (camera_turn.h, plugin API 0.19).
+  CAMERA_ORIENTATION: "0"
   TOUCH_SWAP_XY: "false"                           # the touch panel's axes against the display's own pixels
   TOUCH_MIRROR_X: "false"
   TOUCH_MIRROR_Y: "false"
@@ -77,6 +80,9 @@ substitutions:
   # A board's extras on the settings page (docs/SETTINGS.md, "A board's own settings"): rows a feature or the board file
   # puts in settings_screen::board_rows. A screen without any has no Extras page.
   BOOT_AUDIO: ""                                   # features/audio.yaml: the speaker's bus, the microphone
+  BOOT_SPEAKER_PART: ""                            # the speaker's codec (packages/hardware/parts/)
+  BOOT_MIC_CONTROLS: ""                            # the microphones' gain and ALC (parts/es7210-controls.yaml)
+  BOOT_MICROPHONE_PART: ""                         # the microphones' codec and its transport (parts/es7210.yaml)
   BOOT_BOARD_SETTINGS: ""                          # the board file's own
   # The screen's moments (every 250 ms, the cards closing, the settings page opening, away from page 1, an alert) are
   # lists, not substitutions (screen_hooks.h): a feature adds to them at boot, a plugin through the plugin API.
@@ -129,6 +135,7 @@ esphome:
     - <esphome/components/smart_display/screen_input.h>
     - <esphome/components/smart_display/light_controls.h>
     - <esphome/components/smart_display/alert_overlay.h>
+    - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
   name: ${DEVICE_NAME}
@@ -236,7 +243,7 @@ esphome:
             runtime_tiles::hide_detail();
             screen_hooks::run_cards_closed();
           };
-          runtime_tiles::layout_changed = []() { id(show_tile_page).execute(); };
+          runtime_tiles::layout_changed = []() { id(show_tile_page_soon).execute(); };
           ${BOOT_PAGE_GESTURE}
           ${BOOT_CAMERA_HOOKS}
           runtime_tiles::refresh = []() { if (!id(ui_refresh).is_running()) id(ui_refresh).execute(); };
@@ -270,6 +277,8 @@ esphome:
           // A plugin wakes the screen as Home Assistant's Wake button does (tessera::wake, plugin API 0.16): the one way
           // in for every wake that is not a finger, the script wake_from, with the plugin's name for the log.
           plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };
+          // How a doorbell's ring ended on this screen goes to ESP Screens (module doorbell, esphome.screen_doorbell).
+          runtime_tiles::doorbell_reports([](const std::string &action, const std::string &key) { id(doorbell_report).execute(action, key); });
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
           screen_power::freeze = [](bool on) { id(screen_lvgl).set_paused(on, false); ESP_LOGI("power", on ? "dark: saving" : "awake"); };
           screen_power::later = [](uint32_t ms) { id(screen_power_wait).execute(ms); };
@@ -321,6 +330,9 @@ esphome:
           runtime_tiles::bind_pages();
           ${BOOT_CARDS_TAIL}
           ${BOOT_AUDIO}
+          ${BOOT_SPEAKER_PART}
+          ${BOOT_MIC_CONTROLS}
+          ${BOOT_MICROPHONE_PART}
           ${BOOT_BOARD_SETTINGS}
           plugin_host::ready();
       # The settings page the screen opens on its own (0.2.44+): the same values ESP Screen Manager
@@ -332,7 +344,10 @@ esphome:
           settings_screen::row_font = id(sublabel_big)->get_lv_font();
           settings_screen::icon_font = id(materialdesign_icons_mini)->get_lv_font();
           settings_screen::store = []() { runtime_tiles::persist_settings(); };
-          settings_screen::apply = []() { id(apply_screen_settings).execute(false); };
+          settings_screen::apply = []() {
+            runtime_tiles::apply_debug_mode();
+            id(apply_screen_settings).execute(false);
+          };
           settings_screen::report = [](const char *key, int32_t value) { runtime_tiles::setting_event(key, value); };
           settings_screen::name_text = []() { return std::string("${DEVICE_FRIENDLY_NAME}"); };
           settings_screen::address_text = []() { return id(wifi_ip).state.empty() ? std::string(screen_text::tr(screen_text::txt::status_no_network)) : id(wifi_ip).state; };
@@ -359,7 +374,7 @@ esphome:
             id(display_dimmed) = false;
             id(last_touch_ms) = millis();
             plugin_host::before_update();
-            runtime_tiles::saver_wake();
+            runtime_tiles::saver_wake(true);
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
@@ -416,6 +431,10 @@ logger:
   # out of the firmware, 9 KB on the CYD. For a diagnosis, give one screen `logger: level: DEBUG` in its Override YAML.
   level: INFO
   logs:
+    # ESP-IDF's own lines (a driver's error, the JPEG decoder refusing a picture) reach ESPHome's log at INFO whatever
+    # their own level, under this tag: kept at INFO so they come with Debug mode off too (settings_screen.h), where the
+    # rest of the log is warnings and errors. ESP-IDF itself writes its errors alone on these screens.
+    esp-idf: INFO
     sensor: WARN
     text_sensor: WARN
     xpt2046: WARN
@@ -703,10 +722,23 @@ api:
                     // types (plugin_host::hello).
                     features.add("plugins");
                     plugin_host::hello(root);
+                    #ifdef SD_MOD_SECTIONS
+                    // sections (module sections, docs/PAGES.md "Sections"): blocks of a page's cells with a title, an
+                    // icon and a panel, in the page's message, and their summaries in the op "sums".
+                    features.add("sections");
+                    #endif
+                    // caps (hw.h, docs/PLATFORM_PLAN.md 3.3): what this screen's hardware can do, in one record: live
+                    // video, speaker, microphone, echo cancellation, a camera of its own, the live tiles it runs at
+                    // once, its memory. ESP Screens reads it where it reads a screen's features; the features "live"
+                    // and "doorbell" below stay for an app that reads only those.
+                    hw::hello(root);
                     // weather_week: the weather card draws the week (weather_chart.h), so ESP Screens sends seven days
                     // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
                     // the visibility and the rain's unit.
                     features.add("weather_week");
+                    // calendar_detail: a calendar card takes short events (calendar_feed.compact) and keeps 48 without PSRAM;
+                    // a tap on one asks for its whole title, place and notes (esphome.screen_calendar, op "calendar_event").
+                    features.add("calendar_detail");
                     // live: a P4 that streams (live_view.h): a camera tile set to Live gets pace 0 and streams on the
                     // glass, and ESP Screens makes Live the default for camera tiles here.
                     if (live_view::available()) features.add("live");
@@ -723,8 +755,26 @@ api:
                     #endif
                     // vacuum_card (module vacuum, tier full): the vacuum card draws its map, rooms and routines, so ESP
                     // Screens sends them (the `vc` block, screen_manager/app/vacuum_card.py).
+                    // doorbell (module doorbell, docs/DOORBELL.md): a ring of a doorbell in Home Assistant opens its camera here,
+                    // live with its sound and a chime, so ESP Screens sends this screen the op "doorbell". Only a screen that
+                    // streams (a P4, live_view.h): elsewhere the camera's picture would be a still.
+                    #ifdef SD_MOD_DOORBELL
+                    if (live_view::available()) features.add("doorbell");
+                    #endif
+                    // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
+                    #ifdef SD_MOD_CALL
+                    if (live_view::available() && hw::caps().microphone && hw::caps().speaker) {
+                      features.add("call");
+                      // call_direct: this screen serves its own camera and voice to the other screen of a call
+                      // (call_serve.h), so ESP Screens only signals where both screens say so.
+                      if (runtime_tiles::call::direct()) features.add("call_direct");
+                    }
+                    #endif
                     #ifdef SD_MOD_VACUUM_CARD
                     features.add("vacuum_card");
+                    // vacuum_tile: a larger vacuum tile draws its map, its rooms or its routines beside its keys
+                    // (module_vacuum_tile.cpp), so ESP Screens sends those controls; any other screen gets the keys.
+                    features.add("vacuum_tile");
                     #endif
                     // cover_rows (firmware 0.57.0): a cover card lays out what its room holds (cover_tile.h), so ESP
                     // Screens sends a card one row high its slats and a 1x1 card its control, which it draws when they fit.
@@ -736,6 +786,26 @@ api:
                     // cover, so ESP Screens sends a cover group's covers (`covers`, cover_groups.py) with its state.
                     #ifdef SD_MOD_COVER_GROUPS
                     features.add("group_covers");
+                    #endif
+                    // text_card (firmware 0.58.0, module text_card, docs/TEXT_TILE.md): the template tile draws the rows Home
+                    // Assistant rendered, so ESP Screens offers it and sends its rows (`md`); its caps say how many and how much.
+                    #ifdef SD_MOD_TEXT_CARD
+                    features.add("text_card");
+                    #endif
+                    // todo_card (firmware 0.61.0, module todo, docs/TODO.md): a to-do list's tile draws its items and adds
+                    // one with its keyboard, so ESP Screens sends the list (`todo`); its caps say how many items it keeps.
+                    #ifdef SD_MOD_TODO
+                    features.add("todo_card");
+                    #endif
+                    // text_edit (firmware 0.61.0, module text_edit, docs/TEXT_ENTITY.md): a tap on a text's tile opens its field
+                    // with the keyboard; a screen without it (lite) shows the value only.
+                    #ifdef SD_MOD_TEXT_EDIT
+                    features.add("text_edit");
+                    #endif
+                    // light_presets (module light_presets, docs/LIGHT_PRESETS.md): a light's tile and card draw the round keys of
+                    // its presets, so ESP Screens sends the controls presets and brightness_presets; another screen gets the slider.
+                    #ifdef SD_MOD_LIGHT_PRESETS
+                    features.add("light_presets");
                     #endif
                     auto sizes = root["tile_sizes"].to<JsonArray>();
                     for (const auto &size : page_protocol::TILE_SIZES)
@@ -770,6 +840,8 @@ interval:
             lambda: |-
               if (!screen_settings::current.standby_enabled) return false;
               if (id(display_dimmed) || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
+              // A doorbell's ring on the glass (module doorbell) stays lit until it closes.
+              if (runtime_tiles::doorbell_holds()) return false;
               return (millis() - id(last_touch_ms)) > (screen_settings::current.standby_seconds * 1000UL);
           then:
             - script.execute: dim_display
@@ -910,7 +982,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -931,7 +1003,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -982,7 +1054,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1003,7 +1075,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1024,7 +1096,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1108,6 +1180,7 @@ font:
       - "\U000F17DB" # soundbar
       - "\U000F02CB" # headphones
       - "\U000F036C" # microphone
+      - "\U000F03F2" # phone
       - "\U000F067D" # piano
       - "\U000F0771" # guitar-acoustic
       - "\U000F0502" # television
@@ -1260,6 +1333,8 @@ font:
       - "\U000F024B" # folder
       - "\U000F00EE" # calendar-blank
       - "\U000F00EF" # calendar-check
+      - "\U000F10D4" # clipboard-list
+      - "\U000F060E" # form-textbox
       - "\U000F0B53" # account-arrow-right
       - "\U000F0D43" # air-filter
       - "\U000F1099" # air-humidifier
@@ -1419,14 +1494,15 @@ font:
   # The top bar's Wi-Fi item (firmware 0.38.0): four bars down to one and struck through, at the size of the bar's icons.
   # A font of their own, so the three fonts of the tile icons carry none of them. And the battery item's icons that the
   # tile icons lack (firmware 0.41.0, battery_status::icon): the charging ones per ten percent, the charging outline and
-  # the alert outline. Its level icons, battery-unknown and the full charging one are tile icons already.
+  # the alert outline. Its level icons, battery-unknown and the full charging one are tile icons already. And the mark of
+  # a squeezed live tile (speedometer-slow, runtime_tiles live_badge).
   - file: "${FONT_DIR}/materialdesignicons-webfont.ttf"
     id: materialdesign_icons_status
     size: ${FONT_ICON_MINI_SIZE}
     bpp: ${FONT_ICON_BPP}
     glyphs: ["\U000F092E", "\U000F091F", "\U000F0922", "\U000F0925", "\U000F0928",
              "\U000F089C", "\U000F0086", "\U000F0087", "\U000F0088", "\U000F089D",
-             "\U000F0089", "\U000F089E", "\U000F008A", "\U000F008B", "\U000F089F", "\U000F10CD"]
+             "\U000F0089", "\U000F089E", "\U000F008A", "\U000F008B", "\U000F089F", "\U000F10CD", "\U000F0F86"]
 
   # The large icon of a card that takes the whole page (firmware 0.2.62+): the domain icons only,
   # so the flash stays free for other things; a chosen icon outside this set keeps its usual size.
@@ -1451,9 +1527,11 @@ font:
       - "\U000F0150" # clock-outline
       - "\U000F0493" # cog
       - "\U000F034E" # map-marker
+      - "\U000F03F2" # phone
       - "\U000F0054" # arrow-right
       - "\U000F0E4F" # lightbulb-off
       - "\U000F16A7" # robot-off
+      - "\U000F169F" # robot-confused
       - "\U000F0EC4" # remote-off
       - "\U000F1466" # air-humidifier-off
       - "\U000F00EF" # calendar-check
@@ -1508,10 +1586,12 @@ sensor:
               ESP_LOGI("health", "free_8bit=%u room=measuring", (unsigned) heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
             // The least stack the loop task (LVGL, the tiles, the API) ever had left since boot: a layout replacement
             // runs deepest. loop_task_stack_size in hardware/esp-idf.yaml is sized from this line (firmware 0.3.1+).
-            ESP_LOGI("health", "loop_stack_min_free=%u", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
+            // Under loop_stack::FLOOR it warns, so it shows without Debug mode (loop_stack.h).
+            loop_stack::report("", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
             // Pages kept whole and pictures kept (firmware 0.3.2+): what they hold, and the PSRAM left beside them.
             ESP_LOGI("health", "kept_pages=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
-                     (unsigned) runtime_tiles::pictures.size(), (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+                     (unsigned) runtime_tiles::pictures.size(),
+                     (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
             #endif
     fragmentation:
       name: "Heap Fragmentation"
@@ -1541,6 +1621,23 @@ sensor:
         return heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
       #else
         return 0;
+      #endif
+  # The least stack the loop task ever had left since boot, in bytes (docs/ARCHITECTURE.md, "The loop's stack"): the
+  # loop task runs LVGL, every card and the API, and a layout's build and a page of live tiles run deepest. A screen not
+  # on USB says it here and in a troubleshooting report; it is read with the health report and right after a layout's
+  # page is built (show_tile_page_soon). The figure of the health line loop_stack_min_free.
+  - platform: template
+    name: "Loop Stack Free"
+    id: loop_stack_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 300s
+    lambda: |-
+      #ifdef USE_ESP32
+        return uxTaskGetStackHighWaterMark(nullptr);
+      #else
+        return {};
       #endif
   # A picture needs one block, not a total: 2 MB free in ten pieces holds no 2 MB picture.
   # Read only while the glass is dark (firmware 0.3.2+): finding the largest block walks the whole PSRAM heap with its
@@ -1748,6 +1845,19 @@ switch:
       - lambda: 'settings_screen::set("home_on_standby", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("home_on_standby", 0);'
+  # Debug mode: the whole log while on, warnings and errors alone while off (settings_screen.h says why). Beside the
+  # screen's other diagnostics in Home Assistant; the same value as the row under This screen on the glass.
+  - platform: template
+    id: setting_debug_mode
+    name: "Debug mode"
+    icon: "mdi:bug-outline"
+    entity_category: diagnostic
+    restore_mode: DISABLED
+    lambda: return settings_screen::debug_mode != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set_debug_mode(1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set_debug_mode(0);'
   - platform: template
     id: setting_swipe_pages
     name: "Swipe between pages"
@@ -1771,6 +1881,18 @@ switch:
       - lambda: 'settings_screen::set("page_buttons", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("page_buttons", 0);'
+  # On, the last page leads to the first and the first to the last, by swipe and by chevron (docs/SETTINGS.md).
+  - platform: template
+    id: setting_loop_pages
+    name: "Loop pages"
+    icon: "mdi:sync"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::loop_pages != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("loop_pages", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("loop_pages", 0);'
   # The house at the far left returns to the configured Home page (firmware 0.3.0+).
   # A detail page with hidden bottom navigation uses this position for Back, even when Home is disabled.
   - platform: template
@@ -2338,10 +2460,16 @@ script:
   # A page opened for someone to look at (show_page, which also starts Back to page 1's clock): the settings page and
   # every card close, as go_home does, and the page is drawn the way a swipe draws it. 1 is the first page, and a number
   # past the last page lands on the last page, never outside.
+  # Both run from the loop's next pass (delay 0ms), never at the bottom of the API's call that asked for them (the
+  # show_page action, a layout's commit): a page and its cards are the deepest the loop task builds, and on top of the
+  # API and the parser they came within 40 bytes of its 16 KB on a Guition 10.1 (2026-11-16; docs/ARCHITECTURE.md,
+  # "The loop's stack"). The latest ask wins (restart).
   - id: open_page
+    mode: restart
     parameters:
       page: int
     then:
+      - delay: 0ms
       - lambda: |-
           settings_screen::close();
           const int pages = runtime_tiles::enabled ? std::max(1, (int) runtime_tiles::page_count())
@@ -2349,6 +2477,13 @@ script:
           runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);
           ESP_LOGI("navigation", "page %d of %d open from Home Assistant", id(tile_page) + 1, pages);
 
+  - id: show_tile_page_soon
+    mode: restart
+    then:
+      - delay: 0ms
+      - script.execute: show_tile_page
+      # The page a layout brought is the deepest the loop task builds: Loop Stack Free says how much it left.
+      - component.update: loop_stack_free
   - id: show_tile_page
     then:
       - lambda: |-
@@ -2422,6 +2557,7 @@ script:
           }
           // The Page buttons setting moves the cards into the bar's room or back (firmware 0.2.69+).
           if (runtime_tiles::enabled) runtime_tiles::page_buttons_changed();
+          if (runtime_tiles::enabled) runtime_tiles::loop_pages_changed();
           settings_screen::refresh();
           // A display setting (the clock's format, say): every card drawn (firmware 0.3.2+); the minute draws the cards
           // that show the time.
@@ -2437,8 +2573,11 @@ script:
 
   # Everything back to the overview: the settings page, every card and the first page of tiles.
   # Used by standby, by the "Back to page 1" timeout and by the Home Assistant action.
+  # From the loop's next pass too, like open_page: open_settings from Home Assistant goes home from inside the API's call.
   - id: go_home
+    mode: restart
     then:
+      - delay: 0ms
       - lambda: 'settings_screen::close();'
       - script.execute: close_cards
       - lambda: 'runtime_tiles::navigation_history.clear(); id(tile_page) = runtime_tiles::home_page();'
@@ -2455,6 +2594,8 @@ script:
           condition:
             lambda: |-
               if (!runtime_tiles::auto_home || id(touch_down) || id(calibration_active) || id(alert_active)) return false;
+              // A doorbell's ring (module doorbell) closes on its own times, not two minutes after the last touch.
+              if (runtime_tiles::doorbell_holds()) return false;
               if (id(display_dimmed)) return false;
               bool away = settings_screen::visible() || screen_hooks::is_away() || runtime_tiles::colour_shown() || id(tile_page) != runtime_tiles::home_page() ||
                           (runtime_tiles::detail_root && !lv_obj_has_flag(runtime_tiles::detail_root, LV_OBJ_FLAG_HIDDEN));
@@ -2529,7 +2670,7 @@ script:
           ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
                    alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
-      - lvgl.widget.show: alert_overlay
+      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
       - script.stop: alert_timeout
       - if:
           condition:
@@ -2569,6 +2710,21 @@ script:
                   action: !lambda 'return action;'
                   title: !lambda 'return id(alert_title_text);'
                   screen: !lambda 'return App.get_name();'
+
+  # How a doorbell's ring ended here (module doorbell, docs/DOORBELL.md): answered (the first touch), closed, missed
+  # (nobody touched it) or seen (opened again from the top bar), with the app's key of the ring. Home Assistant adds
+  # device_id; ESP Screens closes an answered ring on the other screens and shows a missed one in their top bar.
+  - id: doorbell_report
+    parameters:
+      action: string
+      key: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_doorbell
+          data:
+            action: !lambda 'return action;'
+            key: !lambda 'return key;'
+            screen: !lambda 'return App.get_name();'
 
   # Standby: the standby time ran out (the 1 s interval checks Auto standby) or Sleep was pressed.
   # The settings page and every card close; with "also on standby" the screen goes back to page 1 too.
@@ -2670,6 +2826,7 @@ script:
 # (components/smart_display).
 smart_display:
   language: ${LANGUAGE}
+  camera_orientation: ${CAMERA_ORIENTATION}
 
 # HA blueprint transport; never publishes the JSON command as an HA state.
 text:

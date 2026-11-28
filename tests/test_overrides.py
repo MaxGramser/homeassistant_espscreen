@@ -8,7 +8,6 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from firmware import Firmware  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None

@@ -30,12 +30,13 @@ class AudioVariants(unittest.TestCase):
             self.assertEqual(profiles.substitutions_of(root / 'board.yaml')['TRANSPORT'], 'i2s')
 
     def test_tab5_takes_echo_cancellation_by_default(self):
-        self.assertEqual(profiles.substitutions('checkout/tab5.yaml')['TAB5_AUDIO_TRANSPORT'], 'aec')
+        self.assertEqual(profiles.substitutions('checkout/tab5.yaml')['AUDIO_TRANSPORT'], 'aec')
         self.assertEqual(profiles.substitutions('checkout/tab5.yaml')['AUDIO_HALF_DUPLEX'], 'false')
         self.assertIn('es7210_extended', generate_entries.components('tab5'))
         self.assertIn('esp_aec', generate_entries.components('tab5'))
         default_files = profiles.chain(profiles.BOARDS['tab5'])
-        self.assertIn(ROOT / 'packages/hardware/es7210-aec.yaml', default_files)
+        self.assertIn(ROOT / 'packages/hardware/parts/es7210/aec.yaml', default_files)
+        self.assertNotIn(ROOT / 'packages/hardware/parts/es7210/i2s.yaml', default_files)
         self.assertNotIn('esp_aec', generate_entries.components('cyd'))
         self.assertNotIn('es7210_extended', generate_entries.components('cyd'))
 

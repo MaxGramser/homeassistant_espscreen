@@ -7,11 +7,13 @@
 # 720 x 1280 itself (portrait); LVGL turns the picture and the touch together.
 #
 # This file builds for pre-v3 silicon ("chip revision: v1.3" in the boot log, `engineering_sample: true` from
-# hardware/esp32p4-c6.yaml), which the board it was run on has. A board with rev3 silicon needs
-# `engineering_sample: false` in its Override YAML (docs/WAVESHAREP47.md). A community member ran this file on the board
+# hardware/esp32p4-c6.yaml), which the board it was run on has. Nobody has run this board on rev3 silicon. On the 10.1
+# inch of the series rev3 needed `engineering_sample: false` and the repository's mipi_dsi_v3 in place of mipi_dsi
+# (waveshare101-v3.yaml), and the 7B builds for rev3 the same way (wavesharep47b.yaml); docs/WAVESHAREP47.md says what
+# is known and docs/open-issues/waveshare-7-inch-rev3.md what a report needs. A community member ran this file on the board
 # (picture, rotation, touch, backlight, Wi-Fi); the project has not tried it on one. The speaker (ES8311 and its
 # amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel (Waveshare's schematic), so they
-# take its audio: hardware/wavesharep4-audio/, with echo cancellation by default. That member ran the same audio blocks
+# take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default. That member ran the same audio blocks
 # on this board: the speaker, the microphones and echo cancellation worked. The microSD slot and the MIPI-CSI camera
 # port are not configured.
 #
@@ -28,12 +30,9 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
-  # The speaker and the microphones as on the Waveshare P4 86 panel: its transport, its codecs (after the transport, so
-  # their values win over its defaults), its microphone settings, and the amplifier following the sound.
-  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
-  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
-  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
-  audio_amplifier: !include ../features/audio-amplifier.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -61,9 +60,6 @@ substitutions:
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "5000Hz"                 # the backlight's PWM, as in Waveshare's examples
-  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
-  # without the AEC libraries (docs/P4_AUDIO.md).
-  P4_AUDIO_TRANSPORT: "aec"
 
 # ============================================================
 # No need to edit below this line.

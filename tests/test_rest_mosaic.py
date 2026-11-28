@@ -28,7 +28,7 @@ from core import validate_layout  # noqa: E402
 HAS_PIL = importlib.util.find_spec('PIL') is not None
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
-    import picture_links
+    import lan_address
     from server import Manager
 
 PLAYER = 'media_player.spotify'
@@ -183,7 +183,7 @@ class TheMosaic(unittest.TestCase):
 @unittest.skipUnless(HAS_AIOHTTP and HAS_PIL, 'aiohttp and Pillow')
 class TheApp(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     def ha(self, refuse=False):
         class HA:

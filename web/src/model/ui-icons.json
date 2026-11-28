@@ -40,6 +40,7 @@
   "flash": "F0241",
   "format-list-bulleted": "F0279",
   "format-title": "F05F4",
+  "gesture-double-tap": "F073C",
   "gesture-swipe-horizontal": "F0ABF",
   "gesture-tap": "F0741",
   "heart": "F02D1",
@@ -95,5 +96,9 @@
   "wifi-strength-2": "F0922",
   "wifi-strength-3": "F0925",
   "wifi-strength-4": "F0928",
-  "wifi-strength-off-outline": "F092E"
+  "wifi-strength-off-outline": "F092E",
+  "book-open-page-variant": "F05DA",
+  "phone": "F03F2",
+  "video": "F0567",
+  "auto-fix": "F0068"
 }

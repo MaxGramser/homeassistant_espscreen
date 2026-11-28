@@ -41,7 +41,7 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--code-bg); 
 pre { margin: 0; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; overflow: auto; font: 12px/1.5 var(--mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-.mdi { font-family: "Tile Icons"; font-style: normal; font-weight: normal; line-height: 1; }
+.mdi { font-family: "Tile Icons", "Every Icon"; font-style: normal; font-weight: normal; line-height: 1; }
 [hidden] { display: none !important; }
 
 /* ---- Shell ---- */
@@ -354,6 +354,7 @@ a:hover { text-decoration: underline; }
 .firmware-preview.still { pointer-events: none; }
 .firmware-preview canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
 .firmware-preview-error { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
+.firmware-preview-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
 .page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
 /* The head of a page (app 0.3.19): its handle with its number, its title, Home when it is Home, the cells in use and
    one menu for everything else. */
@@ -401,6 +402,8 @@ a:hover { text-decoration: underline; }
 .tiles { display: grid; grid-template-columns: repeat(var(--screen-columns, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--screen-rows, 3), minmax(0, 1fr)); gap: 8px; min-height: 0; }
 /* manipulation, not pan-y (app 0.2.78): on a phone the row of pages scrolls sideways, also when the swipe starts on a
    tile. The hold before a drag and the blocked touchmove during one still keep the page from scrolling. */
+/* A card's letters are the screens' Roboto, laid side by side without kerning as LVGL lays them (app 0.4.90). */
+.device .tile { font-family: "Bar Roboto", var(--ui-font); font-kerning: none; }
 .tile { position: relative; background: #fff; border: 1px solid #dcdcdc; border-radius: 12px; padding: 8px 9px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-height: 0; cursor: pointer; text-align: left; overflow: hidden; isolation: isolate; color: #1b1b1b; touch-action: manipulation; }
 .tile:hover { border-color: #b9c4d3; }
 .tile.chosen { outline: 2px solid var(--kind-tile); outline-offset: 1px; }
@@ -480,11 +483,17 @@ a:hover { text-decoration: underline; }
 .tile.wide .clockface { margin: 0; flex: none; }
 /* The energy card's diagram fills its card, as the screen draws it (app 0.4.77). */
 .tile .energy-diagram { width: 100%; height: 100%; min-height: 0; }
+/* A template tile Home Assistant rendered empty is bare on the screen (module text_card); the editor keeps a dashed
+   outline so it can still be found and chosen. */
+.tile:has(.text-face.empty) { background: transparent; border-color: transparent; outline: 1px dashed var(--line-strong); outline-offset: -1px; }
 .cell { min-height: 0; border: 1px dashed #cfd4da; border-radius: 12px; background: transparent; color: #a3abb5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-weight: 500; cursor: pointer; padding: 6px; }
 .cell span { font-size: 18px; line-height: 1; }
 .cell small { font-size: 10.5px; color: inherit; }
 .cell:hover, .cell:focus-visible { border-color: #9eb6cf; color: #4b5563; background: #f6f7f9; }
 .cell.insert-here { border: 2px dashed var(--accent); color: var(--accent); background: var(--accent-soft); }
+/* A card carried in a copy of its glass (drag.ts carried): the glass's sizes without its frame, the card filling it. */
+.device.drag-glass { display: block; padding: 0; background: none; aspect-ratio: auto; }
+.device.drag-glass > .tile { width: 100%; height: 100%; box-sizing: border-box; }
 .drag-ghost { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 50; opacity: 0.92; box-shadow: var(--shadow); border-radius: 12px; }
 
 /* Library: a drawer along the bottom (app 0.4.32). Folded it is its head alone; it glides open to the height it was
@@ -524,6 +533,7 @@ a:hover { text-decoration: underline; }
 .lib-domains small { color: var(--muted); font-size: 11.5px; font-weight: 400; }
 .lib-domains .domain-icon { width: 18px; height: 18px; font-size: 12px; border-radius: 5px; flex: none; }
 .lib-domains .domain-icon.all { background: var(--seg); color: var(--ink-2); }
+.lib-domains .domain-icon.plugin { background: var(--accent-soft); color: var(--accent); }
 .lib-hide { position: sticky; bottom: 0; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 8px; background: var(--surface); border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
 .lib-hide label { cursor: pointer; line-height: 1.3; }
 .lib-list { overflow: auto; padding: 0 14px 14px; scroll-padding: 40px 0 8px; }
@@ -533,11 +543,14 @@ a:hover { text-decoration: underline; }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 6px; }
 .lib-list > .hint, .lib-list > .lib-foot { margin: 12px 2px 0; }
 .lib-empty { padding: 28px 0; text-align: center; }
+.lib-everything { color: var(--accent); font-weight: 600; }
 /* manipulation like .tile: a finger scrolls either way from here, a hold starts a drag (app 0.2.78). */
 .ent { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px; border-radius: 8px; width: 100%; text-align: left; cursor: grab; touch-action: manipulation; border: 1px solid var(--line); background: var(--surface); transition: border-color 0.12s, background 0.12s, box-shadow 0.12s; }
 .ent:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-2); }
 .ent.active { border-color: var(--accent); box-shadow: var(--focus); }
 .ent:disabled { opacity: 0.5; cursor: default; }
+.ent-section { cursor: pointer; }
+.ent-section .av { background: var(--accent-soft); color: var(--accent); }
 .ent .av { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 15px; flex: none; }
 .ent .tx { display: grid; min-width: 0; flex: 1; }
 .ent .tx b { font-weight: 500; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -565,8 +578,13 @@ a:hover { text-decoration: underline; }
 
 /* Inspector: a column beside the pages, not over them. It glides open: the column grows from nothing while its
    content keeps its width (app 0.4.32). */
-.drawer { width: 380px; max-width: 100%; background: var(--surface); border-left: 1px solid var(--line); display: flex; min-height: 0; overflow: hidden; }
-.drawer-inner { width: 380px; max-width: 100vw; flex: none; display: flex; flex-direction: column; min-height: 0; }
+.drawer { position: relative; width: var(--drawer-w, 380px); max-width: 100%; background: var(--surface); border-left: 1px solid var(--line); display: flex; min-height: 0; overflow: hidden; }
+.drawer-inner { width: var(--drawer-w, 380px); max-width: 100vw; flex: none; display: flex; flex-direction: column; min-height: 0; }
+/* Its left edge (stores/drawer.ts), as the sidebar's right one: a line in the accent under the pointer and while held. */
+.drawer-resize { position: absolute; top: 0; bottom: 0; left: 0; width: 8px; cursor: col-resize; z-index: 5; touch-action: none; }
+.drawer-resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 2px; background: transparent; transition: background 0.12s; }
+.drawer-resize:hover::after, .drawer-resize:focus-visible::after, .drawer.resizing .drawer-resize::after { background: var(--accent); }
+.drawer-resize:focus-visible { outline: none; }
 .drawer-enter-active, .drawer-leave-active { transition: width 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.18s ease-out; }
 .drawer-enter-from, .drawer-leave-to { width: 0; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .drawer-enter-active, .drawer-leave-active { transition: none; } }
@@ -933,6 +951,14 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .bs-switch .sr-text { flex: 1; display: grid; gap: 2px; }
 .bs-switch b { font-weight: 550; font-size: 13px; color: var(--ink); }
 .bs-building { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+/* The build files (BuildFilesCard): what each kind takes, and the clean-up. */
+.build-files .bf-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bf-sizes { display: grid; gap: 6px; margin: 0; }
+.bf-sizes div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.bf-sizes dt { color: var(--ink-2); }
+.bf-sizes dt small { color: var(--muted); }
+.bf-sizes dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+.bf-large { color: var(--ink); }
 .field { display: grid; gap: 6px; }
 .field > .f-label, fieldset legend { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
@@ -1021,15 +1047,28 @@ details.log-wrap pre { margin-top: 8px; }
   .notice.choice .notice-text + .btn { margin-left: auto; }
 }
 
+/* Events: one big way into a part's wizard, its automations under it, the rest folded away */
+.event-create { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: center; padding: 26px 28px; }
+.event-create-text { display: grid; gap: 12px; justify-items: start; }
+.event-create-text h2 { font-size: 21px; margin: 0; }
+.event-create-text p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 52ch; }
+.event-create-button { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; font-size: 15px; margin-top: 4px; }
+.wizard .field > .f-label { font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.event-more > summary { cursor: pointer; font-weight: 600; }
+.event-more[open] { display: grid; gap: 12px; }
+
 /* Alerts cheatsheet */
+.alerts { display: grid; gap: 14px; }
 .alerts section { display: grid; gap: 10px; }
 .alerts h2 { font-size: 15px; }
+.alerts-reference { display: grid; gap: 10px; margin-top: 10px; }
+.alerts-reference p { margin: 0; color: var(--muted); }
 .alerts-nav { display: flex; flex-wrap: wrap; gap: 6px; }
 .alerts-nav button { background: var(--accent-soft); color: var(--accent); padding: 5px 11px; font-size: 12px; border-radius: 20px; font-weight: 500; }
 .alert-hero { display: grid; grid-template-columns: minmax(0, 300px) 1fr; gap: 20px; align-items: center; }
 .alert-mock { background: #101820; border-radius: 16px; padding: 22px 18px; display: grid; place-items: center; }
 .alert-mock-card { position: relative; width: 100%; background: #ffe1c6; border: 1px solid #0001; border-radius: 14px; padding: 12px 12px 48px 52px; color: #1b1b1b; display: grid; gap: 2px; }
-.alert-mock-icon { position: absolute; left: 12px; top: 12px; font-size: 30px; }
+.alert-mock-card > .alert-mock-icon { position: absolute; left: 12px; top: 12px; font-size: 30px; color: inherit; }
 .alert-mock-card strong { font-size: 15px; line-height: 1.2; }
 .alert-mock-card > span { font-size: 12px; color: #3a3a3c; }
 .alert-mock-card .fake { position: absolute; right: 10px; bottom: 10px; padding: 6px 16px; border-radius: 999px; background: #1b1b1b; color: white; font-size: 13px; }
@@ -1073,7 +1112,7 @@ td code { white-space: nowrap; }
 .empty p { color: var(--muted); }
 
 /* Toast */
-.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; z-index: 60; max-width: min(92vw, 560px); }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--ink); color: var(--surface); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; z-index: 85; max-width: min(92vw, 560px); }
 .toast button { color: var(--accent-soft); font-weight: 650; }
 
 /* Responsive */
@@ -1112,6 +1151,7 @@ td code { white-space: nowrap; }
   .drawer-enter-active, .drawer-leave-active { transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
   .panel { padding: 16px; }
   .alert-hero { grid-template-columns: 1fr; }
+  .event-create { grid-template-columns: minmax(0, 1fr); padding: 20px; }
 }
 
 /* Updates with content: progress and what's new */
@@ -1200,6 +1240,8 @@ td code { white-space: nowrap; }
 .ui-picker-search input { flex: 1; min-width: 0; border: 0; padding: 0; background: none; outline: none; box-shadow: none; font-size: 13px; color: var(--ink); }
 .ui-picker-list { max-height: min(320px, calc(var(--reka-popover-content-available-height, 60vh) - 52px)); overflow-y: auto; overscroll-behavior: contain; padding: 5px; }
 .ui-picker-empty { padding: 10px 9px; color: var(--muted); font-size: 12.5px; }
+.ui-picker-foot { display: flex; padding: 2px 5px 5px; }
+.ui-picker-foot .btn { flex: 1; justify-content: flex-start; color: var(--muted); font-size: 12.5px; }
 .ui-menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 6px; cursor: default; outline: none; user-select: none; color: var(--ink); line-height: 1.3; }
 .ui-menu-item[data-highlighted] { background: var(--seg); }
 .ui-menu-item[data-disabled] { opacity: 0.45; }
@@ -1523,7 +1565,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
   padding: 13px 16px; font-size: 14.5px; }
 /* With a sheet open the word goes to the top, clear of the sheet's buttons. */
-.app.phone:has(.drawer, .library.open, .phone-sheet) .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 60; }
+.app.phone:has(.drawer, .library.open, .phone-sheet) .toast, body:has(.ui-sheet) .app.phone .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
 
 /* Sheets: from the bottom, over a dimmed page; a tap on the dim closes them. */
 .sheet-dim { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 18, 0.32); }
@@ -1668,6 +1710,7 @@ section.advanced code { font-size: 11.5px; }
 .plugin-state.building { color: var(--ink-2); }
 .plugin-state.test { color: var(--warn); }
 .plugin-state.missing { color: var(--warn); }
+.plugin-state.elsewhere { color: var(--ink-2); }
 .plugin-state.misfit { font-weight: 400; }
 .plugins-make { color: var(--muted); font-size: 12.5px; }
 .plugins-make a { font-weight: 500; }
@@ -1824,6 +1867,9 @@ section.advanced code { font-size: 11.5px; }
 .pd-readme img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
 .pd-readme table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 12px; overflow-wrap: normal; }
 .pd-readme th, .pd-readme td { padding: 4px 10px 4px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+/* A quote in a README is a notice (the Bluetooth proxy says what it costs the Wi-Fi): a box in the warning's colour, at the top of the text. */
+.pd-readme blockquote { display: grid; gap: 6px; padding: 10px 12px; border-left: 3px solid var(--warn); border-radius: 8px; background: var(--warn-soft); color: var(--ink); }
+.pd-readme blockquote > * { margin: 0; }
 .pd-package { justify-self: start; }
 .pd-attach-note { align-items: flex-start; }
 .pd-attach-note .ui-icon { margin-top: 1px; color: var(--ink-2); }
@@ -1863,6 +1909,11 @@ section.advanced code { font-size: 11.5px; }
 .plugin-tile-from .mdi { color: var(--accent); font-size: 14px; }
 .plugin-stepper { display: inline-flex; align-items: center; gap: 10px; }
 .plugin-stepper b { min-width: 52px; text-align: center; font-weight: 600; }
+/* The key that takes an option's entity away stands beside its picker, as small as it is. */
+.prop-value > .plugin-entity-clear { flex: none; align-self: center; margin-left: 6px; }
+.plugin-number { display: inline-flex; align-items: center; gap: 6px; }
+.plugin-number input { width: 108px; text-align: right; }
+.plugin-number-unit { color: var(--muted); font-size: 12.5px; }
 
 /* ---- Ready to install: Add on a plugin card, and the tray in the corner that builds each screen once ----
    Add is the store's Get: a soft pill that turns into the accent once the plugin is set aside. The tray floats over
@@ -1919,6 +1970,9 @@ section.advanced code { font-size: 11.5px; }
 .pt-room { padding: 0 6px; font-size: 11.5px; color: var(--muted); }
 .pt-room.over { color: var(--warn); }
 .pt-trust { margin: 12px 6px 0; font-size: 12px; }
+/* Plugins are at one's own risk: said once more beside Install, the reason in a line. */
+.pt-risk { display: flex; align-items: flex-start; gap: 6px; margin: 12px 6px 0; font-size: 11.5px; line-height: 1.4; color: var(--ink-2); }
+.pt-risk .ui-icon { font-size: 14px; color: var(--warn); flex: none; margin-top: 1px; }
 .pt-foot { display: grid; gap: 7px; margin-top: 14px; }
 .pt-install { width: 100%; height: 38px; border-radius: 10px; font-size: 13.5px; font-weight: 600; }
 .pt-install:disabled { opacity: 0.45; }
@@ -1964,6 +2018,9 @@ section.advanced code { font-size: 11.5px; }
    time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
    the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
 .plugin-counting { margin: 0 0 12px; }
+/* Plugins are at one's own risk: on the Plugins page and a screen's Plugins tab, before anything is picked. */
+.plugin-risk { margin: 14px 0 12px; max-width: 720px; align-items: flex-start; }
+#screen-plugin-risk { margin: 12px 0 0; }
 .plugin-counting > .ui-icon { font-size: 18px; color: var(--accent); flex: none; }
 .plugin-counting strong { display: block; color: var(--ink); }
 .plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }

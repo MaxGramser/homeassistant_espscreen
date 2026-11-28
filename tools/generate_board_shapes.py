@@ -19,6 +19,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager' / 'app'))
 import alert_layout  # noqa: E402
@@ -54,6 +56,17 @@ def orientations(values):
                          'columns': int(values['GRID_COLS_PORTRAIT']), 'rows': int(values['GRID_ROWS_PORTRAIT']),
                          'rotation': (angle + 90) % 360,
                          'min': list(least), 'max': [int(values['GRID_MAX_COLUMNS_PORTRAIT']), int(values['GRID_MAX_ROWS_PORTRAIT'])]}}
+
+
+def section_metrics(values):
+    """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
+    its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
+    core = (profiles.ROOT / 'packages/core.yaml').read_text()
+    font, size = profiles.ROOT / font_metrics.font_file(core, 'label'), int(values['FONT_LABEL_SIZE'])
+    inset = int(values['GRID_GAP_Y']) + int(values['TILE_PAD'])
+    ink = font_metrics.ink_top(font, size)
+    return {'band': inset - ink + font_metrics.line_height(font, size), 'title_top': inset - ink, 'ink_top': ink,
+            'line': font_metrics.line_height(font, size)}
 
 
 def alert_lines(values):
@@ -148,6 +161,24 @@ def camera_of(values, side):
     return boxes
 
 
+# The fonts a screen's own icons join (screen_icons.FONTS, docs/ICONS.md).
+ICON_FONTS = ('materialdesign_icons', 'materialdesign_icons_mini', 'watch_icon')
+
+
+def added_icons(board):
+    """{font: [codepoint]} of the glyphs this board's packages add to the icon fonts with `!extend`, beyond the fixed
+    set of packages/core.yaml (a call's keys in features/audio-player.yaml). ESPHome stops at a glyph a font is given
+    twice, so a screen's own icons leave these out of that font (screen_icons.font_lines)."""
+    flow = r'(\[(?:\'[^\']*\'|"(?:[^"\\]|\\.)*"|[^\]\'"])*\])'
+    source, found = profiles.merged(f'packages/{board}.yaml'), {}
+    for font in ICON_FONTS:
+        points = {f'{ord(char):05X}' for flow_list in re.findall(r'id: !extend ' + font + r'\n\s+glyphs: ' + flow, source)
+                  for item in yaml.safe_load(flow_list) for char in item}
+        if points:
+            found[font] = sorted(points)
+    return found
+
+
 def shapes():
     """{entry file: shape} for every entry a screen's YAML can include, plus the board names themselves."""
     found = {}
@@ -173,6 +204,10 @@ def shapes():
                  # The alert card's two line heights (firmware 0.2.103+): with the canvas, the density and the look they
                  # are what screen_alert::layout needs to size an alert's picture (picture_question.alert_box).
                  'alert': alert_lines(values),
+                 # A section's band (docs/PAGES.md "Sections", module_sections.h): the title's capitals as far from the
+                 # panel's top as from its side, so the band is that inset less the font's room above its capitals,
+                 # plus the font's line. The mockup's rows and titles take these, so a card is as high as on the glass.
+                 'section': section_metrics(values),
                  # The sizes of the faces a card's controls draw their numbers in (app 0.4.32): the editor's mockup picks
                  # among them as runtime_tiles::stepper_keys does, the largest that fits, instead of sizes of its own;
                  # and the icons of a card's keys, which a thermostat's mode bar measures its words beside.
@@ -189,7 +224,12 @@ def shapes():
                                                                    # A Big number card: its icon, and the digits a
                                                                    # tall cell gives its number (app 0.4.74).
                                                                    ('watch_icon', 'FONT_WATCH_ICON_SIZE'),
-                                                                   ('setpoint', 'FONT_SETPOINT_SIZE'))},
+                                                                   ('setpoint', 'FONT_SETPOINT_SIZE'),
+                                                                   # A card's icon in its circle, and the name a
+                                                                   # compact card with room takes (runtime_tiles
+                                                                   # name_font): the mockup draws a card's head with
+                                                                   # them as the glass does (app 0.4.90).
+                                                                   ('icon', 'FONT_ICON_SIZE'))},
                  # The glass's grid in its own pixels (the look's GRID_MARGIN, GRID_GAP_X and TILE_PAD): the editor's
                  # mockup works out a card's width from them as runtime_tiles::rest_content_width does (app 0.4.32).
                  # And its height (app 0.4.74): the tile area runs from under the top bar (SCROLL_Y) to the page bar
@@ -198,7 +238,7 @@ def shapes():
                  'spacing': {name: int(values[key]) for name, key in (('margin', 'GRID_MARGIN'), ('gap', 'GRID_GAP_X'),
                                                                   ('gap_y', 'GRID_GAP_Y'), ('tile_pad', 'TILE_PAD'),
                                                                   ('top', 'SCROLL_Y'), ('page_bar', 'PAGE_BAR_H'),
-                                                                  ('circle', 'TILE_ICON_SIZE'))},
+                                                                  ('circle', 'TILE_ICON_SIZE'), ('radius', 'TILE_RADIUS'))},
                  # What New screen offers and the screen list names (boards.yaml with what the board's files say).
                  'catalog': catalog_of(board, values, lying),
                  # The chip it is built for, for the browser flasher's check of the board on the cable.
@@ -207,6 +247,8 @@ def shapes():
                  # a board with 4 MB of flash, where it would take some 90 KB of the update slot (profiles.hotspot).
                  # The manager writes a new screen's YAML by it and takes both out of an older one before it builds.
                  'hotspot': profiles.hotspot(board),
+                 # Whether a screen of this board may take icons of its own (docs/ICONS.md): not on 4 MB of flash, full as it is.
+                 'own_icons': profiles.flash_mb(board) > 4,
                  # Whether its flash takes the wide table (firmware 0.33.1+, profiles.wide_slots): the manager then
                  # writes `allow_partition_access` into a screen's own YAML and sends a screen that still has
                  # ESPHome's table the wide one after an update (docs/FLASH_LAYOUT.md).
@@ -241,6 +283,10 @@ def shapes():
             for side in both.values():
                 side['camera'] = camera_of(values, side)
             shape['camera'] = dict(both['landscape']['camera'])
+        # The icons its packages add to the icon fonts themselves; only on a board that has any.
+        icons = added_icons(board)
+        if icons:
+            shape['added_icons'] = icons
         found[board] = shape
     for entry, board in profiles.ENTRIES.items():
         found[entry] = found[board]

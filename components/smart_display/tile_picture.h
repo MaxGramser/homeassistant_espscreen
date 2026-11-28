@@ -98,6 +98,7 @@ struct Ask {
   uint32_t every = 0;         // a camera's pace in ms; 0: once
   bool drawn = false;         // the app draws it (a map), so an answer without one is asked again
   std::vector<Part> parts;    // a plugin tile's places (plugin API 0.10); empty for a picture over the whole place
+  std::string source;         // where the picture comes from when not from the tile's settings (a robot's map)
   int scale = picture_store::SCALE_ONE;  // the atlas's scale, for its pieces
 };
 // A short hash of a text (FNV-1a), as sixteen hex digits: a mark for what would be too long for a key.
@@ -236,7 +237,7 @@ inline picture_question::Question question(const Ask &a, picture_question::Owner
   q.circle = a.circle;
   q.formats = {"bmp8", "bmp24"};
   if (a.parts.empty()) {
-    q.sources = {picture_question::tile_source(a.index)};
+    q.sources = {a.source.empty() ? picture_question::tile_source(a.index) : a.source};
     picture_question::Place p;
     p.w = a.frame.w;
     p.h = a.frame.h;

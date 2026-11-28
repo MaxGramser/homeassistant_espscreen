@@ -10,11 +10,23 @@
 - [VACUUM.md](VACUUM.md): the vacuum card with the robot's map, cleaning per room and its routines, and what it shows
   for robots that offer less.
 - [METER.md](METER.md): the meter display of a sensor, a ring, a tape or a bar, its range and its colours.
+- [LIGHT_PRESETS.md](LIGHT_PRESETS.md): a light's presets, round keys that set a colour and a brightness with one tap,
+  on its tile and its card.
+- [TEXT_TILE.md](TEXT_TILE.md): the template tile, a text with Home Assistant templates in it, how to write one, its
+  limits and why it is built so.
+- [TODO.md](TODO.md): the to-do card, a list to tick with a keyboard that adds an item, and how its items reach the
+  screen.
+- [TEXT_ENTITY.md](TEXT_ENTITY.md): a Home Assistant text (text, input_text) as a tile, its value edited with the
+  keyboard on the larger boards and shown only on the 4 MB ones.
+- [ALARM_PANEL.md](ALARM_PANEL.md): the alarm panel's card and keypad, what the screens do when the alarm goes off,
+  and the Alarm tab of Events: which screens open the keypad and a code that sends itself after its last digit.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
+- [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
+  recipe for the code).
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
   if you flash them yourself.
 
@@ -34,11 +46,13 @@
 - [WT32SC01PLUS.md](WT32SC01PLUS.md): the Wireless-Tag WT32-SC01 Plus, 3.5 inch.
 - [WAVESHARE4B.md](WAVESHARE4B.md): the Waveshare ESP32-S3-Touch-LCD-4B.
 - [WAVESHARE4V4.md](WAVESHARE4V4.md): the Waveshare ESP32-S3-Touch-LCD-4, revision 4.0 (without the "B").
+- [WAVESHARE43C.md](WAVESHARE43C.md): the Waveshare ESP32-S3-Touch-LCD-4.3C, the 4.3-inch glass with the 7B's expander.
 - [WAVESHARE5.md](WAVESHARE5.md): the Waveshare ESP32-S3-Touch-LCD-5, the 4.3-inch's board with 5-inch glass.
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHAREP47B.md](WAVESHAREP47B.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, 7 inch, rev3 ESP32-P4.
 - [WAVESHAREP47.md](WAVESHAREP47.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7, 7 inch, 1280 × 720.
-- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800.
+- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800, with pre-v3 or rev3
+  silicon.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
@@ -48,6 +62,10 @@
 
 ## Recipes for changing the code
 
+- [ARCHITECTURE.md](ARCHITECTURE.md): the one map of the firmware: its layers (the engine per chip, the glass per
+  panel kind, the streams, pictures, the capability record, the governor, the audio owner, plugins), the hard rules
+  between them with the measurement behind each, where the add-on meets them, and what is built against what is still
+  a plan. Read it first.
 - [CATALOGUE.md](CATALOGUE.md): what a tile of each entity type can do, and adding an entity type.
 - [RESPONSIVE.md](RESPONSIVE.md): how one firmware fits every glass: looks, grids, the font set and card design rules.
 - [MODULES.md](MODULES.md): tiers and modules, the parts of the UI only boards with 8 MB of flash or more get (a recipe).
@@ -57,11 +75,18 @@
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
 - [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
-- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
+- [AUTO_LAYOUT.md](AUTO_LAYOUT.md): the first layout the editor makes from a home's areas and devices, how it groups,
+  sizes and labels tiles per screen, and the places a change of it touches.
+- [LAYOUTBOT.md](LAYOUTBOT.md): the editor's chat that arranges pages with the AI connected to Home Assistant.
+- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, pictures kept until they change, and a page's picture put on the glass at a turn.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
+- [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
 - [CARD_PARTS.md](CARD_PARTS.md): a card built once and painted in place when a value changes, instead of built again.
+- [KEYBOARD.md](KEYBOARD.md): the screens' own keyboard: what a caller asks of it, how it tells the caller what was
+  typed, and adding a layout (a recipe).
 - [PLUGINS.md](PLUGINS.md): plugins on the core's side: the plugin API, a plugin tile end to end, the plugins file, fetch.
+- [REPORTS.md](REPORTS.md): the troubleshooting report of a screen: what it holds, what never leaves, where it goes, how a crash is read.
 - [BUILDS.md](BUILDS.md): the one line every build waits in (updates, plugins, New screen, Firmware & USB), and how a
   build is followed.
 - [TILE_MEMORY.md](TILE_MEMORY.md): how many tiles and pages a board holds, and the memory budget that says how many a
@@ -69,6 +94,13 @@
 - [FLASH_LAYOUT.md](FLASH_LAYOUT.md): the partition table of a board with 4 MB of flash, and how a screen gets it
   without losing its settings (the technical side of UPDATING_4MB_SCREENS.md).
 - [CAMERA.md](CAMERA.md): camera pictures and album covers, from Home Assistant to the screen.
+- [PICTURE_ARCHITECTURE.md](PICTURE_ARCHITECTURE.md): the building blocks under pictures and cameras in the firmware,
+  the app and the Screen camera plugin, their seams, and the layers they are moved into (a design with its recipe).
+- [PLATFORM_PLAN.md](PLATFORM_PLAN.md): what Tessera builds next on the ESP32-P4 and in what order: the hardware layer
+  (parts, the capability record `hw::caps()`, the audio owner), memory and live cameras with limits, the doorbell's
+  talk-back prepared; each section says what is built and what is left.
+- [DOORBELL.md](DOORBELL.md): a doorbell's ring from an automation, its camera live with sound on the P4 screens, and
+  the Events page's wizards that add such automations to Home Assistant.
 - [MAP.md](MAP.md): the map card, drawn by the add-on and sent as a picture.
 - [ENERGY.md](ENERGY.md): the energy card, from Home Assistant's Energy settings to the diagram on the glass.
 - [EMULATOR_ARCHITECTURE.md](EMULATOR_ARCHITECTURE.md): the editor's firmware preview, the firmware built to
@@ -79,3 +111,4 @@
 - [SWIPE_PROFILE.md](SWIPE_PROFILE.md): measuring what a page swipe costs the main loop.
 - [TESTING.md](TESTING.md): the levels of testing, from `tools/check.sh` to the whole chain and the upgrade from the last release.
 - [RELEASING.md](RELEASING.md): the two branches, the weekly release, a hotfix, the flash budget and the ESPHome versions.
+- [open-issues/](open-issues/README.md): what is not understood or solved yet, one file each with the measurements, what is ruled out and the experiment that decides; for anyone to pick up.

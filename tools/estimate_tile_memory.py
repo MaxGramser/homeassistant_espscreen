@@ -4,7 +4,8 @@
     python tools/estimate_tile_memory.py light               one type
     python tools/estimate_tile_memory.py --state state.json  an entity of your own: {"entity", "state", "attributes"}
                                                              (and "forecast"/"hourly" for a weather entity, "events"
-                                                             for a calendar: Home Assistant's calendar.get_events)
+                                                             for a calendar: Home Assistant's calendar.get_events,
+                                                             "items" for a to-do list: its todo/item/subscribe)
 
 The add-on's own code builds the state message of the tile (Manager.tile_message with a stand-in Home Assistant), and a
 model of the firmware's storage prices what the screen keeps of it on a board with PSRAM, which is what a type's `memory:
@@ -47,6 +48,9 @@ CAPS = {key: int(n) for key, n in re.findall(r'string\((?:a|extra)\["(\w+)"\],\s
 JOINED = set(re.findall(r'list\(a\["(\w+)"\]\)', RECEIVER))
 # The longest text and the most items the firmware keeps where its source names no number of its own.
 TEXT_MOST, LIST_MOST = 160, 16
+# A text's state (text, input_text) is kept whole on a board with its field (tile_controls.h TEXT_BYTES, module text_edit).
+TEXT_STATE_MOST = int(re.search(r'TEXT_BYTES = (\d+);', (ROOT / 'components/smart_display/tile_controls.h').read_text())[1])
+TEXT_DOMAINS = ('text.', 'input_text.')
 
 
 def text(value, model=MODEL, most=TEXT_MOST):
@@ -77,7 +81,8 @@ def kept(value, model=MODEL, most=TEXT_MOST):
 def price(message, model=MODEL):
     """What one tile keeps of its state message, by the model: its entity, name and state, the attributes and extras the
     firmware reads, and a sensor's history."""
-    total = model['tile'] + sum(text(message.get(key) or '', model) for key in ('entity', 'name', 'state'))
+    total = model['tile'] + sum(text(message.get(key) or '', model) for key in ('entity', 'name'))
+    total += text(message.get('state') or '', model, TEXT_STATE_MOST if str(message.get('entity', '')).startswith(TEXT_DOMAINS) else TEXT_MOST)
     for part in ('a', 'x'):
         for key, value in (message.get(part) or {}).items():
             if key not in READS[part]:
@@ -153,6 +158,10 @@ async def messages(examples):
     with tempfile.TemporaryDirectory() as folder:
         manager = Manager(with_screen_grid(ha), Path(folder) / 'screens.json')
         out = []
+        # A to-do list's items, as Home Assistant's todo/item/subscribe sends them.
+        for example in examples:
+            if example.get('items'):
+                manager.todos.received(example['entity'], {'items': example['items']})
         for example in examples:
             if example['entity'].startswith('sensor.'):
                 manager.histories[(example['entity'], 24)] = (0, [round(20 + n / 10, 1) for n in range(24)])

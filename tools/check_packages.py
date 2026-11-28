@@ -218,8 +218,11 @@ def main():
                         for option in options[1:]]
         for key, value in own.items():
             if key in lower:
-                mine = [profiles.evaluate({**everything, **pick})[key] for pick in picks]
-                theirs = [profiles.evaluate({**everything, **pick, key: lower[key]})[key] for pick in picks]
+                # So does a line that reads another of the board's own names, which a screen's Override YAML may set
+                # (an old name a part's new one follows, as TAB5_AUDIO_TRANSPORT for AUDIO_TRANSPORT).
+                tries = picks + [{name: 'override'} for name in sorted(profiles._names(value) & set(own)) if name != key]
+                mine = [profiles.evaluate({**everything, **pick})[key] for pick in tries]
+                theirs = [profiles.evaluate({**everything, **pick, key: lower[key]})[key] for pick in tries]
                 if mine == theirs:
                     fail(f'{path.relative_to(ROOT)} states {key}: "{value}", which is what it gets without that line; '
                          f'leave it out, so a change to the default reaches this board too')

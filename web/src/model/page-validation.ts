@@ -4,12 +4,18 @@
 import { t } from '../i18n';
 import { isWideSize } from './sizes';
 import { TILE, ofType, taps as catalogueTaps } from './catalogue';
-import { PLUGIN_LIST_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
+import { PLUGIN_LIST_MAX, PLUGIN_OPTION_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
 import rules from './page-rules.json';
+import { cleanPreset, MAX as PRESETS_MAX } from './light-presets';
 import type { PageLayout, PageTile } from '../types';
+import { allTiles } from './page-tiles';
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 const matches = (pattern: RegExp, value: string) => value.match(pattern)?.[0] === value;
+// A value as JSON with every object's keys in one order: two objects with the same keys and values are the same,
+// whichever order they were written in (the add-on writes a preset's keys in an order of its own).
+const canon = (value: unknown) => JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item)
+  ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : item);
 function fail(key = 'fields'): never { throw new Error(t(`addon.errors.pages.${key}`)); }
 export function fields(value: any, allowed: string[], required = allowed) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(k => !allowed.includes(k)) ||
@@ -20,19 +26,22 @@ const CALENDAR_FIELDS = ['calendarStyle', 'calendarEntities', 'calendarPlaces', 
   'calendarTentative', 'calendarPrivate', 'calendarAhead', 'calendarSoon', 'calendarStartView'] as const;
 // ... and its week and booking (the add-on's page_layout.APPEARANCE has them; calendar_feed.validate checks them).
 const CALENDAR_MORE = ['calendarWeekStart', 'calendarHours', 'calendarWeekNumbers', 'calendarBookOn', 'calendarBookPlace', 'calendarBookTitle'] as const;
+// A to-do card's choices (todo_feed.validate), as the page document names them.
+const TODO_FIELDS = ['todoOrder', 'todoCompleted', 'todoDue', 'todoAdd', 'todoSuggest', 'todoClear'] as const;
 // A sensor's meter (firmware 0.56.0, meter.validate), as the page document names it.
 const METER_FIELDS = ['meterStyle', 'meterMin', 'meterMax', 'meterSegments', 'meterColors', 'meterThresholds'] as const;
 const entity = (value: any, domains: string[]) => typeof value === 'string' && value.length <= 120 &&
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
-const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value);
-// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 12, each a short text, a
+// Any icon's name: which ones a screen can draw is its own (docs/ICONS.md), and the add-on checks the name.
+const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value) || (typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value));
+// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 24, each a short text, a
 // number, true/false, a pick {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most
 // PLUGIN_OPTIONS_BYTES of JSON. Whether a value fits its option is the plugin's manifest's.
 const pluginText = (value: any, empty = true) => typeof value === 'string' && (empty || value !== '') && [...value].length <= 64;
 const pluginPick = (value: any) => !!value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).every((k) => k === 'value' || k === 'label') && pluginText(value.value, false) && pluginText(value.label ?? '');
 export function pluginOptionsShape(options: any): boolean {
-  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > 12) return false;
+  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > PLUGIN_OPTION_MAX) return false;
   for (const [key, value] of Object.entries(options)) {
     if (!/^[a-z][a-z0-9_]{0,31}$/.test(key)) return false;
     if (Array.isArray(value)) {
@@ -57,7 +66,15 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
     throw new Error(t('addon.errors.layout.title'));
   if (!Array.isArray(layout.pages)) fail();
   for (const page of layout.pages) {
-    fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon'], ['id', 'navigation', 'topbar', 'tiles']);
+    fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon', 'sections'], ['id', 'navigation', 'topbar', 'tiles']);
+    // A section (docs/PAGES.md "Sections"): its block. It holds no tiles: they are the page's, checked below.
+    if (page.sections !== undefined && !Array.isArray(page.sections)) fail();
+    for (const section of page.sections ?? []) {
+      fields(section, ['id', 'title', 'icon', 'summary', 'contrast', 'contrastTiles', 'placement'], ['id', 'title', 'placement']);
+      fields(section.placement, ['row', 'column', 'columns', 'rows']);
+      if ((section.icon !== undefined && (section.icon === 'auto' || !icon(section.icon, false))) ||
+          (section.summary !== undefined && !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(String(section.summary)))) fail();
+    }
     fields(page.navigation, ['excludeFromPagination', 'showInDock'], ['excludeFromPagination']);
     const bar = page.topbar;
     fields(bar, ['leading', 'title', 'trailing']);
@@ -93,13 +110,13 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
       if (seen.has(key)) throw new Error(t('addon.errors.top_bar.twice'));
       seen.add(key);
     }
-    for (const tile of page.tiles) {
+    for (const tile of allTiles(page)) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction', 'children'], ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
-        'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow',
-        ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...METER_FIELDS], ['label']);
-      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open'], []);
+        'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow', 'textTemplate',
+        ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...TODO_FIELDS, ...METER_FIELDS], ['label']);
+      fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open', 'presets', 'preset_levels'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target', 'plugin', 'tile', 'options'], ['kind']);
       if (content.kind === 'entity') {
@@ -154,6 +171,10 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     if (value !== undefined && !choices.includes(value)) fail();
   // Where a cover's slats stand open (core.validate_layout): Home Assistant's 100, the default, is never stored.
   if (i.tilt_open !== undefined && i.tilt_open === ofType(domain)?.tilt_open?.[0]) fail('normalization');
+  // A light's presets (light_presets.validate): at most four on a light, none stored empty; their brightness shown only when true.
+  if (i.presets !== undefined && (domain !== 'light' || !Array.isArray(i.presets) || !i.presets.length || i.presets.length > PRESETS_MAX
+    || i.presets.some((p) => canon(cleanPreset(p)) !== canon(p)))) fail('normalization');
+  if (i.preset_levels !== undefined && (domain !== 'light' || i.preset_levels !== true)) fail('normalization');
   if (a.icon !== undefined && !icon(a.icon)) fail();
   if (rules.wideOnly.includes(a.display || '') && !isWideSize(size)) fail('normalization');
   if (tile.content.kind === 'navigation' && (size === 'full' || a.display !== undefined || i.inline !== undefined ||
@@ -172,6 +193,8 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     if (value !== undefined && (a.display !== 'map' || !choices.includes(value) || value === choices[0])) fail('normalization');
   // How the energy card shows power along a line: the energy card's own, the default (dots) never stored.
   if (a.energyFlow !== undefined && (entityId !== 'screen.energy' || !rules.energyFlow.includes(a.energyFlow) || a.energyFlow === rules.energyFlow[0])) fail('normalization');
+  // The template tile's template (text_tile.validate): text, not empty, at most 4000 characters, on that tile only.
+  if (a.textTemplate !== undefined && (entityId !== 'screen.text' || typeof a.textTemplate !== 'string' || !a.textTemplate.trim() || a.textTemplate.length > 4000)) fail('normalization');
   // A calendar card (firmware 0.56.0), as calendar_feed.validate checks it: its own choices, a default never stored.
   if (CALENDAR_FIELDS.some((key) => a[key] !== undefined)) {
     if (domain !== 'calendar') fail('normalization');
@@ -190,6 +213,13 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     const whole = (value: unknown, least: number, most: number) => typeof value === 'number' && Number.isInteger(value) && value >= least && value <= most;
     if (a.calendarAhead !== undefined && (!whole(a.calendarAhead, 1, cal.ahead[1]) || a.calendarAhead === cal.ahead[0])) fail('normalization');
     if (a.calendarSoon !== undefined && (!whole(a.calendarSoon, 1, 120))) fail('normalization');
+  }
+  // A to-do card, as todo_feed.validate checks it: its own choices, a default never stored.
+  if (TODO_FIELDS.some((key) => a[key] !== undefined)) {
+    if (domain !== 'todo') fail('normalization');
+    if (a.todoOrder !== undefined && (!rules.todo.orders.includes(a.todoOrder) || a.todoOrder === rules.todo.orders[0])) fail('normalization');
+    for (const value of [a.todoCompleted, a.todoDue, a.todoAdd, a.todoSuggest, a.todoClear])
+      if (value !== undefined && value !== false) fail('normalization');
   }
   // A sensor's meter (firmware 0.56.0), as meter.validate checks it: with the meter alone, a default never stored.
   if (METER_FIELDS.some((key) => a[key] !== undefined)) {

@@ -14,16 +14,26 @@ so the board is **experimental**.
 
 ## Which silicon
 
-Waveshare's ESP32-P4 boards come with two revisions of the chip, and firmware for one does not start on the other. This
-board file builds for the earlier silicon ("chip revision: v1.3" in the first lines of the USB log), which the board it
-was run on has. A board that reports v3.0 or higher needs this in its screen's Override YAML:
+Waveshare's ESP32-P4 boards come with two revisions of the chip, and firmware for one does not start on the other. The
+first lines of the USB log name it: "chip revision: v1.3", or "chip revision: v3.x". This board file builds for the
+earlier silicon (v1.3), which the board it was run on has.
 
-```yaml
-esp32:
-  engineering_sample: false
-```
+Nobody has run this board on rev3 silicon (v3.0 or higher), and there is no board file for that yet. What is known
+comes from its neighbours:
 
-Nobody has tried this board file on rev3 silicon yet.
+- On the 10.1-inch of the same series, rev3 needed two changes, not one: the chip revision (`engineering_sample:
+  false`) and the repository's display driver, `components/mipi_dsi_v3`, in place of ESPHome's `mipi_dsi`
+  ([WAVESHARE101.md](WAVESHARE101.md), "Which board"). With the chip revision alone, a unit of chip revision v3.2 got
+  as far as "Performing bus recovery" in the USB log and then stopped in `esp_lcd_new_dsi_bus`, again and again. This
+  board file uses ESPHome's `mipi_dsi` too, so the same is likely here, but it is not proven.
+- The [7B](WAVESHAREP47B.md) (`packages/boards/wavesharep47b.yaml`) is the board to compare with: another panel, but
+  the same main board family, and it builds for rev3 with `mipi_dsi_v3`.
+
+So setting `engineering_sample: false` in the Override YAML, the advice this page used to give, is unproven and on
+the 10.1-inch was not enough. If you have a rev3 board, the log tells which case it is: a restart straight after the
+bootloader is the chip revision; "Performing bus recovery" followed by a stop in `esp_lcd_new_dsi_bus` is the display
+driver. Please report what yours shows (see [the open issue](open-issues/waveshare-7-inch-rev3.md) for what helps),
+so the board can get a rev3 file once one has been seen to run.
 
 ## Install
 
@@ -54,14 +64,16 @@ Waveshare's schematic of the ESP32-P4-WIFI6-Touch-LCD-X main board, which this 7
 the audio exactly as on the [Waveshare ESP32-P4 86 panel](WAVESHAREP4.md): an ES8311 for the speaker (its ADC is not
 wired), an ES7210 with the two microphones on its MIC1 and MIC2 and the speaker circuit's output, through an
 attenuator, on its MIC3 as the echo cancellation's reference, one I2S bus for both, and an NS4150B amplifier. So the
-board takes the 86 panel's audio (`packages/hardware/wavesharep4-audio/`): its codecs, its transport with echo
+board takes the 86 panel's audio (`packages/hardware/wavesharep4-audio.yaml`): its codecs, its transport with echo
 cancellation by default, and its Extras. [P4_AUDIO.md](P4_AUDIO.md) says how the echo cancellation works and how to
 choose the plain half-duplex transport instead:
 
 ```yaml
 substitutions:
-  P4_AUDIO_TRANSPORT: "i2s"
+  AUDIO_TRANSPORT: "i2s"
 ```
+
+`P4_AUDIO_TRANSPORT`, the old name, still works in firmware 0.58 and goes in the release after.
 
 This is **experimental**: the contributor ran the same audio on the board (below), the project has not.
 

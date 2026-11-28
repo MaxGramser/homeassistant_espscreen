@@ -122,4 +122,11 @@ template <typename Callback> bool parse_json(const std::string &payload, Callbac
 #define ESP_LOGI(...) do {} while (0)
 #define ESP_LOGD(...) do {} while (0)
 #endif
+// ESPHome's log levels (esphome/core/log.h), for code that compares a line's level (the governor's log listener).
+#ifndef ESPHOME_LOG_LEVEL_WARN
+#define ESPHOME_LOG_LEVEL_NONE 0
+#define ESPHOME_LOG_LEVEL_ERROR 1
+#define ESPHOME_LOG_LEVEL_WARN 2
+#define ESPHOME_LOG_LEVEL_INFO 3
+#endif
 #endif  // ESP_SCREEN_HOST: ESPHome also includes component headers in device builds.

@@ -1,0 +1,47 @@
+# ESP Screens - the 4-inch Guition's backlight settings (a part: docs/PROFILES.md, "Parts"): its PWM frequency and the
+# floor it dims to, as Extras of the board (docs/SETTINGS.md, "A board's own settings"). The batches of the 4848S040
+# contradict each other: some cannot follow a fast PWM (GitHub #5, so 150 Hz since firmware 0.3.5), 17 units from
+# several sellers whine at anything under 20 kHz (#327), and on some the floor of 1 % is under the driver's start, so
+# the glass is black below 25 % (#337); no marking tells them apart. So both are a setting of the screen, kept over a
+# restart, on the screen's settings page under Extras (the board file's BOOT_BOARD_SETTINGS), in the app and in Home
+# Assistant. The board names its PWM output `gpio_backlight_pwm` (min_power and zero_means_zero on it) and the light
+# `back_light`, and its boot frequency in BACKLIGHT_FREQUENCY, a number with its unit (ESPHome takes no prefix there).
+select:
+  # Backlight PWM: the YAML's frequency (BACKLIGHT_FREQUENCY, an override's value stays the first choice), 15 kHz or
+  # 20 kHz, applied to the output at once; ESPHome's LEDC takes a new frequency while it runs (firmware 0.60.0).
+  - platform: template
+    id: board_backlight_pwm
+    name: "Backlight PWM"
+    icon: "mdi:sine-wave"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options: ["${BACKLIGHT_FREQUENCY}", "15 kHz", "20 kHz"]
+    initial_option: "${BACKLIGHT_FREQUENCY}"
+    on_value:
+      - lambda: |-
+          const float hz = x == "20 kHz" ? 20000.0f : x == "15 kHz" ? 15000.0f : strtof("${BACKLIGHT_FREQUENCY}", nullptr);
+          if (hz > 0.0f) id(gpio_backlight_pwm).update_frequency(hz);
+
+number:
+  # Dimmest level: the backlight's floor, 1 to 10 % of its power (the output's min_power is the 1 % it starts at). A
+  # higher floor keeps a driver that is black or flickers at 1 % lit at the screen's lowest brightness (firmware 0.60.0).
+  - platform: template
+    id: board_dimmest_level
+    name: "Dimmest level"
+    icon: "mdi:brightness-6"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+    min_value: 1
+    max_value: 10
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    on_value:
+      - lambda: |-
+          id(gpio_backlight_pwm).set_min_power(x / 100.0f);
+          // The glass at its level again, through the new floor, when it is lit; a dark one stays dark.
+          const auto &now = id(back_light).current_values;
+          if (now.is_on()) id(gpio_backlight_pwm).set_level(powf(now.get_brightness(), id(back_light).get_gamma_correct()));

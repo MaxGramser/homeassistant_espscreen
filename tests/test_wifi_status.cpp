@@ -112,6 +112,24 @@ int main() {
   clock.kind = Kind::clock;
   assert(!header_bar::device_item(clock, good).shown);
 
+  // The signal is asked of the radio at most every RSSI_MS and remembered in between; a lost network forgets it, so the
+  // first look after joining asks at once (Signal: on an ESP32-P4 every question is an RPC to the Wi-Fi chip).
+  Signal s;
+  int asked = 0;
+  auto ask = [&asked] { ++asked; return -61; };
+  assert(s.read(1000, ask) == -61 && asked == 1);                 // the first look asks
+  assert(s.read(1000 + RSSI_MS - 1, ask) == -61 && asked == 1);   // within RSSI_MS it remembers
+  assert(s.read(1000 + RSSI_MS, ask) == -61 && asked == 2);       // then it asks again
+  assert(s.read(1000 + RSSI_MS + 1, ask) == -61 && asked == 2);
+  s.forget();
+  assert(s.rssi == 0);
+  assert(s.read(1000 + RSSI_MS + 2, ask) == -61 && asked == 3);   // joined again: asked at once
+  // millis() wrapping round neither stops the asking nor forces it.
+  Signal w;
+  w.read(0xFFFFFF00u, ask);
+  assert(w.read(0x00000100u, ask) == -61 && asked == 4);          // 512 ms later: remembered
+  assert(w.read(0x00001500u, ask) == -61 && asked == 5);          // 5632 ms later: asked
+
   std::puts("test_wifi_status: PASS");
   return 0;
 }

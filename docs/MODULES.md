@@ -20,13 +20,18 @@ line in its file. A host build (the renders) has no `esp32` block, so `tools/ren
 
 ## A module
 
-A module is listed in `components/smart_display/modules.py` with the lowest tier that has it and its define:
+A module is listed in `components/smart_display/modules.py` with the lowest tier that has it, its define, and whether
+the editor's firmware preview is built with it:
 
 ```python
 MODULES = {
-    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK"},
+    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": False},
 }
 ```
+
+`preview` is the one place that says what the preview in the editor draws (`web/wasm/build.py` and
+`generate_renderer_manifest.py` read it): a module that draws from what the add-on sends is in it, one that needs a
+part the browser has none of (an edge swipe, live pictures, a microphone) is not.
 
 Its code lives in `components/smart_display/module_<name>.h` (and a `module_<name>.cpp` if it needs one, wrapped
 whole in its `#ifdef`). It stays in the component's own folder: ESPHome copies no folders inside it. The shared code
@@ -38,7 +43,8 @@ the add-on and the editor offer a module's options only on boards that have it.
 
 ## Adding a module
 
-1. Add it to `MODULES` in `modules.py`.
+1. Add it to `MODULES` in `modules.py`, with `preview` true when the editor's firmware preview should draw it; the
+   preview is then rebuilt (`web/wasm/build.sh`, or CI after the push).
 2. Put its code in `components/smart_display/module_<name>.h`.
 3. Reach it from the shared code only inside `#ifdef` of its define, and keep the lite behaviour in the other branch.
 4. If the add-on or the editor offers something for it, check the board's `modules` in `boards.json`.
@@ -48,19 +54,45 @@ the add-on and the editor offer a module's options only on boards that have it.
 
 - **vacuum_card** (full): the vacuum card with the robot's map, cleaning per room and the robot's routines
   (docs/VACUUM.md, `module_vacuum_card.cpp` with its header). Its screens say `vacuum_card` in their hello and ESP Screens sends them the
-  card's block (`vc`); lite keeps the card it had (`render_vacuum_detail`).
+  card's block (`vc`); lite keeps the card it had (`render_vacuum_detail`). The same module draws a robot's larger tile
+  (`module_vacuum_tile.cpp`): its hello says `vacuum_tile` too, and any other screen gets the tile's keys instead.
 - **cover_groups** (full): a cover group's page, a card per cover (`module_cover_groups.h`, included by
   `group_page.h`), behind a key on the group's cover card where a light group's lamps key stands (docs/RESPONSIVE.md,
   "A cover's controls by its room"). Its screens say `group_covers` in their hello and ESP Screens sends them the
   group's covers (`covers`, `cover_groups.py`); lite keeps the cover card alone.
 - **clock_faces** (full): the screensaver's clock faces Glass, Classic and Bauhaus beside the digital clock
-  (docs/SCREENSAVER.md, "Clock faces", `module_clock_faces.h`, included by `runtime_tiles.h` before `saver_clock_draw`).
+  (docs/SCREENSAVER.md, "Clock faces", `module_clock_faces.h`, included by `saver_lvgl.h` before `saver_clock_draw`).
   Its screens say `clock_faces` in their hello and ESP Screens sends them the face (`cf`); the editor offers faces only
   where `boards.json` lists the module, and lite keeps the digital clock.
+- **text_card** (full): the template tile, `screen.text` (docs/TEXT_TILE.md, `module_text_card.cpp` with its headers).
+  Its screens say `text_card` in their hello, with `text_tiles` and `text_bytes` in their caps, and ESP Screens offers
+  the tile and sends its rows (`md`) to those only; the editor offers it where `boards.json` lists the module.
+- **light_presets** (full): a light's presets, round keys on its tile and its card that set a colour or a white shade
+  and a brightness (docs/LIGHT_PRESETS.md, `module_light_presets.h`). Its screens say `light_presets` in their hello and
+  ESP Screens sends them the controls `presets` and `brightness_presets`; the editor offers them where `boards.json`
+  lists the module, and lite draws the brightness slider.
+- **call** (full): calls between screens (docs/CALLS.md, `module_call.cpp` with its header). Its screens say `call` in their hello
+  when they stream and have a microphone and a speaker, and ESP Screens sends them the ops `call` and `contacts`; the Call tile
+  `screen.call` is offered where `boards.json` lists the module.
+- **doorbell** (full): a doorbell's ring (the event `esp_screens_doorbell`) opens its camera full screen, live with its
+  sound and a chime (docs/DOORBELL.md, `module_doorbell.cpp` with its header). Its screens say `doorbell` in their hello
+  when they stream (a P4), and ESP Screens sends them the op `doorbell`; every other screen gets the camera's alert.
+- **todo** (full): the to-do card, a Home Assistant to-do list as a list to tick, its full screen, and the keyboard that
+  adds an item (docs/TODO.md, `module_todo.cpp` with its headers). Its screens say `todo_card` in their hello, with
+  `todo_items` in their caps, and ESP Screens sends them the list's items (`todo`); the editor offers to-do lists where
+  `boards.json` lists the module, and lite has no to-do tile.
+- **text_edit** (full): a Home Assistant text's field, the value with the keyboard under the page's top bar
+  (docs/TEXT_ENTITY.md, `module_text_edit.cpp` with its headers). Its screens say `text_edit` in their hello; the editor
+  reads the module in `boards.json` and says on a lite board that its text tiles show the value only, which lite draws
+  on the tile and on its plain card.
 - **dock** (full): up from the bottom edge opens the Dock, a small drawer at the bottom of the glass (at most 12 cm
   wide, the full width on a 4-inch glass) with every page as a small picture and its name, in one row or two.
   The drawer rides on the finger that opens it: its top stays under the finger until it lets go, and then a flick, or
   more than a quarter of the drawer in view, opens it the rest of the way; less, or a flick down, lets it fall back.
+  Let go, it goes on at the finger's speed and comes to rest at its place (`sheet_motion.h`). The page behind it dims in
+  one step on the moment the finger lifts: on a board with a frame buffer the pixels on the glass are darkened where
+  they are (`screen_motion.h`, to the bit what LVGL would draw), so no tile is drawn again; elsewhere, or while a stream
+  writes the glass, LVGL draws the dim once the drawer stands open.
   A tap on the page dots in the middle of the page bar opens it too: the dots are a key of their own over the inner
   ends of the two halves, so the chevrons keep the outer parts of the bar.
   Sideways leafs through the pages when they do not all fit, a tap goes to a page, a tap above the Dock or a drag
@@ -70,3 +102,7 @@ the add-on and the editor offer a module's options only on boards that have it.
   icon of its own (`icon` in the page document, one of the pickable MDI icons, sent as its codepoint): the Dock then
   shows that icon instead of the page's picture. On lite, up from
   the bottom goes home.
+- **sections** (full): sections on a page, blocks of cells with a title, an icon, a panel and a summary (docs/PAGES.md
+  "Sections", `module_sections.h`, with the pure `section_layout.h` beside it). Its screens say `sections` in their
+  hello and ESP Screens sends them each page's sections and their summaries (`sums`); the editor offers sections where
+  `boards.json` lists the module, and lite gets the same tiles in the same cells without them.

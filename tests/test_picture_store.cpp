@@ -213,5 +213,70 @@ int main() {
     kept.forget([](const Image *) { return false; });
     assert(live == 0);
   }
+  // The same bytes under a new key (another track of the same album came back 304): the picture its owner had, even one
+  // already retired because the owner moved on, is filed under the new key without a copy and keeps its ETag.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    Image *had = kept.adopt("track 1", download(1, 10, 10), 1, "\"abc\"");
+    assert(had && kept.entry("track 1")->etag == "\"abc\"");
+    kept.retire("track 1");
+    assert(!kept.entry("track 1") && kept.entry_any("track 1"));
+    assert(kept.rekey("track 1", "track 2", 2));
+    assert(kept.find("track 2") == had && !kept.entry_any("track 1") && kept.entry("track 2")->etag == "\"abc\"" && live == 1);
+    // Nothing to file again, or the new key had already: no change.
+    assert(!kept.rekey("track 9", "track 3", 3) && !kept.rekey("track 2", "track 2", 3));
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
+  }
+  // Two tiles of one player show the same key; the first moves to the next track and its 304 files the picture under the
+  // new key. The second still draws the same pixels (the buffer is not freed or moved, so its card shows a picture, never
+  // an empty place), and the old key is no longer had, so the loader asks for it again and gets a picture of its own.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    Image *shared = kept.adopt("track 1", download(3, 10, 10), 1, "\"same\"");
+    const uint8_t *pixels = shared->data;
+    assert(kept.rekey("track 1", "track 2", 2));
+    assert(shared->data == pixels && live == 1 && !kept.find("track 1") && kept.find("track 2") == shared);
+    // The second tile's own download of the old key comes in beside it.
+    assert(kept.adopt("track 1", download(3, 10, 10), 3, "\"same\"") && live == 2 && kept.find("track 1") != shared);
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
+  }
+  // The ETag went along, but the old picture was collected before the 304 came (a kept page off the glass): there is
+  // nothing to file again, so rekey says no and runtime_tiles::picture_done loads the picture whole, the slot's ETag
+  // forgotten with its release; with no old picture left, the next link goes without an ETag and cannot answer 304 again.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    kept.adopt("track 1", download(4, 10, 10), 1, "\"gone\"");
+    kept.retire("track 1");
+    kept.collect([](const Image *) { return false; });
+    assert(live == 0 && !kept.entry_any("track 1") && !kept.rekey("track 1", "track 2", 2) && !kept.find("track 2"));
+  }
+  // What picture_done does with a finished picture (load_again, arrival).
+  {
+    using picture_store::Arrival;
+    using picture_store::arrival;
+    using picture_store::load_again;
+    // A 304 for a picture the store let go, whose pixels the slot does not hold either: loaded again, whole.
+    static_assert(load_again(true, true, true, true, false, false));
+    static_assert(!load_again(true, true, true, true, true, false));   // the store has it (also after a rekey)
+    static_assert(!load_again(true, true, true, true, false, true));   // the slot still holds its pixels
+    static_assert(!load_again(true, true, false, true, false, false)); // a whole download is no 304
+    static_assert(!load_again(true, false, true, true, false, false)); // a failed load is the loader's to try again
+    static_assert(!load_again(false, true, true, true, false, false)); // no store (a board without one)
+    static_assert(!load_again(true, true, true, false, false, false)); // a slot that did not know what it loaded
+    // A 304 the store has is touched; a download with pixels goes into the store; anything else stays in its slot.
+    static_assert(arrival(true, true, true, true) == Arrival::touch && arrival(true, true, true, false) == Arrival::touch);
+    static_assert(arrival(true, false, true, true) == Arrival::adopt);  // a new download of a key the store has
+    static_assert(arrival(true, true, false, true) == Arrival::adopt);  // a 304 whose picture the slot still holds
+    static_assert(arrival(true, false, false, false) == Arrival::slot); // nothing to take
+    static_assert(arrival(false, false, false, true) == Arrival::slot && arrival(false, true, true, true) == Arrival::slot);
+  }
   return 0;
 }

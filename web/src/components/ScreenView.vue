@@ -6,6 +6,7 @@ import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
+import LayoutBotKey from "./LayoutBotKey.vue";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
@@ -51,6 +52,10 @@ function closeMenu() { ui.menuOpen = false; }
 function openOverride() {
   closeMenu();
   ui.openOverride(screen.value.update?.profile || null);
+}
+function openReport() {
+  closeMenu();
+  ui.openReport(screen.value.id);
 }
 function inspectAll() {
   closeMenu();
@@ -192,6 +197,7 @@ useEventListener(document, "keydown", onKey);
         <UiMenuItem id="identify" icon="monitor-eye" :hint="t('editor.screen_view.menu.identify_hint')" :disabled="!scr.canAlert(screen) || !screen.online"
           :title="scr.canAlert(screen) ? '' : t('editor.screen_view.menu.identify_needs')" @select="scr.identify(screen)">{{ t("editor.screen_view.menu.identify") }}</UiMenuItem>
         <UiMenuItem id="inspect" icon="database-search-outline" @select="inspectAll">{{ t("editor.common.read_current_data") }}</UiMenuItem>
+        <UiMenuItem v-if="!screen.virtual" id="report-screen" icon="help-circle-outline" @select="openReport">{{ t("editor.report.button") }}</UiMenuItem>
         <UiMenuItem v-if="updateReady" id="update-screen" icon="update" :hint="screen.update?.target" @select="builds.startUpdate(screen)">{{ t("editor.screen_view.menu.update") }}</UiMenuItem>
         <UiMenuSeparator />
         <UiMenuLabel>{{ t("editor.screen_view.menu.group_layout") }}</UiMenuLabel>
@@ -224,8 +230,10 @@ useEventListener(document, "keydown", onKey);
     </div>
     <Drawer />
   </div>
-  <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. -->
+  <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. Layoutbot's key
+       stands before it (docs/LAYOUTBOT.md). -->
   <div v-if="ui.phone && ui.tab === 'layout' && doc.layout" class="phone-dock">
+    <LayoutBotKey v-if="!ui.previewOpen" docked />
     <button type="button" id="phone-add" class="btn" :class="doc.dirty ? 'soft square' : 'primary'" :disabled="full"
       :aria-label="t('editor.phone.add_tile')" :title="full ? t('editor.library.full', doc.tileLimit) : ''" @click="phoneAdd">
       <Icon name="plus" /><span v-if="!doc.dirty">{{ t("editor.phone.add_tile") }}</span>

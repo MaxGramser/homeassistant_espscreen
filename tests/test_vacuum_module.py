@@ -161,5 +161,44 @@ class Map(unittest.TestCase):
                 self.assertIn(palette['rooms'][0], colours)
 
 
+
+@unittest.skipUnless(importlib.util.find_spec('aiohttp'), 'needs aiohttp')
+class Editor(unittest.IsolatedAsyncioTestCase):
+    """What the editor's mockup of a robot's larger tile asks the app (api/vacuum/preview), and which of its faces the
+    editor may offer (api/capabilities): a map and routines only where the robot's device holds them."""
+
+    def manager(self, tmp, routines=True):
+        from server import HomeAssistant, Manager
+        states, device, _ = robot()
+        states['select.robot_cleaning_mode'] = {'state': 'vac_and_mop', 'attributes': {'options': ['vacuum', 'vac_and_mop', 'mop']}}
+        device = device + [entry('select.robot_cleaning_mode', translation_key='cleaning_mode')]
+        if not routines:
+            device = [item for item in device if item['entity_id'] != 'button.robot_kitchen_clean']
+        ha = HomeAssistant(None, 'http://supervisor/core/api', 'token')
+        ha.registry, ha.states, ha.areas, ha.floors, ha.devices = device, states, AREAS, FLOORS, [{'id': 'dev', 'name': 'Robot'}]
+        return Manager(ha, Path(tmp) / 'screens.json')
+
+    async def test_the_preview_says_what_the_tile_draws(self):
+        import tempfile
+        from server import create_app
+        from aiohttp.test_utils import TestClient, TestServer
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            async with TestClient(TestServer(create_app(m, True))) as client:
+                answer = await (await client.get(f'/api/vacuum/preview?entity={ROBOT}')).json()
+                wrong = await client.get('/api/vacuum/preview?entity=light.kitchen')
+        self.assertTrue(answer['map'])
+        self.assertEqual([room[0] for room in answer['rooms']], ['Living room', 'Kitchen'])
+        self.assertEqual(answer['routines'], ['Kitchen clean'])
+        self.assertEqual((answer['modes'], answer['mode']), ('vbm', 1))
+        self.assertEqual(wrong.status, 400)
+
+    def test_a_face_is_offered_where_the_device_holds_it(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertTrue(self.manager(tmp).device_has(ROBOT, 'map'))
+            self.assertTrue(self.manager(tmp).device_has(ROBOT, 'routines'))
+            self.assertFalse(self.manager(tmp, routines=False).device_has(ROBOT, 'routines'))
+
 if __name__ == '__main__':
     unittest.main()

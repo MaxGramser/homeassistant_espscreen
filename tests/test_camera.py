@@ -3,7 +3,7 @@ port; the screen asks with esphome.screen_camera and downloads the link in a tas
 In the app every picture takes one way (docs/PICTURES.md): the question (picture_question, or picture_legacy for the
 shapes of older firmware), its sources (picture_sources), the one painter (picture_paint), the links on the camera port
 (picture_links) and the service between them (picture_service)."""
-from firmware_sources import firmware_domains, runtime_source
+from firmware_sources import firmware_domains
 from manager_fixtures import with_screen_grid, seed_layout
 import asyncio
 import contextlib
@@ -19,11 +19,14 @@ import types
 import unittest
 from unittest import mock
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import picture_legacy  # noqa: E402
+import lan_address  # noqa: E402
 import picture_links  # noqa: E402
 import picture_paint  # noqa: E402
 import picture_question as pq  # noqa: E402
@@ -39,7 +42,64 @@ if HAS_AIOHTTP:
     from server import HomeAssistant, Manager
 
 PROFILE = profiles.text('checkout/guition.yaml')
-TILES = runtime_source()
+PACKAGES = ROOT / 'packages'
+
+
+
+def firmware_headers():
+    """Every header of the firmware's component, by name: the rules below hold over all of them."""
+    return {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+
+class _Loader(yaml.SafeLoader):
+    """ESPHome's own tags (!include, !lambda, !secret, !extend) read as plain values: the structure is what is checked."""
+
+
+_Loader.add_multi_constructor('!', lambda loader, suffix, node: loader.construct_scalar(node)
+                              if isinstance(node, yaml.ScalarNode) else None)
+
+
+def package(path):
+    return yaml.load(path.read_text(), Loader=_Loader) or {}
+
+
+_NUMBERS = {}
+
+
+def firmware_numbers(*jpegs):
+    """The firmware's numbers of the pictures as its compiler sees them (tests/fixtures/picture_numbers.cpp): name to
+    value, `cap` to [(budget, side, bytes)], and `notes` to what picture_jpeg::jpeg_notes reads of each JPEG given, by
+    its place in `jpegs` (None where it finds none)."""
+    import atexit
+    import os
+    import shutil
+    import subprocess
+    if 'program' not in _NUMBERS:
+        compiler = shutil.which(os.environ.get('CXX', 'clang++')) or shutil.which('g++')
+        if not compiler:
+            raise unittest.SkipTest('no C++ compiler')
+        work = tempfile.mkdtemp()
+        atexit.register(shutil.rmtree, work, True)
+        program = Path(work) / 'picture_numbers'
+        subprocess.run([compiler, '-std=c++17', '-Wall', '-Wextra', '-Werror', f'-I{ROOT}',
+                        str(ROOT / 'tests/fixtures/picture_numbers.cpp'), '-o', str(program)], check=True)
+        _NUMBERS.update(program=program, work=work)
+    files = []
+    for i, body in enumerate(jpegs):
+        files.append(Path(_NUMBERS['work']) / f'{i}.jpg')
+        files[-1].write_bytes(body)
+    out = subprocess.run([str(_NUMBERS['program']), *map(str, files)], check=True, capture_output=True, text=True).stdout
+    numbers = {'cap': [], 'notes': [None] * len(files)}
+    for line in out.splitlines():
+        name, *values = line.split('\t')
+        if name == 'cap':
+            numbers['cap'].append(tuple(int(v) for v in values))
+        elif name == 'notes':
+            if values[1] != 'none':
+                corners = tuple(tuple(int(n) for n in c.split(',')) for c in values[3].split(';') if c) if len(values) > 3 else ()
+                numbers['notes'][files.index(Path(values[0]))] = ((int(values[1]), int(values[2])), corners)
+        else:
+            numbers[name] = values[0]
+    return numbers
 
 
 def picture(fmt, size, mode='RGB'):
@@ -84,9 +144,9 @@ class Rules(unittest.TestCase):
     def test_every_picture_stays_within_one_cap_whatever_the_glass(self):
         # GitHub #68: a 10-inch glass asked for pictures of up to 2 MB, more than its store kept. The app and the
         # firmware cap every picture with the same two numbers, the firmware in picture_store.h.
-        header = (ROOT / 'components/smart_display/picture_store.h').read_text()
-        self.assertIn(f'constexpr int MAX_SIDE = {pq.MAX_SIDE};', header)
-        self.assertEqual(eval(re.search(r'constexpr size_t MAX_BYTES = ([0-9 *]+);', header).group(1)), pq.MAX_BYTES)
+        numbers = firmware_numbers()
+        self.assertEqual((int(numbers['MAX_SIDE']), int(numbers['MAX_BYTES'])), (pq.MAX_SIDE, pq.MAX_BYTES),
+                         'picture_store::MAX_SIDE and MAX_BYTES are picture_question.MAX_SIDE and MAX_BYTES: change both')
         for board, shape in pq.SHAPES.items():
             if board != shape.get('board') or 'camera' not in shape:
                 continue
@@ -108,8 +168,16 @@ class Rules(unittest.TestCase):
         # GitHub #183: a screen whose picture store has the room (the 32 MB of the P4 boards) says how large one picture
         # may be (`cap`, picture_store::cap_for), and its full view, map and screensaver come at its own pixels. A
         # screen that says nothing, or less than the common cap, keeps that cap; nothing goes over PICTURE_LARGE_BYTES.
-        header = (ROOT / 'components/smart_display/picture_store.h').read_text()
-        self.assertIn(f'constexpr int LARGE_SIDE = {pq.LARGE_SIDE};', header)
+        numbers = firmware_numbers()
+        self.assertEqual(int(numbers['LARGE_SIDE']), pq.LARGE_SIDE,
+                         'picture_store::LARGE_SIDE is picture_question.LARGE_SIDE: change both')
+        # The cap the firmware gives a store of each budget (picture_store::cap_for), told to the app as `cap` once it is
+        # over the common one, is the cap the app takes, never over LARGE_BYTES.
+        for budget, side, most in numbers['cap']:
+            told = str(most) if most > pq.MAX_BYTES else None
+            expected = (side, min(most, pq.LARGE_BYTES)) if told else (pq.MAX_SIDE, pq.MAX_BYTES)
+            self.assertEqual(pq.cap_of(told), expected, f'a store of {budget} bytes')
+            self.assertEqual(side, pq.LARGE_SIDE if told else pq.MAX_SIDE, f'a store of {budget} bytes')
         store = min(6 << 20, (32 << 20) // 5)  # runtime_tiles::pictures_kept on a P4 board
         cap = pq.cap_of(str(store // 3))
         self.assertEqual(pq.box({'board': 'jc8012p4a1'}, 'full', cap), (1280, 800))
@@ -122,17 +190,66 @@ class Rules(unittest.TestCase):
         legacy = picture_legacy.read({'entity': 'camera.max', 'cap': str(store // 3)}, {'board': 'jc8012p4a1', 'firmware': '0.52.0'})
         self.assertEqual((legacy.question.box, legacy.question.cap), ((1280, 800), cap))
         # The app's rhythm of the full view is the firmware's (camera_view::REFRESH_MS): it fetches just before each load.
-        view = (ROOT / 'components/smart_display/camera_view.h').read_text()
-        self.assertIn(f'constexpr uint32_t REFRESH_MS = {picture_legacy.FULL_VIEW_PACE};', view)
+        self.assertEqual(int(numbers['REFRESH_MS']), picture_legacy.FULL_VIEW_PACE,
+                         'camera_view::REFRESH_MS is picture_legacy.FULL_VIEW_PACE: change both')
         self.assertEqual(legacy.question.pace, picture_legacy.FULL_VIEW_PACE)
-        # The firmware names it to an older app only for a picture of the whole glass (the full view and the screensaver,
-        # picture_question::legacy), never on a board of 8 MB.
-        question = (ROOT / 'components/smart_display/picture_question.h').read_text()
-        self.assertIn('const bool larger = q.cap > picture_store::MAX_BYTES;', question)
-        legacy_fields = question[question.index('inline Fields legacy('):]
-        legacy_fields = legacy_fields[legacy_fields.index('case Owner::VIEW:'):legacy_fields.index('case Owner::CARD:')]
-        self.assertIn('if (larger) out.emplace_back("cap", std::to_string(q.cap));', legacy_fields)
-        self.assertEqual(question.count('emplace_back("cap"'), 1)
+        # The firmware names the cap to an older app only for a picture of the whole glass (the full view and the
+        # screensaver), never on a board of 8 MB: tests/test_picture_question.cpp asks picture_question::legacy so, and
+        # tests/test_pictures.py FirmwareQuestions reads the full view's both ways at 1280 x 800.
+
+    def test_the_jpeg_profile_is_one_rule_on_both_sides(self):
+        # The JPEG a P4 takes (picture_jpeg.h) is what picture_paint.encode makes: whole MCUs of the same size, the same
+        # mark on the APP15 segment that carries the shown size and the corners, the same most corners; and a live tile
+        # lays over each of its frames the shade the app bakes into a still (live_view.h, picture_paint._flat).
+        numbers = firmware_numbers()
+        self.assertEqual((int(numbers['MCU']), numbers['NOTES_MARK'], int(numbers['MAX_CORNERS'])),
+                         (picture_paint.MCU, picture_paint.JPEG_SIZE.decode(), picture_paint.MAX_CORNERS),
+                         'picture_jpeg::MCU, NOTES_MARK and MAX_CORNERS are picture_paint.MCU, JPEG_SIZE and MAX_CORNERS: '
+                         'change both')
+        self.assertEqual((int(numbers['FADE_PERCENT']), int(numbers['FADE_DEPTH'])),
+                         (round(picture_paint.FADE_SHARE * 100), picture_paint.FADE_DEPTH),
+                         'live_view::FADE_PERCENT and FADE_DEPTH are picture_paint.FADE_SHARE and FADE_DEPTH: change both')
+
+    @unittest.skipUnless(HAS_PIL, 'needs Pillow')
+    def test_the_screen_reads_the_notes_of_every_jpeg_the_app_makes(self):
+        # What the app writes along with a JPEG (picture_paint.encode) is what picture_jpeg::jpeg_notes reads of it: the
+        # shown size of a picture padded to whole MCUs, and its corners, one to the most there are. A picture whole MCUs
+        # already and without corners, and any JPEG not the app's, goes without notes: its own size holds on the screen.
+        from PIL import Image
+        cases = [((226, 254), ((2, 3, 40, 30, 8, 0xE73C),)), ((1280, 720), ()), ((17, 33), ((0, 0, 17, 33, 4, 0xFFFF),
+                 (1, 1, 5, 5, 0, 0))), ((480, 480), tuple((i, i, 10, 10, i % 9, i * 997 % 0x10000)
+                                                          for i in range(picture_paint.MAX_CORNERS)))]
+        bodies = [picture_paint.encode(Image.new('RGB', size, (10, 20, 30)), 'jpeg', corners) for size, corners in cases]
+        plain = picture('JPEG', (64, 48))
+        read = firmware_numbers(*bodies, plain)['notes']
+        for (size, corners), body, notes in zip(cases, bodies, read):
+            if notes is None:
+                self.assertEqual((size[0] % picture_paint.MCU, size[1] % picture_paint.MCU, corners), (0, 0, ()),
+                                 f'{size}: the screen finds no notes the app wrote')
+                with Image.open(io.BytesIO(body)) as image:
+                    notes = (image.size, ())
+            self.assertEqual(notes, picture_paint.jpeg_notes(body), size)
+            self.assertEqual(notes, (size, corners), size)
+        self.assertIsNone(read[-1], 'a JPEG without the app\'s notes')
+
+    @unittest.skipUnless(HAS_PIL, 'needs Pillow')
+    def test_the_jpeg_notes_lie_where_the_screen_reads_them(self):
+        # picture_jpeg::jpeg_notes reads the segment at fixed places: FF EF at 2, its length at 4, the mark at 6, the
+        # shown width and height at 10 and 12, the count of corners at 14 and eleven bytes a corner from 15 on (x, y, w,
+        # h as two bytes each, the radius as one, the ground as RGB565 in two). The picture behind it is whole MCUs.
+        from PIL import Image
+        body = picture_paint.encode(Image.new('RGB', (226, 254), (10, 20, 30)), 'jpeg', ((2, 3, 40, 30, 8, 0xE73C),))
+        self.assertEqual(body[:4], b'\xff\xd8\xff\xef')
+        self.assertEqual(body[6:10], picture_paint.JPEG_SIZE)
+        self.assertEqual((int.from_bytes(body[10:12], 'big'), int.from_bytes(body[12:14], 'big')), (226, 254))
+        self.assertEqual(body[14], 1)
+        self.assertEqual(body[15:26], bytes([0, 2, 0, 3, 0, 40, 0, 30, 8, 0xE7, 0x3C]))
+        length = int.from_bytes(body[4:6], 'big')
+        self.assertEqual(length, 2 + len(picture_paint.JPEG_SIZE) + 4 + 1 + 11)
+        self.assertEqual(body[4 + length], 0xFF)  # the next marker starts right after the segment
+        self.assertEqual(picture_paint.jpeg_notes(body), ((226, 254), ((2, 3, 40, 30, 8, 0xE73C),)))
+        with Image.open(io.BytesIO(body)) as padded:
+            self.assertEqual(padded.size, (240, 256))  # whole MCUs of picture_paint.MCU each way
 
     @unittest.skipUnless(HAS_PIL, 'needs Pillow')
     def test_a_turned_snapshot_is_measured_the_way_it_is_shown(self):
@@ -190,81 +307,89 @@ class Rules(unittest.TestCase):
                                                'thumb': (392, 220)})
 
     def test_the_firmware_and_the_app_speak_the_same_words(self):
-        self.assertIn('request.service = esphome::StringRef("esphome.screen_camera");', TILES)
-        self.assertIn("event_type='esphome.screen_camera'", (ROOT / 'screen_manager/app/server.py').read_text())
-        self.assertIn('if (op == "camera") {', TILES)
-        self.assertLessEqual({'camera', 'image'}, firmware_domains())
+        # The firmware asks with the esphome.screen_camera event and takes the answer of op `camera`: the real firmware
+        # does both in web/wasm/test_images.mjs. The app listens for it (App, test_home_assistant_listens_for_camera_
+        # requests) and reads it into its queue (App, test_home_assistant_queues_camera_requests).
+        self.assertLessEqual({'camera', 'image'}, firmware_domains(),
+                             'the firmware takes camera and image tiles (catalogue/camera.yaml, catalogue/image.yaml)')
         # The profile binds the three pictures (firmware 0.49.0+: downloaded beside the main loop, picture_fetch) and hands
-        # finished ones to their cards on the main loop; the CYD has none, so it never opens a camera.
-        for needle in ('picture_fetch::bind(picture_fetch::full(),', 'picture_fetch::bind(picture_fetch::thumb(),',
-                       'picture_fetch::bind(picture_fetch::live(),', 'runtime_tiles::picture_done(picture_loader::Slot::FULL, ok, cached);',
-                       'runtime_tiles::picture_done(picture_loader::Slot::THUMB, ok, cached);',
-                       'runtime_tiles::picture_done(picture_loader::Slot::LIVE, ok, cached);',
-                       'runtime_tiles::camera_full.load = ', 'runtime_tiles::camera_thumb.load = ', 'runtime_tiles::camera_live.load = ',
-                       "- lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();', 'runtime_tiles::alert_prepare();',
-                       'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();', 'id: alert_image_frame'):
+        # finished ones to their cards on the main loop: every slot of picture_loader, every hook of a slot, to its own
+        # download slot, and its done to picture_done with that same slot.
+        sources = '\n'.join(path.read_text() for path in sorted((ROOT / 'components/smart_display').glob('*.h')))
+        slots = re.search(r'enum class Slot\s*:\s*\w+\s*\{([^}]*)\}', sources).group(1)
+        slots = [s.strip() for s in slots.split(',') if s.strip()]
+        hooks = re.search(r'struct ImageHooks\s*\{(.*?)\n\};', sources, re.S).group(1)
+        hooks = re.findall(r'std::function<[^;]*>\s+(\w+);', hooks)
+        self.assertTrue(slots and hooks, 'picture_loader::Slot and runtime_tiles::ImageHooks are where this test reads them')
+        for slot in slots:
+            fetch = f'picture_fetch::{slot.lower()}()'
+            done = re.search(r'picture_fetch::bind\(' + re.escape(fetch) + r',\s*\[\]\(bool ok, bool cached\)\s*\{\s*'
+                             r'runtime_tiles::picture_done\(picture_loader::Slot::(\w+), ok, cached\);', PROFILE)
+            self.assertTrue(done and done.group(1) == slot,
+                            f'packages/features/camera.yaml binds {fetch} and hands its download to '
+                            f'runtime_tiles::picture_done(picture_loader::Slot::{slot}, ...), the slot it belongs to')
+            for hook in hooks:
+                set_to = re.search(rf'runtime_tiles::camera_{slot.lower()}\.{hook} = ([^\n]*)', PROFILE)
+                self.assertTrue(set_to and fetch in set_to.group(1),
+                                f'packages/features/camera.yaml sets runtime_tiles::camera_{slot.lower()}.{hook} to work on '
+                                f'{fetch}, the download slot of picture_loader::Slot::{slot}')
+        # glass: open a camera tile full screen on a board with pictures: the picture comes and refreshes every four
+        # seconds, an alert with a camera shows it in its frame, and closing the cards or dimming closes the camera. These
+        # are the screen's moments the camera takes part in, as one profile wires them; nothing on a PC runs that YAML.
+        for needle in ("- lambda: 'picture_fetch::tick(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();',
+                       'runtime_tiles::alert_prepare();', 'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();',
+                       'id: alert_image_frame'):
             self.assertIn(needle, PROFILE, needle)
         # Nothing of ESPHome's online_image is left: it downloaded in the main loop, a chunk a turn, each waiting for the
-        # network, and a page of covers held the glass still for seconds (0.4.80).
-        for gone in ('online_image:', 'http_request:', 'id(camera_image)', 'id(tile_image)', 'id(alert_image)', 'if (url != current) {'):
-            self.assertNotIn(gone, PROFILE, gone)
-        # A busy camera port leaves the rest of the app running.
-        self.assertIn("except OSError as error:\n            # Everything else still works; only camera images stay away.", (ROOT / 'screen_manager/app/server.py').read_text())
+        # network, and a page of covers held the glass still for seconds (0.4.80). No package of any board takes it.
+        for path in sorted(PACKAGES.rglob('*.yaml')):
+            parsed = package(path)
+            for gone in ('online_image', 'http_request'):
+                self.assertNotIn(gone, parsed if isinstance(parsed, dict) else {},
+                                 f'{path.relative_to(ROOT)} takes {gone}: every picture is downloaded beside the main loop '
+                                 '(picture_fetch), never by ESPHome in it (docs/PICTURES.md)')
+        # The CYD has no pictures, so it never opens a camera.
         cyd = profiles.text('checkout/cyd.yaml')
-        self.assertNotIn('picture_fetch::', cyd)
-        self.assertNotIn('camera_full.load', cyd)
+        self.assertNotIn('picture_fetch::', cyd, 'the CYD downloads no pictures: it takes no features/camera.yaml')
+        self.assertNotIn('camera_full.load', cyd, 'the CYD downloads no pictures: it takes no features/camera.yaml')
         # The add-on's port is published, and the Docker route passes it on with the host network.
-        config = (ROOT / 'screen_manager/config.yaml').read_text()
-        self.assertIn(f'{picture_links.PORT}/tcp: {picture_links.PORT}', config)
+        config = yaml.safe_load((ROOT / 'screen_manager/config.yaml').read_text())
+        self.assertEqual(config.get('ports', {}).get(f'{picture_links.PORT}/tcp'), picture_links.PORT,
+                         f'screen_manager/config.yaml publishes the camera port, {picture_links.PORT}/tcp')
 
     def test_the_first_picture_waits_for_no_tick(self):
-        # Firmware 0.2.73+: the camera asks when it opens and loads the link when it comes, not on the next 250 ms tick;
-        # the spinner turns until the first picture or a note is there.
-        opened = TILES.split('inline void camera_open(const std::string &entity, const std::string &name, int map_index, const std::string &focus) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('camera_spinner = spinner_create(camera_root,', opened)
-        # Opened, it says what it wants at once (one round of the picture route, firmware 0.52.0): the loader asks then.
-        self.assertTrue(opened.rstrip().endswith('pictures_round();'))
-        # pictures_awake: awake, or the screensaver's picture in standby (firmware 0.29.0+).
-        want = TILES.split('inline void camera_want() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if (!camera_root || !camera.open() || !pictures_awake()) return;', want)
-        # The answer starts the download in the same round, not on the next tick.
-        answer = TILES.split('inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url, uint32_t number) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertTrue(answer.rstrip().endswith('pictures_round();'))
-        # Never under a finger, and not while the pages turn: the round tells the loader whether it may load.
-        round_ = TILES.split('inline void pictures_round() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('const bool pressed = input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED;', round_)
-        self.assertIn('loader.end(now, !pressed && camera_view::settled(now, last_turn_ms));', round_)
-        note = TILES.split('inline void camera_note_text(const char *text) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('lv_obj_delete(camera_spinner);', note)
-        self.assertNotIn('Loading image', TILES)
+        """Firmware 0.2.73+: the camera asks when it opens and loads the link when it comes, not on the next 250 ms tick;
+        the spinner turns until the first picture or a note is there. A picture starts loading only with no finger down
+        and the pages standing still: camera_view::may_load, which pictures_round asks, proven by
+        tests/test_camera_view.cpp. That a full view asks for its picture and draws the answer is the host render's
+        doorbell round (tools/render/run.py, doorbell_round: "the view asked for no picture" fails it). The view's words
+        come from the translations: English on the glass ("Loading image") is what tools/i18n.py lint refuses."""
+        # glass: a camera opened full screen asks for its picture at once and shows it the moment the answer's picture
+        # has loaded, with the spinner turning until then (the log's "live link N ms after the camera opened" for a
+        # stream, the first picture well under a second after the answer for stills).
+        asked = [name for name, code in firmware_headers().items() if 'camera_view::may_load(' in code]
+        self.assertEqual(asked, ['picture_rounds_lvgl.h'], 'pictures_round (picture_rounds_lvgl.h) asks camera_view::may_load')
 
     def test_the_full_screen_draws_a_copy_a_broken_download_cannot_take_away(self):
-        # Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
-        # every part of the glass drawn again after that (a tile below going unavailable) came out black. The view draws
-        # the store's copy, which the store keeps while it is on the glass and lets go of once the view closes.
-        # Every download goes into the store under its picture's key (picture_done, firmware 0.52.0); a 304 keeps what the
-        # store has. The store takes the download's own buffer, never a copy of it (docs/PICTURES.md, "Memory"), and the
-        # slot lets go of it, keeping its ETag; a 304 for a picture the store let go meanwhile is loaded whole.
-        done = TILES.split('inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if (pictures_kept() && cached && pictures.entry(key)) {\n      pictures.touch(key, now);', done)
-        self.assertIn('pictures.adopt(key, taken, now)', done)
-        self.assertIn('if (kept && hooks.hand_over) hooks.hand_over();', done)
-        self.assertIn('if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {', done)
-        self.assertNotIn('memcpy', (ROOT / 'components/smart_display/picture_store.h').read_text())
-        # A picture the store has no room for is drawn from the download, and says so in the log.
-        self.assertIn('ESP_LOGW("picture", "no room to keep %s", key.c_str());', done)
-        self.assertIn('if (!kept) { slot_key[s] = key; slot_at[s] = now; }', done)
-        view = TILES.split('inline void view_done(picture_loader::Outcome outcome) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('lv_image_dsc_t *src = picture_of(camera_key());', view)
-        self.assertIn('camera_show(camera_root, camera_picture, src, outcome == picture_loader::Outcome::LOADED);', view)
-        self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', TILES)
-        shown = TILES.split('inline bool picture_shown(const lv_image_dsc_t *image) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('on(camera_picture);', shown)
-        self.assertIn('on(alert_picture);', shown)
-        closed = TILES.split('inline void camera_close() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('loader.release(owners::VIEW);', closed)
-        # Let go before the camera is forgotten, or the key would name no camera.
-        self.assertLess(closed.index('loader.release('), closed.index('camera = ViewPicture{};'))
+        """Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
+        every part of the glass drawn again after that (a tile below going unavailable) came out black. The view draws the
+        store's copy, which the store keeps while it is on the glass and lets go of once the view closes.
+
+        What becomes of a finished picture (a 304 the store has is touched, a download goes into the store as its own
+        buffer, a 304 whose picture the store let go is loaded again whole, the rest stays in its slot) is
+        picture_store::arrival and load_again, which picture_done asks; that the store keeps the download's own pixels
+        and no copy, files a picture under another key and keeps what is on the glass is the store's. Both are proven by
+        tests/test_picture_store.cpp. Here: the rule that the view never draws a slot's own download."""
+        # glass: with the full view open, a picture whose download breaks off leaves the view's picture as it was, and a
+        # tile below that goes unavailable is drawn normally (not black).
+        for name, code in firmware_headers().items():
+            self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', code,
+                             f'{name}: the full view draws the store\'s copy (picture_of), never the slot\'s own download')
+
+    def test_a_finished_picture_goes_by_the_stores_tested_rules(self):
+        # picture_store::load_again and arrival, proven by tests/test_picture_store.cpp.
+        asked = [name for name, code in firmware_headers().items() if 'picture_store::arrival(' in code]
+        self.assertEqual(asked, ['picture_rounds_lvgl.h'], 'picture_done (picture_rounds_lvgl.h) asks picture_store::arrival')
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
@@ -445,7 +570,7 @@ class Rig:
         waits = {} if sleep is None else {'sleep': sleep}
         self.snapshots = picture_sources.Snapshots(fetch, clock=self.clock, fetch_cover=fetch_cover, picture=picture, **waits)
         self.links = picture_links.Links(clock=self.clock)
-        self.sources = picture_sources.Sources(self, self.snapshots)
+        self.sources = picture_sources.Sources(picture_sources.Providers.of(self), self.snapshots)
         self.service = picture_service.Service(self, self.sources, self.links)
         self.tiles, self.allowed, self.saver = list(tiles), allowed, set(saver)
         self.ha = types.SimpleNamespace(states={})
@@ -753,7 +878,7 @@ def fake_ha(image=None):
 @unittest.skipUnless(HAS_AIOHTTP and HAS_PIL, 'Run using .venv-portal/bin/python for server tests')
 class App(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     async def test_camera_alert_announcement_and_image_use_the_page_session(self):
         from page_delivery import Sender
@@ -975,6 +1100,64 @@ class App(unittest.IsolatedAsyncioTestCase):
             m.save('text.d1_tiles', {'title': 'Hall', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
             self.assertEqual(m.layouts['text.d1_tiles']['tiles'][0]['entity'], 'camera.max')
 
+    async def test_home_assistant_listens_for_camera_requests(self):
+        # The app's connection, as it starts: it asks Home Assistant for the screens' camera event among its events.
+        class Socket:
+            async def receive_json(self, timeout=None):
+                return self.answers.pop(0)
+
+            async def send_json(self, data):
+                pass
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                await asyncio.Event().wait()
+
+        class Session:
+            def ws_connect(self, url, **options):
+                ws = Socket()
+                ws.answers = [{'type': 'auth_required'}, {'type': 'auth_ok'}]
+
+                @contextlib.asynccontextmanager
+                async def connected():
+                    yield ws
+                return connected()
+
+        subscribed = []
+
+        async def request(kind, **data):
+            if kind == 'get_states':
+                raise asyncio.CancelledError  # the subscriptions are made: stop here
+            if kind == 'subscribe_events':
+                subscribed.append(data['event_type'])
+
+        ha = HomeAssistant(Session(), 'http://ha/api', 'token')
+        ha.request = request
+        with self.assertRaises(asyncio.CancelledError):
+            await ha.run()
+        self.assertIn('esphome.screen_camera', subscribed)
+
+    async def test_a_busy_camera_port_turns_off_camera_images_only(self):
+        # Another program on the camera port: the app goes on without camera images, and the log says why.
+        from aiohttp import web
+        runner = web.AppRunner(picture_links.web_app(picture_links.Links()))
+        await runner.setup()
+        holder = socket.socket()
+        try:
+            holder.bind(('127.0.0.1', 0))
+            holder.listen()
+            busy = holder.getsockname()[1]
+            with self.assertLogs('screen_manager', 'ERROR') as logs:
+                self.assertIsNone(await picture_links.open_port(runner, '127.0.0.1', busy))
+            self.assertIn(f'Camera images are off: port {busy} is not available', logs.output[0])
+            site = await picture_links.open_port(runner, '127.0.0.1', 0)
+            self.assertIsNotNone(site, 'a free port opens')
+        finally:
+            holder.close()
+            await runner.cleanup()
+
     async def test_home_assistant_queues_camera_requests(self):
         from aiohttp import WSMsgType
 
@@ -1101,9 +1284,9 @@ class LiveTiles(unittest.TestCase):
     def test_the_live_display_and_its_pace_are_tile_settings(self):
         from core import LIVE_MIN_FIRMWARE, LIVE_REFRESH, LIVE_REFRESH_DEFAULT
         import catalogue
-        import live_feed
+        import live_stream
         # A tile's pace when it names none is the catalogue's default, the same for a still and a stream.
-        self.assertEqual((picture_sources.TILE_PACE, live_feed.DEFAULT_PACE), (LIVE_REFRESH_DEFAULT, LIVE_REFRESH_DEFAULT))
+        self.assertEqual((picture_sources.TILE_PACE, live_stream.DEFAULT_PACE), (LIVE_REFRESH_DEFAULT, LIVE_REFRESH_DEFAULT))
         self.assertEqual(LIVE_REFRESH, tuple(catalogue.of_type('camera')['picture']['refresh']))
         layout = validate_layout({'title': 'Hall', 'tiles': [{'entity': 'camera.front_door', 'name': '', 'options': {'display': 'live', 'refresh': 30}},
                                                              {'entity': 'image.doorbell', 'name': '', 'options': {'display': 'live'}}]})
@@ -1128,24 +1311,32 @@ class LiveTiles(unittest.TestCase):
 
     def test_pictures_load_while_the_tiles_are_seen(self):
         """GitHub #161 (firmware 0.40.0): a dimmed screen without a screensaver still shows its tiles, so their pictures
-        keep loading there. The rule itself is camera_view::tiles_seen (tests/test_camera_view.cpp); the firmware asks
-        it everywhere a picture on the tiles loads, and the backlight goes by the same standby level."""
-        waiting = TILES.split('inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {', 1)[1].split('\n}', 1)[0]
-        self.assertIn('!tiles_seen()', waiting)
-        # A picture on the glass (a tile's own, a cover over a whole page) follows the tiles; one fetched ahead for a page
-        # that is not shown waits for a screen in use.
-        tiles = TILES.split('inline void card_picture_wants() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('const bool seen = tiles_seen() && !card_open() && !camera_root;', tiles)
-        self.assertIn('const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3;', tiles)
-        page = tiles
-        card = TILES.split('inline void card_cover_want() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('!tiles_seen()', card)
-        self.assertNotIn('if (!awake()) return;', page + tiles + card)
-        # Any screensaver covers the tiles, the clock (saver_root) as much as a camera or a cover (saver_camera).
-        self.assertIn('camera_view::tiles_seen(awake(), saver_root || saver_camera, standby_level())', TILES)
-        core = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn('const int level = id(display_dimmed) ? runtime_tiles::standby_level() : settings.brightness;', core)
-        self.assertNotIn('dim_level(', core)
+        keep loading there. The rules are camera_view's: tiles_seen (awake, or dimmed without a screensaver above
+        SEEN_LEVEL), pictures_on_glass (seen and no card or full view over the tiles) and pictures_ahead (a kept page's
+        only while the screen is in use, with room to spare and nothing busy), proven by tests/test_camera_view.cpp.
+        Here: the firmware's places that load the tiles' pictures ask those rules, and the backlight of a dimmed screen
+        goes by the same standby level."""
+        # glass: a dimmed screen without a screensaver shows a camera tile's new picture; with the clock saver over it,
+        # nothing loads until it wakes.
+        parts = firmware_headers()
+        for rule in ('camera_view::pictures_on_glass(', 'camera_view::pictures_ahead(', 'camera_view::tiles_seen('):
+            self.assertTrue([name for name, code in parts.items() if rule in code], f'the firmware asks {rule}...)')
+
+    def test_a_dimmed_screens_backlight_goes_by_the_level_the_tiles_are_seen_at(self):
+        # The backlight of a dimmed screen, wherever a package sets it, goes by that same level, so the tiles count as seen
+        # exactly while they are lit enough to be.
+        dimmed = []
+        for path in sorted(PACKAGES.rglob('*.yaml')):
+            text = path.read_text()
+            self.assertNotIn('dim_level(', text, f'{path.relative_to(ROOT)}: a dimmed screen\'s level is '
+                             'runtime_tiles::standby_level(), the one camera_view::tiles_seen is asked with')
+            # A level is what a dimmed screen takes where an awake one takes its brightness.
+            dimmed += [(path.name, level.strip()) for level in
+                       re.findall(r'id\(display_dimmed\)\s*\?\s*([^?;]+?)\s*:\s*[\w:.]*brightness\b', text)]
+        self.assertTrue(dimmed, 'a package sets the backlight of a dimmed screen')
+        for name, level in dimmed:
+            self.assertEqual(level, 'runtime_tiles::standby_level()', f'{name}: a dimmed screen\'s backlight goes by '
+                             'runtime_tiles::standby_level(), the level camera_view::tiles_seen is asked with')
 
     def test_a_media_tile_may_show_its_cover_in_the_icons_place(self):
         from core import COVER_TILE_MIN_FIRMWARE, resolve_controls
@@ -1302,7 +1493,7 @@ class LiveTiles(unittest.TestCase):
 @unittest.skipUnless(HAS_AIOHTTP and HAS_PIL, 'Run using .venv-portal/bin/python for server tests')
 class LiveApp(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     async def test_a_screen_asks_for_the_live_tiles_of_its_page(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1496,7 +1687,7 @@ class PublishedPort(unittest.IsolatedAsyncioTestCase):
     """GitHub #84: an owner who publishes 8098 as 8099 on Home Assistant OS gets links on 8099."""
 
     def setUp(self):
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     async def base(self, info, env):
         from unittest import mock
@@ -1526,7 +1717,7 @@ class PublishedPort(unittest.IsolatedAsyncioTestCase):
             return {'adapters': [{'default': True, 'ipv4': [{'address': '192.168.1.5'}]}]}
 
         with mock.patch.dict('os.environ', env, clear=True), mock.patch('aiohttp.ClientSession', Session):
-            return await picture_links.base_url(request)
+            return await lan_address.base_url(request)
 
     async def test_the_link_carries_the_port_the_supervisor_published(self):
         info = {'result': 'ok', 'data': {'network': {'8098/tcp': 8099}}}
@@ -1534,13 +1725,13 @@ class PublishedPort(unittest.IsolatedAsyncioTestCase):
 
     async def test_8098_when_the_supervisor_says_nothing_usable(self):
         for info in ({'data': {'network': {'8098/tcp': None}}}, {'data': {}}, ConnectionError('x')):
-            picture_links.base_url.__defaults__[0].clear()
+            lan_address.base_url.__defaults__[0].clear()
             self.assertEqual(await self.base(info, {'SUPERVISOR_TOKEN': 't'}), 'http://192.168.1.5:8098')
 
     async def test_docker_keeps_its_own_setting(self):
         info = {'data': {'network': {'8098/tcp': 8099}}}
         self.assertEqual(await self.base(info, {}), 'http://192.168.1.5:8098')
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
         self.assertEqual(await self.base(info, {'SUPERVISOR_TOKEN': 't', 'SCREEN_CAMERA_PORT': '9000'}), 'http://192.168.1.5:9000')
 
     async def test_the_last_address_stands_while_home_assistant_does_not_say(self):
@@ -1553,11 +1744,11 @@ class PublishedPort(unittest.IsolatedAsyncioTestCase):
             raise TimeoutError()
 
         with mock.patch.dict('os.environ', {}, clear=True), mock.patch('time.monotonic', return_value=time.monotonic() + 601):
-            self.assertEqual(await picture_links.base_url(silent), 'http://192.168.1.5:8098')
+            self.assertEqual(await lan_address.base_url(silent), 'http://192.168.1.5:8098')
         # Without an address from before there is none to give.
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
         with mock.patch.dict('os.environ', {}, clear=True):
-            self.assertIsNone(await picture_links.base_url(silent))
+            self.assertIsNone(await lan_address.base_url(silent))
 
 
 class TwoNetworks(unittest.IsolatedAsyncioTestCase):
@@ -1570,8 +1761,8 @@ class TwoNetworks(unittest.IsolatedAsyncioTestCase):
         {'name': 'hassio', 'default': False, 'ipv4': [{'address': '172.30.32.1', 'network_prefix': 23}]}]}
 
     async def asyncSetUp(self):
-        picture_links.base_url.__defaults__[0].clear()
-        self.addCleanup(picture_links.base_url.__defaults__[0].clear)
+        lan_address.base_url.__defaults__[0].clear()
+        self.addCleanup(lan_address.base_url.__defaults__[0].clear)
 
     async def base(self, near, adapters=None, env=None):
         from unittest import mock
@@ -1579,7 +1770,7 @@ class TwoNetworks(unittest.IsolatedAsyncioTestCase):
         async def request(kind, **data):
             return adapters or self.ADAPTERS
         with mock.patch.dict('os.environ', env or {}, clear=True):
-            return await picture_links.base_url(request, near=near)
+            return await lan_address.base_url(request, near=near)
 
     async def test_each_screen_gets_the_address_on_its_own_network(self):
         self.assertEqual(await self.base('10.0.50.33'), 'http://10.0.50.2:8098')
@@ -1607,7 +1798,7 @@ class TwoNetworks(unittest.IsolatedAsyncioTestCase):
             return 'http://x:8098'
         from unittest import mock
         manager = type('M', (), {'ha': type('HA', (), {'request': None})()})()
-        with mock.patch.object(picture_links, 'base_url', base_url):
+        with mock.patch.object(lan_address, 'base_url', base_url):
             await server.Manager.link_base(manager, {'ip': '10.0.50.33'})
             await server.Manager.link_base(manager, None)
         self.assertEqual(asked, ['10.0.50.33', None])

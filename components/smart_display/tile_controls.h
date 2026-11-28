@@ -68,6 +68,19 @@ using runtime_tiles::Tile;
 // modes as the mode bar and the card's mode keys, and its circle or power key switches it. `thermostat` names both.
 inline bool humidifier(const Tile &t) { return t.domain() == "humidifier"; }
 inline bool thermostat(const Tile &t) { return t.domain() == "climate" || humidifier(t); }
+// A text of Home Assistant (text, input_text; docs/TEXT_ENTITY.md): its state is its value, any text up to 255
+// characters, an empty one included. The tile shows it as it is, never as a state word, and a password as a dot per
+// character, as Home Assistant's own field does. "unknown" (no value yet) and "unavailable" are state words as anywhere.
+inline bool text_entity(const std::string &domain) { return domain == "text" || domain == "input_text"; }
+// The most bytes of a text's value the screen keeps: Home Assistant's 255 characters, each at most four bytes.
+constexpr size_t TEXT_BYTES = 1020;
+inline bool text_value(const Tile &t) { return text_entity(t.domain()) && t.state != "unknown" && t.available(); }
+inline std::string text_shown(const Tile &t) {
+  if (!t.secret) return t.state;
+  std::string dots;
+  for (unsigned char c : t.state) if ((c & 0xC0) != 0x80) dots += "\xE2\x80\xA2";  // a dot (U+2022) per character
+  return dots;
+}
 
 // Panel kinds: keys (a row of pill buttons), stepper (-/+ pill), slider, toggle, run.
 inline bool is_key_row(const std::string &c) { return c == "buttons" || c == "playback" || c == "chevrons"; }
@@ -103,13 +116,14 @@ inline std::string panel_kind(const Tile &t) {
   if(d=="cover"){if(c=="tilt")return {};if(c=="buttons_tilt")return "buttons";if(c=="position_tilt")return "position";}
   if((d=="climate"||d=="humidifier")&&c=="setpoint_mode")return "setpoint";
   if(d=="media_player"&&c=="volume_playback")return "playback";
+  // A light's presets (module light_presets): with the slider over them on a card with a second row, else the keys alone.
+  if(d=="light"&&c=="brightness_presets")return t.row_span()>1?c:"presets";
   // The small slider of a wide card is that domain's slider: the manager sends no control set beside it
   // (resolve_controls), so the kind comes from the domain.
   if (c.empty() && t.inline_control == "slider") return inline_kind(d);
   if (c == "stepper" && (d == "select" || d == "input_select")) return "chevrons";
   return c;
 }
-inline bool has_mode(const std::string &hvac_modes, const char *mode) { return hvac_modes.find("\"" + std::string(mode) + "\"") != std::string::npos; }
 // Home Assistant's colour for a climate mode (the card and its mode keys use it).
 inline uint32_t mode_color(const std::string &mode) {
   using namespace theme::ha;
@@ -977,7 +991,9 @@ inline bool runtime_card_domain(const std::string &d) {
          d == "calendar" ||
          // A remote opens its card, as Home Assistant's tile card opens its dialog: the power key and its activities
          // (firmware 0.22.0+). The tap option `toggle` switches it instead.
-         d == "remote";
+         d == "remote" ||
+         // A text opens its field with the keyboard (module text_edit), or its plain card on a board without it.
+         d == "text" || d == "input_text";
 }
 // Whether a light offers a colour or a colour temperature, and so opens the colour card instead of the card
 // with the brightness slider. The modes come from Home Assistant as one string (`supported_color_modes`) and
@@ -1010,6 +1026,11 @@ inline bool panel_available(const Tile &t) {
   // A thermostat's modes are its mode bar (climate_bar_keys), the same one as under its -/+ (firmware 0.19.0).
   if(mode=="mode"){std::array<Key,6> keys;return thermostat(t)&&climate_bar_keys(t,keys)>0;}
   if(mode=="brightness")return domain=="light"&&light_dims(t);
+#ifdef SD_MOD_LIGHT_PRESETS
+  // A light's presets: the keys where the tile has any; with the slider over them, the slider at least.
+  if(mode=="presets")return domain=="light"&&light_dims(t)&&t.presets;
+  if(mode=="brightness_presets")return domain=="light"&&light_dims(t);
+#endif
   if(mode=="speed")return domain=="fan"&&(t.supported&feature::FAN_SPEED);
   if(mode=="position")return domain=="cover"&&(t.supported&feature::COVER_POSITION);
   if(mode=="volume")return domain=="media_player"&&(t.supported&(feature::MEDIA_VOLUME_SET|feature::MEDIA_VOLUME_MUTE));

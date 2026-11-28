@@ -8,6 +8,7 @@
 #include "picture_loader.h"
 #include "tile_picture.h"
 #include "lvgl.h"
+#include "theme.h"
 namespace esphome::camera { class Camera; }
 #include "roomy.h"
 
@@ -27,6 +28,10 @@ bool known(const runtime_tiles::Tile &t);
 void render(runtime_tiles::Widgets &w, const runtime_tiles::Tile &t, int width, int height);
 // The card shows something else, or goes: its plugin tile goes with it.
 void release(runtime_tiles::Widgets &w);
+// The colour the plugin tile on this card gave its card (plugin API 0.26, ui::set_card_color): a swatch, an
+// instrument's face, or the card (none given). The palette of the card takes it over the tile's own background
+// (runtime_tiles::card_face).
+theme::Face face(const runtime_tiles::Widgets &w);
 // A tap on a plugin tile's card, with the finger's place on the glass (-1,-1 unknown): the tile reads it in its own
 // pixels through tessera::tap_point().
 void tap(runtime_tiles::Widgets &w, int x, int y);
@@ -55,8 +60,9 @@ void live_places(const runtime_tiles::Widgets &w, const std::function<void(lv_ob
 bool picture_ask(const runtime_tiles::Widgets &w, const runtime_tiles::Tile &t, tile_picture::Ask &a);
 // The card's picture (an lv_image_dsc_t of the store, or nullptr for none) onto its places, each its own piece; a
 // place whose piece is not in it shows its block again.
-// The screen's own camera (docs/PICTURES.md "Capture"): the core watches the camera a plugin brings as ts_camera (the
-// feature `camera`, smart_display.register_plugin calls this) and shows its dot while Home Assistant uses it.
+// The screen's own camera (docs/PICTURES.md "Capture", capture_dot.h): the core watches the camera a plugin brings as
+// ts_camera (the feature `camera`, smart_display.register_plugin calls this) and shows its dot while Home Assistant uses
+// it or a plugin says it does (tessera::capturing).
 void watch_camera(esphome::camera::Camera *camera);
 void camera_dot_update(uint32_t now_ms);
 void picture_place(runtime_tiles::Widgets &w, void *picture);
@@ -85,12 +91,13 @@ void card_letgo(const void *download);
 // `root` with the app's word for it ({"o": options, "x": what it draws from}), at the backlight's level, a new word for
 // it, the same word again (a finger's wish on the player shows in it, saver_wish), and its end (the root goes with it).
 bool saver_known(const std::string &key);
-bool saver_shows();
 // The saver has the step's own picture under it (`backdrop: true`): runtime_tiles opens that picture first.
 bool saver_backdrop(const std::string &key);
 void saver_show(lv_obj_t *root, const std::string &key, const roomy::Text &data, int level, bool night);
 void saver_state(const roomy::Text &data);
 void saver_refresh();
+// How many parts' turns (ui::rotate) the host keeps: a test hook, so the host probe proves a deleted part leaves none.
+size_t turns_kept();
 void saver_hide();
 // Its pictures, as a card's: what it wants this round, the app's answer ("psaver"), and whether a number is its question's.
 void saver_picture_want();

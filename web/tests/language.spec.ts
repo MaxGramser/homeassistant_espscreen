@@ -153,5 +153,6 @@ describe("the top bar's clock", () => {
     useInventoryStore().inventory.language = language({ clock_effective: "12" });
     drawer = mount(TopbarInspector, { props: { index: 0 } });
     expect(drawer.find("#topbar-clock").text()).toBe("12 hour clock · change under Settings → Language & region");
+    expect(drawer.find("#topbar-clock a").attributes("href")).toBe("#settings");
   });
 });

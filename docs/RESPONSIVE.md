@@ -67,6 +67,11 @@ which cell a card takes and how many it spans: `lv_obj_set_grid_cell(tile, STRET
 a wide card two columns, the 0.3.1 taller cards two rows, and a full card the whole page. No coordinate is computed in C++ any more, and the cards grow
 by themselves when the page bar goes (the container then reaches the bottom edge, keeping the side margin).
 
+A page with sections (docs/PAGES.md "Sections") keeps the same rows: a section's title and padding come out of its own
+cards as margins (`section_layout.h inside`, `module_sections.h place`), so no tile outside it changes. The editor's
+card room takes the same margins (`inner`, `margin` in `card-layout.ts`), so its cards are as high as the glass makes
+them.
+
 The cards themselves are made in C++ at boot (firmware 0.53.0+): `runtime_tiles::make_cells` builds one per cell of
 the grid the screen runs on, in the four card styles of `packages/core.yaml` and with the board's `TILE_ICON_SIZE`,
 and `make_card` builds the cards of a kept page the same way. Before, they were YAML widgets, one file per number of
@@ -127,7 +132,9 @@ the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest s
 board's flash, the 4 MB boards have no room to spare, and the CYD runs close to its budget (docs/RELEASING.md).
 `tests/test_font_set.py` fails on a font that slips in with a feature, so adding one is a deliberate change to that
 set. `tools/font_metrics.py` reads a font's line height from the TrueType file, for a check that needs the height LVGL
-will get without building.
+will get without building. Code asks for a font by its role, never by looking at another card: the tile's icon font is
+`runtime_tiles::tile_icon_font()`, fixed at boot (`materialdesign_icons`, handed to `make_cells`), so a card drawn while
+another page's cards are bound measures the same font.
 
 The five text fonts carry the same characters (firmware 0.36.0+): every printable ASCII character, the letters European
 languages write with, and three hearts (♡ ♥ ❤) from `fonts/NotoSansSymbols2-hearts.ttf` through ESPHome's `extras:`,
@@ -232,7 +239,10 @@ behind it. The effects page and the colour card do the same on their own roots.
 
 Anything a finger must hit keeps at least `ui::touch_min()` (7 mm of glass, from the board's density) as its
 touch area, however thin it is drawn: `overlay_card::touchable(object, drawn_thickness)` grows the click area
-instead of the drawing, so a blind's slider on a small panel stays usable.
+instead of the drawing, so a blind's slider on a small panel stays usable. A key in the last row of a card that
+fills the glass also takes the strip between it and the glass's bottom edge (`detail_reach_down`): a finger aimed
+that low lands on the strip as often as on the key, and a touch panel reads a press near its edge a few pixels
+further out. The history card's range keys do this.
 
 ## Designing a card or a page here
 
@@ -346,6 +356,17 @@ proportions: the top bar down to where the tile area starts (`SCROLL_Y`), the gr
 page bar (`PAGE_BAR_H`) once the layout has more than one page, all from `boards.json`, so a card is as high
 against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
 
+Inside a card the mockup draws in the glass's own pixels too, scaled by the page's zoom: the board's corner
+(`TILE_RADIUS`), padding, icon circle and fonts from `boards.json` (`fonts.icon` is the card's icon face,
+`spacing.radius` its corner), written in the screens' Roboto at the firmware's weights (a name is 700, a line 400),
+and every part where the firmware puts it. `web/src/model/card-layout.ts` ports a card of one row (`head_row`,
+`name_font`, `center_icon`, which steps an icon down to the keys' face where its ink does not fit its circle, and the
+control at a wide card's right, `layout_panel`); `tall-layout.ts` a card more than a row high (`tall_tile.h`,
+`climate_tile.h` and `render_tall`); `media-layout.ts` a player over a whole page (`media_card.h`). A name too long
+for its room is cut with the three dots LVGL writes, measured in Roboto. `tests/test_editor_parity.py` holds the
+heads to the WebAssembly build on every board (`CardHead`) and the tall, thermostat and media layouts to the C++ on a
+sweep of rooms (`TallGeometry`). A card carried in a drag keeps all of it: it is carried in a copy of its glass.
+
 ## What is still open, and the way it becomes durable
 
 - The sizes in `runtime_tiles.h` and the metric tables of the settings, effects, media and light cards go
@@ -416,7 +437,8 @@ cover group's page share the one drawing (`cover_paint.h`). The editor lays the 
 port that `tests/test_editor_parity.py` compares with the C++ on a sweep of rooms.
 
 The tile and the card share `cover_slider`, `cover_bar`, `cover_tilt_keys` and `cover_position_action`. A standing
-position slider fills the closed part of the blind; a lying one fills the open part, as Home Assistant's
-cover-position feature does (`cover_bar_raw` turns its value around before it goes out). The tile uses the existing
+position slider fills the closed part of the blind, and so does a lying one, from the left, as Home Assistant's
+cover-position feature does (its slider is `inverted`); a lying tilt bar has its open end at the left for the same
+reason. A cover group's page draws its covers' bars the same way, and its covers take the group tile's `tilt_open`. The tile uses the existing
 captured slider lifecycle, so a lost press cannot send an action. Capability and pending checks run again when an
 interaction commits.

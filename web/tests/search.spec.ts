@@ -19,11 +19,22 @@ describe("a search", () => {
     expect(matchesWords(words, "Guition", 4)).toBe(false);
     expect(matchesWords([], "anything")).toBe(true);
   });
+  it("finds each word typed in any order and any field, whatever the accents or the joins between words", () => {
+    expect(matchesQuery("keuken lamp", "Lamp", "light.lamp_1", "Hue bulb", "Keuken")).toBe(true);
+    expect(matchesQuery("lamp keuken", "Keuken lamp", "light.keuken")).toBe(true);
+    expect(matchesQuery("living room", "Temp", "sensor.living_room_temp")).toBe(true);
+    expect(matchesQuery("living_room", "Living room temperature", "sensor.x")).toBe(true);
+    expect(matchesQuery("cafe", "Café lamp", "light.x")).toBe(true);
+    expect(matchesQuery("café", "Cafe lamp", "light.x")).toBe(true);
+    expect(matchesQuery("keuken lamp", "Lamp", "light.lamp_1", "Hue bulb", "Hal")).toBe(false);
+  });
   it("ranks a name that starts with it first, then one with a word that does, as Spotlight does", () => {
     expect(prefixRank("Lamp kitchen", "lamp")).toBe(0);
     expect(prefixRank("Kitchen lamp", "LAMP")).toBe(1);
     expect(prefixRank("bed_lamp", "lamp")).toBe(1);
     expect(prefixRank("Floodlamp", "lamp")).toBe(2);
+    expect(prefixRank("Keuken lamp", "lamp keu")).toBe(1);
+    expect(prefixRank("Ceiling", "lamp")).toBe(3);
   });
   it("ranks the values a field suggests, ignoring case, spaces, dashes and underscores", () => {
     const commands = ["MEDIA_VOLUME", "VOLUME_UP", "volume down", "POWER"];

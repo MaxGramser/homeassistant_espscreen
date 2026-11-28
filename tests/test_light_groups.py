@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import light_groups  # noqa: E402
 from core import encode, extras, state_message  # noqa: E402
 from page_delivery import Sender  # noqa: E402

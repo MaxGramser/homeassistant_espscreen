@@ -269,6 +269,34 @@
       "no_rooms": "No areas mapped",
       "no_rooms_how": "Map the robot's segments to areas in Home Assistant, in the vacuum's settings.",
       "routines_note": "Made in the robot's own app"
+    },
+    "doorbell": {
+      "tap_talk": "Tap to talk",
+      "talking": "Talking",
+      "tap_stop": "Tap to stop",
+      "connecting": "Connecting",
+      "talk_busy": "Someone else is talking",
+      "talk_failed": "No connection"
+    },
+    "call": {
+      "title": "Call",
+      "calling": "Calling",
+      "calling_video": "Calling with video",
+      "video": "Video call",
+      "audio": "Call",
+      "decline": "Decline",
+      "answer": "Answer",
+      "ended": "Call ended",
+      "declined": "Declined",
+      "busy": "In another call",
+      "no_answer": "No answer",
+      "quiet": "Do not disturb",
+      "gone": "Not reachable",
+      "available": "Available",
+      "sound_only": "Available with sound only",
+      "in_call": "In a call",
+      "offline": "Offline",
+      "missed_at": "Missed call"
     }
   },
   "editor": {
@@ -297,10 +325,26 @@
         "calendars": {
           "hint": "Up to {n} calendars on one card, each in its own colour from Home Assistant."
         }
+      },
+      "presets": {
+        "device_hint": "A preset of the lamp itself sets its own colour, effect and brightness."
       }
     },
     "plugins": {
       "changes": "What changed"
+    },
+    "alerts": {
+      "wizard": {
+        "steps": {
+          "look": {
+            "help": "An icon, a colour, a camera picture if you like, and whether it blinks."
+          }
+        },
+        "buttons": {
+          "color": "Colour",
+          "own_color": "Its own colour"
+        }
+      }
     }
   },
   "addon": {
@@ -311,6 +355,11 @@
           "buttons_tilt": "Open, stop, close and slat tilt",
           "position_tilt": "Position and slat tilt"
         }
+      }
+    },
+    "screen": {
+      "builtin": {
+        "call": "Call"
       }
     }
   }

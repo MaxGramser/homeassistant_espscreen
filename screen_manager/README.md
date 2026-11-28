@@ -2,6 +2,12 @@
 
 **Touch screens for Home Assistant. A screen for every room, one simple editor.**
 
+## LOOKING FOR FUNDING
+
+I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, [send me an email](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera).
+
+Max, maker of Tessera
+
 Thank you! I work on this project with a lot of love, and every bit of support helps. I truly love the Home Assistant community.
 
 If you'd like me to keep building new cards and boards, consider a small monthly contribution. A one-time coffee is just as welcome.

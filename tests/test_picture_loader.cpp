@@ -62,6 +62,19 @@ int main() {
     b.loader.begin(); b.loader.want(CARD, b.want("cover|p|a|132", "cover|p", Rank::CARD)); b.loader.end(60000, true);
     assert(b.loads.size() == 2 && b.asked.size() == 1);
   }
+  // Another track: the download of the new cover knows the key its owner had, so its picture's ETag can go along.
+  {
+    Bench b;
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track1", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1000, true);
+    b.loader.answer("tile|p1", "http://app/1.jpg", 1050);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track1", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1100, true);
+    assert(b.loader.loading_had(Slot::LIVE).empty());
+    b.finish(Slot::LIVE, true, 1200);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track2", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1300, true);
+    b.loader.answer("tile|p1", "http://app/2.jpg", 1350);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track2", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1400, true);
+    assert(b.loader.busy() && b.loader.loading_key(Slot::LIVE) == "tile|track2" && b.loader.loading_had(Slot::LIVE) == "tile|track1");
+  }
   // A picture the store holds is there at once: nothing is asked, nothing loads.
   {
     Bench b;
@@ -153,8 +166,8 @@ int main() {
     b.loader.end(1200, true);
     assert(b.asked.size() == 2 && b.loads.size() == 1 && b.loads[0] == "0:http://app/132");
   }
-  // A camera refreshes at its pace; a load that fails is tried again after the gap, and a link that fails three times is
-  // asked for anew.
+  // A camera refreshes at its pace; a load that fails is tried again at that pace too, and a link that fails three times
+  // is asked for anew.
   {
     Bench b;
     auto round = [&](uint32_t t) { b.loader.begin(); b.loader.want(VIEW, b.want("camera|c", "full|c", Rank::VIEW, Slot::FULL, 4000)); b.loader.end(t, true); };
@@ -166,10 +179,16 @@ int main() {
     assert(b.loads.size() == 1);
     round(5600);  // 4 s after the copy was made
     assert(b.loads.size() == 2);
-    for (int i = 0; i < 3; ++i) {
-      b.finish(Slot::FULL, false, 6000 + i * 2000);
-      round(6000 + i * 2000 + 1000);
-    }
+    b.finish(Slot::FULL, false, 6000);
+    round(7000);
+    assert(b.loads.size() == 2);  // not after the gap: a failure waits the pace
+    round(10000);
+    assert(b.loads.size() == 3);
+    b.finish(Slot::FULL, false, 10500);
+    round(14500);
+    assert(b.loads.size() == 4);
+    b.finish(Slot::FULL, false, 15000);
+    round(16000);
     assert(b.loader.phase(VIEW) == Loader::Phase::ASKED && b.asked.size() == 2);
     int failed = 0;
     for (auto &t : b.told) failed += t.second == Outcome::FAILED;

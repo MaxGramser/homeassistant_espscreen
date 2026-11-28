@@ -15,6 +15,7 @@ A build is what was asked for one profile, with the steps of its kind:
 |---|---|---|
 | `update` | Update, Update all, the nightly round, Reinstall from dev | `Updater.update_one`: install (over the bridge on a board with 4 MB when it must), wait for the screen to report the firmware, settle |
 | `plugins` | Plugins page, a screen's Plugins tab | install the screen's firmware with its plugins file, then settle the plugins (`Plugins._built`) |
+| `icons` | A screen's Icons page, Put on every screen | install the screen's firmware with its plugins file, then settle its icons (docs/ICONS.md) |
 | `install` | New screen, Firmware & USB | one ESPHome action: build, install or download |
 | `check` | Override YAML, Firmware & USB | `esphome config` |
 
@@ -40,6 +41,11 @@ What is asked for a profile that already waits joins that build (`Build.join`):
   already.
 
 What a person follows (`attended`) never joins and is never joined. The same request twice (a second click) waits once.
+
+A plugin build whose plugin parts changed starts from an empty build folder (`Build.fresh`, `Firmware.clean_build`),
+and so does the build it joins. ESPHome never takes a file it wrote into the build folder away again (it wipes the
+folder only when a component it had is gone), so a part that needs what an earlier build left a placeholder for would
+find the placeholder (docs/CAMERA.md, Screen camera's video). The compile cache outside the folder stays.
 
 ## Rounds
 
@@ -106,6 +112,10 @@ but ESPHome does not support remote builds there, and neither does Tessera.
 - The images come back into the app's build folder (`/data/build/<screen>/server`), and everything after the build
   runs here as before: the update over Wi-Fi, USB, the download for the browser, the bridge and the wide partition
   table on boards with 4 MB of flash (`esphome upload --file`).
+- An update builds, then installs, the same YAML: the install takes the build just made instead of asking the server
+  again. A YAML that takes its packages from a branch (`ref: dev` or `ref: main`) is the same text after every push,
+  as the server fetches the branch itself, so its build is taken again only within two minutes, the update it was
+  made for; a release tag or a commit builds the same whenever (`REUSE_MOVING_SECONDS`, `follows_branch`).
 - The page says where a build runs and at which step (packing, sending, waiting, building, fetching), and the Build
   server card says how the last build went.
 
@@ -120,7 +130,9 @@ A build runs here, as without a build server, and its log and the page say why, 
 
 When the log says the server could not install ESPHome, the build server's own log says why. On an Intel Mac, a
 package of ESPHome 2026.9 has no ready-made build and needs Rust to be compiled there
-(github.com/esphome/esphome/issues/20286): install Rust on that computer, or use another one as the build server.
+(github.com/esphome/esphome/issues/20286): install Rust on that computer, pin the package that needs it to its last
+release with a ready-made build (`PIP_CONSTRAINT` pointing at a file with `cbor2==5.9.0`, in the build server's
+environment), or use another computer as the build server.
 
 A build that fails on the server itself (a compile error) fails: the same YAML fails here too, after a much longer
 wait. Its log is the server's.
@@ -137,6 +149,61 @@ wait. Its log is the server's.
   read ends the session, which means a build here. Asked upstream: github.com/orgs/esphome/discussions/3910.
 - `tests/test_build_server.py` runs a small server in the test that speaks the server's side. To try the real one:
   `uvx --from 'esphome-device-builder[esphome]' esphome-device-builder --remote-build-only <folder>`.
+
+## Build files
+
+Every build leaves files in the app's data folder (`/data`, or `data/` beside `compose.yaml` on Docker) so the next
+build of the same screen is quick. `Firmware.build_env` says where each kind goes, and `screen_manager/app/build_files.py`
+measures them and cleans them up. Measured in the app's own image with ESPHome 2026.9 (one Guition 4848S040 and one
+Guition P4 10.1):
+
+| Kind | Where | Size | Without it, the next build |
+|---|---|---|---|
+| A screen's build folder | `build/<profile>` | about 1 GB per screen (1.0 GB for the Guition 4848S040, 0.9 GB for the P4 10.1) | compiles that screen's firmware again; the compile cache answers most of it, so it takes a few minutes longer (57 seconds instead of 8 for an unchanged screen, and 223 for its first build, with four compilers on a Mac; several times that on a Raspberry Pi) |
+| The compile cache | `idf/ccache` | up to 1 GB (`CCACHE_SIZE`) | fetches its board's cache from GitHub again (build_cache.py), or compiles from scratch where there is none |
+| ESP-IDF and its compilers | `idf` (the rest), `platformio` | 2 GB with an ESP32-S3 screen, 3.9 GB once an ESP32-P4 screen was built too (its RISC-V compilers) | downloads them again first (about 1 GB), then compiles from scratch |
+| What ESPHome fetched | `esphome` but `esphome/storage` | 0.6 GB | fetches this repository's packages and components from GitHub again |
+
+So a home with eight screens holds 10 GB or more, most of it in the build folders. Everything else in `/data` (the
+layouts in `screens.json`, keys, plugin data, icons, the update and build server settings) is never a build file.
+
+### Cleaning up
+
+Settings → Build files shows the sizes and has two buttons:
+
+- **Clean up build folders** removes `build/*` for every screen, as ESPHome Device Builder's Clean Build Files does
+  for one device. The toolchain and the compile cache stay, so the next build of a screen takes minutes more, not the
+  first build's quarter of an hour.
+- **Also remove the compile cache and ESP-IDF** removes the rest of the table too, as Device Builder's Clean All does.
+  The next build downloads ESP-IDF again and compiles from the start.
+
+Both ask first and say what they free and cost. A clean-up never runs while a build runs or waits (`BuildQueue.busy`
+refuses it), and the build line holds what is asked meanwhile until it is done (`BuildQueue.hold` and `release`), so no
+build starts on a folder that is half gone.
+
+### When it is offered
+
+From 2 GB of build folders (`OFFER_BYTES`, two or three screens) the editor offers the clean-up: the message that a
+build is ready carries a Free button once per page, and the card says so with a Not now. Not now waits until the
+build folders grew by another 2 GB (`OFFER_AGAIN_BYTES`). The sizes are measured off the loop when the line has nothing
+more to build, when the app starts and after a clean-up, never during a build.
+
+### Clean up after building
+
+Off unless the owner turns it on (`build_files.json`, `auto`). When it is on, the build folders are removed each time the
+line has nothing more to build. That keeps `/data` small, at the cost the switch says beside it: every next build of a
+screen compiles everything again and takes a few minutes longer. It keeps ESP-IDF and the compile cache.
+
+### Backups
+
+`backup_exclude` in `screen_manager/config.yaml` leaves `build/`, `esphome/`, `idf/` and `platformio/` out of Home
+Assistant's backups, so a backup holds the layouts and settings only. A restored backup has none of the build files:
+the first build after it downloads ESP-IDF and compiles each screen as its first build did. On Docker, Home Assistant
+backs up nothing of the container; docs/DOCKER.md says which files to keep.
+
+`tests/test_build_files.py` proves the sizes, what each clean-up removes and keeps, the refusal while building, the
+build that waits for a clean-up, the offer and the automatic clean-up; `web/tests/build-files.spec.ts` the card and
+the offer.
 
 ## Adding a kind of build
 

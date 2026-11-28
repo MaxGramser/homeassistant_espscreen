@@ -46,7 +46,15 @@ import json
 shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text()).values()
 ceilings = {name: max([shape.get(key, low) for shape in shapes] + [low]) for name, key, low in
             (('PAGES', 'max_pages', 8), ('TILES', 'max_tiles', 64), ('BAR_ITEMS', 'max_bar_items', 6))}
-flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES', '-DGRID_COLS=8', '-DGRID_ROWS=8',
+# The modules the preview is built with (components/smart_display/modules.py, the table's `preview` column): each one's
+# define, and its own source file where it has one.
+import importlib.util
+_spec = importlib.util.spec_from_file_location('smart_display_modules', ROOT / 'components/smart_display/modules.py')
+modules = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(modules)
+preview_modules = modules.preview_modules()
+flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES',
+         *[f'-D{modules.MODULES[name]["define"]}' for name in preview_modules], '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
                lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
@@ -73,9 +81,12 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('image_decoder', ROOT / 'web/wasm/generated/image/image_decoder.cpp'),
                           ('receiver', ROOT / 'components/smart_display/page_receiver.cpp'),
                           ('library', ROOT / 'components/smart_display/media_library.cpp'),
+                          ('panel', ROOT / 'components/smart_display/tile_panel.cpp'),
                           ('energy', ROOT / 'components/smart_display/energy_view.cpp'),
                           ('calendar', ROOT / 'components/smart_display/calendar_view.cpp'),
                           ('meter', ROOT / 'components/smart_display/meter_view.cpp'),
+                          *[(name, ROOT / f'components/smart_display/module_{name}.cpp') for name in preview_modules
+                            if (ROOT / f'components/smart_display/module_{name}.cpp').is_file()],
                           ('plugins', ROOT / 'components/smart_display/plugin_host.cpp'),
                           ('hooks', ROOT / 'components/smart_display/screen_hooks.cpp')]:
     obj = objects / f'{name}.o'

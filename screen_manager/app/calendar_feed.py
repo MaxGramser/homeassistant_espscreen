@@ -5,6 +5,11 @@ Home Assistant is the source: `calendar.get_events` for every calendar of a card
 repeating events itself), the colour Home Assistant gives a calendar (its registry's `options.calendar.color`, else the
 frontend's palette by the calendar's place among all calendars, as its calendar panel colours them), and its own names.
 A date without a time is an all-day event whose end does not count (Home Assistant's rule). docs/CALENDAR.md says more.
+
+A screen whose hello says `calendar_detail` gets each event short (`compact`): what its views draw, a title and a place
+cut with an ellipsis, so a busy week fits the message; a tap on an event asks for the rest (`detail`, the screen's
+`esphome.screen_calendar`, answered with op `calendar_event`). Every screen gets at most the events it keeps (`most`),
+the nearest first, and the count of the rest.
 """
 from __future__ import annotations
 
@@ -45,6 +50,16 @@ ALL_DAY, TENTATIVE, PRIVATE = 1, 2, 4
 # Room for the card's part of the state message: the whole message stays under 4096 bytes (page_delivery.MAX_MESSAGE).
 BUDGET = 2600
 TITLE_BYTES, PLACE_BYTES, NOTES_BYTES = 48, 32, 160
+# A compact event's title and place (the screen asks for the rest on a tap), and what the answer to that tap carries.
+# Only the nearest few carry their place (the agenda's rows and up next draw it; the week and the month do not).
+SHORT_TITLE, SHORT_PLACE, PLACED = 28, 20, 8
+DETAIL_TITLE, DETAIL_PLACE, DETAIL_NOTES = 120, 96, 480
+# The screen's feature for compact events and the questions of a tap; the event it asks with, and the op it is answered by.
+FEATURE = 'calendar_detail'
+EVENT = 'esphome.screen_calendar'
+# The events a screen keeps (page_receiver.cpp): 80 with PSRAM, 48 without; a firmware from before `calendar_detail`
+# keeps 24 without PSRAM.
+KEEPS_PSRAM, KEEPS, KEEPS_BEFORE = 80, 48, 24
 # How long fetched events stay fresh; a calendar's own state change fetches again at once (server.Manager).
 SECONDS = 120
 
@@ -116,15 +131,35 @@ def short(text, limit):
     return str(text or '').replace('\n', ' ').strip().encode('utf-8')[:limit].decode('utf-8', errors='ignore')
 
 
+def cut(text, limit):
+    """`text` within `limit` bytes, with an ellipsis where it was cut, so the screen shows that there is more."""
+    whole = str(text or '').replace('\n', ' ').strip()
+    if len(whole.encode('utf-8')) <= limit:
+        return whole
+    return short(whole, limit - 3).rstrip() + '…'
+
+
+def keeps(features, caps):
+    """How many events a screen keeps, by its hello: None where its memory is not known (no cap but the budget)."""
+    psram = (caps or {}).get('psram_kb')
+    if not isinstance(psram, int):
+        return None
+    if psram > 0:
+        return KEEPS_PSRAM
+    return KEEPS if FEATURE in (features or ()) else KEEPS_BEFORE
+
+
 def matches(text, words):
     low = (text or '').lower()
     return any(w.lower() in low for w in words if isinstance(w, str) and w.strip())
 
 
-def card(tile, fetched, states, entries, tz, now):
+def card(tile, fetched, states, entries, tz, now, compact=False, most=None):
     """The `x.cal` of a calendar tile: today, the calendars' colours and names, the events its choices let through as
     minutes from today 00:00, how many did not fit, the notes of the event of the moment (or the next), and a mask a day
-    for the month glance. `fetched`: {entity: [Home Assistant's events]}; `entries`: the entity registry by id."""
+    for the month glance. `fetched`: {entity: [Home Assistant's events]}; `entries`: the entity registry by id.
+    `compact`: each event's title and place short, and `a` says the screen may ask for the rest (`detail`). `most`: the
+    events the screen keeps (`keeps`), the nearest first."""
     options = tile.get('options') or {}
     now = now.astimezone(tz) if tz else now
     today = now.date()
@@ -149,12 +184,10 @@ def card(tile, fetched, states, entries, tz, now):
         for event in fetched.get(entity) or []:
             if not isinstance(event, dict):
                 continue
-            begin, all_day = moment(event.get('start'), now.tzinfo)
-            finish, _ = moment(event.get('end'), now.tzinfo)
-            if not begin:
+            found = moments(event, now.tzinfo)
+            if not found:
                 continue
-            if not finish or finish <= begin:
-                finish = begin + (timedelta(days=1) if all_day else timedelta(minutes=1))
+            begin, finish, all_day = found
             title, place = event.get('summary') or '', event.get('location') or ''
             if places and not matches(place, places):
                 continue
@@ -174,7 +207,8 @@ def card(tile, fetched, states, entries, tz, now):
                 day += timedelta(days=1)
             flags = (ALL_DAY if all_day else 0) | (TENTATIVE if tentative else 0) | (PRIVATE if private else 0)
             rows.append({'s': minutes(begin), 'e': minutes(finish), 'f': flags, 'c': index,
-                         't': '' if private else short(title, TITLE_BYTES), 'p': '' if private else short(place, PLACE_BYTES),
+                         't': '' if private else cut(title, SHORT_TITLE) if compact else short(title, TITLE_BYTES),
+                         'p': '' if private else cut(place, SHORT_PLACE) if compact else short(place, PLACE_BYTES),
                          'n': '' if private else short(event.get('description') or '', NOTES_BYTES)})
     rows.sort(key=lambda r: (r['s'], r['e']))
     # The detail list: from the Monday of this week through `ahead` days.
@@ -201,12 +235,18 @@ def card(tile, fetched, states, entries, tz, now):
     book = booking(tile, states)
     if book:
         data['b'] = book
+    if compact:
+        data['a'] = 1
     # Nearest first: the events around now matter most; what does not fit is counted, never silently cut.
     order = sorted(range(len(rows)), key=lambda i: abs(rows[i]['s'] - t_now) if rows[i]['e'] > t_now else 10 ** 9 + t_now - rows[i]['e'])
     kept = set()
     size = len(json.dumps(data, separators=(',', ':')))
-    for i in order:
+    for rank, i in enumerate(order):
+        if most is not None and len(kept) >= most:
+            break
         r = rows[i]
+        if compact and rank >= PLACED:
+            r['p'] = ''
         item = [r['s'], r['e'], r['f'], r['c'], r['t'], r['p']]
         cost = len(json.dumps(item, separators=(',', ':'), ensure_ascii=False).encode('utf-8')) + 1
         if size + cost > BUDGET:
@@ -216,6 +256,39 @@ def card(tile, fetched, states, entries, tz, now):
     data['e'] = [[r['s'], r['e'], r['f'], r['c'], r['t'], r['p']] for i, r in enumerate(rows) if i in kept]
     data['m'] = len(rows) - len(kept)
     return data
+
+
+def moments(event, tz):
+    """(begin, finish, all_day) of one of Home Assistant's events as the card counts them, or None without a start."""
+    begin, all_day = moment(event.get('start'), tz)
+    finish, _ = moment(event.get('end'), tz)
+    if not begin:
+        return None
+    if not finish or finish <= begin:
+        finish = begin + (timedelta(days=1) if all_day else timedelta(minutes=1))
+    return begin, finish, all_day
+
+
+def detail(tile, fetched, tz, day, cal, start, end):
+    """The answer to a tap on a compact event (op `calendar_event`): its whole title, place and notes, found by its
+    calendar's place on the card and its minutes from `day` 00:00 (the day the screen calls today); None when it is gone
+    or private."""
+    options = tile.get('options') or {}
+    calendars = calendars_of(tile)
+    if options.get('private') is True or not 0 <= cal < len(calendars):
+        return None
+    midnight = datetime.combine(day, day_time(0, 0), tzinfo=tz)
+    for event in fetched.get(calendars[cal]) or []:
+        if not isinstance(event, dict):
+            continue
+        found = moments(event, tz)
+        if not found:
+            continue
+        begin, finish, _ = found
+        if int((begin - midnight).total_seconds() // 60) == start and int((finish - midnight).total_seconds() // 60) == end:
+            return {'t': cut(event.get('summary'), DETAIL_TITLE), 'p': cut(event.get('location'), DETAIL_PLACE),
+                    'n': cut(event.get('description'), DETAIL_NOTES)}
+    return None
 
 
 def booking(tile, states):

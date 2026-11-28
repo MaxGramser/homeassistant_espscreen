@@ -46,6 +46,28 @@ and then the rooms, suction and water and routines as long as the map keeps its 
 to its own view. Landscape glass puts the map at the left and the rest at the right. Low glass (a 3.5-inch landscape
 board) puts the state beside the map and one row of keys under it.
 
+## A larger tile
+
+On a board with 8 MB of flash or more, a robot's tile two rows high (a 2x2, a 2x3, a whole page) can show more than
+Start and Dock. Choose it in the editor's inspector under the tile's controls, or take the choice the grow tip offers
+when you drag the tile larger:
+
+- **Map**: the robot's map, with the room it is in while it cleans.
+- **Rooms to pick**: the rooms as icon tiles. Tap them in the order you want them cleaned, then Start, which counts
+  them; each room says its place in the order. Only for a robot that can clean by area.
+- **Routines**: the robot's routines as a list; a tap runs one.
+- **Map and rooms**: the map with the rooms beside it on a wide tile, or under it on a tall one.
+
+Each is offered only where the robot has it: a map on its device, routines on its device, cleaning by area. The tile is
+a small screen of its own: the robot's icon, name and state at the top (with how far it is and its battery as chips
+where there is room), the map, the rooms or the routines in a frame, and the keys in a dock at the bottom, with the
+cleaning mode as icons (vacuum, both, mop) where the robot has one. On a shorter tile the mode goes first, then the keys
+move up beside the name, and a last room tile says how many more there are and opens the card. A tap anywhere else on
+the tile opens the card, as on every tile.
+
+The CYD and the other 4 MB boards keep the tile with its keys: ESP Screen Manager sends them the keys instead, and a
+screen with older firmware gets the keys too until it is updated.
+
 ## For developers
 
 - `screen_manager/app/vacuum_card.py`: the `vc` block of a vacuum's state message, sent to a screen whose hello says
@@ -62,3 +84,10 @@ board) puts the state beside the map and one row of keys under it.
   routines, suction and water) and the map's picture. `module_vacuum_card.h` is what runtime_tiles.h reaches of it.
 - `tests/test_vacuum_module.py` checks the block and the map; `tools/render/run.py --only vacuum` renders the card in
   every state, with a drawn map or your own (`VACUUM_MAP=<a PNG>`).
+- The larger tile: `catalogue/vacuum.yaml` has its four controls (`map`, `rooms`, `routines`, `map_rooms`), each with
+  `screen: {feature: vacuum_tile, else: buttons}` and `needs: {device: [...]}` for what the robot's device must hold
+  (`catalogue.device_holds`, `Manager.device_has`). `components/smart_display/vacuum_tile.h` places every part without
+  LVGL (`tests/test_vacuum_tile.cpp`); `module_vacuum_tile.cpp` paints it in two layers around the map's picture, which
+  the tile asks for as the source `vacuum:<entity>` at the map's exact size. The editor's `model/vacuum-tile.ts` ports
+  the plan and `TileVacuum.vue` draws it; `tests/test_editor_parity.py` (VacuumTile) compares both on every board's
+  shape. `tools/render/run.py --only vacuumtile` renders every face, picks, cleaning, an error and dark.

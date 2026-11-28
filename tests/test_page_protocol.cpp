@@ -48,6 +48,13 @@ int main() {
         if (pages.included(i)) for (int j = i + direction; j >= 0 && j < 5; j += direction)
           if (pages.included(j)) { expected = j; break; }
         assert(pages.step(i, direction) == expected);
+        // Looping: the same in the middle, and from the ends round to the first page that is in the sequence.
+        int around = i;
+        if (pages.included(i)) for (int moved = 1; moved < 5; ++moved) {
+          const int j = (i + direction * moved + 5) % 5;
+          if (pages.included(j)) { around = j; break; }
+        }
+        assert(pages.step(i, direction, true) == around);
       }
     }
     assert(pages.restore(2, true) == 1);
@@ -93,11 +100,20 @@ int main() {
       for (unsigned n = 0; n < count; ++n) { assert(transfer.tile(n)); assert(!transfer.tile(n)); }
       assert(!transfer.page(np) && !transfer.tile(count));
       assert(transfer.commit() && transfer.active && transfer.matches(30));
+      assert(transfer.whole(true) && !transfer.whole(false));
+      // A hello from an app that starts again (docs/PAGES.md, "A hello"): a new lease, and the layout held stays whole,
+      // so fresh() and navigation_ready() do not change; no value of the new lease lands before its begin.
       transfer.grant(12, 102);
-      assert(transfer.begin(30, np, count) == Begin::unchanged && transfer.active);
+      assert(!transfer.begun && transfer.whole(true) && !transfer.matches(30));
+      assert(transfer.begin(30, np, count) == Begin::unchanged && transfer.whole(true) && transfer.matches(30));
       assert(transfer.commit());
+      // Another layout after a hello is not whole until its last page and tile.
       transfer.grant(13, 103);
-      assert(transfer.begin(31, np, count) == Begin::replace && !transfer.active);
+      assert(transfer.whole(true));
+      assert(transfer.begin(31, np, count) == Begin::replace && !transfer.active && !transfer.whole(true));
+      for (unsigned n = 0; n < np; ++n) assert(transfer.page(n));
+      for (unsigned n = 0; n < count; ++n) { assert(!transfer.whole(true)); assert(transfer.tile(n)); }
+      assert(transfer.commit() && transfer.whole(true) && transfer.matches(31));
     }
   }
   Transfer transfer;

@@ -3,6 +3,7 @@
 // and for one of them, the event with a second button, and waiting for the answer. The examples are the doorbell, its
 // words in the editor's language; the YAML itself stays as code. Pure, with the words from the translations.
 import { andList, t } from "../i18n";
+import { title, trigger, type Automation, type TriggerKind } from "./automation";
 
 export type AlertField = { name: string; type: string; example: unknown; label?: string; help?: string };
 /** What the add-on says of alerts: their fields, the bytes a field holds per look and the boards that have it, the
@@ -10,7 +11,7 @@ export type AlertField = { name: string; type: string; example: unknown; label?:
 export type AlertReference = {
   fields?: AlertField[]; limits?: Record<string, Record<string, number>>; limit_boards?: Record<string, string[]>;
   event?: string; broadcast?: { show?: string; dismiss?: string }; camera?: { name: string; example: string };
-  choice?: { fields?: AlertField[]; action2?: { name: string; example: string } }; screen?: { example?: string };
+  choice?: { min_firmware?: string; fields?: AlertField[]; action2?: { name: string; example: string } }; screen?: { example?: string };
 };
 export type AlertScreen = { node?: string; name: string; pictures?: boolean };
 
@@ -94,4 +95,52 @@ export function choiceYaml(reference: AlertReference | undefined) {
   lines.push(`  button2_text: ${yamlString(text)}`, `  button2_color: red`, `  action: script.open_gate`,
     `  ${choice?.action2?.name || "button2_action"}: ${choice?.action2?.example || "script.snooze_reminder"}`);
   return `event: ${showEvent(reference)}\nevent_data:\n${lines.join("\n")}`;
+}
+
+/** The alert's automation of the wizard (Events, Alerts): what starts it, then the event for every screen with the alert's
+ * fields, its camera and its screens, called "Tessera: <its title>" (model/automation.ts). */
+export function alertAutomation(reference: AlertReference | undefined, choice: {
+  trigger: string; kind: TriggerKind | null; fields: Record<string, unknown>; camera?: string; screens?: string[];
+}): Automation {
+  const screens = choice.screens || [];
+  return {
+    alias: title(String(choice.fields.title || "") || t("editor.events.alerts")),
+    description: t("editor.alerts.wizard.description"),
+    triggers: [trigger(choice.trigger || "binary_sensor.front_door", choice.kind || "on")],
+    actions: [{ event: showEvent(reference), event_data: {
+      ...Object.fromEntries(Object.entries(choice.fields).filter(([, value]) => value !== "" && value !== undefined)),
+      ...(choice.camera ? { camera: choice.camera } : {}),
+      ...(screens.length ? { screen: screens.length === 1 ? screens[0] : screens } : {}),
+    } }],
+  };
+}
+
+/** An alert's button as the wizard builds it: its words, its key colour, and the action it performs for an entity. */
+export type AlertButtonChoice = { text: string; color: string; entity: string; action: string };
+/** The event's fields for the buttons: the first (`button_text`, `button_color`, `action` with `data`) and, with two, the
+ * second (`button2_*`), each action only when its entity and action are both chosen. */
+export function buttonFields(first: AlertButtonChoice, second: AlertButtonChoice | null): Record<string, unknown> {
+  const out: Record<string, unknown> = { button_text: first.text, button_color: first.color };
+  if (first.entity && first.action) Object.assign(out, { action: first.action, data: { entity_id: first.entity } });
+  if (second) {
+    Object.assign(out, { button2_text: second.text, button2_color: second.color });
+    if (second.entity && second.action) Object.assign(out, { button2_action: second.action, button2_data: { entity_id: second.entity } });
+  }
+  return out;
+}
+
+/** What the wizard says of how its alert reaches the screens. It is always the event for every screen
+ * (esp_screens_show_alert): the only way that carries a camera, a button's action or a choice of screens, and the app
+ * gives each screen the form its firmware knows (show_alert, or show_alert_choice for two buttons) and the picture only
+ * where it draws one. Each note is a key of editor.alerts.wizard.route with the screens it concerns. */
+export type RouteScreen = { name: string; choice: boolean; pictures: boolean };
+export function alertRoute(want: { two: boolean; actions: number; camera: boolean }, screens: RouteScreen[]) {
+  const names = (list: RouteScreen[]) => list.map((s) => s.name);
+  const notes: { key: string; screens?: string[] }[] = [{ key: "event" }];
+  const older = want.two ? screens.filter((s) => !s.choice) : [];
+  if (older.length) notes.push({ key: "one_button", screens: names(older) });
+  if (want.actions) notes.push({ key: "action" });
+  const plain = want.camera ? screens.filter((s) => !s.pictures) : [];
+  if (plain.length) notes.push({ key: "no_picture", screens: names(plain) });
+  return notes;
 }

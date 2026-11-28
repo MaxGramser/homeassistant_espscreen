@@ -63,8 +63,7 @@ class LayoutTests(unittest.TestCase):
             text = (ROOT / 'packages' / 'looks' / f'{look}.yaml').read_text()
             self.assertIn('HEADER_INSET: ${GRID_MARGIN}', text, look)
             self.assertNotIn('PAGE_CHEVRON_INSET', text, look)
-        self.assertIn('page_bar::align(previous,true,grid_margin);page_bar::align(next,false,grid_margin);', runtime_source())
-        self.assertIn('page_bar::margin = margin;', runtime_source())
+        # On the glass: web/wasm/test_page_frame.mjs reads the title, the tiles and the chevrons' ink at one margin.
 
     def test_the_cards_are_made_at_boot_one_per_cell(self):
         """The cards are made in C++ at boot, one per cell of the grid the screen runs on (firmware 0.53.0+), so no
@@ -72,9 +71,9 @@ class LayoutTests(unittest.TestCase):
         self.assertFalse((ROOT / 'packages' / 'cells').exists())
         for board, path in sorted(profiles.BOARDS.items()):
             self.assertNotIn('cells:', path.read_text(), board)
-        self.assertIn(f"runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), {profiles.board_values('cyd')['TILE_ICON_SIZE']});", SOURCE)
-        runtime = runtime_source()
-        self.assertIn('for (size_t i = 0; i < grid.slots(); ++i) {', runtime[runtime.index('inline void make_cells('):])
+        self.assertIn(f"runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), {profiles.board_values('cyd')['TILE_ICON_SIZE']});", SOURCE,
+                      'the board makes its cards at boot with its own icon size')
+        # A card for every cell of the grid: web/wasm/test_grid.mjs.
 
     def test_the_grids_a_screen_may_be_given_hold_its_own_and_are_worked_out_within_its_board(self):
         """The grids ESP Screens may give a screen (firmware 0.53.0+, looks/shared/grid.yaml). ESPHome works a board's
@@ -101,18 +100,15 @@ class LayoutTests(unittest.TestCase):
         """No card carries a coordinate: the container is a grid and place_page only names a cell and its span."""
         self.assertIn('type: GRID', SOURCE)
         self.assertNotRegex(SOURCE, r'id: tile\d+\n\s+x: ')
-        runtime = runtime_source()
-        self.assertIn('lv_obj_set_grid_dsc_array(tile_grid, grid_columns_dsc.data(), grid_rows_dsc.data());', runtime)
-        # A card's cell goes through set_cell, which sets it only when it changes (firmware 0.3.2+, kept pages).
-        self.assertIn('set_cell(w.tile,column,span_x,row,span_y);', runtime)
-        self.assertIn('lv_obj_set_grid_cell(obj, LV_GRID_ALIGN_STRETCH, column, span_x, LV_GRID_ALIGN_STRETCH, row, span_y);', runtime)
+        # The cards stand in the grid's cells, every cell of a row as high as the next: web/wasm/test_grid.mjs.
 
     def test_runtime_binds_every_tile_and_guards_a_tap(self):
         """The tiles are bound by the runtime; it filters a tap before anything happens."""
         runtime = runtime_source()
-        # A tap that switches is a wish and takes every clean tap (docs/OPTIMISTIC.md); any other keeps the 600 ms guard.
-        self.assertIn('if (!(switches ? allowed_wish(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), tile.entity)', runtime)
-        self.assertIn(': allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), tile.entity))) return;', runtime)
+        # A tap that switches is a wish and takes every clean tap (web/wasm/test_page_frame.mjs); rule: any other keeps
+        # the 600 ms guard (TouchGuard::accept, tests/test_screen_input.cpp).
+        self.assertIn(': allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), tile.entity))) return;', runtime,
+                      'a tap that does not switch goes through the 600 ms guard')
 
     def test_navigation_is_above_grid_but_below_modal_overlays(self):
         grid = SOURCE.index('            id: tile_scroll')
@@ -122,12 +118,11 @@ class LayoutTests(unittest.TestCase):
         self.assertLess(nav, modal)
 
     def test_page_key_press_shows_around_the_chevron(self):
-        from firmware_sources import runtime_source
-        RUNTIME_TILES = runtime_source()
+        # Rule: a pressed page key paints around its chevron's ink (page_bar.h), not the half of the glass it takes.
         PAGE_BAR = (ROOT / 'components' / 'smart_display' / 'page_bar.h').read_text()
-        self.assertIn('if(!nav_prev){page_bar::patch(previous);page_bar::patch(next);}', RUNTIME_TILES)
-        self.assertIn('theme::style(theme::Paint::page_pressed)', PAGE_BAR)
-        self.assertIn('inline lv_area_t ink_area(lv_obj_t *o)', PAGE_BAR)
+        self.assertIn('if(!nav_prev){page_bar::patch(previous);page_bar::patch(next);}', runtime_source(), 'the page keys are patched once')
+        self.assertIn('theme::style(theme::Paint::page_pressed)', PAGE_BAR, 'with the pressed paint')
+        self.assertIn('inline lv_area_t ink_area(lv_obj_t *o)', PAGE_BAR, "round the chevron's ink")
 
     def test_every_pager_is_the_tile_pages_pager(self):
         """One pager (page_bar.h), always where the tile pages have theirs, across the foot of the glass: the settings
@@ -137,7 +132,7 @@ class LayoutTests(unittest.TestCase):
         for name, made in (('settings_screen.h', 'page_bar::make(root, pager_step)'), ('group_page.h', 'page_bar::make(root, pager_step)'),
                            ('media_library.cpp', 'page_bar::make(root, pager_step)'), ('media_library.cpp', 'page_bar::make(menu_root, menu_pager_step)'),
                            ('runtime_tiles.h', 'page_bar::make(detail_root,select_pager_step)')):
-            self.assertIn(made, (smart / name).read_text(), name)
+            self.assertIn(made, runtime_source() if name == 'runtime_tiles.h' else (smart / name).read_text(), name)
         for path in smart.glob('*.[hc]*'):
             if path.name == 'page_bar.h':
                 continue
@@ -164,17 +159,14 @@ class LayoutTests(unittest.TestCase):
             number = source.split('            id: page_number\n', 1)[1].split('\n        - ', 1)[0]
             self.assertIn('clickable: false', number, name)
             self.assertIn(f'height: {band}\n', number, name)
-        runtime = runtime_source()
-        self.assertIn('page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count)', runtime)
-        self.assertIn('set_hidden(control,!sequential)', runtime)
+        # A dot for each page, and no page bar for one page: web/wasm/test_page_frame.mjs.
 
     def test_nothing_is_placed_before_a_layout_arrives(self):
         """Until ESP Screens sends a layout the cells stay empty; place_page hides every slot the page has no card for."""
         block = SOURCE.split('  - id: show_tile_page\n', 1)[1].split('  - id: apply_screen_settings', 1)[0]
         self.assertIn('lv_obj_add_flag(w.tile, LV_OBJ_FLAG_HIDDEN)', block)
         self.assertIn('id(page_prev), id(page_next), id(page_number)', block)
-        runtime = runtime_source()
-        self.assertIn('else{lv_obj_add_flag(w.tile,LV_OBJ_FLAG_HIDDEN);hide_extra(w);hide_panel(w);}', runtime)
+        # The glass before a layout: web/wasm/test_page_frame.mjs.
 
     def test_self_test_cannot_call_a_home_assistant_action(self):
         block = SOURCE.split('  - id: ui_self_test\n', 1)[1].split('  - id: show_tile_page', 1)[0]

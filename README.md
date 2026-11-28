@@ -1,3 +1,12 @@
+> [!IMPORTANT]
+> # LOOKING FOR FUNDING
+>
+> I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. Help now with a donation, or mail me an offer or an idea.
+>
+> **[Donate now](https://buymeacoffee.com/f5j9jnkmhpv)** · **[Mail an offer or idea](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera%3A%20an%20offer%20or%20an%20idea)**
+>
+> Max, maker of Tessera
+
 <p align="center">
   <a href="https://tessera-maxgramser.on-forge.com"><img src="docs/images/tessera-mosaic.jpg" width="100%" alt="A mosaic of real Tessera screens in every size, from the 2.8-inch CYD to the 10.1-inch Guition: lights, music, the thermostat, the weather, locks, blinds and the vacuum, in light and dark mode"></a>
 </p>
@@ -93,6 +102,29 @@ https://github.com/user-attachments/assets/f9f6a933-d388-4c8b-9c9a-011dfa37617b
   <img src="docs/images/photo-guition-light.jpg" width="32%" alt="The light card of the purple lamp: the colour slider at 304 degrees, the brightness slider at 20 percent and the effects key at the top right">
 </p>
 <p align="center"><sub>Real photos, not renders: the 4-inch Guition next to the lamp it controls.</sub></p>
+
+## Print a stand for your screen
+
+A screen looks best on a stand that was made for it. These are free to download and print on MakerWorld, each with a
+ready Bambu Studio print profile and no supports needed.
+
+<p align="center">
+  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="32%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
+  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="32%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
+  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="32%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
+</p>
+
+- **[Home Assistant tablet base](https://makerworld.com/en/models/3485702)** for the Seeed reTerminal D1001 (8 inch): a
+  round base with a dock, tilted 30 degrees. Two printed rails hold the screen by its VESA holes, with four M4 x 8 mm
+  screws. The ESP32-P4 inside plays your cameras live and talks to Assist.
+- **[Wedge stand](https://makerworld.com/en/models/3410079)** for the Guition 4" ESP32-S3-4848S040: a calm wedge that
+  holds the square screen at a comfortable angle. Take the small back plate off the screen first (two tiny screws on
+  its back), then push it in.
+- **[Upright stand](https://makerworld.com/en/models/3389654)** for the same Guition 4": the first Tessera stand, with a
+  small heart in its speaker grille. Push the screen in, no screws.
+
+**Printed one?** A like or a Boost on MakerWorld costs you nothing and helps keep Tessera free, and a photo of your
+make with your own layout is always welcome.
 
 ## Five screens supported, 2.8 to 10.1 inch
 
@@ -393,6 +425,7 @@ while it keeps your country's clock and numbers.
 | CYD ESP32-2432S028 with ILI9342 (experimental) | 320 × 240, 2 × 3 tiles | ILI9342 / resistive XPT2046; hardware acceptance pending |
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
+| Waveshare ESP32-S3-Touch-LCD-4.3C (experimental) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911, CH32V003 expander (not the 4.3's CH422G); dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE43C.md)) |
 | Waveshare ESP32-S3-Touch-LCD-5 (new) | 800 × 480, 3 × 3 tiles | RGB / capacitive GT911, the 4.3-inch's board with 5-inch glass (backlight always on: no standby, no night; [details](docs/WAVESHARE5.md)) |
 | Guition JC8048W550C_I, 5 inch (experimental) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911; dimmable backlight, the capacitive variant only ([details](docs/JC8048W550.md)) |
 | [Waveshare ESP32-S3-Touch-LCD-7](https://tessera-maxgramser.on-forge.com/screens/waveshare7) (experimental) | 800 × 480, 4 × 4 tiles | RGB / capacitive GT911; backlight always on, hardware acceptance pending ([details](docs/WAVESHARE7.md)) |
@@ -411,6 +444,7 @@ while it keeps your country's clock and numbers.
 | [Guition JC8012P4A1](https://tessera-maxgramser.on-forge.com/screens/jc8012p4a1), 10.1 inch | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, ESP32-P4 (new); speaker and microphone (experimental) ([details](docs/JC8012P4A1.md)) |
 | Guition JC8012P4A1 V2, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, early ESP32-P4 with the newer LCD; speaker and microphone (experimental), hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GT911, pre-v3 ESP32-P4; dimmable backlight, speaker and microphones (experimental), hardware acceptance pending ([details](docs/WAVESHARE101.md)) |
+| Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 V3 (new) | 1280 × 800, 5 × 5 tiles | The same board with rev3 ESP32-P4 silicon, which Waveshare ships now; picture, touch and pages seen on one board, speaker and microphones not yet tried ([details](docs/WAVESHARE101.md)) |
 | Guition JC8012P4A1 V3, 10.1 inch (experimental) | 1280 × 800, 5 × 5 tiles | MIPI-DSI JD9365 / capacitive GSL3680, rev3 ESP32-P4; speaker and microphone (experimental), hardware acceptance pending ([details](docs/JC8012P4A1.md)) |
 | [Waveshare ESP32-P4-86-Panel-ETH-2RO](docs/WAVESHAREP4.md), 4 inch (experimental) | 720 × 720, 2 × 3 tiles | MIPI-DSI ST7703 / capacitive GT911, ESP32-P4; dimmable backlight, speaker and microphones, Wi-Fi only ([details](docs/WAVESHAREP4.md)) |
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; speaker and microphone (experimental), hardware acceptance pending ([details](docs/JC1060P470.md)) |

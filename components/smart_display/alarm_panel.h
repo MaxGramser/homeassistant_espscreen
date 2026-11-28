@@ -41,6 +41,8 @@ constexpr const char *SHIELD = "\U000F0498", *SHIELD_OFF = "\U000F099E", *SHIELD
 constexpr const char *SHIELD_MOON = "\U000F1828", *SHIELD_AIRPLANE = "\U000F06BB", *SECURITY = "\U000F0483";
 constexpr const char *SHIELD_OUTLINE = "\U000F0499", *BELL_RING = "\U000F009E", *LOCK_CLOCK = "\U000F097F";
 constexpr const char *CHECK = "\U000F012C", *CLOSE = "\U000F0156";
+// The keypad's delete key: the arrow the keyboard's backspace has (keyboard.h, I_BACK), in every screen's fonts.
+constexpr const char *ERASE = "\U000F004D";
 }
 
 // One mode the card offers: the state it leads to, the action that sets it, and the feature bit it needs (0: disarm).
@@ -278,14 +280,24 @@ inline CardLayout card_layout(const Metrics &m, int width, int top, int bottom, 
 
 // The space between two dots.
 inline int dot_gap(int dot) { return dot * 3 / 5; }
+// A key at most this many times as wide as it is tall, and at most this many hundredths of its width tall, so the
+// keypad fills the glass without its keys turning into bars or towers.
+constexpr int KEY_WIDE_MAX = 21, KEY_TALL_MAX = 140;  // tenths, hundredths
+// And never larger than this on the glass, in millimetres: a large phone keypad's key. A ten inch screen would
+// otherwise give every key a hand's width, which looks absurd and makes the hand travel further.
+constexpr int KEY_W_MAX_MM = 24, KEY_H_MAX_MM = 18;
 struct KeypadLayout {
   Rect info;          // where the dots and the line stand
   Rect dots, line;
   int dot = 16;       // a dot's diameter, smaller when many digits have to fit
-  Rect keys[12];      // 1-9, clear, 0, OK
+  Rect keys[12];      // 1-9, the key left of 0 (delete), 0, the key right of it (OK, or delete when the code sends itself)
   bool beside = false;
 };
-// The keypad under the bar. `digits` is how many dots it shows (at least four, like a PIN field).
+// The keypad under the bar. `digits` is how many dots it shows (at least four, like a PIN field, or exactly the
+// alarm's send_after). The keys are as large as the room allows, up to a large phone keypad's: the dots and their line take what
+// they need, above the keys or beside them on wide glass, and the twelve keys share all the rest, a finger's size at
+// the least. People type a code here while a siren goes, so a key of a fixed size in the middle of a large glass
+// was too small (docs/ALARM_PANEL.md, "The keypad").
 inline KeypadLayout keypad_layout(const Metrics &m, int width, int top, int bottom, unsigned digits) {
   KeypadLayout l;
   const int x = m.side, w = width - 2 * m.side, h = bottom - top;
@@ -293,36 +305,77 @@ inline KeypadLayout keypad_layout(const Metrics &m, int width, int top, int bott
   const int shown = (int) (digits < 4 ? 4 : digits > CODE_MAX ? CODE_MAX : digits);
   l.beside = w * 10 >= h * 13;
   int g = m.gap();
-  const int info_h = m.dot() + g + m.text_h;
-  int kh = m.key_h() > m.least_key() ? m.key_h() : m.least_key();
-  const int keys_h = l.beside ? h : h - info_h - 2 * g;
-  // Short glass gives up the space between the keys before a key gets smaller than a finger.
-  if (4 * m.least_key() + 3 * g > keys_h) g = (keys_h - 4 * m.least_key()) / 3 > 2 ? (keys_h - 4 * m.least_key()) / 3 : 2;
-  if (4 * kh + 3 * g > keys_h) kh = (keys_h - 3 * g) / 4 > m.least_key() ? (keys_h - 3 * g) / 4 : m.least_key();
-  // A key as wide as a finger and a half, and never wider than a third of the room.
-  int kw = kh * 3 / 2;
-  const int third = ((l.beside ? w * 64 / 100 : w) - 2 * g) / 3;
-  if (kw > third) kw = third;
-  if (kw < m.least_key()) kw = m.least_key();
-  const int pad_w = 3 * kw + 2 * g, pad_h = 4 * kh + 3 * g;
-  // Beside each other on wide glass, the dots keep close to the keys: the two stand together in the middle.
-  const int info_w = l.beside ? (w - pad_w - 2 * g < pad_w ? w - pad_w - 2 * g : pad_w) : w;
-  const int pair_x = l.beside ? x + (w - (info_w + 2 * g + pad_w)) / 2 : x;
-  const int px0 = l.beside ? pair_x + info_w + 2 * g : x + (w - pad_w) / 2;
-  // Under each other, the dots stand right above the keys and the two in the middle of the card, as a phone's.
-  const int py0 = l.beside ? top + (h - pad_h) / 2 : top + (h - (info_h + 2 * g + pad_h)) / 2 + info_h + 2 * g;
-  for (int i = 0; i < 12; ++i) l.keys[i] = {px0 + (i % 3) * (kw + g), py0 + (i / 3) * (kh + g), kw, kh};
-  l.info = l.beside ? Rect{pair_x, top, info_w, h} : Rect{x, py0 - 2 * g - info_h, w, info_h + g};
   l.dot = m.dot();
-  while (l.dot > 4 && shown * l.dot + (shown - 1) * dot_gap(l.dot) > l.info.w) --l.dot;
-  const int row_w = shown * l.dot + (shown - 1) * dot_gap(l.dot);
   // Beside the keys the column is narrow (a CYD lying down leaves it a hundred pixels), so the line under the dots may
   // take up to three lines there ("Nothing changed. Check the code." cut after its first word otherwise).
   const int lines = l.beside ? 3 : 1;
+  const int info_h = l.dot + g + lines * m.text_h;
+  // Beside: the dots take 36 hundredths of the glass, at least what four dots need, so "Try again in 0:30" stays on
+  // one line on a CYD lying down (LVGL breaks a line at a colon); under each other, a band.
+  int info_w = l.beside ? w * 36 / 100 : w;
+  const int least_info = 4 * l.dot + 3 * dot_gap(l.dot);
+  if (l.beside && info_w < least_info) info_w = least_info;
+  const int room_w = l.beside ? w - info_w - 2 * g : w, room_h = l.beside ? h : h - info_h - 2 * g;
+  // Short glass gives up the space between the keys before a key gets smaller than a finger.
+  if (4 * m.least_key() + 3 * g > room_h) g = (room_h - 4 * m.least_key()) / 3 > 2 ? (room_h - 4 * m.least_key()) / 3 : 2;
+  int kw = (room_w - 2 * g) / 3, kh = (room_h - 3 * g) / 4;
+  if (kw * 10 > kh * KEY_WIDE_MAX) kw = kh * KEY_WIDE_MAX / 10;
+  if (kh * 100 > kw * KEY_TALL_MAX) kh = kw * KEY_TALL_MAX / 100;
+  if (kw > ui::mm(KEY_W_MAX_MM)) kw = ui::mm(KEY_W_MAX_MM);
+  if (kh > ui::mm(KEY_H_MAX_MM)) kh = ui::mm(KEY_H_MAX_MM);
+  if (kw < m.least_key()) kw = m.least_key();
+  if (kh < m.least_key()) kh = m.least_key();
+  const int pad_w = 3 * kw + 2 * g, pad_h = 4 * kh + 3 * g;
+  int px0, py0;
+  if (l.beside) {
+    // The dots take all the width the keys leave, so a line such as "Try again in 0:29" keeps to one line; the keys
+    // stand at the right edge, the two together in the middle once the keys reached their ceiling.
+    const int left = w - pad_w - 2 * g, widest = info_w > pad_w ? info_w : pad_w;
+    info_w = left < widest ? left : widest;
+    const int pair_x = x + (w - (info_w + 2 * g + pad_w)) / 2;
+    l.info = {pair_x, top, info_w, h};
+    px0 = pair_x + info_w + 2 * g;
+    py0 = top + (h - pad_h) / 2;
+  } else {
+    // Under each other, the dots stand right above the keys and the two in the middle of the card, as a phone's.
+    const int block = info_h + 2 * g + pad_h, y0 = top + (h - block) / 2 > top ? top + (h - block) / 2 : top;
+    l.info = {x, y0, w, info_h + g};
+    px0 = x + (w - pad_w) / 2;
+    py0 = y0 + info_h + 2 * g;
+  }
+  for (int i = 0; i < 12; ++i) l.keys[i] = {px0 + (i % 3) * (kw + g), py0 + (i / 3) * (kh + g), kw, kh};
+  while (l.dot > 4 && shown * l.dot + (shown - 1) * dot_gap(l.dot) > l.info.w) --l.dot;
+  const int row_w = shown * l.dot + (shown - 1) * dot_gap(l.dot);
   const int block = l.dot + g + lines * m.text_h, by = l.info.y + (l.info.h - block) / 2;
   l.dots = {l.info.x + (l.info.w - row_w) / 2, by, row_w, l.dot};
   l.line = {l.info.x, by + l.dot + g, l.info.w, lines * m.text_h};
   return l;
+}
+
+// ---- Sending by itself ----
+// Home Assistant never says how many digits a code has: an alarm panel reports only code_format ("number" or "text"),
+// the manual alarm takes a code of any length or a template, and Alarmo keeps a code per person. So the screen sends a
+// code by itself only when someone said how long it is (the alarm's choice on the Events page, which the app gives
+// every tile of it as send_after; 0 for never), and then it
+// shows exactly that many dots and needs no OK key. A code sent too early would count as a wrong one.
+constexpr unsigned SEND_AFTER_MIN = 4, SEND_AFTER_MAX = 8;
+inline unsigned send_after(unsigned option) { return option >= SEND_AFTER_MIN && option <= SEND_AFTER_MAX ? option : 0; }
+// Whether this many typed digits send the code now.
+inline bool sends_now(unsigned option, unsigned typed) { return send_after(option) && typed == send_after(option); }
+// What the two keys beside 0 are. With an OK key: delete left, OK right. Sending by itself: nothing left, delete
+// right, where a phone has it.
+enum class Side : uint8_t { NONE, DELETE, OK };
+inline Side left_of_zero(unsigned option) { return send_after(option) ? Side::NONE : Side::DELETE; }
+inline Side right_of_zero(unsigned option) { return send_after(option) ? Side::DELETE : Side::OK; }
+// How many dots the keypad shows: the tile's length, or what is typed with four at the least.
+inline unsigned dots_shown(unsigned option, unsigned typed) {
+  if (send_after(option)) return send_after(option);
+  return typed < 4 ? 4 : typed;
+}
+// A panel that goes off or counts someone in, and asks a code to disarm: its card is the keypad at once, on red
+// without a card with one Disarm key first.
+inline bool keypad_first(const std::string &state, const Codes &c) {
+  return calls_for_attention(state) && needs_code(c, DISARM) && code_typable(c);
 }
 
 }  // namespace alarm_panel

@@ -43,9 +43,8 @@ CAMERA_DOMAINS = ('camera', 'image')
 COVER_DOMAINS = ('media_player',)
 # Home Assistant's own pictures a plugin tile or card of an entity may show (its entity_picture, as a map's markers).
 HA_PICTURES = ('/api/image/serve/', '/api/image_proxy/', '/local/')
-# The screensaver step's own picture (plugin API 0.14 named it saver:picture, 0.17 `step:`).
+# The screensaver step's own picture (plugin API 0.17).
 STEP = 'step:'
-STEP_ALIASES = ('saver:picture',)
 MAX_ADDRESS = 512
 
 
@@ -79,7 +78,7 @@ def source(text):
     """A Source from its text, or None for one that is not a source."""
     if not isinstance(text, str) or not text or len(text) > MAX_ADDRESS:
         return None
-    if text in STEP_ALIASES or text == STEP:
+    if text == STEP:
         return Source('step')
     if text == 'photos:':
         return Source('photos')

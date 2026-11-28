@@ -25,6 +25,7 @@ export const SETTING_GROUPS = [
     { key: "home_on_standby", kind: "toggle" },
     { key: "swipe_pages", kind: "toggle" },
     { key: "page_buttons", kind: "toggle" },
+    { key: "loop_pages", kind: "toggle" },
     { key: "home_button", kind: "toggle" },
     { key: "rotation", kind: "choice", options: [0, 90, 180, 270] },
   ] },

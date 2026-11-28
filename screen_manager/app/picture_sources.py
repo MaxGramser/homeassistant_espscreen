@@ -29,7 +29,6 @@ COVER_RETRY_SECONDS = 60
 # load finds a snapshot a fraction of a second old (GitHub #183); a load whose fetch is still on its way waits this long.
 AHEAD_MARGIN = 0.5
 AHEAD_WAIT = 1.5
-MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024
 # A camera tile's pace when it names none, in seconds (catalogue camera.picture.refresh).
 TILE_PACE = 15
 # Firmware whose camera tile fills its card with the tile's own fit and shade (app 0.3.8): 1x2 and 2x2 from 0.3.3, every
@@ -337,12 +336,77 @@ def camera_modes(firmware, options):
     return 'cover', False
 
 
+@dataclass
+class Providers:
+    """What the sources read of the app (docs/PICTURE_ARCHITECTURE.md, section 4): one callable per fact, so a source's
+    rules and getting name what they need and their tests hand in fakes. `Providers.of(manager)` binds them to
+    server.Manager, each read when it is called: a dict the Manager keeps (its states, its shelves) is read as it is then,
+    and a method a test replaces later is the one called."""
+    # The layout and what a screen may show.
+    tiles: object              # (inbox) -> the layout's tiles
+    camera_allowed: object     # (inbox, entity) -> whether a screen may show that camera (a tile of it, a recent alert)
+    saver_entities: object     # (inbox) -> the entities the screensaver shows
+    # Home Assistant's facts.
+    states: object             # () -> every entity's state, as Home Assistant reported it last
+    followed: object           # (entity) -> the player a card shows (it may follow a speaker)
+    player_ground: object      # (entity, attributes) -> the colours beside a player's cover
+    device_entries: object     # (entity) -> the entities of the entity's device
+    registry_index: object     # () -> the entity registry, indexed
+    # The pictures the app draws itself.
+    map_render: object         # (tile, shape, dark, full=, focus=, move=) -> (mark, draw)
+    map_meta: object           # async (mark, width, height, focus) -> a map's markers
+    mosaic: object             # (entity, rows) -> (mark, draw): a player's covers at rest
+    rest_pool: object          # (entity) -> (when, covers) a player at rest shows, or None
+    # The library and the photos.
+    thumbnail: object          # async (entity, url, title) -> a library item's picture
+    shelf: object              # (inbox) -> a screen's library shelf, or None
+    photo: object              # (inbox) -> the screensaver's photo of now, or None
+    photo_state: object        # (inbox, options) -> the photo's state (its mark)
+    # The screensaver.
+    saver_choice: object       # (screen) -> what the screen's screensaver shows
+    step_picture: object       # async (inbox, screen, kind) -> a plugin step's picture
+    plugin_saver_kind: object  # (inbox, key) -> the kind of a plugin's screensaver step
+    # The plugins.
+    plugin_refused: object     # (inbox, screen, question, source) -> why a plugin's place may not have it, or None
+    plugin_picture: object     # async (inbox, screen, question, source) -> a plugin's picture
+
+    @classmethod
+    def of(cls, manager):
+        m = manager
+        return cls(
+            tiles=lambda inbox: m.layout_tiles(inbox),
+            camera_allowed=lambda inbox, entity: m.camera_allowed(inbox, entity),
+            saver_entities=lambda inbox: m.saver_entities(inbox),
+            states=lambda: m.ha.states,
+            followed=lambda entity: m.followed(entity),
+            player_ground=lambda entity, attributes: m.player_ground(entity, attributes),
+            device_entries=lambda entity: m.device_entries(entity),
+            registry_index=lambda: m.registry_index(),
+            map_render=lambda *args, **options: m.map_render(*args, **options),
+            map_meta=lambda mark, width, height, focus: m.map_meta(mark, width, height, focus),
+            mosaic=lambda entity, rows: m.rest_render(entity, rows),
+            rest_pool=lambda entity: m.rest_pools.get(entity),
+            thumbnail=lambda entity, url, title='': m.thumbnail(entity, url, title),
+            shelf=lambda inbox: m.shelves.get(inbox),
+            photo=lambda inbox: m.photos.raw(inbox),
+            photo_state=lambda inbox, options: m.photos.state(inbox, options),
+            saver_choice=lambda screen: m.saver_choice(screen),
+            step_picture=lambda inbox, screen, kind: m.saver_picture(inbox, screen, kind),
+            plugin_saver_kind=lambda inbox, key: m.plugin_saver_kind(inbox, key),
+            plugin_refused=lambda inbox, screen, question, source: m.plugin_picture_refused(inbox, screen, question, source),
+            plugin_picture=lambda inbox, screen, question, source: m.plugin_picture(inbox, screen, question, source),
+        )
+
+    def state(self, entity):
+        return self.states().get(entity)
+
+
 class Sources:
-    """The rules and the getting, for every source kind, over the app's Manager (server.Manager): its layouts, Home
+    """The rules and the getting, for every source kind, over what the app provides (Providers): its layouts, Home
     Assistant's states, the screensavers, the plugins and the caches it keeps."""
 
-    def __init__(self, manager, snapshots):
-        self.manager, self.snapshots = manager, snapshots
+    def __init__(self, providers, snapshots):
+        self.app, self.snapshots = providers, snapshots
 
     # ----- the layout's pictured tiles -----
     def pictured(self, tile):
@@ -363,14 +427,14 @@ class Sources:
     def index_of(self, inbox):
         """For firmware that named a page's tiles by entity alone (before 0.16.0): the index of the first pictured tile
         of that entity, or -1."""
-        tiles = self.manager.layout_tiles(inbox)
+        tiles = self.app.tiles(inbox)
 
         def find(entity):
             return next((n for n, tile in enumerate(tiles) if tile.get('entity') == entity and self.pictured(tile)), -1)
         return find
 
     def _tile(self, inbox, source):
-        tiles = self.manager.layout_tiles(inbox)
+        tiles = self.app.tiles(inbox)
         n = int(source.ref)
         if n >= len(tiles):
             return None
@@ -384,12 +448,12 @@ class Sources:
     def may(self, inbox, screen, question, source):
         """None when this screen may have this source for this question's owner; else a sentence for the log."""
         owner, kind = question.owner, source.kind
-        m = self.manager
+        m = self.app
         plugin = owner.kind.startswith('plugin')
         if plugin:
             # A plugin's place: what its manifest allows (how many places, which hosts, Home Assistant's own pictures of
             # its entity, the step's picture), and the core's sources only for its own entity (plugin API 0.17).
-            problem = m.plugin_picture_refused(inbox, screen, question, source)
+            problem = m.plugin_refused(inbox, screen, question, source)
             if problem:
                 return problem
             if kind in ('camera', 'cover', 'entity') and source.ref not in self._plugin_entities(inbox, question):
@@ -414,7 +478,7 @@ class Sources:
             return None if m.camera_allowed(inbox, source.ref) else f'{source.ref} is not on the layout'
         if kind == 'library':
             entity = source.ref.split('/', 1)[0]
-            return None if entity in {t['entity'] for t in m.layout_tiles(inbox)} else f'{entity} is not on the layout'
+            return None if entity in {t['entity'] for t in m.tiles(inbox)} else f'{entity} is not on the layout'
         if kind == 'photos':
             return None if owner.kind == 'saver' else 'the photos are the screensaver\'s'
         if kind in ('step', 'url', 'ha', 'entity'):
@@ -425,7 +489,7 @@ class Sources:
         """The entities whose pictures a plugin's place may show: its tile's entity, or the entity its card or step shows."""
         owner = question.owner
         if owner.kind == 'plugin_tile':
-            tiles = self.manager.layout_tiles(inbox)
+            tiles = self.app.tiles(inbox)
             tile = tiles[owner.index] if 0 <= owner.index < len(tiles) else {}
             return {e for e in (tile.get('entity'), (tile.get('options') or {}).get('plugin_entity')) if e}
         return {owner.of} if owner.of else set()
@@ -433,7 +497,7 @@ class Sources:
     # ----- get -----
     async def get(self, inbox, screen, question, source, place):
         """What `source` gives for `place` of `question` (Resolved)."""
-        kind, m = source.kind, self.manager
+        kind, m = source.kind, self.app
         if kind == 'camera':
             # An alert reads the snapshot its pictures were measured from (Snapshots.size fetched it just now).
             found = await self.snapshots.still(source.ref, pace=question.pace / 1000)
@@ -447,7 +511,7 @@ class Sources:
                 return PENDING if question.owner.kind == 'saver' and self.snapshots.cover_pending(source.ref) else NONE
             ground = None
             if place.fit == 'saver':
-                colours = m.player_ground(source.ref, (m.ha.states.get(source.ref) or {}).get('attributes') or {})
+                colours = m.player_ground(source.ref, (m.state(source.ref) or {}).get('attributes') or {})
                 ground = int(colours.split(',')[0], 16) if colours and colours != '-' else 0
             return Resolved(found[0], f'cover:{found[1][:16]}', ground=ground)
         if kind == 'tile':
@@ -458,7 +522,7 @@ class Sources:
             return await self._vacuum(inbox, question, source, place)
         if kind == 'library':
             entity, token = source.ref.split('/', 1)
-            shelf = m.shelves.get(inbox)
+            shelf = m.shelf(inbox)
             item = shelf.get(entity, int(token)) if shelf is not None else None
             url = (item or {}).get('thumb')
             if not url:
@@ -466,16 +530,16 @@ class Sources:
             raw = await m.thumbnail(entity, url, (item or {}).get('title', ''))
             return Resolved(raw, f'library:{url}') if raw is not None else NONE
         if kind == 'photos':
-            raw = m.photos.raw(inbox)
+            raw = m.photo(inbox)
             if raw is None:
                 return PENDING
             choice = m.saver_choice(screen)
-            state = m.photos.state(inbox, choice['photos'])
+            state = m.photo_state(inbox, choice['photos'])
             fit = {'fill': 'cover', 'whole': 'whole'}.get(choice['photos'].get('fit', 'auto'), 'auto')
             moving = choice['photos'].get('motion') == 'slow'
             return Resolved(raw, f'photos:{state.get("mark")}', fit=fit, move=moving)
         if kind == 'step':
-            raw = await m.saver_picture(inbox, screen, m.plugin_saver_kind(inbox, question.owner.key))
+            raw = await m.step_picture(inbox, screen, m.plugin_saver_kind(inbox, question.owner.key))
             return Resolved(raw, f'step:{hashlib.sha1(raw).hexdigest()[:16]}') if raw else NONE
         if kind in ('url', 'ha', 'entity'):
             raw = await m.plugin_picture(inbox, screen, question, source)
@@ -483,7 +547,7 @@ class Sources:
         return NONE
 
     async def _tile_picture(self, inbox, screen, question, source, place):
-        m = self.manager
+        m = self.app
         tile = self._tile(inbox, source)
         options = tile.get('options') or {}
         entity, display = tile['entity'], options.get('display')
@@ -495,9 +559,9 @@ class Sources:
             raw = await m.thumbnail(entity, play['thumb'], play.get('title'))
             return Resolved(raw, f'favorite:{play["thumb"]}') if raw is not None else NONE
         if display == 'cover':
-            if rest_mosaic.wants(options) and rest_mosaic.at_rest(m.ha.states.get(m.followed(entity))) and \
-                    (m.rest_pools.get(entity) or (0, []))[1]:
-                mark, draw = m.rest_render(entity, rest_mosaic.rows_for(options))
+            if rest_mosaic.wants(options) and rest_mosaic.at_rest(m.state(m.followed(entity))) and \
+                    (m.rest_pool(entity) or (0, []))[1]:
+                mark, draw = m.mosaic(entity, rest_mosaic.rows_for(options))
                 return Resolved(_Drawn(draw), f'mosaic:{mark()}')
             found = await self.snapshots.cover(entity)
             return Resolved(found[0], f'cover:{found[1][:16]}') if found else NONE
@@ -511,8 +575,8 @@ class Sources:
         return Resolved(found[0], f'camera:{entity}:{found[1][:16]}', fit=fit, fade=fade, stream=stream)
 
     async def _map(self, inbox, screen, question, source, place):
-        m = self.manager
-        tiles = m.layout_tiles(inbox)
+        m = self.app
+        tiles = m.tiles(inbox)
         n = int(source.ref)
         tile = tiles[n]
         if (tile.get('options') or {}).get('display') != 'map':
@@ -520,16 +584,16 @@ class Sources:
             tile = {'entity': tile['entity'], 'name': tile.get('name', ''), 'options': {'display': 'map', 'distance': 'neighbourhood'}}
         focus = source.param('focus')
         import map_card
-        focus = focus if focus in map_card.shown(tile, m.ha.states, m.registry_index()) else ''
+        focus = focus if focus in map_card.shown(tile, m.states(), m.registry_index()) else ''
         move = map_card.move_of(source.param('move') or None)
         mark, draw = m.map_render(tile, pq.shape_of(screen), question.dark, full=True, focus=focus, move=move)
         return Resolved(_Drawn(draw, meta=lambda w, h: m.map_meta(mark(), w, h, focus)), f'map:{mark()}')
 
     async def _vacuum(self, inbox, question, source, place):
-        m = self.manager
+        m = self.app
         import vacuum_card
         import vacuum_map
-        found = vacuum_card.map_entity(source.ref, m.device_entries(source.ref), m.ha.states)
+        found = vacuum_card.map_entity(source.ref, m.device_entries(source.ref), m.states())
         if not found:
             return NONE
         held = await self.snapshots.vacuum(found['e'], found['m'])

@@ -38,7 +38,7 @@ export function documentFixture(view: Layout, grid = testGrid): PageDocument {
     if (o.size === "wide" || o.size === "full") appearance.presentation = o.size;
     for (const [key, option] of Object.entries({ display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub" }))
       if (o[option] !== undefined) Object.assign(appearance, { [key]: clone(o[option]) });
-    for (const key of ["tap", "inline", "controls", "action"] as const) if (o[key] !== undefined) Object.assign(interaction, { [key]: clone(o[key]) });
+    for (const key of ["tap", "inline", "controls", "action", "presets", "preset_levels"] as const) if (o[key] !== undefined) Object.assign(interaction, { [key]: clone(o[key]) });
     layout.pages[Math.floor(tile.slot / cells)].tiles.push({ id: tile.id, content, appearance, interaction,
       placement: { row: Math.floor(tile.slot % cells / grid.columns), column: tile.slot % grid.columns,
         columns: o.size === "full" ? grid.columns : ["wide", "square"].includes(o.size || "") ? Math.min(2, grid.columns) : 1,

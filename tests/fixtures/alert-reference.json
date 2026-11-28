@@ -1,0 +1,510 @@
+{
+ "min_firmware": "0.2.31",
+ "event": "esphome.screen_alert",
+ "broadcast": {
+  "show": "esp_screens_show_alert",
+  "dismiss": "esp_screens_dismiss_alert"
+ },
+ "endings": [
+  {
+   "action": "ok",
+   "label": "The button was pressed"
+  },
+  {
+   "action": "button2",
+   "label": "The second button was pressed"
+  },
+  {
+   "action": "timeout",
+   "label": "The timeout ran out"
+  },
+  {
+   "action": "replaced",
+   "label": "A new alert came over it"
+  },
+  {
+   "action": "remote",
+   "label": "dismiss_alert from Home Assistant"
+  }
+ ],
+ "fallback_icon": "alert-outline",
+ "fallback_cp": "F002A",
+ "fields": [
+  {
+   "name": "title",
+   "type": "string",
+   "label": "Title",
+   "help": "A single line at the top of the card; what doesn't fit gets an ellipsis. Empty becomes \"Notification\".",
+   "example": "Someone is at the door"
+  },
+  {
+   "name": "subtitle",
+   "type": "string",
+   "label": "Subtitle",
+   "help": "Explanation under the title, across multiple lines; a line break is fine. Empty is fine.",
+   "example": "Door 3, back"
+  },
+  {
+   "name": "icon",
+   "type": "string",
+   "label": "Icon",
+   "help": "A name from the list, also as mdi:name or as a hex codepoint (F12E6). Unknown or empty gives the warning triangle.",
+   "example": "doorbell"
+  },
+  {
+   "name": "color",
+   "type": "string",
+   "label": "Color",
+   "help": "One of the nine pastel colors of the tiles. Empty gives the white card.",
+   "example": "orange"
+  },
+  {
+   "name": "button_text",
+   "type": "string",
+   "label": "Button text",
+   "help": "The text on the button. Empty is \"OK\".",
+   "example": "Coming"
+  },
+  {
+   "name": "timeout",
+   "type": "int",
+   "label": "Timeout",
+   "help": "Seconds after which the card disappears on its own. 0 waits for the button, however long that takes. The button always closes it immediately, even with a timeout.",
+   "example": 0
+  },
+  {
+   "name": "flash",
+   "type": "bool",
+   "label": "Blinking",
+   "help": "On makes the backlight blink four times when the alert arrives; the screen then just stays on.",
+   "example": true
+  }
+ ],
+ "camera": {
+  "name": "camera",
+  "label": "Camera",
+  "help": "A camera or image entity. Every screen but the CYD, with firmware 0.2.57+, shows its picture of that moment on the card, in the proportions of the camera itself (above the words, or beside them on a wide, low screen); a tap on it opens the camera full screen. The CYD shows the alert without it. Only through the esp_screens_show_alert event.",
+  "example": "camera.front_door"
+ },
+ "screen": {
+  "name": "screen",
+  "label": "Screen",
+  "help": "Which screen gets the alert: its device name (such as kitchen-screen), the name Home Assistant shows, or a room, which reaches every screen in it. A list, such as [kitchen-screen, hallway], reaches several. Leave it out for every screen. A name that matches no screen sends nothing; the Tessera Screen Manager log names the screens it knows. Only through the esp_screens_show_alert and esp_screens_dismiss_alert events.",
+  "example": "kitchen-screen"
+ },
+ "action": {
+  "name": "action",
+  "label": "Action",
+  "help": "A Home Assistant action, such as script.open_gate or light.turn_off, performed once when the button is pressed on any screen. `data` gives its fields (entity_id, brightness, ...). A timeout or a new alert leaves it unperformed. Only through the esp_screens_show_alert event.",
+  "example": "script.open_gate"
+ },
+ "choice": {
+  "min_firmware": "0.3.3",
+  "action": "show_alert_choice",
+  "fields": [
+   {
+    "name": "button_color",
+    "type": "string",
+    "label": "Button color",
+    "help": "The button in a color of its own: red, orange, yellow, green, mint, blue, purple, pink or gray, as a full key color with white words. Empty keeps the dark button.",
+    "example": "green"
+   },
+   {
+    "name": "button2_text",
+    "type": "string",
+    "label": "Second button text",
+    "help": "A second button on the left of the first, for a choice such as Decline and Accept. Empty gives one button.",
+    "example": "Not now"
+   },
+   {
+    "name": "button2_color",
+    "type": "string",
+    "label": "Second button color",
+    "help": "The second button in one of the same colors. Empty keeps the light button.",
+    "example": "red"
+   }
+  ],
+  "action2": {
+   "name": "button2_action",
+   "label": "Second button action",
+   "help": "A Home Assistant action performed once when the second button is pressed on any screen, like `action` for the first. `button2_data` gives its fields. Only through the esp_screens_show_alert event.",
+   "example": "script.snooze_reminder"
+  }
+ },
+ "limits": {
+  "compact": {
+   "title": 48,
+   "subtitle": 160,
+   "button_text": 12
+  },
+  "standard": {
+   "title": 64,
+   "subtitle": 240,
+   "button_text": 16
+  }
+ },
+ "limit_boards": {
+  "compact": [
+   "CYD",
+   "Hosyond"
+  ],
+  "standard": [
+   "Guition",
+   "Waveshare",
+   "Sunton",
+   "M5Stack Tab5",
+   "reTerminal D1001",
+   "CrowPanel",
+   "SenseCAP",
+   "Freenove",
+   "WT32"
+  ]
+ },
+ "colors": [
+  {
+   "name": "red",
+   "label": "Red",
+   "color": "#FADADD"
+  },
+  {
+   "name": "orange",
+   "label": "Orange",
+   "color": "#FFE1C6"
+  },
+  {
+   "name": "yellow",
+   "label": "Yellow",
+   "color": "#FFF0C2"
+  },
+  {
+   "name": "green",
+   "label": "Green",
+   "color": "#D9EEDC"
+  },
+  {
+   "name": "mint",
+   "label": "Mint",
+   "color": "#D5F0EA"
+  },
+  {
+   "name": "blue",
+   "label": "Blue",
+   "color": "#D9EAFB"
+  },
+  {
+   "name": "purple",
+   "label": "Purple",
+   "color": "#E9DDF5"
+  },
+  {
+   "name": "pink",
+   "label": "Pink",
+   "color": "#F7DDEC"
+  },
+  {
+   "name": "gray",
+   "label": "Gray",
+   "color": "#E5E7EB"
+  }
+ ],
+ "suggested_icons": [
+  {
+   "name": "doorbell",
+   "cp": "F12E6"
+  },
+  {
+   "name": "bell",
+   "cp": "F009A"
+  },
+  {
+   "name": "bell-ring",
+   "cp": "F009E"
+  },
+  {
+   "name": "alert-outline",
+   "cp": "F002A"
+  },
+  {
+   "name": "alarm-light",
+   "cp": "F078F"
+  },
+  {
+   "name": "lock",
+   "cp": "F033E"
+  },
+  {
+   "name": "lock-open-variant",
+   "cp": "F0FC6"
+  },
+  {
+   "name": "door-open",
+   "cp": "F081C"
+  },
+  {
+   "name": "window-closed-variant",
+   "cp": "F11DB"
+  },
+  {
+   "name": "motion-sensor",
+   "cp": "F0D91"
+  },
+  {
+   "name": "cctv",
+   "cp": "F07AE"
+  },
+  {
+   "name": "smoke-detector",
+   "cp": "F0392"
+  },
+  {
+   "name": "water-alert",
+   "cp": "F1502"
+  },
+  {
+   "name": "fire",
+   "cp": "F0238"
+  },
+  {
+   "name": "mailbox",
+   "cp": "F06EE"
+  },
+  {
+   "name": "car",
+   "cp": "F010B"
+  },
+  {
+   "name": "account",
+   "cp": "F0004"
+  },
+  {
+   "name": "account-group",
+   "cp": "F0849"
+  },
+  {
+   "name": "washing-machine",
+   "cp": "F072A"
+  },
+  {
+   "name": "robot-vacuum",
+   "cp": "F070D"
+  },
+  {
+   "name": "timer-outline",
+   "cp": "F051B"
+  },
+  {
+   "name": "check",
+   "cp": "F012C"
+  }
+ ],
+ "extra_icons": [
+  {
+   "name": "alert-circle-outline",
+   "cp": "F05D6"
+  },
+  {
+   "name": "puzzle-outline",
+   "cp": "F0A66"
+  },
+  {
+   "name": "chevron-up",
+   "cp": "F0143"
+  },
+  {
+   "name": "chevron-down",
+   "cp": "F0140"
+  },
+  {
+   "name": "arrow-u-left-top",
+   "cp": "F17B3"
+  },
+  {
+   "name": "play-pause",
+   "cp": "F040E"
+  },
+  {
+   "name": "volume-plus",
+   "cp": "F075D"
+  },
+  {
+   "name": "volume-minus",
+   "cp": "F075E"
+  },
+  {
+   "name": "volume-mute",
+   "cp": "F075F"
+  },
+  {
+   "name": "check",
+   "cp": "F012C"
+  },
+  {
+   "name": "pause",
+   "cp": "F03E4"
+  },
+  {
+   "name": "stop",
+   "cp": "F04DB"
+  },
+  {
+   "name": "skip-next",
+   "cp": "F04AD"
+  },
+  {
+   "name": "skip-previous",
+   "cp": "F04AE"
+  },
+  {
+   "name": "volume-high",
+   "cp": "F057E"
+  },
+  {
+   "name": "volume-off",
+   "cp": "F0581"
+  },
+  {
+   "name": "arrow-up",
+   "cp": "F005D"
+  },
+  {
+   "name": "arrow-down",
+   "cp": "F0045"
+  },
+  {
+   "name": "arrow-expand-horizontal",
+   "cp": "F084E"
+  },
+  {
+   "name": "arrow-collapse-horizontal",
+   "cp": "F084C"
+  },
+  {
+   "name": "home-map-marker",
+   "cp": "F05F8"
+  },
+  {
+   "name": "plus",
+   "cp": "F0415"
+  },
+  {
+   "name": "minus",
+   "cp": "F0374"
+  },
+  {
+   "name": "exit-to-app",
+   "cp": "F0206"
+  },
+  {
+   "name": "power-standby",
+   "cp": "F0906"
+  },
+  {
+   "name": "chevron-left",
+   "cp": "F0141"
+  },
+  {
+   "name": "chevron-right",
+   "cp": "F0142"
+  },
+  {
+   "name": "close",
+   "cp": "F0156"
+  },
+  {
+   "name": "menu-down",
+   "cp": "F035D"
+  },
+  {
+   "name": "map-marker-outline",
+   "cp": "F07D9"
+  },
+  {
+   "name": "arrow-left",
+   "cp": "F004D"
+  },
+  {
+   "name": "sun-snowflake-variant",
+   "cp": "F1A79"
+  },
+  {
+   "name": "thermostat-auto",
+   "cp": "F1B17"
+  },
+  {
+   "name": "weather-fog",
+   "cp": "F0591"
+  },
+  {
+   "name": "weather-hail",
+   "cp": "F0592"
+  },
+  {
+   "name": "weather-lightning",
+   "cp": "F0593"
+  },
+  {
+   "name": "weather-lightning-rainy",
+   "cp": "F067E"
+  },
+  {
+   "name": "weather-pouring",
+   "cp": "F0596"
+  },
+  {
+   "name": "weather-snowy-rainy",
+   "cp": "F067F"
+  },
+  {
+   "name": "weather-sunset-down",
+   "cp": "F059B"
+  },
+  {
+   "name": "dots-horizontal",
+   "cp": "F01D8"
+  },
+  {
+   "name": "arrow-oscillating",
+   "cp": "F1C91"
+  },
+  {
+   "name": "monitor",
+   "cp": "F0379"
+  },
+  {
+   "name": "information-outline",
+   "cp": "F02FD"
+  },
+  {
+   "name": "restart",
+   "cp": "F0709"
+  },
+  {
+   "name": "crosshairs",
+   "cp": "F01A3"
+  },
+  {
+   "name": "lightbulb-off",
+   "cp": "F0E4F"
+  },
+  {
+   "name": "shuffle-variant",
+   "cp": "F049F"
+  },
+  {
+   "name": "repeat",
+   "cp": "F0456"
+  },
+  {
+   "name": "repeat-once",
+   "cp": "F0458"
+  },
+  {
+   "name": "account-music",
+   "cp": "F0803"
+  },
+  {
+   "name": "folder",
+   "cp": "F024B"
+  }
+ ]
+}

@@ -6,6 +6,7 @@
 // `nameOf`, which the store hands in.
 import type { ChildTile, Page, PageGrid, PageLayout, PageTile } from "../types";
 import { sameValue } from "./pages";
+import { allTiles } from "./page-tiles";
 
 /** A change's words: a key under editor.undo.what, its values, and the count for a text with plural forms. */
 export type ChangeLabel = { key: string; named?: Record<string, unknown>; count?: number };
@@ -20,7 +21,7 @@ type Placed = { tile: PageTile | ChildTile; page: number; holder?: string; key?:
 function placedTiles(layout: PageLayout) {
   const placed = new Map<string, Placed>();
   layout.pages.forEach((page, index) => {
-    for (const tile of page.tiles) {
+    for (const tile of allTiles(page)) {
       placed.set(tile.id, { tile, page: index });
       tile.children?.forEach((child, key) => placed.set(child.id, { tile: child, page: index, holder: tile.id, key }));
     }
@@ -74,7 +75,7 @@ export function describeChange(before: PageLayout, after: PageLayout, beforeGrid
   const onNewPage = (id: string) => newPages.some(({ index }) => now.get(id)!.page === index);
   if (newPages.length && added.every(onNewPage) && !removed.length) {
     const first = newPages[0];
-    return label(first.page.tiles.length ? "page_copied" : "page_added", { page: first.index + 1 });
+    return label(allTiles(first.page).length ? "page_copied" : "page_added", { page: first.index + 1 });
   }
   if (added.length === 1 && !removed.length) return label("tile_added", { name: name(now.get(added[0])!, after) });
   if (removed.length === 1 && !added.length) return label("tile_removed", { name: name(was.get(removed[0])!, before) });

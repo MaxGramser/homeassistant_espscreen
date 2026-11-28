@@ -3,6 +3,7 @@ older firmware read into it (picture_legacy), the rules of each source for each 
 links on the camera port with their 304s (picture_links) and the service that answers (picture_service): a still, a
 stream, or no answer while a picture is on its way."""
 import asyncio
+import dataclasses
 import importlib.util
 import io
 import json
@@ -54,7 +55,6 @@ class Sources(unittest.TestCase):
             'library:media_player.spotify/12': Source('library', 'media_player.spotify/12'),
             'photos:': Source('photos'),
             'step:': Source('step'),
-            'saver:picture': Source('step'),     # its name in plugin API 0.14 to 0.16
             'https://api.example.org/a.jpg': Source('url', 'https://api.example.org/a.jpg'),
             '/api/image/serve/abc/512x512': Source('ha', '/api/image/serve/abc/512x512'),
             '/api/image_proxy/image.door?token=1': Source('ha', '/api/image_proxy/image.door?token=1'),
@@ -65,7 +65,7 @@ class Sources(unittest.TestCase):
         # Its text again, as a log and a question name it.
         for text in ('tile:3', 'map:2?focus=person.sam&move=1,-2', 'camera:camera.porch', 'photos:', 'step:', '/local/me.png'):
             self.assertEqual(pq.source(text).text, text)
-        self.assertEqual(pq.source('saver:picture').text, 'step:')
+        self.assertIsNone(pq.source('saver:picture'))   # its name in plugin API 0.14 to 0.16, gone in 0.24: one form
         for bad in (None, '', 42, 'x' * 600, 'nope:1', 'tile', 'tile:256', 'tile:x', 'tile:3?focus=person.sam',
                     'map:2?zoom=1', 'map:2?focus', 'camera:media_player.kitchen', 'camera:Camera.porch', 'cover:camera.porch',
                     'vacuum:camera.porch', 'entity:nothing', 'library:media_player.spotify', 'library:media_player.spotify/abc',
@@ -279,7 +279,7 @@ class Legacy(unittest.TestCase):
                                                 Place(40, 0, 60, 90, 6, 0, 'within', 0x202020, mirror=True)))
         card = self.read({**base, 'card': '1', 'for': 'media_player.kitchen'})
         self.assertEqual((card.kind, card.question.owner), ('pcard', Owner('plugin_card', -1, 'plugin:bus.next', 'media_player.kitchen')))
-        saver = self.read({**base, 'saver': '1', 'for': 'weather.home', 'src': '["saver:picture","step:"]'})
+        saver = self.read({**base, 'saver': '1', 'for': 'weather.home', 'src': '["step:","step:"]'})
         self.assertEqual((saver.kind, saver.question.owner, saver.question.sources),
                          ('psaver', Owner('plugin_saver', -1, 'plugin:bus.next', 'weather.home'), (Source('step'), Source('step'))))
         for bad in ({'idx': 'x'}, {'card': '1', 'saver': '1'}, {'card': '1', 'for': 'screen.clock'}, {'bg': 'red'},
@@ -293,17 +293,138 @@ class Legacy(unittest.TestCase):
         self.assertIsNone(picture_legacy.read({'entity': 'camera.porch'}, None))
 
 
+def live_lines(text, defined, undefined):
+    """The lines of a C++ source a build compiles, with the macros in `defined` set and those in `undefined` not: a
+    condition that names any other macro, a value or a __has_include could go either way, and its lines count as
+    compiled (so a rule over what is compiled errs towards finding a line)."""
+    import re
+
+    def value(expression):
+        # True, False, or None where this build cannot tell.
+        tokens = re.findall(r'defined\s*\(\s*\w+\s*\)|defined\s+\w+|&&|\|\||!|\(|\)|\S+', expression)
+        at = 0
+
+        def peek():
+            return tokens[at] if at < len(tokens) else None
+
+        def take():
+            nonlocal at
+            at += 1
+            return tokens[at - 1]
+
+        def either():
+            out = both()
+            while peek() == '||':
+                take()
+                right = both()
+                out = True if True in (out, right) else (None if None in (out, right) else False)
+            return out
+
+        def both():
+            out = one()
+            while peek() == '&&':
+                take()
+                right = one()
+                out = False if False in (out, right) else (None if None in (out, right) else True)
+            return out
+
+        def one():
+            token = take() if peek() is not None else ''
+            if token == '!':
+                inner = one()
+                return None if inner is None else not inner
+            if token == '(':
+                inner = either()
+                if peek() == ')':
+                    take()
+                return inner
+            name = re.match(r'defined\s*\(?\s*(\w+)', token)
+            if name:
+                return True if name.group(1) in defined else False if name.group(1) in undefined else None
+            if token.isdigit():
+                return token != '0'
+            # A macro's value, a comparison, __has_include: this build cannot tell; skip what belongs to it.
+            while peek() not in (None, '&&', '||', ')'):
+                take()
+            return None
+        out = either()
+        return None if at < len(tokens) else out
+
+    lines, stack = [], []  # stack: (parent compiled, this branch compiled, a branch before was surely taken)
+    compiled = True
+    for line in text.splitlines():
+        directive = re.match(r'\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b(.*)', line)
+        if not directive:
+            if compiled:
+                lines.append(line.split('//', 1)[0])
+            continue
+        kind, rest = directive.group(1), directive.group(2).split('//', 1)[0].strip()
+        if kind in ('if', 'ifdef', 'ifndef'):
+            cond = (value(rest) if kind == 'if' else
+                    value(f'defined({rest})') if kind == 'ifdef' else value(f'!defined({rest})'))
+            stack.append((compiled, cond is not False, cond is True))
+            compiled = compiled and cond is not False
+        elif kind == 'elif':
+            parent, _, taken = stack[-1]
+            cond = False if taken else value(rest)
+            stack[-1] = (parent, cond is not False, taken or cond is True)
+            compiled = parent and cond is not False
+        elif kind == 'else':
+            parent, _, taken = stack[-1]
+            stack[-1] = (parent, not taken, True)
+            compiled = parent and not taken
+        else:
+            compiled = stack.pop()[0]
+    return lines
+
+
 class Firmware(unittest.TestCase):
+    """A board without pictures (the CYD, built without SCREEN_PICTURES, packages/features/camera.yaml) asks for none and
+    keeps none: its flash is close to full (docs/RELEASING.md step 2). The host builds (the render, the WASM preview)
+    ask as a board with pictures."""
+    CYD = {'USE_ESP32'}, {'SCREEN_PICTURES', 'USE_HOST', 'ESP_SCREEN_HOST', 'USE_LIVE_VIEW', 'GLASS_DSI', 'GLASS_RGB',
+                          'PICTURE_ENGINE_P4', 'PICTURE_ENGINE_S3'}
+    PICTURES = {'USE_ESP32', 'SCREEN_PICTURES'}, {'USE_HOST', 'ESP_SCREEN_HOST'}
+    HOST = {'USE_HOST', 'ESP_SCREEN_HOST'}, {'USE_ESP32'}
+    ASKS = ('picture_question::json(', 'picture_question::legacy(')
+
+    def asking(self, build):
+        """Where the firmware, as `build` compiles it, turns a question into its text."""
+        found = []
+        for path in sorted((ROOT / 'components/smart_display').glob('*.[hc]*')):
+            if path.name == 'picture_question.h' or path.suffix not in ('.h', '.cpp'):
+                continue  # where the question's text is made, not asked
+            for line in live_lines(path.read_text(), *build):
+                found += [f'{path.name}: {line.strip()}' for ask in self.ASKS if ask in line]
+        return found
+
     def test_a_board_without_pictures_asks_for_none(self):
-        # The CYD's flash (docs/RELEASING.md step 2): the question's text is built only where a picture can show, as the
-        # picture store keeps none there (picture_store.h); the host builds (the render, the WASM preview) still ask.
-        tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
-        ask = tiles[tiles.index('inline void picture_ask('):]
-        ask = ask[:ask.index('\n}\n')]
-        self.assertIn('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)', ask)
-        self.assertLess(ask.index('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)'), ask.index('picture_question::json(asked)'))
-        store = (ROOT / 'components/smart_display/picture_store.h').read_text()
-        self.assertIn('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)', store)
+        self.assertEqual(self.asking(self.CYD), [],
+                         'a board built without SCREEN_PICTURES (the CYD) never shows a picture: every place that turns a '
+                         'question into its text (picture_question::json, legacy) stands behind '
+                         '#if defined(USE_ESP32) && !defined(SCREEN_PICTURES), as picture_ask does')
+        self.assertTrue(self.asking(self.PICTURES), 'a board with pictures asks for them')
+        self.assertTrue(self.asking(self.HOST), 'the host builds (the render, the WASM preview) ask for pictures')
+
+    def test_a_board_without_pictures_keeps_none(self):
+        import os
+        import shutil
+        import subprocess
+        import tempfile
+        compiler = shutil.which(os.environ.get('CXX', 'clang++')) or shutil.which('g++')
+        if not compiler:
+            raise unittest.SkipTest('no C++ compiler')
+        with tempfile.TemporaryDirectory() as tmp:
+            for flags, check in ((['-DUSE_ESP32'], 'picture_store::ENTRIES == 1'),
+                                 (['-DUSE_ESP32', '-DSCREEN_PICTURES'], 'picture_store::ENTRIES > 1'),
+                                 ([], 'picture_store::ENTRIES > 1')):
+                source = Path(tmp) / 'entries.cpp'
+                source.write_text('#include "components/smart_display/picture_store.h"\n'
+                                  f'static_assert({check}, "picture_store::ENTRIES");\n')
+                run = subprocess.run([compiler, '-std=c++17', '-fsyntax-only', f'-I{ROOT}', *flags, str(source)],
+                                     capture_output=True, text=True)
+                self.assertEqual(run.returncode, 0, f'{" ".join(flags) or "the host"}: {check} (picture_store.h keeps one '
+                                 f'place for a board without SCREEN_PICTURES, every place elsewhere)\n{run.stderr}')
 
 
 class Frames(unittest.TestCase):
@@ -379,7 +500,7 @@ class Manager:
         self.rest_pools = {}
         self.photos = types.SimpleNamespace(raw=lambda inbox: None)
         self.snapshots = snapshots or picture_sources.Snapshots(None)
-        self.sources = picture_sources.Sources(self, self.snapshots)
+        self.sources = picture_sources.Sources(picture_sources.Providers.of(self), self.snapshots)
         self.links = picture_links.Links()
         self.service = picture_service.Service(self, self.sources, self.links)
 
@@ -486,6 +607,90 @@ class May(unittest.TestCase):
         self.assertIsNone(self.may(saver, Source('step')))
 
 
+class ProvidersAlone(unittest.IsolatedAsyncioTestCase):
+    """Sources reads the app through Providers alone (docs/PICTURE_ARCHITECTURE.md, section 4): built from fakes, with
+    every fact a test does not hand in failing when it is read, the rules and the getting work without a Manager."""
+
+    def providers(self, **facts):
+        def missing(name):
+            def read(*args, **options):
+                raise AssertionError(f'Sources read {name}, which this test did not hand in')
+            return read
+        names = [f.name for f in dataclasses.fields(picture_sources.Providers)]
+        self.assertFalse(set(facts) - set(names), 'a fact Providers does not have')
+        return picture_sources.Providers(**{name: facts.get(name) or missing(name) for name in names})
+
+    async def test_a_camera_tile_and_a_cover_tile_from_fakes(self):
+        tiles = [{'entity': 'camera.porch', 'name': '', 'options': {'display': 'live'}},
+                 {'entity': 'media_player.spotify', 'name': '', 'options': {'display': 'cover'}}]
+
+        async def fetch(entity):
+            return b'still of ' + entity.encode()
+
+        async def fetch_cover(entity):
+            return b'cover of ' + entity.encode()
+        snapshots = picture_sources.Snapshots(fetch, fetch_cover=fetch_cover, picture=lambda e: '/api/media_player_proxy/' + e)
+        app = self.providers(tiles=lambda inbox: tiles, camera_allowed=lambda inbox, entity: entity == 'camera.porch',
+                             states=lambda: {}, followed=lambda entity: entity)
+        sources = picture_sources.Sources(app, snapshots)
+
+        def question(owner, source):
+            return Question(owner, (source,), (100, 100), (Place(0, 0, 100, 100),))
+        # The rules: a pictured tile of the layout, a camera the layout has.
+        self.assertIsNone(sources.may('text.hall', GUITION, question(Owner('tile', 0), Source('tile', '0')), Source('tile', '0')))
+        self.assertIsNone(sources.may('text.hall', GUITION, question(Owner('view'), Source('camera', 'camera.porch')),
+                                      Source('camera', 'camera.porch')))
+        self.assertIn('not on the layout', sources.may('text.hall', GUITION, question(Owner('view'), Source('camera', 'camera.yard')),
+                                                       Source('camera', 'camera.yard')))
+        # The getting: the camera's still with its stream, the player's cover (not at rest: no mosaic).
+        place = Place(0, 0, 100, 100)
+        still = await sources.get('text.hall', GUITION, question(Owner('tile', 0), Source('tile', '0')), Source('tile', '0'), place)
+        self.assertEqual((still.raw, still.stream, still.mark.startswith('camera:camera.porch:')), (b'still of camera.porch', 'cover', True))
+        cover = await sources.get('text.hall', GUITION, question(Owner('tile', 1), Source('tile', '1')), Source('tile', '1'), place)
+        self.assertEqual((cover.raw, cover.mark.startswith('cover:')), (b'cover of media_player.spotify', True))
+
+    def test_the_manager_binding_reads_as_it_is_called(self):
+        # Providers.of reads the Manager when a fact is asked, never before: its states as they are then, a method
+        # replaced later.
+        manager = Manager()
+        app = picture_sources.Providers.of(manager)
+        manager.ha.states['light.hall'] = {'state': 'on'}
+        self.assertEqual(app.state('light.hall'), {'state': 'on'})
+        manager.ha = types.SimpleNamespace(states={'light.hall': {'state': 'off'}})
+        self.assertEqual(app.state('light.hall'), {'state': 'off'})
+        manager.layout_tiles = lambda inbox: ['replaced']
+        self.assertEqual(app.tiles('text.hall'), ['replaced'])
+        manager.rest_pools['media_player.spotify'] = (1.0, ['a'])
+        self.assertEqual(app.rest_pool('media_player.spotify'), (1.0, ['a']))
+
+
+class StreamOf(unittest.TestCase):
+    """Which camera a question of one place streams, and how its picture fits its room (picture_service.stream_of)."""
+
+    def test_the_full_view_a_live_tile_and_a_plugins_place(self):
+        def question(owner, source, fit='cover'):
+            return Question(owner, (source,), (100, 100), (Place(0, 0, 100, 100, fit=fit),))
+        of = picture_service.stream_of
+        # The full view of a camera: whole.
+        self.assertEqual(of(question(Owner('view'), Source('camera', 'camera.porch'))), ('camera.porch', 'contain'))
+        self.assertIsNone(of(question(Owner('view'), Source('camera', 'image.door'))))
+        # A camera tile set to Live: as its tile says.
+        live = {'entity': 'camera.drive', 'options': {'display': 'live'}}
+        self.assertEqual(of(question(Owner('tile', 9), Source('tile', '9')), live), ('camera.drive', 'cover'))
+        self.assertEqual(of(question(Owner('tile', 9), Source('tile', '9')), dict(live, options={'display': 'live', 'fit': 'contain'})),
+                         ('camera.drive', 'contain'))
+        for tile in (None, {'entity': 'camera.drive', 'options': {}}, {'entity': 'image.door', 'options': {'display': 'live'}}):
+            self.assertIsNone(of(question(Owner('tile', 9), Source('tile', '9')), tile), tile)
+        # A plugin tile's place set live: as the place's fit says.
+        place = Owner('plugin_tile', 6, 'plugin:door.view')
+        self.assertEqual(of(question(place, Source('camera', 'camera.porch'))), ('camera.porch', 'cover'))
+        for fit in ('contain', 'within', 'whole'):
+            self.assertEqual(of(question(place, Source('camera', 'camera.porch'), fit)), ('camera.porch', 'contain'), fit)
+        # Anything else streams not: a cover, a camera of a card.
+        self.assertIsNone(of(question(Owner('view'), Source('cover', 'media_player.spotify'))))
+        self.assertIsNone(of(question(Owner('card'), Source('camera', 'camera.porch'))))
+
+
 # ----- the links on the camera port (picture_links) -----
 
 class Clock:
@@ -494,6 +699,21 @@ class Clock:
 
 
 class Links(unittest.IsolatedAsyncioTestCase):
+    async def test_a_first_load_gets_what_the_answer_painted(self):
+        """A map's second drawing outlasted the screen's four seconds on a slow host (GitHub #390)."""
+        renders = []
+
+        async def render(recipe):
+            renders.append(recipe)
+            return '"new"', b'BMagain'
+        links = picture_links.Links()
+        links.render = render
+        token = links.add(recipe='map', first=('"made"', b'BMmade'))
+        self.assertEqual((await links.serve(token))[:3], (200, b'BMmade', '"made"'))
+        self.assertEqual(renders, [])
+        self.assertEqual((await links.serve(token))[:3], (200, b'BMagain', '"new"'))
+        self.assertEqual(renders, ['map'])
+
     async def test_a_still_and_its_304(self):
         clock = Clock()
         links = picture_links.Links(clock=clock)
@@ -622,7 +842,13 @@ class Service(unittest.IsolatedAsyncioTestCase):
                                 live=(320, 180))
             found = await self.service.answer('text.hall', self.manager.player, question)
             self.assertTrue(found.stream and found.url.endswith(suffix), (fit, found))
-        self.assertEqual(self.stream.calls[-1], ('camera.porch', (320, 180), {'cover': False, 'screen': 'text.hall', 'tile': True}))
+        self.assertEqual(self.stream.calls[-1], ('camera.porch', (320, 180), {'cover': False, 'screen': 'text.hall', 'tile': True,
+                                                                               'turn': 0}))
+        # On a screen that takes its live pictures turned, a plugin's place gets them turned too.
+        self.manager.picture_turn_of = lambda inbox: 270
+        await self.service.answer('text.hall', self.manager.player, question)
+        self.assertEqual(self.stream.calls[-1][2]['turn'], 270)
+        del self.manager.picture_turn_of
         other = Question(owner, (Source('camera', 'camera.drive'),), (320, 180), (Place(0, 0, 320, 180),), live=(320, 180))
         found = await self.service.answer('text.hall', self.manager.player, other)
         self.assertTrue(found.problem and not found.url)
@@ -630,14 +856,38 @@ class Service(unittest.IsolatedAsyncioTestCase):
     async def test_a_camera_that_streams(self):
         found = await self.service.answer('text.hall', self.manager.player, self.read({'entity': 'camera.porch', 'live': '1280x744', 'sound': '1'}))
         self.assertEqual((found.url, found.stream, found.shown), (f'http://192.168.1.57:8098/camera/{"S" * 24}.mjpeg', True, ('camera.porch',)))
-        self.assertEqual(self.stream.calls, [('camera.porch', (1280, 744), {'sound': True, 'screen': 'text.hall'})])
+        self.assertEqual(self.stream.calls, [('camera.porch', (1280, 744), {'sound': True, 'screen': 'text.hall', 'turn': 0})])
         self.assertEqual(self.fetched, [], 'a stream needs no still')
         # A camera tile set to Live streams into its card's size, filled or whole as the tile says.
         found = await self.service.answer('text.hall', self.manager.player, self.read(
             {'tiles': 'camera.drive', 'idx': '9', 'size': '54', 'bg': 'FFFFFF', 'atlas': '[[0,0,300,200,12,0]]', 'live': '300x200', 'sound': '1'}))
         self.assertTrue(found.stream)
         self.assertTrue(found.url.endswith('.mjpeg?fit=contain'))
-        self.assertEqual(self.stream.calls[-1], ('camera.drive', (300, 200), {'cover': False, 'warm': True, 'screen': 'text.hall', 'tile': True}))
+        self.assertEqual(self.stream.calls[-1], ('camera.drive', (300, 200), {'cover': False, 'warm': True, 'screen': 'text.hall', 'tile': True,
+                                                                               'turn': 0}))
+
+    async def test_a_turned_glass_gets_its_live_pictures_turned(self):
+        # A screen whose glass is turned and whose hello says it takes its live pictures so (caps picture_turn, Manager.
+        # picture_turn_of): the links of its live tiles and of its full view turn them.
+        self.manager.picture_turn_of = lambda inbox: 270 if inbox == 'text.hall' else 0
+        await self.service.answer('text.hall', self.manager.player, self.read(
+            {'tiles': 'camera.drive', 'idx': '9', 'size': '54', 'bg': 'FFFFFF', 'atlas': '[[0,0,300,200,12,0]]', 'live': '300x200'}))
+        self.assertEqual(self.stream.calls[-1][2]['turn'], 270)
+        await self.service.answer('text.hall', self.manager.player, self.read({'entity': 'camera.porch', 'live': '1280x744'}))
+        self.assertEqual(self.stream.calls[-1][2]['turn'], 270)
+
+    async def test_a_tile_of_the_screens_own_camera_is_drawn_by_the_screen(self):
+        # The screen's own camera on a tile of its own (plugin API 0.22): the screen draws it from the camera, so the
+        # answer is "own:" (with the tile's fit), no link and no stream; any other camera tile streams as before.
+        self.manager.own_camera_of = lambda inbox, screen, entity: entity == 'camera.drive'
+        request = {'tiles': 'camera.drive', 'idx': '9', 'size': '54', 'bg': 'FFFFFF', 'atlas': '[[0,0,300,200,12,0]]',
+                   'live': '300x200'}
+        found = await self.service.answer('text.hall', self.manager.player, self.read(request))
+        self.assertEqual((found.url, found.stream), ('own:?fit=contain', True))
+        self.assertEqual(self.stream.calls, [])
+        self.manager.own_camera_of = lambda inbox, screen, entity: False  # a camera of another screen, or none
+        found = await self.service.answer('text.hall', self.manager.player, self.read(request))
+        self.assertTrue(found.url.endswith('.mjpeg?fit=contain'))
 
     async def test_what_does_not_stream_gets_a_still(self):
         # An image entity, a page of two, a screen that does not stream (no `live`), an app without a stream source.

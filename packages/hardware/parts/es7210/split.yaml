@@ -1,0 +1,29 @@
+# The ES7210 on a bus of its own (parts/es7210.yaml, AUDIO_TRANSPORT "split"): ESPHome's own I2S on the microphones' bus
+# and on the speaker's, so the screen listens and speaks at the same time, without echo cancelling and without the AEC
+# libraries.
+packages:
+  audio: !include ../../../features/audio.yaml
+
+substitutions:
+  AUDIO_HALF_DUPLEX: "false"
+  AUDIO_MIC_BUS: ts_mic_bus
+
+i2s_audio:
+  - id: ts_mic_bus
+    i2s_mclk_pin: ${AUDIO_MIC_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_MIC_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_MIC_LRCLK_PIN}
+  - id: ts_speaker_bus
+    i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+
+# The converter at the voice's rate, the microphone on the slot of its input.
+audio_adc:
+  - id: !extend ts_audio_adc
+    sample_rate: 16000
+
+microphone:
+  - id: !extend ts_microphone
+    channel: ${AUDIO_MIC_CHANNEL}
+    correct_dc_offset: ${AUDIO_MIC_DC_OFFSET}

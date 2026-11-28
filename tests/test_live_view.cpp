@@ -1,6 +1,7 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_live_view.cpp -o /tmp/test_live_view && /tmp/test_live_view
 // The parts of the P4's live camera a PC can check (live_view.h): the stream's framing in any pieces, where a
-// rectangle of the screen lies on a turned panel (ESPHome's own sums for LVGL's flushes), and where a picture goes.
+// rectangle of the screen lies on a turned panel (ESPHome's own sums for LVGL's flushes), and where a picture goes; how
+// a writer waits for the glass (glass.h) and how the streams are counted (Census).
 #include "../components/smart_display/live_view.h"
 #include <cassert>
 #include <cstdio>
@@ -8,6 +9,19 @@
 #include <vector>
 
 using namespace live_view;
+using picture_engine::Cut;
+using picture_engine::cut;
+using picture_engine::scaled;
+
+// The most a part may be, as a stream is opened with it (the P4 engine's full view: picture_engine::limits()).
+constexpr size_t MOST = 1024 * 1024;
+
+// fit as live_view asks it, for a room of the screen.
+static Rect fit(int w, int h, const Rect &area, int &scale) {
+  const picture_engine::Fit f = picture_engine::fit(w, h, area.x, area.y, area.w, area.h);
+  scale = f.scale;
+  return f.empty() ? Rect{} : Rect{f.x, f.y, f.w, f.h};
+}
 
 static std::string part(const std::string &body) {
   return "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n" + body + "\r\n";
@@ -15,7 +29,7 @@ static std::string part(const std::string &body) {
 
 // Feeds `stream` in pieces of `step` bytes; returns the pictures that came whole, or "!" once it broke.
 static std::vector<std::string> read(const std::string &stream, size_t step, size_t room = 64) {
-  Reader reader;
+  Reader reader(MOST);
   std::vector<std::string> pictures;
   std::vector<uint8_t> buffer(room);
   for (size_t at = 0; at < stream.size(); at += step) {
@@ -55,8 +69,17 @@ static void framing() {
   assert(read("HTTP/1.0 404 Not Found\r\n\r\nUnknown link", 4) == std::vector<std::string>{"!"});
   assert(read(head + "--frame\r\nContent-Type: image/jpeg\r\n\r\nxyz", 4) == std::vector<std::string>{"!"});
   assert(read(head + std::string(MAX_HEAD + 10, 'h'), 100).back() == "!");
-  // A part over MAX_PICTURE breaks it too: no app sends one, so the stream is not one of pictures.
-  assert(read(head + "--frame\r\nContent-Length: " + std::to_string(MAX_PICTURE + 1) + "\r\n\r\n", 9).back() == "!");
+  // A part over the most a stream was opened with breaks it too: no app sends one, so it is not a stream of pictures.
+  assert(read(head + "--frame\r\nContent-Length: " + std::to_string(MOST + 1) + "\r\n\r\n", 9).back() == "!");
+}
+
+// An engine without a decoder opens its streams with 0: no part at all, never "no limit".
+static void none() {
+  Reader reader(0);
+  const std::string stream = "HTTP/1.0 200 OK\r\n\r\n" + part("x");
+  uint8_t room[8];
+  assert(!reader.feed(reinterpret_cast<const uint8_t *>(stream.data()), stream.size(),
+                      [&](size_t, bool) { return room; }, [](size_t, bool) {}));
 }
 
 // Until it is live: the stills before the camera's stream are marked, part by part, in any pieces.
@@ -65,7 +88,7 @@ static void marking() {
   const std::string still = "--frame\r\nContent-Type: image/jpeg\r\nX-Picture: still\r\nContent-Length: 5\r\n\r\nstill\r\n";
   const std::string stream = head + still + still + part("live") + part("live2");
   for (size_t step : {stream.size(), size_t(1), size_t(5)}) {
-    Reader reader;
+    Reader reader(MOST);
     uint8_t buffer[64];
     std::vector<bool> marks;
     for (size_t at = 0; at < stream.size(); at += step) {
@@ -76,6 +99,61 @@ static void marking() {
     }
     assert((marks == std::vector<bool>{true, true, false, false}));
   }
+}
+
+// When the app made each picture (X-Made), in any pieces; a part without it says none.
+static void made() {
+  const std::string head = "HTTP/1.0 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=frame\r\n\r\n";
+  const std::string stamped = "--frame\r\nContent-Type: image/jpeg\r\nX-Made: 4294967290\r\nContent-Length: 4\r\n\r\nlive\r\n";
+  const std::string odd = "--frame\r\nContent-Type: image/jpeg\r\nX-Made: 12ab\r\nContent-Length: 4\r\n\r\nlive\r\n";
+  const std::string stream = head + stamped + part("live") + odd;
+  for (size_t step : {stream.size(), size_t(1), size_t(7)}) {
+    Reader reader(MOST);
+    uint8_t buffer[64];
+    std::vector<std::pair<bool, uint32_t>> seen;
+    for (size_t at = 0; at < stream.size(); at += step) {
+      const size_t n = std::min(step, stream.size() - at);
+      assert(reader.feed(reinterpret_cast<const uint8_t *>(stream.data() + at), n,
+                         [&](size_t, bool) -> uint8_t * { return buffer; },
+                         [&](size_t, bool) { seen.emplace_back(reader.has_made(), reader.made()); }));
+    }
+    assert(seen.size() == 3 && seen[0].first && seen[0].second == 4294967290u && !seen[1].first && !seen[2].first);
+  }
+}
+
+// A stream's link and the same link's pictures one an ask; nothing for a link that is no stream's. And the answer to
+// an ask as the screen reads it: its status, its length, its stamp and whether it is a still.
+static void pulling() {
+  assert(pull_path("/camera/abcdefghijklmnopqrstuvwx.mjpeg") == "/camera/abcdefghijklmnopqrstuvwx.jpg");
+  assert(pull_path("/camera/abc.mjpeg?x=1") == "/camera/abc.jpg?x=1");
+  assert(pull_path("/camera/abc.bmp").empty() && pull_path("/camera/abc.jpg").empty());
+  const std::string ok = "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nX-Made: 4242\r\nX-Picture: still\r\n"
+                         "Content-Length: 4\r\n\r\nJPEG";
+  const auto h = picture_fetch::parse_head(ok.data(), ok.size());
+  assert(h.complete && h.status == 200 && h.has_length && h.content_length == 4 && h.has_made && h.made == 4242 &&
+         h.still && ok.substr(h.length) == "JPEG");
+  const std::string none = "HTTP/1.1 204 No Content\r\nCache-Control: no-cache\r\n\r\n";
+  const auto n = picture_fetch::parse_head(none.data(), none.size());
+  assert(n.complete && n.status == 204 && !n.has_length && n.length == none.size());
+  // How the app turned a tile's picture for a turned glass (X-Turn): a turn a glass has, else upright.
+  assert(h.turn == 0);
+  for (const char *value : {"90", "180", "270"}) {
+    const std::string turned = std::string("HTTP/1.1 200 OK\r\nX-Turn: ") + value + "\r\nContent-Length: 4\r\n\r\nJPEG";
+    assert(picture_fetch::parse_head(turned.data(), turned.size()).turn == std::stoi(value));
+  }
+  for (const char *value : {"45", "0", "2700", "9O", "", "-90"}) {
+    const std::string odd = std::string("HTTP/1.1 200 OK\r\nX-Turn: ") + value + "\r\nContent-Length: 4\r\n\r\nJPEG";
+    assert(picture_fetch::parse_head(odd.data(), odd.size()).turn == 0);
+  }
+  // A part of the app's stream says it the same way (live_stream.part_head).
+  const std::string stream = "HTTP/1.0 200 OK\r\n\r\n--frame\r\nContent-Type: image/jpeg\r\nX-Turn: 270\r\n"
+                             "Content-Length: 4\r\nX-Made: 7\r\n\r\nJPEG\r\n";
+  Reader reader(MOST);
+  uint8_t buffer[8];
+  int turned = -1;
+  assert(reader.feed(reinterpret_cast<const uint8_t *>(stream.data()), stream.size(),
+                     [&](size_t, bool) -> uint8_t * { return buffer; }, [&](size_t, bool) { turned = reader.turn(); }));
+  assert(turned == 270);
 }
 
 // The loader in a live tile's corner while its stills show: where it lies, and the spinner it draws as it turns.
@@ -164,7 +242,7 @@ static void placing() {
     }
   }
   assert(fit(0, 10, area, s).empty() && s == 0);
-  assert(fit(MAX_SIDE + 1, 100, area, s).empty());
+  assert(fit(picture_engine::MAX_SIDE + 1, 100, area, s).empty());
   assert(box_text(area) == "1280x728");
 }
 
@@ -172,58 +250,263 @@ static void placing() {
 static void cutting() {
   // The app sends a filling picture at the card's size or a little more: cut at its own scale, the middle of it.
   Cut c = cut(434, 260, 434, 244, false);
-  assert(c.ok && c.sixteenths == 16 && c.in_x == 0 && c.in_y == 8 && c.in_w == 434 && c.in_h == 244 && c.covers(434, 244));
+  assert(c.ok && c.scale == 16 && c.in_x == 0 && c.in_y == 8 && c.in_w == 434 && c.in_h == 244 && c.covers(434, 244));
   // A substream smaller than the card is scaled up until it covers it, in sixteenths, and cut to it.
   c = cut(512, 288, 868, 488, false);
-  assert(c.ok && c.sixteenths == 28 && c.out_x >= 0 && c.out_y >= 0 && c.out_w <= 868 && c.out_h <= 488);
+  assert(c.ok && c.scale == 28 && c.out_x >= 0 && c.out_y >= 0 && c.out_w <= 868 && c.out_h <= 488);
   assert(868 - c.out_w <= 2 && 488 - c.out_h <= 2);
   // A larger one is scaled down: the least scale that still covers.
   c = cut(1920, 1080, 434, 244, false);
-  assert(c.ok && c.sixteenths == 4 && scaled(1920, 4) >= 434 && scaled(1080, 4) >= 244);
+  assert(c.ok && c.scale == 4 && scaled(1920, 4) >= 434 && scaled(1080, 4) >= 244);
   // Whole: as large as fits, in the middle, the rest of the card black.
   c = cut(1920, 1080, 434, 434, true);
   assert(c.ok && c.in_w == 1920 && c.in_h == 1080 && c.out_w <= 434 && c.out_x + c.out_w <= 434 && c.out_y > 0 && !c.covers(434, 434));
   assert(!cut(0, 10, 100, 100, false).ok && !cut(10, 10, 0, 100, true).ok);
 }
 
-// What a live tile lays over its picture, as picture_paint.py does: the shade, the corners, the name.
+// A card turned as the glass turns it (the app's turned pictures, X-Turn): each pixel where on_panel puts it, with the
+// card as the panel, and back; what the PPA still turns between a picture and the glass.
+static void turning() {
+  const int w = 7, h = 5;
+  for (int turn : {0, 90, 180, 270}) {
+    const int tw = turned_w(w, h, turn), th = turned_h(w, h, turn);
+    assert(tw * th == w * h && (turn % 180 ? tw == h : tw == w));
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; ++x) {
+        const Rect g = in_turned(Rect{x, y, 1, 1}, turn, w, h);
+        assert(g.x >= 0 && g.y >= 0 && g.x < tw && g.y < th);
+        int ux = -1, uy = -1;
+        upright_of(turn, w, h, g.x, g.y, ux, uy);
+        assert(ux == x && uy == y);
+      }
+  }
+  // As the app turns it (live_pictures.TURNS): on a glass turned 90 the card's top left lies at the top right.
+  assert(in_turned(Rect{0, 0, 1, 1}, 90, w, h) == (Rect{h - 1, 0, 1, 1}));
+  assert(in_turned(Rect{0, 0, 1, 1}, 270, w, h) == (Rect{0, w - 1, 1, 1}));
+  assert(turn_between(270, 270) == 0 && turn_between(0, 90) == 90 && turn_between(90, 270) == 180 &&
+         turn_between(270, 90) == 180 && turn_between(0, 0) == 0);
+  // A full view's picture the app turned: its room worked out on it upright, and the picture scaled straight onto the
+  // glass fills that room as the panel has it (a reTerminal D1001's 800 x 1280 panel, shown as 1280 x 800).
+  const Rect room{0, 56, 1280, 744};
+  for (int turn : {90, 270}) {
+    const int pw = 720, ph = 1280;  // 1280 x 720 turned
+    int scale = 0;
+    const Rect where = fit(turned_w(pw, ph, turn), turned_h(pw, ph, turn), room, scale);
+    const Rect target = on_panel(where, turn, 800, 1280);
+    assert(target.w == scaled(pw, scale) && target.h == scaled(ph, scale));
+    assert(target.x >= 0 && target.y >= 0 && target.x + target.w <= 800 && target.y + target.h <= 1280);
+  }
+}
+
+// What a live tile lays over its picture, as picture_paint.py does it: the shade, the corners, the name. Each alone,
+// then as one overlay against the three blends in turn, the way the firmware laid them before it (2026-10-28).
 static void composing() {
-  const int w = 40, h = 20;
-  std::vector<uint16_t> px(w * h, 0xFFFF);  // white
-  fade(px.data(), w, w, h);
-  // The top of the card is untouched, the bottom row FADE_DEPTH / 255 towards black.
-  assert(px[0] == 0xFFFF && px[(h - 1 - (h * FADE_PERCENT + 50) / 100) * w] == 0xFFFF);
-  const uint16_t bottom = px[(h - 1) * w + 20];
-  assert(bottom != 0xFFFF && ((bottom >> 11) & 31) < 31 && ((bottom >> 11) & 31) > 8);
-  // Corners: the very corner is the ground, the middle of the card is not.
-  std::fill(px.begin(), px.end(), 0xFFFF);
-  round_corners(px.data(), w, w, h, 6, 0x001F);
-  assert(px[0] == 0x001F && px[w - 1] == 0x001F && px[(h - 1) * w] == 0x001F && px[h * w - 1] == 0x001F);
-  assert(px[10 * w + 20] == 0xFFFF && px[6 * w + 6] == 0xFFFF);
-  // The name: opaque pixels replace, transparent ones leave the picture.
-  std::fill(px.begin(), px.end(), 0x0000);
-  const uint32_t name[4] = {0xFFFFFFFF, 0x00FFFFFF, 0x80FF0000, 0xFF00FF00};
-  lay_over(px.data(), w, w, h, name, 2, 3, 4, 2, 2);
-  assert(px[4 * w + 3] == 0xFFFF && px[4 * w + 4] == 0x0000 && px[5 * w + 4] == rgb565(0x00FF00));
-  assert(((px[5 * w + 3] >> 11) & 31) > 10 && ((px[5 * w + 3] >> 11) & 31) < 20);  // half red
-  // Off the card it is cut.
-  lay_over(px.data(), w, w, h, name, 2, w - 1, h - 1, 2, 2);
-  assert(px[h * w - 1] == 0xFFFF);
+  // The shade: nothing above it, the bottom row FADE_DEPTH / 255 towards black.
+  const int w = 40, h = 20, shade = (h * FADE_PERCENT + 50) / 100;
+  assert(fade_at(h - 1 - shade, h) == 0 && fade_at(h - shade, h) > 0 && fade_at(h - 1, h) == FADE_DEPTH);
+  // The corners: the very corner is the ground, the middle of the card and the edge inside the round are not.
+  assert(corner_at(0, 0, w, h, 6) == 255 && corner_at(w - 1, h - 1, w, h, 6) == 255 && corner_at(w - 1, 0, w, h, 6) == 255);
+  assert(corner_at(20, 10, w, h, 6) == 0 && corner_at(6, 0, w, h, 6) == 0 && corner_at(0, 6, w, h, 6) == 0);
+  // The name: LVGL's ARGB as it is, transparent pixels leave the picture.
+  const uint32_t name[6] = {0xFFFFFFFF, 0x00FFFFFF, 0x80FF0000, 0xFF00FF00, 0x40FFFFFF, 0xFFFFFFFF};
+  Look look;
+  look.tile = look.fade = true;
+  look.radius = 6;
+  look.ground = 0x001F;
+  look.name = name, look.name_x = 30, look.name_y = 14, look.name_w = 3, look.name_h = 2, look.name_stride = 3;
+  // The marks over the shade: the name as LVGL drew it, a corner as the ground, nothing in the middle of the card.
+  assert(marks_at(look, w, h, 30, 14).alpha == 255 && marks_at(look, w, h, 30, 14).color == 0xFFFF);
+  assert(marks_at(look, w, h, 0, 0).alpha == 255 && marks_at(look, w, h, 0, 0).color == look.ground);
+  assert(marks_at(look, w, h, 20, 2).alpha == 0 && marks_at(look, w, h, 20, h - 1).alpha == 0);
   // The full view lays nothing over its picture.
-  std::fill(px.begin(), px.end(), 0x1234);
-  compose(px.data(), w, w, h, Look{});
-  assert(px[0] == 0x1234 && px[h * w - 1] == 0x1234);
+  assert(marks_at(Look{}, w, h, 0, 0).alpha == 0);
+  // The squeezed mark (Look::badge): there only with `badge`, over what lies under it, and the rest as before.
+  {
+    const uint32_t mark[4] = {0xFFFFFFFF, 0x00000000, 0x99000000, 0xFFFFFFFF};
+    Look squeezed = look;
+    squeezed.badge = mark, squeezed.badge_x = 10, squeezed.badge_y = 4, squeezed.badge_w = 2, squeezed.badge_h = 2;
+    assert(marks_at(squeezed, w, h, 10, 4).alpha == 0 && marks_at(squeezed, w, h, 10, 4, true).alpha == 255);
+    assert(marks_at(squeezed, w, h, 10, 4, true).color == 0xFFFF && marks_at(squeezed, w, h, 11, 4, true).alpha == 0);
+    assert(marks_at(squeezed, w, h, 10, 5, true).alpha == 0x99 && marks_at(squeezed, w, h, 10, 5, true).color == 0);
+    assert(marks_at(squeezed, w, h, 30, 14, true).color == 0xFFFF && marks_at(squeezed, w, h, 0, 0, true).color == look.ground);
+    // The overlay with it has more marks than the one without, and the one without is the plain one.
+    size_t with = 0, without = 0, plain = 0;
+    overlay_marks(squeezed, w, h, 0, nullptr, with, nullptr, nullptr, true);
+    overlay_marks(squeezed, w, h, 0, nullptr, without);
+    overlay_marks(look, w, h, 0, nullptr, plain);
+    assert(with == without + 3 && without == plain);
+  }
+  {
+    uint8_t depth[64];
+    bool by_column = true;
+    int from = -1;
+    assert(overlay_shade(Look{}, w, h, 0, depth, by_column, from) == 0);
+  }
+
+  // A picture of every colour, and what the three blends in turn make of it, upright.
+  std::vector<uint16_t> picture(w * h), want(w * h);
+  for (int i = 0; i < w * h; ++i) picture[i] = static_cast<uint16_t>(i * 2654435761u >> 16);
+  for (int y = 0; y < h; ++y)
+    for (int x = 0; x < w; ++x) {
+      uint16_t p = blend(picture[y * w + x], 0, fade_at(y, h));
+      p = blend(p, look.ground, corner_at(x, y, w, h, look.radius));
+      if (x >= 30 && x < 33 && y >= 14 && y < 16) {
+        const uint32_t c = name[(y - 14) * 3 + (x - 30)];
+        p = blend(p, rgb565(c), c >> 24);
+      }
+      want[y * w + x] = p;
+    }
+  auto near = [](uint16_t a, uint16_t b) {
+    const int dr = ((a >> 11) & 31) - ((b >> 11) & 31), dg = ((a >> 5) & 63) - ((b >> 5) & 63), db = (a & 31) - (b & 31);
+    return dr * dr <= 1 && dg * dg <= 4 && db * db <= 1;
+  };
+  for (int turn : {0, 90, 180, 270}) {
+    const int tw = turned_w(w, h, turn), th = turned_h(w, h, turn);
+    // The picture as the app turns it, a row wider than the card (a decoder's stride).
+    const int stride = tw + 3;
+    std::vector<uint16_t> turned(stride * th, 0x7777);
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; ++x) {
+        const Rect g = in_turned(Rect{x, y, 1, 1}, turn, w, h);
+        turned[g.y * stride + g.x] = picture[y * w + x];
+      }
+    Overlay o{tw, th};
+    std::vector<uint8_t> depth(std::max(w, h));
+    o.shade_count = overlay_shade(look, w, h, turn, depth.data(), o.shade_by_column, o.shade_from);
+    o.shade = depth.data();
+    size_t pixels = 0;
+    o.count = overlay_marks(look, w, h, turn, nullptr, pixels);
+    std::vector<OverlaySegment> segments(o.count);
+    std::vector<uint8_t> alpha(pixels);
+    std::vector<uint16_t> color(pixels);
+    assert(overlay_marks(look, w, h, turn, segments.data(), pixels, alpha.data(), color.data()) == o.count);
+    o.segments = segments.data(), o.alpha = alpha.data(), o.color = color.data();
+    lay_overlay(turned.data(), stride, o);
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; ++x) {
+        const Rect g = in_turned(Rect{x, y, 1, 1}, turn, w, h);
+        assert(near(turned[g.y * stride + g.x], want[y * w + x]));
+      }
+    for (int gy = 0; gy < th; ++gy) assert(turned[gy * stride + tw] == 0x7777);  // nothing past the card's row
+    // The shade darkens the card's bottom rows: on a card on its side, columns. The marks hold the four corners and the
+    // name, a few pixels, never the middle of the card.
+    assert(o.shade_by_column == (turn % 180 != 0) && o.shade_count == shade);
+    const Rect bottom = in_turned(Rect{20, h - 1, 1, 1}, turn, w, h), top = in_turned(Rect{20, 0, 1, 1}, turn, w, h);
+    const int along = o.shade_by_column ? bottom.x : bottom.y, away = o.shade_by_column ? top.x : top.y;
+    assert(along >= o.shade_from && along < o.shade_from + o.shade_count);
+    assert(away < o.shade_from || away >= o.shade_from + o.shade_count);
+    if (turn == 90) assert(bottom.x == 0);       // the card's bottom along the glass's left
+    if (turn == 270) assert(bottom.x == tw - 1);  // and along its right
+    assert(pixels < static_cast<size_t>(w * h) / 4);
+    const Rect middle = in_turned(Rect{20, 8, 1, 1}, turn, w, h);
+    for (const OverlaySegment &seg : segments) assert(seg.y != middle.y || middle.x < seg.from || middle.x >= seg.to);
+  }
+}
+
+// A writer of the glass (glass::wait_as_writer, leave_as_writer), as a stream's task and a still's download use it:
+// raised to WRITER_PRIORITY before it asks for the glass, back at its own only once it let go, and a task already above
+// it never lowered. The steps are logged in the order they happen.
+static void writing() {
+  std::vector<std::string> steps;
+  unsigned priority = 1;
+  auto set = [&](unsigned p) {
+    priority = p;
+    steps.push_back("priority " + std::to_string(p));
+  };
+  auto hold = [&] {
+    steps.push_back("hold at " + std::to_string(priority));
+    return 7u;  // as hold_counted: the microseconds it waited
+  };
+  auto release = [&] { steps.push_back("release at " + std::to_string(priority)); };
+  const std::string w = std::to_string(glass::WRITER_PRIORITY);
+  // A still's download at the main loop's priority 1, and a stream's task at STREAM_PRIORITY.
+  for (unsigned own : {1u, STREAM_PRIORITY}) {
+    steps.clear();
+    priority = own;
+    assert(glass::wait_as_writer(own, set, hold) == 7u);
+    glass::leave_as_writer(own, set, release);
+    assert((steps == std::vector<std::string>{"priority " + w, "hold at " + w, "release at " + w,
+                                              "priority " + std::to_string(own)}));
+    assert(priority == own);
+  }
+  // A task above the writers (the screen's own video, say) keeps its own priority throughout.
+  steps.clear();
+  const unsigned above = glass::WRITER_PRIORITY + 1;
+  priority = above;
+  glass::wait_as_writer(above, set, [&] { steps.push_back("hold"); });
+  glass::leave_as_writer(above, set, release);
+  assert((steps == std::vector<std::string>{"hold", "release at " + std::to_string(above)}));
+  static_assert(STREAM_PRIORITY < glass::WRITER_PRIORITY, "a stream is raised only to wait for the glass");
+}
+
+// The streams counted (Census): a stream from open until the tick frees it, a closed one as ending and still held, so
+// another opens only beside fewer than the engine's most; and a second at all only where the engine holds more than one.
+struct Counted {
+  bool stopping = false;
+};
+static void counting() {
+  const Counted open, closed{true};
+  const Counted *none[MAX_STREAMS] = {};
+  Census c = census(none);
+  assert(c.held == 0 && c.ending == 0 && room_for(c, 1) && !room_for(c, 0));
+  const Counted *one[MAX_STREAMS] = {&open};
+  c = census(one);
+  assert(c.held == 1 && c.ending == 0 && !room_for(c, 1) && room_for(c, 7));
+  // An S3 (one stream at once): a full view waits while the page's tile still ends.
+  const Counted *ending_one[MAX_STREAMS] = {nullptr, &closed};
+  c = census(ending_one);
+  assert(c.held == 1 && c.ending == 1 && !room_for(c, 1));
+  // A P4 (seven): six held, one of them ending, leave room for one more, and seven none.
+  const Counted *six[MAX_STREAMS] = {&open, &open, &closed, &open, &open, &open};
+  c = census(six);
+  assert(c.held == 6 && c.ending == 1 && room_for(c, 7));
+  const Counted *seven[MAX_STREAMS] = {&open, &open, &open, &open, &open, &open, &open};
+  assert(!room_for(census(seven), 7));
+  assert(!beside(0) && !beside(1) && beside(2) && beside(7));
+}
+
+// The full view waits for the page's streams to end (ViewWait): one connection at a time, beside a stream still
+// ending only where the engine holds a second, after WAIT_MS; and it opens with its own copy of the link.
+static void waiting() {
+  // No stream ending: it opens at once with the link it was given.
+  ViewWait w;
+  auto b = w.begin("rtsp://door", 100, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // A stream of the page still ending on an S3 (no second): it waits, however long, and keeps the link.
+  b = w.begin("rtsp://door", 1000, true, false);
+  assert(!b.open && w.waiting() && w.link == "rtsp://door" && w.since == 1000);
+  assert(!ViewWait::may_open(true, false, 60000));
+  b = w.begin(w.link, 61000, true, false);
+  assert(!b.open && w.since == 1000);  // asked again by live_tick, the wait counts from the first ask
+  // The stream ended: live_tick asks with the waiting link itself, which is cleared on the way, and the view opens with
+  // that link, not an empty one (the ":80" of 0.4.91 and 0.4.92).
+  b = w.begin(w.link, 62000, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // On a P4 (a second stream): it waits WAIT_MS, then opens beside the one still ending.
+  ViewWait p;
+  assert(!p.begin("rtsp://door", 5000, true, true).open);
+  assert(!p.begin(p.link, 5000 + ViewWait::WAIT_MS - 1, true, true).open);
+  b = p.begin(p.link, 5000 + ViewWait::WAIT_MS, true, true);
+  assert(b.open && b.url == "rtsp://door" && !p.waiting());
+  static_assert(ViewWait::may_open(false, false, 0) && ViewWait::may_open(true, true, ViewWait::WAIT_MS));
 }
 
 int main() {
+  waiting();
+  none();
   framing();
   marking();
+  made();
+  pulling();
   loading();
   links();
   panel();
   placing();
   cutting();
+  turning();
   composing();
+  writing();
+  counting();
   std::puts("live_view: ok");
   return 0;
 }

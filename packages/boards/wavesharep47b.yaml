@@ -10,7 +10,7 @@
 # so it needs `engineering_sample: true` in its Override YAML (docs/WAVESHAREP47B.md). A community member ran this file
 # on a board with rev3 silicon (picture, touch, brightness, standby and wake); the project has not tried it on one.
 # The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel
-# (Waveshare's schematic), so they take its audio: hardware/wavesharep4-audio/, with echo cancellation by default.
+# (Waveshare's schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default.
 # Experimental: a community member had playback and the microphone working on this board with a configuration of their
 # own; this file's audio has not been tried on one, and the echo cancellation was first built for pre-v3 silicon.
 #
@@ -27,12 +27,9 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
-  # The speaker and the microphones as on the Waveshare P4 86 panel: its transport, its codecs (after the transport, so
-  # their values win over its defaults), its microphone settings, and the amplifier following the sound.
-  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
-  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
-  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
-  audio_amplifier: !include ../features/audio-amplifier.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -65,9 +62,6 @@ substitutions:
   # The backlight's PWM. Waveshare's BSP drives the pin at 5 kHz; 1 kHz is what the community configurations that ran
   # on this board used, and what it dimmed with.
   BACKLIGHT_FREQUENCY: "1000Hz"
-  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
-  # without the AEC libraries (docs/P4_AUDIO.md).
-  P4_AUDIO_TRANSPORT: "aec"
 
 # ============================================================
 # No need to edit below this line.

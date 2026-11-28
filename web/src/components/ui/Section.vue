@@ -1,12 +1,14 @@
 <script setup lang="ts">
 // A group of settings in the inspector: a card with a title, so the drawer reads as a few questions instead of one
-// long list. A group that is rarely needed can fold away, and then remembers nothing: it opens folded each time.
-import { ref } from "vue";
+// long list. A group that is rarely needed can fold away, and then remembers nothing: it opens folded each time,
+// unless `open` says it has something to show; when that comes later (a value filled in from elsewhere) it opens then.
+import { ref, watch } from "vue";
 import type { IconName } from "../../model/ui-icons";
 import Icon from "./Icon.vue";
 import HelpTip from "../HelpTip.vue";
 const props = defineProps<{ title: string; icon?: IconName; aside?: string; hint?: string; foldable?: boolean; open?: boolean }>();
 const shown = ref(!props.foldable || props.open);
+watch(() => props.open, (open) => { if (open) shown.value = true; });
 </script>
 
 <template>

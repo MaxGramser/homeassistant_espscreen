@@ -1,24 +1,26 @@
 """The alarm panel (app 0.3.8 / firmware 0.3.3): an alarm_control_panel as a tile with Home Assistant's card and code
-dialog. tests/test_alarm_panel.cpp checks the logic and the layouts of components/smart_display/alarm_panel.h; these
-keep the firmware, the app and the editor in step with each other and with Home Assistant (its 2026.9 frontend and
-core), and hold the rules that keep a code private.
+dialog. tests/test_alarm_panel.cpp checks components/smart_display/alarm_panel.h against Home Assistant (its 2026.9
+frontend and core): the modes in ALARM_MODES' order with their actions, feature bits and icons as a static_assert, every
+state's colour and icon, when a code is asked, and the layouts; tests/test_tile_controls.cpp when a panel is active;
+web/wasm/test_alarm_card.mjs reads the real card (the modes, the keypad, the code with the action, a refused code as an
+event without it, arming at once); web/tests/layout.spec.ts the editor's colours. Here: the app's side, the top bar,
+and the rules that keep a code private.
 """
 from firmware_sources import firmware_domains, runtime_source
-import re
+import json
+import tempfile
 import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+import alarm_screens  # noqa: E402
 import core  # noqa: E402
+import page_delivery  # noqa: E402
 import header_bar  # noqa: E402
 
-COMPONENT = ROOT / 'components/smart_display'
-PANEL = (COMPONENT / 'alarm_panel.h').read_text()
-MODEL = (COMPONENT / 'runtime_model.h').read_text()
 TILES = runtime_source()
-PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
 
 # Home Assistant's states, their colours (--state-alarm_control_panel-*-color) and icons (icons.json of the
 # integration); disarmed is inactive and grey (stateActive).
@@ -26,72 +28,26 @@ STATES = {'disarmed': (None, 'F099E'), 'armed_home': ('GREEN', 'F068A'), 'armed_
           'armed_night': ('GREEN', 'F1828'), 'armed_vacation': ('GREEN', 'F06BB'), 'armed_custom_bypass': ('GREEN', 'F0483'),
           'arming': ('ORANGE', 'F0498'), 'pending': ('ORANGE', 'F0499'), 'disarming': ('ORANGE', 'F0498'),
           'triggered': ('RED', 'F009E')}
-# The frontend's ALARM_MODES (src/data/alarm_control_panel.ts), in its order, with the feature bit and the action.
-MODES = [('armed_home', 1, 'alarm_arm_home'), ('armed_away', 2, 'alarm_arm_away'), ('armed_night', 4, 'alarm_arm_night'),
-         ('armed_vacation', 32, 'alarm_arm_vacation'), ('armed_custom_bypass', 16, 'alarm_arm_custom_bypass'),
-         ('disarmed', 0, 'alarm_disarm')]
-
-
-def body(source, signature):
-    return source.split(signature, 1)[1].split('\n}\n', 1)[0]
-
-
 class HomeAssistantsRules(unittest.TestCase):
-    def test_modes_follow_the_frontend(self):
-        table = re.findall(r'\{"(\w+)", "alarm_control_panel\.(\w+)", glyph::\w+, (feature::\w+|0)\}', PANEL)
-        self.assertEqual([state for state, _, _ in table], [state for state, _, _ in MODES])
-        self.assertEqual([action for _, action, _ in table], [action for _, _, action in MODES])
-        # The bits are Home Assistant's, by name from the tile catalogue (tile_catalogue.h), never counted here.
-        space = re.search(r'namespace feature = tile_catalogue::(\w+);', PANEL)[1]
-        catalogue = (COMPONENT / 'tile_catalogue.h').read_text()
-        bits = dict(re.findall(r'(\w+) = (\d+);', catalogue.split(f'namespace {space} {{', 1)[1].split('}', 1)[0]))
-        for (state, bit, _), (_, _, feature) in zip(MODES, table):
-            self.assertEqual(int(bits[feature.split('::')[1]]) if feature != '0' else 0, bit, state)
-        # Trigger is a feature, never a key.
-        self.assertNotIn('alarm_trigger', PANEL)
-
-    def test_colours_and_icons_are_home_assistants(self):
-        colour = body(PANEL, 'inline uint32_t color(const std::string &state) {')
-        icon = body(PANEL, 'inline const char *icon(const std::string &state) {')
-        glyphs = dict(re.findall(r'\*?(\w+) = "\\U000(F[0-9A-F]{4})"', PANEL))
-        for state, (ha_colour, ha_icon) in STATES.items():
-            if ha_colour == 'RED':
-                self.assertIn(f'state == "{state}") return RED', colour)
-            elif ha_colour == 'ORANGE':
-                self.assertIn(f'"{state}"', colour.split('return ORANGE')[0].split('return RED')[-1])
-            name = re.search(rf'state == "{state}"\) return glyph::(\w+)', icon)
-            self.assertEqual(glyphs[name[1] if name else 'SHIELD'], ha_icon, state)
-        self.assertIn('constexpr uint32_t GREEN = theme::ha::GREEN, ORANGE = theme::ha::ORANGE, RED = theme::ha::RED;', PANEL)
-        # The same rule on the tile (Tile::active), in the editor's mockup and in the top bar.
-        self.assertIn('if (d == "alarm_control_panel") return state != "disarmed";', MODEL)
-        self.assertIn('if (domain === "alarm_control_panel") return state !== "disarmed";', PALETTE)
-        self.assertIn('if (domain === "alarm_control_panel") return state === "triggered" ? c.RED : ["arming", "pending", "disarming"].includes(state) ? c.ORANGE : c.GREEN;', PALETTE)
+    def test_the_top_bar_colours_as_home_assistant(self):
         for state, (ha_colour, _) in STATES.items():
             self.assertEqual(header_bar.accent('alarm_control_panel.house', {'state': state}), getattr(header_bar, ha_colour) if ha_colour else None, state)
-
-    def test_a_code_is_asked_as_the_frontend_asks_it(self):
-        rule = body(PANEL, 'inline bool needs_code(const Codes &c, unsigned mode) {')
-        self.assertIn('if (c.saved || c.format.empty()) return false;', rule)
-        self.assertIn('return mode == DISARM || c.arm_required;', rule)
 
 
 class CodesStayPrivate(unittest.TestCase):
     def test_the_screen_never_logs_or_keeps_a_code(self):
         section = TILES.split('// ---- Alarm panel (firmware 0.3.3+)', 1)[1].split('// ---- History card', 1)[0]
+        # Rules (the code with the action and a refusal without it are read from the real card in test_alarm_card.mjs):
+        # no log line names the code, one place sends it and wipes it at once, a restart keeps the count and the time
+        # left and nothing else, and an action logs its service and entity only.
         for line in section.splitlines():
             if 'ESP_LOG' in line:
-                self.assertNotIn('alarm_pad.code', line)
-        # One place sends it, as the action's `code`, and wipes it right after.
-        self.assertEqual(section.count('"code",alarm_pad.code'), 1)
-        self.assertIn('"code",alarm_pad.code);\n  alarm_wipe(alarm_pad.code);', section)
-        # The event Home Assistant hears carries the panel, the count and the lock, never the code.
-        event = body(section, 'inline void alarm_refused_event(const std::string &entity,uint32_t locked){')
-        self.assertIn('{"entity_id","failures","locked"}', event)
-        self.assertNotIn('code', event.replace('screen_alarm_code_refused', '').replace('screen_lock_code_refused', ''))
-        # What is saved across a restart is the count and the time left.
-        self.assertIn('struct AlarmSaved { uint32_t failures=0, seconds=0; };', section)
-        # The action logs its service and entity only.
-        self.assertIn('ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());', TILES)
+                self.assertNotIn('alarm_pad.code', line, f'a log line names the code: {line.strip()}')
+        self.assertEqual(section.count('"code",alarm_pad.code'), 1, 'the code is sent from one place')
+        self.assertIn('"code",alarm_pad.code);\n  alarm_wipe(alarm_pad.code);', section, 'and wiped right after it')
+        self.assertIn('struct AlarmSaved { uint32_t failures=0, seconds=0; };', section, 'a restart keeps the count and the time left')
+        self.assertIn('ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());', TILES,
+                      'an action logs its service and entity, never its data')
 
     def test_the_app_sends_whether_a_default_code_exists_never_the_code(self):
         entry = {'options': {'alarm_control_panel': {'default_code': '4321'}}}
@@ -133,3 +89,73 @@ class TheApp(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AlarmScreens(unittest.TestCase):
+    """What the screens do when an alarm goes off, set once per alarm on the Events page (alarm_screens.py,
+    docs/ALARM_PANEL.md): which screens open the keypad by themselves, and after how many digits the code sends itself.
+    Home Assistant reports no length of a code (only code_format), so the person says it, once for the alarm."""
+
+    STATES = {'alarm_control_panel.house': {'state': 'disarmed', 'attributes': {'friendly_name': 'House', 'code_format': 'number'}},
+              'alarm_control_panel.shed': {'state': 'disarmed', 'attributes': {}}, 'light.hall': {'state': 'on', 'attributes': {}}}
+
+    def store(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        return alarm_screens.AlarmScreens(folder.name), folder.name
+
+    def test_every_screen_and_the_ok_key_by_default_and_nothing_stored(self):
+        store, folder = self.store()
+        self.assertEqual(store.choice('alarm_control_panel.house'), {'screens': 'all', 'send_after': 'off'})
+        self.assertTrue(store.wakes('alarm_control_panel.house', 'any-screen'))
+        self.assertEqual(store.options('alarm_control_panel.house', 'any-screen'), {})
+        self.assertEqual(store.set('alarm_control_panel.house', 'all', 'off'), {'screens': 'all', 'send_after': 'off'})
+        self.assertEqual(json.loads((Path(folder) / 'alarm_screens.json').read_text())['alarms'], {})
+
+    def test_a_choice_is_kept_and_read_again(self):
+        store, folder = self.store()
+        store.set('alarm_control_panel.house', ['kitchen', 'hall'], '6')
+        again = alarm_screens.AlarmScreens(folder)
+        self.assertEqual(again.choice('alarm_control_panel.house'), {'screens': ['hall', 'kitchen'], 'send_after': '6'})
+        self.assertEqual(again.options('alarm_control_panel.house', 'hall'), {'send_after': '6'})
+        self.assertEqual(again.options('alarm_control_panel.house', 'bedroom'), {'send_after': '6', 'alarm_wake': 'off'})
+        for bad in (('light.hall', 'all', 'off'), ('alarm_control_panel.house', 'some', 'off'), ('alarm_control_panel.house', 'all', '3'),
+                    ('alarm_control_panel.house', 'all', '10'), ('alarm_control_panel.house', [''], 'off')):
+            with self.assertRaises(ValueError):
+                again.set(*bad)
+        self.assertEqual(list(alarm_screens.SEND_AFTER), ['off', '4', '5', '6', '7', '8'])
+
+    def test_a_screen_gets_a_tile_without_a_cell_for_an_alarm_it_has_on_no_tile(self):
+        store, _ = self.store()
+        store.set('alarm_control_panel.shed', ['hall'], '4')
+        placed = [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {}}]
+        self.assertEqual(store.tiles('hall', self.STATES, placed),
+                         [{'entity': 'alarm_control_panel.shed', 'name': '', 'bar': True, 'options': {'send_after': '4'}}])
+        self.assertEqual(store.tiles('kitchen', self.STATES, placed), [], 'the kitchen does not wake for the shed and has the house on a tile')
+        self.assertEqual(store.with_options(placed[0], 'kitchen'), placed[0], 'the house keeps its defaults')
+        self.assertEqual(store.with_options({'entity': 'light.hall', 'options': {}}, 'hall'), {'entity': 'light.hall', 'options': {}})
+
+    def test_the_tiles_count_in_the_screens_memory(self):
+        memory = {'tile': 100, 'extra': 50, 'psram': True, 'bar_cards': True, 'alarms': ['alarm_control_panel.house', 'alarm_control_panel.shed']}
+        tiles = [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {}}]
+        with_alarm = core.layout_cost(tiles, memory)
+        self.assertEqual(with_alarm - core.layout_cost(tiles, {**memory, 'alarms': []}), core.tile_cost({'entity': 'alarm_control_panel.shed'}, memory),
+                         'only the alarm on no tile costs a tile')
+        self.assertEqual(core.layout_cost(tiles, {**memory, 'bar_cards': False}), core.layout_cost(tiles, {**memory, 'bar_cards': False, 'alarms': []}),
+                         'a screen that takes no tiles without a cell gets none')
+
+    def test_a_layout_saved_with_the_choice_on_its_tile_loads_without_it(self):
+        layout = {'title': 'Home', 'tiles': [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {'send_after': '4'}}]}
+        self.assertEqual(core.validate_layout(layout)['tiles'][0].get('options', {}), {})
+
+    def test_the_screen_gets_the_choice_with_the_tile(self):
+        message = core.state_message(0, {'entity': 'alarm_control_panel.house', 'name': '', 'options': {'send_after': '6', 'alarm_wake': 'off'}}, self.STATES)
+        self.assertEqual((message['o']['send_after'], message['o']['alarm_wake']), ('6', 'off'))
+        # What the screen does with them is read from the real card in web/wasm/test_alarm_card.mjs, and the range of
+        # lengths it takes (4 to 8) is alarm_panel::send_after in tests/test_alarm_panel.cpp.
+
+    def test_a_change_gives_the_screen_its_tiles_again(self):
+        record = {'layout': {'pages': []}, 'sourceGrid': {'columns': 3, 'rows': 3}}
+        plain = page_delivery.configuration(record, {})
+        self.assertEqual(plain, page_delivery.configuration(record, {}, alarms=None))
+        self.assertNotEqual(plain, page_delivery.configuration(record, {}, alarms={'alarm_control_panel.house': {'send_after': '4'}}))

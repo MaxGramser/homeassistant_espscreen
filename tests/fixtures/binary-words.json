@@ -1,0 +1,114 @@
+{
+ "battery": [
+  "Low",
+  "Normal"
+ ],
+ "battery_charging": [
+  "Charging",
+  "Not charging"
+ ],
+ "carbon_monoxide": [
+  "Detected",
+  "Clear"
+ ],
+ "cold": [
+  "Cold",
+  "Normal"
+ ],
+ "connectivity": [
+  "Connected",
+  "Disconnected"
+ ],
+ "door": [
+  "Open",
+  "Closed"
+ ],
+ "garage_door": [
+  "Open",
+  "Closed"
+ ],
+ "gas": [
+  "Detected",
+  "Clear"
+ ],
+ "heat": [
+  "Hot",
+  "Normal"
+ ],
+ "light": [
+  "Light detected",
+  "No light"
+ ],
+ "lock": [
+  "Unlocked",
+  "Locked"
+ ],
+ "moisture": [
+  "Wet",
+  "Dry"
+ ],
+ "motion": [
+  "Detected",
+  "Clear"
+ ],
+ "moving": [
+  "Moving",
+  "Not moving"
+ ],
+ "occupancy": [
+  "Detected",
+  "Clear"
+ ],
+ "opening": [
+  "Open",
+  "Closed"
+ ],
+ "plug": [
+  "Plugged in",
+  "Unplugged"
+ ],
+ "power": [
+  "On",
+  "Off"
+ ],
+ "presence": [
+  "Home",
+  "Away"
+ ],
+ "problem": [
+  "Problem",
+  "OK"
+ ],
+ "running": [
+  "Running",
+  "Not running"
+ ],
+ "safety": [
+  "Unsafe",
+  "Safe"
+ ],
+ "smoke": [
+  "Detected",
+  "Clear"
+ ],
+ "sound": [
+  "Detected",
+  "Clear"
+ ],
+ "tamper": [
+  "Tampering detected",
+  "Clear"
+ ],
+ "update": [
+  "Update available",
+  "Up-to-date"
+ ],
+ "vibration": [
+  "Detected",
+  "Clear"
+ ],
+ "window": [
+  "Open",
+  "Closed"
+ ]
+}

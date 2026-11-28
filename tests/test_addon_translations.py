@@ -21,7 +21,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'screen_manager/app'
 sys.path.insert(0, str(APP))
-sys.path.insert(0, str(ROOT / 'tests'))
 import core  # noqa: E402
 import header_bar  # noqa: E402
 import history_card  # noqa: E402

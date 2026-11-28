@@ -210,3 +210,29 @@ def _number(value, fallback):
     if number != number or number in (float('inf'), float('-inf')):
         return fallback
     return int(number) if number.is_integer() else round(number, 3)
+
+
+def choices(entity, device, states, entries=None, words=None, device_name=None):
+    """What a light's presets may set beside its colour (the editor's preset popover): its effects, and the rows of its
+    effects page with every choice they have: a select's options, a number's range. A light group has no device, so its
+    effects alone. The rows in the page's order, all of them (the page shows the first few)."""
+    attrs = (states.get(entity) or {}).get('attributes') or {}
+    selects, numbers = siblings(entity, device, states)
+    entries = entries or {}
+    names = {}
+    for item in selects + numbers:
+        names[item['entity_id']] = strip_device_name(entity_name(item['entity_id'], entries.get(item['entity_id'], item), states, words), device_name)
+    rows = []
+    for item in _order(selects, PREFERRED_SELECTS, names) + _order(numbers, PREFERRED_NUMBERS, names):
+        eid = item['entity_id']
+        entry = entries.get(eid, item)
+        state = states[eid]
+        a = state.get('attributes') or {}
+        row = {'e': eid, 'n': names[eid], 'key': entry.get('translation_key') or '', 'kind': eid.split('.', 1)[0]}
+        if eid.startswith('select.'):
+            row.update(options=[str(o) for o in a.get('options') or [] if isinstance(o, str)], value=state.get('state'))
+        else:
+            row.update(min=_number(a.get('min'), 0), max=_number(a.get('max'), 100), step=_number(a.get('step'), 1),
+                       value=_number(state.get('state'), None))
+        rows.append(row)
+    return {'effects': effect_options(attrs) if supports_effects(attrs) else [], 'rows': rows}

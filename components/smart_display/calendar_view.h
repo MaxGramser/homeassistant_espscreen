@@ -4,6 +4,8 @@
 // opens has three: what stays, the hours that scroll, and a sheet over them (the view key's choice, an event).
 #include "lvgl.h"
 
+#include <string>
+
 namespace runtime_tiles {
 struct Widgets;
 struct Tile;
@@ -21,4 +23,7 @@ void open(lv_obj_t *root, const runtime_tiles::Tile &t, unsigned index);
 bool card_tap(runtime_tiles::Widgets &w, const runtime_tiles::Tile &t);
 // A new minute: the open full screen follows the clock (its now line, the minutes left), keeping where it is scrolled.
 void minute();
+// The app's answer to a tap on a short event (op "calendar_event", the question `view`): the event's whole title, place
+// and notes, for its calendar, start and end; `gone`: the app no longer has it. The open sheet shows it.
+void detail(unsigned view, int cal, int start, int end, std::string title, std::string place, std::string notes, bool gone);
 }  // namespace calendar_view

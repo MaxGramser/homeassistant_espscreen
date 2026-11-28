@@ -207,10 +207,17 @@ def section(changelog, version):
 ISSUE = re.compile(r'github\.com/' + re.escape(REPOSITORY) + r'/(?:issues|pull)/(\d+)|(?<![\w/&])#(\d+)\b')
 
 
+NOT_OURS = re.compile(r'(?:\bwish|/\S+)\s*$', re.IGNORECASE)
+
+
 def issues_in(notes):
-    """The issue and pull request numbers a CHANGELOG section names, as links or as #123, in order, once each."""
+    """The issue and pull request numbers a CHANGELOG section names, as links or as #123, in order, once each.
+    A bare #123 after "wish" (the website's wishlist) or after another repository ("espressif/esp-idf #123") is not
+    an issue of ours."""
     found = []
     for match in ISSUE.finditer(notes):
+        if match.group(2) and NOT_OURS.search(notes[max(0, match.start() - 40):match.start()]):
+            continue
         number = int(match.group(1) or match.group(2))
         if number not in found:
             found.append(number)
@@ -462,6 +469,11 @@ def candidate(args):
     return 0
 
 
+def tag_of(version):
+    """The tag a release of this app version gets, the ref a stable app builds its screens from (core.release_ref)."""
+    return f'screens-v{version}'
+
+
 def publish(args):
     fetch()
     head = git('rev-parse', 'HEAD')
@@ -486,7 +498,7 @@ def publish(args):
     found = section(changelog, version)
     if not first or not found or first.group(0) != found[0]:
         problems.append(f'the newest CHANGELOG heading is not {version}, the version in {CONFIG}')
-    tag = f'screens-v{version}'
+    tag = tag_of(version)
     if has(f'refs/tags/{tag}') or git('ls-remote', '--tags', 'origin', f'refs/tags/{tag}'):
         problems.append(f'the tag {tag} exists already')
     lint = subprocess.run([sys.executable, '-m', 'unittest', '-q', 'tests.test_release_lint'], cwd=ROOT,

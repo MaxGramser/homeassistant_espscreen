@@ -1,0 +1,30 @@
+# The ES7210's plain transport (parts/es7210.yaml, AUDIO_TRANSPORT "i2s"): ESPHome's own I2S bus, one for the speaker and
+# the microphones, so one way at a time (features/audio-half-duplex.yaml), and no AEC libraries in the firmware.
+packages:
+  audio: !include ../../../features/audio.yaml
+  half_duplex: !include ../../../features/audio-half-duplex.yaml
+
+substitutions:
+  AUDIO_SAMPLE_RATE: ${AUDIO_I2S_SAMPLE_RATE}
+  AUDIO_HALF_DUPLEX: "true"
+  AUDIO_MIC_BUS: ts_speaker_bus
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+
+# The converter at the voice's rate, the microphone on the slot of its input.
+audio_adc:
+  - id: !extend ts_audio_adc
+    sample_rate: 16000
+
+microphone:
+  - id: !extend ts_microphone
+    channel: ${AUDIO_MIC_CHANNEL}
+    correct_dc_offset: ${AUDIO_MIC_DC_OFFSET}
+
+speaker:
+  - id: !extend ts_speaker_out
+    buffer_duration: ${AUDIO_SPEAKER_BUFFER}

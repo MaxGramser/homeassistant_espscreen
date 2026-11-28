@@ -13,7 +13,8 @@ Choose the correct USB port, or download the firmware to flash with ESPHome Web 
 Keep an existing working profile if the board is already installed. Tessera adds it to Home Assistant by itself once it is on your Wi-Fi; then add its tiles.
 
 The remote package is `packages/waveshare7b.yaml`; the checkout entry is `checkout/waveshare7b.yaml`.
-Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-7b.yaml`.
+Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-7b.yaml`, which includes
+`packages/hardware/waveshare-ch32v003.yaml`, the expander, touch and backlight it shares with the [4.3C](WAVESHARE43C.md).
 The board needs ESPHome 2026.7.0 or newer, the first release with a component for its expander. Tessera Screen Manager
 builds with a newer one; a build of your own in ESPHome Device Builder needs at least that version.
 The board's one USB-C port goes through a USB-to-UART chip, and the logs go out over it.

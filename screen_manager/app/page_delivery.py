@@ -7,16 +7,20 @@ The document revision used for saving is separate from this content revision.
 import asyncio
 from copy import deepcopy
 import json
+import logging
 import re
 
-from core import (BAR_CARDS_FEATURE, ENTITY_REPEAT_MIN_FIRMWARE, FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, FREE_PAGES_MIN_FIRMWARE,
+from core import (BAR_CARDS_FEATURE, SECTIONS_FEATURE, ENTITY_REPEAT_MIN_FIRMWARE, FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, FREE_PAGES_MIN_FIRMWARE,
                   NIGHTSTAND_MIN_FIRMWARE, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, STORE_MAX_TILES, is_key, repeated_entities, sizes_on)
-from page_layout import compile_tiles, fingerprint, grid_of_record, new_id
+from page_layout import compile_tiles, fingerprint, grid_of_record, new_id, placed_tiles, sections_of
 from i18n import english
 import tile_icons
 
 PROTOCOL = 2
 MAX_MESSAGE = 4096
+
+
+LOG = logging.getLogger(__name__)
 
 
 class DeliveryError(RuntimeError):
@@ -41,11 +45,17 @@ def bounded(message):
     return message
 
 
-def configuration(record, region, bar=()):
+def configuration(record, region, bar=(), sections=False, alarms=None):
     """Editor workspace and legacy device settings never change this revision. The tiles of the top bar a screen gets do
-    (`bar`, core.BAR_CARDS_FEATURE): a screen that starts to take them gets the layout again with them."""
+    (`bar`, core.BAR_CARDS_FEATURE): a screen that starts to take them gets the layout again with them. So do an alarm's
+    choices from the Events page (`alarms`, alarm_screens: its code length and whether this screen wakes for it), which
+    its tiles carry in their options: a change gives the screen its tiles again."""
+    # A screen that starts to draw sections gets the layout again with them (`sections`, its hello); a layout without
+    # sections keeps the revision it always had.
+    drawn = sections and any(sections_of(page) for page in record["layout"]["pages"])
     return fingerprint({"layout": record["layout"], "grid": record["sourceGrid"], "region": region,
-                        **({"bar": [tile["entity"] for tile in bar]} if bar else {})})
+                        **({"bar": [tile["entity"] for tile in bar]} if bar else {}), **({"sections": True} if drawn else {}),
+                        **({"alarms": alarms} if alarms else {})})
 
 
 def appearance_configuration(record, region, initial_tiles):
@@ -56,14 +66,14 @@ def appearance_configuration(record, region, initial_tiles):
     for page_index, page in enumerate(layout['pages']):
         title = page['topbar'].pop('title')
         appearance['pages'].append({'p': page_index, 'title': title.get('text', '') if title['source'] == 'text' else ''})
-        for tile in sorted(page['tiles'], key=lambda tile: (tile['placement']['row'], tile['placement']['column'])):
+        for tile, _, _ in placed_tiles(page):
             tile['appearance'].pop('label')
             background = tile['appearance'].pop('background', 'auto')
             appearance['tiles'].append({'i': index, 'name': initial_tiles[index]['name'], 'background': background})
             index += 1
     # The keys of a bedside clock follow the placed tiles, in the order compile_tiles gives them: a name is paint too.
     for page in layout['pages']:
-        for tile in sorted(page['tiles'], key=lambda tile: (tile['placement']['row'], tile['placement']['column'])):
+        for tile, _, _ in placed_tiles(page):
             for child in tile.get('children', ()):
                 child['appearance'].pop('label')
                 appearance['tiles'].append({'i': index, 'name': initial_tiles[index]['name'], 'background': 'auto'})
@@ -71,7 +81,20 @@ def appearance_configuration(record, region, initial_tiles):
     return fingerprint({'layout': layout, 'grid': record['sourceGrid'], 'region': region}), appearance
 
 
-def page_message(page, index, items, *, initial):
+def section_wire(page, sums=None):
+    """A page's sections as its message carries them to a screen that draws them (docs/PAGES.md "Sections"): [column,
+    row, columns, rows, icon codepoint, title, summary, options] each, the summary as the add-on formatted its entity's
+    state, the options as bits (1: the panel in contrast, 2: its tiles follow it, the whole section in the other look)."""
+    sums = sums or []
+    return [[s["placement"]["column"], s["placement"]["row"], s["placement"]["columns"], s["placement"]["rows"],
+             tile_icons.carried(s.get("icon")) or "", s["title"], sums[i] if i < len(sums) else "",
+             (1 if s.get("contrast") else 0) | (2 if s.get("contrast") and s.get("contrastTiles") else 0)]
+            for i, s in enumerate(sections_of(page))]
+
+
+def page_message(page, index, items, *, initial, sections=False, sums=None):
+    """`sections`: the screen draws sections (its hello names SECTIONS_FEATURE), so a page that has some says them; a
+    page without any, and every page to any other screen, says what it always did."""
     message = {"op": "page" if initial else "bar", "p": index, "items": items}
     if initial:
         title = page["topbar"]["title"]
@@ -82,9 +105,18 @@ def page_message(page, index, items, *, initial):
         if page["navigation"].get("showInDock") is False:
             message["dock"] = False
         # A page's own icon, which the Dock shows instead of its picture: its codepoint, as a tile's icon travels.
-        if page.get("icon") in tile_icons.GLYPHS:
-            message["icon"] = tile_icons.GLYPHS[page["icon"]]
+        icon = tile_icons.carried(page.get("icon"))
+        if icon:
+            message["icon"] = icon
+        if sections and sections_of(page):
+            message["sections"] = section_wire(page, sums)
     return message
+
+
+def sums_messages(pages, sums, previous):
+    """The pages whose section summaries changed since `previous`, one message each (op "sums")."""
+    return [{"op": "sums", "p": i, "t": texts} for i, texts in enumerate(sums)
+            if i < len(pages) and sections_of(pages[i]) and (i >= len(previous) or previous[i] != texts)]
 
 
 def tile_message(message, tile, *, initial, holders=None):
@@ -135,27 +167,79 @@ def bar_value_messages(bars, previous, stride=FIRMWARE_MAX_BAR_ITEMS):
     return [*replacements, *grouped.values()]
 
 
-def prepare(inbox, record, region, values, bars, bar=()):
+def prepare(inbox, record, region, values, bars, bar=(), sections=False, sums=None, alarms=None):
     """Compile and bound the entire transaction before persistence or delivery.
 
     Initial states are supplied by the caller so this pure boundary has no HA
     side effects. The real delivery also checks refreshed values here. `bar`:
     the tiles of the top bar for a screen that takes them, after every other.
     """
-    revision = configuration(record, region, bar)
+    revision = configuration(record, region, bar, alarms=alarms)
     tiles = compile_tiles(record["layout"], grid_of_record(record)) + list(bar)
     pages = record["layout"]["pages"]
     if len(values) != len(tiles) or len(bars) != len(pages):
         raise Refused(english('addon.errors.pages.fields'))
     holders = {tile["entity"]: i for i, tile in enumerate(tiles) if not is_key(tile) and not tile.get("bar")}
     initial_tiles = [tile_message(value, tile, initial=True, holders=holders) for value, tile in zip(values, tiles)]
-    initial_bars = [page_message(page, i, bar, initial=True) for i, (page, bar) in enumerate(zip(pages, bars))]
+    sums = sums or []
+    initial_bars = [page_message(page, i, bar, initial=True, sections=sections, sums=sums[i] if i < len(sums) else None)
+                    for i, (page, bar) in enumerate(zip(pages, bars))]
     live_values = [tile_message(value, tile, initial=False) for value, tile in zip(values, tiles)]
     begin = {"op": "begin", "inbox": inbox, "title": record["layout"]["title"], "pages": len(pages),
              "tiles": len(tiles), "home": next(i for i, p in enumerate(pages) if p["id"] == record["layout"]["homePageId"]), **region}
     for message in [begin, *initial_tiles, *initial_bars, *live_values]:
         bounded({**message, "v": PROTOCOL, "session": "0" * 16, "seq": 0xFFFFFFFF, "rev": revision})
     return begin, initial_tiles, initial_bars, live_values
+
+
+# own_camera: a tile of the screen's own camera is drawn on the screen from the camera itself (plugin API 0.22,
+# firmware live_view.h is_own), so the app answers such a tile "own:" (picture_service, Manager.own_camera_of).
+CAP_FLAGS = ("live", "speaker", "microphone", "echo_cancel", "camera", "own_camera")
+CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes", "todo_items")
+# picture_turn: the screen's glass is turned (LVGL's rotation: 90, 180 or 270 degrees) and it takes its live pictures
+# turned so, to copy them onto the glass straight (live_pictures.TURNS); 0 for one that is not, or does not say.
+PICTURE_TURNS = (90, 180, 270)
+
+
+def caps_of(answer):
+    """The capability record of a hello (firmware hw.h, docs/PLATFORM_PLAN.md 3.3): the flags of CAP_FLAGS as booleans and
+    the counts of CAP_COUNTS as ints, or None for a count the screen did not give. A firmware without the record (before
+    it existed) gets `live` from its features, and False for every other flag: an older screen is taken for what its
+    features say, never for more."""
+    answer = answer if isinstance(answer, dict) else {}
+    record = answer.get("caps")
+    record = record if isinstance(record, dict) else {}
+    features = answer.get("features")
+    features = {name for name in features if isinstance(name, str)} if isinstance(features, list) else set()
+    caps = {flag: record.get(flag) is True for flag in CAP_FLAGS}
+    if "live" not in record:
+        caps["live"] = "live" in features
+    for count in CAP_COUNTS:
+        value = record.get(count)
+        caps[count] = value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+    turn = record.get("picture_turn")
+    caps["picture_turn"] = turn if turn in PICTURE_TURNS and not isinstance(turn, bool) else 0
+    return caps
+
+
+def caps_line(caps):
+    """The record in one line for the log, one per screen whenever it changes (a hello after an update): "live, 4 live
+    tiles, speaker, microphone, camera, no echo cancellation, 28272 KB PSRAM, 519 KB internal RAM"."""
+    words = []
+    for flag, name in (("live", "live"), ("speaker", "speaker"), ("microphone", "microphone"), ("camera", "camera"),
+                       ("echo_cancel", "echo cancellation")):
+        if flag == "echo_cancel":
+            words.append(name if caps.get(flag) else "no " + name)
+        elif caps.get(flag):
+            words.append(name)
+            if flag == "live" and caps.get("live_tiles") is not None:
+                words.append(f"{caps['live_tiles']} live tiles")
+    for count, unit in (("psram_kb", "KB PSRAM"), ("internal_kb", "KB internal RAM")):
+        if caps.get(count) is not None:
+            words.append(f"{caps[count]} {unit}")
+    if caps.get("picture_turn"):
+        words.append(f"live pictures turned {caps['picture_turn']}")
+    return ", ".join(words)
 
 
 def plugins_of(answer):
@@ -242,8 +326,9 @@ class Sender:
     configuration being sent is still current after each asynchronous step.
     """
 
-    def __init__(self, send):
+    def __init__(self, send, name=None):
         self.send = send
+        self.name = name  # the screen's, for the log
         self.lock = asyncio.Lock()
         self.session = None
         self.sequence = 0
@@ -251,7 +336,7 @@ class Sender:
         self.confirmed = None
         self.failed_revision = None
         self.failure = None
-        self.values, self.bars = [], []
+        self.values, self.bars, self.sums = [], [], []
         self.phase = "waiting"
         self.protocol = None
         self.tile_sizes = {"single", "wide", "full"}
@@ -264,6 +349,8 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        # What its hardware can do (caps_of): nothing until its hello.
+        self.caps = caps_of({})
         # The plugin API the firmware offers and the plugins built into it (docs/PLUGINS.md): None and [] for a firmware
         # without plugins, which refuses a plugin's tile.
         self.plugin_api, self.plugins = None, []
@@ -286,6 +373,7 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        self.caps = caps_of({})
         self.plugin_api, self.plugins = None, []
         self.max_tiles = self.max_pages = self.max_bar_items = self.memory = None
         self.grids = None
@@ -326,6 +414,12 @@ class Sender:
             # and none of its own here. climate_range: a thermostat's range on its -/+. The older flags above stay.
             listed = answer.get("features")
             self.features = {name for name in listed if isinstance(name, str)} if isinstance(listed, list) else set()
+            # Its hardware's record (firmware hw.h): live video, speaker, microphone, echo cancellation, a camera of its
+            # own, the live tiles it runs at once, its memory; from the features alone for an older firmware.
+            caps = caps_of(answer)
+            if caps != getattr(self, "caps", None) and "caps" in answer:
+                LOG.info("%s: %s", self.name or "A screen", caps_line(caps))
+            self.caps = caps
             # Plugins (docs/PLUGINS.md): the API it offers ("0.1") and what it runs, [{id, version, tiles}].
             self.plugin_api, self.plugins = plugins_of(answer)
             # Its own ceilings and the memory its tiles may take (firmware 0.34.0+): 64 tiles over eight pages when it says
@@ -377,19 +471,22 @@ class Sender:
             raise DeliveryError(answer.get("status") or "Screen requested synchronization")
         return answer
 
-    async def synchronize(self, inbox, record, region, values, bars, alive=lambda: True, bar=()):
+    async def synchronize(self, inbox, record, region, values, bars, alive=lambda: True, bar=(), sums=None, alarms=None):
         """values and bars are resolved snapshots for this validated document,
         `bar` the tiles of the top bar the values end with (prepare).
 
         Every message is size-checked before begin. Optional histories/images
         may arrive later; tile configuration and an initial HA value may not.
         """
-        revision = configuration(record, region, bar)
+        revision = configuration(record, region, bar, SECTIONS_FEATURE in (getattr(self, "features", None) or ()), alarms)
         if self.failed_revision == revision:
             raise Refused(self.failure)
         pages = record["layout"]["pages"]
         try:
-            begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar)
+            given = sums
+            sections = SECTIONS_FEATURE in (getattr(self, "features", None) or ())
+            sums = (given or []) if sections else []
+            begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums, alarms)
         except Refused as error:
             # No begin was sent, so an already applied document remains valid.
             # Resolved live values may shrink again without a layout edit.
@@ -421,6 +518,13 @@ class Sender:
                     self.phase = "applying"
                     if await self._hello() != PROTOCOL:
                         raise Refused(english('editor.pages.update_notice'))
+                    # Sections (docs/PAGES.md "Sections") as this hello says: a screen first heard now, or flashed to
+                    # firmware with or without them, gets its pages' messages with or without them in this same round.
+                    if (SECTIONS_FEATURE in self.features) != sections and any(sections_of(page) for page in pages):
+                        sections = SECTIONS_FEATURE in self.features
+                        sums = (given or []) if sections else []
+                        revision = configuration(record, region, bar, sections, alarms)
+                        begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums, alarms)
                     # Tiles of the top bar only to a screen that still names them: one flashed back to an older firmware
                     # gets the layout without them on the next round, which its hello now decides.
                     if bar and BAR_CARDS_FEATURE not in self.features:
@@ -478,6 +582,8 @@ class Sender:
                         self.grids = self.last_grids = grids_of(answer)
                     # A resumed active revision still needs the latest values.
                     self.values, self.bars = [], []
+                    # The page messages just sent carry the summaries as they are now.
+                    self.sums = deepcopy(sums)
                 for i, message in enumerate(live_values):
                     if i >= len(self.values) or message != self.values[i]:
                         await self._packet(message, revision)
@@ -489,6 +595,10 @@ class Sender:
                 for message in updates:
                     await self._packet(message, revision)
                     current()
+                for message in sums_messages(pages, sums, getattr(self, "sums", [])):
+                    await self._packet(message, revision)
+                    current()
+                self.sums = deepcopy(sums)
                 self.values, self.bars = deepcopy(live_values), deepcopy(bars)
                 self.confirmed, self.phase = revision, "applied"
                 self.structure, self.appearance = structure, appearance

@@ -5,7 +5,7 @@ import { t } from "../i18n";
  * consume a derived view with stable instance IDs. Only the persistence and
  * delivery boundaries translate to another format.
  */
-import type { ChildTile, HeaderItem, Layout, Page, PageGrid, PageLayout, PageTarget, PageTile, Tile, TileOptions } from "../types";
+import type { ChildTile, HeaderItem, Layout, Page, PageGrid, PageLayout, PageTarget, PageTile, Section, SectionBlock, Tile, TileOptions } from "../types";
 import { BUILTIN_CARDS, type BuiltinName } from "../types";
 import { PLUGIN_TILE, pluginTileId } from "./plugins";
 import { spanOf, spanOffered } from "./sizes";
@@ -13,7 +13,10 @@ import { spanOf, spanOffered } from "./sizes";
 import { STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, dimensions, type Size } from "./layout";
 import { isSize } from "./sizes";
 import { validateCardOptions, validatePageShape } from './page-validation';
+import { cleanPreset, MAX as PRESETS_MAX, type Preset } from './light-presets';
 import rules from './page-rules.json';
+import { allTiles, inside, keepTiles, placedTiles, sectionOf, sectionsOf, tilesIn } from "./page-tiles";
+export { allTiles, inside, keepTiles, looseTiles, placedTiles, sectionOf, sectionsOf, tilesIn } from "./page-tiles";
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 // The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
@@ -29,6 +32,43 @@ export const pageLimit = (grid: PageGrid) => grid.pages ?? STORE_MAX_PAGES;
 export const barLimit = (grid: PageGrid) => grid.barItems ?? STORE_MAX_BAR_ITEMS;
 export const sameGrid = (a: PageGrid, b: PageGrid) => a.columns === b.columns && a.rows === b.rows;
 const byteLength = (value: string) => new TextEncoder().encode(value).length;
+
+// ---- Sections (docs/PAGES.md "Sections") ----
+// A section is a block of cells on a page's grid with a title, an icon and a panel. It holds no tiles: every tile of a
+// page stands in `page.tiles`, and belongs to the section whose block it lies in (model/page-tiles.ts sectionOf). The
+// same rules as the add-on's page_layout (sections_of, section_of, _section).
+export const SECTIONS_MAX = 16;
+export const SECTION_TITLE_BYTES = 48;
+/** A page without sections has no `sections` key at all, so a document from before sections is unchanged. A tile needs
+ * no moving: it is its section's by where it stands. */
+export function rehomeSections(layout: PageLayout) {
+  for (const page of layout.pages) if (page.sections && !page.sections.length) delete page.sections;
+  return layout;
+}
+/** A layout for a screen whose board draws no sections: its sections go, its tiles stay where they stand. The layout
+ * itself when it has none (page_layout.without_sections says the same for the add-on). */
+export function withoutSections(layout: PageLayout): PageLayout {
+  if (!layout.pages.some((page) => page.sections?.length)) return layout;
+  return { ...layout, pages: layout.pages.map(({ sections: _gone, ...page }) => page) };
+}
+/** The sections of a layout as the slot view sees them. */
+export const sectionBlocks = (layout: PageLayout): SectionBlock[] => layout.pages.flatMap((page, index) => sectionsOf(page).map((section) => blockOfSection(section, index)));
+/** A section's own fields as the document keeps them: what is off or empty is left out, and its tiles follow the
+ * contrast only beside the contrast itself. The one place that says which fields a section has besides its block. */
+function ownFields<T extends Partial<Section>>(fields: T): T {
+  const kept = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined && value !== false && value !== "")) as T;
+  if (!kept.contrast) delete kept.contrastTiles;
+  return kept;
+}
+/** A section of the document as the slot view has it, and back. Every field goes both ways without being named here. */
+export function blockOfSection(section: Section, page: number): SectionBlock {
+  const { placement, ...own } = section;
+  return { ...ownFields(own), page, ...placement };
+}
+export function sectionOfBlock(block: SectionBlock): Section {
+  const { page: _page, row, column, columns, rows, ...own } = block;
+  return { ...ownFields(own), placement: { row, column, columns, rows } };
+}
 
 export function emptyPage(bar?: Page["topbar"]): Page {
   return {
@@ -50,12 +90,13 @@ export function copyBar(bar: Page["topbar"]): Page["topbar"] {
 export const destination = (layout: PageLayout, target: PageTarget) => target.kind === "home" ? layout.homePageId : target.pageId;
 export const titleOf = (layout: PageLayout, page: Page) => page.topbar.title.source === "text" ? page.topbar.title.text : layout.title;
 export const pagination = (layout: PageLayout) => layout.pages.filter((page) => !page.navigation.excludeFromPagination).map((page) => page.id);
-export function sequentialTarget(layout: PageLayout, current: string, direction: -1 | 1) {
+export function sequentialTarget(layout: PageLayout, current: string, direction: -1 | 1, loop = false) {
   const sequence = pagination(layout), index = sequence.indexOf(current);
-  return index < 0 ? current : sequence[index + direction] ?? current;
+  if (index < 0) return current;
+  return loop ? sequence[(index + direction + sequence.length) % sequence.length] : sequence[index + direction] ?? current;
 }
 
-export type NavigationSettings = { pageButtons: boolean; swipe: boolean; homeButton: boolean };
+export type NavigationSettings = { pageButtons: boolean; swipe: boolean; homeButton: boolean; loop?: boolean };
 export type NavigationIntent = { kind: "home" | "back" } | { kind: "tile"; tileId: string }
   | { kind: "previous" | "next" | "swipe-previous" | "swipe-next" };
 /** Shared by the preview and reachability checks. Explicit links are independent
@@ -67,11 +108,11 @@ export function navigationTarget(layout: PageLayout, current: string, intent: Na
   if (intent.kind === "back") return page.navigation.excludeFromPagination ? layout.homePageId : current;
   if (intent.kind === "home") return settings.homeButton && page.topbar.leading.some((item) => item.kind === "home") ? layout.homePageId : current;
   if (intent.kind === "tile") {
-    const tile = page.tiles.find((tile) => tile.id === intent.tileId);
+    const tile = allTiles(page).find((tile) => tile.id === intent.tileId);
     return tile?.content.kind === "navigation" ? destination(layout, tile.content.target) : current;
   }
   const allowed = intent.kind.startsWith("swipe-") ? settings.swipe : settings.pageButtons;
-  return allowed ? sequentialTarget(layout, current, intent.kind.endsWith("previous") ? -1 : 1) : current;
+  return allowed ? sequentialTarget(layout, current, intent.kind.endsWith("previous") ? -1 : 1, settings.loop) : current;
 }
 /** Same eight-ID route as firmware. Back never pushes another return entry. */
 export function navigationStep(layout: PageLayout, current: string, history: string[], intent: NavigationIntent, settings: NavigationSettings) {
@@ -94,7 +135,7 @@ export function reachability(layout: PageLayout, settings: NavigationSettings) {
   const edges = new Map(layout.pages.map((page) => [page.id, new Set<string>()]));
   for (const page of layout.pages) {
     const intents: NavigationIntent[] = [{ kind: "home" }, { kind: "back" }, { kind: "previous" }, { kind: "next" }, { kind: "swipe-previous" }, { kind: "swipe-next" },
-      ...page.tiles.map((tile): NavigationIntent => ({ kind: "tile", tileId: tile.id }))];
+      ...allTiles(page).map((tile): NavigationIntent => ({ kind: "tile", tileId: tile.id }))];
     for (const intent of intents) edges.get(page.id)!.add(navigationTarget(layout, page.id, intent, settings));
   }
   function visit(reverse: boolean) {
@@ -155,51 +196,133 @@ function sizeOn(columns: number, rows: number, grid: PageGrid): Size {
 export function adaptGrid(layout: PageLayout, source: PageGrid, target: PageGrid): PageLayout {
   validatePages(layout, source);
   const draft = clone(layout), out: Page[] = [];
+  // A unit is a loose tile or a whole section (docs/PAGES.md "Sections"): a section takes part as one block of cells,
+  // keeps its place where the new grid has it free, else goes whole to the first free place, else to a new page; only a
+  // section wider than the new grid gets narrower, its tiles laid out again in reading order.
+  type Unit = { tile?: PageTile; section?: Section; placement: PageTile["placement"] };
   const free = () => new Set<string>();
-  const fits = (occupied: Set<string>, tile: PageTile, row: number, column: number) => {
-    const { rows, columns } = tile.placement;
+  const fits = (occupied: Set<string>, unit: Unit, row: number, column: number) => {
+    const { rows, columns } = unit.placement;
     if (row + rows > target.rows || column + columns > target.columns) return false;
     for (let y = row; y < row + rows; y++) for (let x = column; x < column + columns; x++) if (occupied.has(`${y}:${x}`)) return false;
     return true;
   };
-  const place = (occupied: Set<string>, tile: PageTile, row: number, column: number) => {
-    Object.assign(tile.placement, { row, column });
-    for (let y = row; y < row + tile.placement.rows; y++) for (let x = column; x < column + tile.placement.columns; x++) occupied.add(`${y}:${x}`);
+  const place = (occupied: Set<string>, unit: Unit, row: number, column: number) => {
+    Object.assign(unit.placement, { row, column });
+    for (let y = row; y < row + unit.placement.rows; y++) for (let x = column; x < column + unit.placement.columns; x++) occupied.add(`${y}:${x}`);
   };
-  const first = (occupied: Set<string>, tile: PageTile) => {
+  const first = (occupied: Set<string>, unit: Unit) => {
     for (let row = 0; row < target.rows; row++) for (let column = 0; column < target.columns; column++)
-      if (fits(occupied, tile, row, column)) { place(occupied, tile, row, column); return true; }
+      if (fits(occupied, unit, row, column)) { place(occupied, unit, row, column); return true; }
     return false;
   };
-  for (const page of draft.pages) {
-    const occupied = free(), pending: PageTile[] = [];
-    const reading = [...page.tiles].sort((a, b) => a.placement.row - b.placement.row || a.placement.column - b.placement.column);
-    for (const tile of reading) {
-      const presentation = footprintSize(tile, source);
-      let size = dimensions(presentation, target);
-      // A rectangle bigger than the new grid takes the largest part of it the grid holds.
-      const shrunk = size.columns > target.columns || size.rows > target.rows;
-      const next = shrunk ? sizeOn(size.columns, size.rows, target) : presentation;
-      if (shrunk) size = dimensions(next, target);
-      tile.appearance.presentation = next;
-      Object.assign(tile.placement, size);
-      if (fits(occupied, tile, tile.placement.row, tile.placement.column)) place(occupied, tile, tile.placement.row, tile.placement.column);
-      else pending.push(tile);
+  // A tile's size on the new grid, at most `columns` wide (a section's width): the largest part of it that fits.
+  const resize = (tile: PageTile, columns: number) => {
+    const presentation = footprintSize(tile, source);
+    let size = dimensions(presentation, target);
+    const shrunk = size.columns > Math.min(columns, target.columns) || size.rows > target.rows;
+    let next: Size = shrunk ? sizeOn(Math.min(size.columns, columns), size.rows, target) : presentation;
+    if (next === "full" && columns < target.columns) next = "single";
+    if (shrunk) size = dimensions(next, target);
+    if (size.columns > columns) { next = "single"; size = { columns: 1, rows: 1 }; }
+    tile.appearance.presentation = next;
+    Object.assign(tile.placement, size);
+    return shrunk;
+  };
+  // A section's tiles in reading order on `columns` columns, each at the first free place; the rows they take.
+  const reflow = (tiles: PageTile[], columns: number) => {
+    const taken = new Set<string>();
+    let height = 0;
+    for (const tile of [...tiles].sort((a, b) => a.placement.row - b.placement.row || a.placement.column - b.placement.column)) {
+      const { columns: w, rows: h } = tile.placement;
+      for (let row = 0; ; row++) {
+        const column = Array.from({ length: columns - w + 1 }, (_, c) => c).find((c) => {
+          for (let y = row; y < row + h; y++) for (let x = c; x < c + w; x++) if (taken.has(`${y}:${x}`)) return false;
+          return true;
+        });
+        if (column === undefined) continue;
+        Object.assign(tile.placement, { row, column });
+        for (let y = row; y < row + h; y++) for (let x = column; x < column + w; x++) taken.add(`${y}:${x}`);
+        height = Math.max(height, row + h);
+        break;
+      }
     }
-    page.tiles = reading.filter((tile) => !pending.includes(tile));
+    return Math.max(1, height);
+  };
+  // While the grid changes a section travels as one block with its tiles beside it, each placed from the block's corner
+  // (`inner`); at the end every one stands on its page again at its own cell.
+  const inner = new Map<Section, PageTile[]>();
+  for (const page of draft.pages) {
+    const occupied = free(), pending: Unit[] = [];
+    for (const section of sectionsOf(page)) {
+      const mine = tilesIn(page, section);
+      for (const tile of mine) { tile.placement.row -= section.placement.row; tile.placement.column -= section.placement.column; }
+      inner.set(section, mine);
+    }
+    const held = new Set([...inner.values()].flat());
+    const units: Unit[] = [...page.tiles.filter((tile) => !held.has(tile)).map((tile) => ({ tile, placement: tile.placement })),
+      ...sectionsOf(page).map((section) => ({ section, placement: section.placement }))];
+    units.sort((a, b) => a.placement.row - b.placement.row || a.placement.column - b.placement.column);
+    const sections: Section[] = [], loose: PageTile[] = [];
+    const keep = (unit: Unit, list: { tiles: PageTile[]; sections: Section[] }) => { if (unit.tile) list.tiles.push(unit.tile); else list.sections.push(unit.section!); };
+    for (const unit of [...units]) {
+      if (unit.tile) resize(unit.tile, target.columns);
+      else {
+        const section = unit.section!, width = Math.min(section.placement.columns, target.columns);
+        let changed = false, mine = inner.get(section) ?? [];
+        for (const tile of mine) changed = resize(tile, width) || changed;
+        const fitsAsIs = mine.every((tile) => tile.placement.column + tile.placement.columns <= width);
+        if (width < section.placement.columns || changed || !fitsAsIs) section.placement.rows = Math.max(1, reflow(mine, width));
+        section.placement.columns = width;
+        // Taller than a page: the rows past it become a section of their own, with the same title and icon.
+        if (section.placement.rows > target.rows) {
+          const rest: Section = { ...clone(section), id: instanceId() }, later: PageTile[] = [];
+          mine = mine.filter((tile) => {
+            if (tile.placement.row + tile.placement.rows <= target.rows) return true;
+            later.push(tile);
+            return false;
+          });
+          inner.set(section, mine);
+          inner.set(rest, later);
+          const top = Math.min(...later.map((tile) => tile.placement.row));
+          for (const tile of later) tile.placement.row -= top;
+          rest.placement = { row: 0, column: 0, columns: width, rows: Math.max(...later.map((tile) => tile.placement.row + tile.placement.rows)) };
+          section.placement.rows = Math.max(1, ...mine.map((tile) => tile.placement.row + tile.placement.rows));
+          units.splice(units.indexOf(unit) + 1, 0, { section: rest, placement: rest.placement });
+        }
+      }
+    }
+    for (const unit of units) {
+      if (fits(occupied, unit, unit.placement.row, unit.placement.column)) {
+        place(occupied, unit, unit.placement.row, unit.placement.column);
+        keep(unit, { tiles: loose, sections });
+      } else pending.push(unit);
+    }
+    page.tiles = loose;
+    if (sections.length) page.sections = sections; else delete page.sections;
     out.push(page);
     // What does not fit stays on its page where there is room, and goes on to the next new page where there is none.
     let current = page, room = occupied;
-    for (const tile of pending) {
-      if (first(room, tile)) { current.tiles.push(tile); continue; }
+    const add = (unit: Unit) => {
+      if (unit.tile) current.tiles.push(unit.tile);
+      else (current.sections ??= []).push(unit.section!);
+    };
+    for (const unit of pending) {
+      if (first(room, unit)) { add(unit); continue; }
       // A page of its own in the row of pages, reached by a swipe or the page keys, even when the page it continues is
       // one only a link opens: no link leads to the new one.
       const added = emptyPage(page.topbar);
       out.push(added);
       current = added; room = free();
-      first(room, tile);
-      current.tiles.push(tile);
+      first(room, unit);
+      add(unit);
     }
+  }
+  // Every section's tiles back on the page it ended on, at their own cells.
+  for (const page of out) for (const section of sectionsOf(page)) for (const tile of inner.get(section) ?? []) {
+    tile.placement.row += section.placement.row;
+    tile.placement.column += section.placement.column;
+    page.tiles.push(tile);
   }
   if (out.length > pageLimit(target))
     throw new Error(t("editor.grid.too_many_pages", { grid: `${target.columns} × ${target.rows}`, needed: out.length, most: pageLimit(target) }));
@@ -233,11 +356,12 @@ export function childOf(tile: Tile, id: string): ChildTile {
 const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
-  energyFlow: "flow",
+  energyFlow: "flow", textTemplate: "template",
   calendarStyle: "style", calendarEntities: "calendars", calendarPlaces: "places", calendarWords: "words", calendarHideWords: "hide_words",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
   calendarBookOn: "book_on", calendarBookPlace: "book_place", calendarBookTitle: "book_title",
+  todoOrder: "todo_order", todoCompleted: "todo_completed", todoDue: "todo_due", todoAdd: "todo_add", todoSuggest: "todo_suggest", todoClear: "todo_clear",
   meterStyle: "meter", meterMin: "min", meterMax: "max", meterSegments: "segments", meterColors: "colors", meterThresholds: "thresholds" } as const;
 
 /** A render view, never a second saved or editable layout. */
@@ -247,7 +371,8 @@ export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {
   return {
     title: layout.title, pages: layout.pages.length,
     ...(titles.length ? { page_titles: titles } : {}),
-    tiles: layout.pages.flatMap((page, index) => page.tiles.map((tile): Tile => {
+    ...(layout.pages.some((page) => page.sections?.length) ? { sections: sectionBlocks(layout) } : {}),
+    tiles: layout.pages.flatMap((page, index) => placedTiles(page).map(({ tile, row, column }): Tile => {
       const options: TileOptions = { ...clone(tile.interaction) }, size = footprintSize(tile, grid);
       for (const [key, wire] of Object.entries(appearanceKeys)) {
         const value = tile.appearance[key as keyof typeof appearanceKeys];
@@ -258,14 +383,18 @@ export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {
       // A plugin tile that belongs to an entity (its manifest's `entity`): the entity travels beside its options.
       if (tile.content.kind === "plugin" && tile.content.entityId) options.plugin_entity = tile.content.entityId;
       return { id: tile.id, entity: entityOf(layout, tile), name: tile.appearance.label,
-        slot: index * grid.columns * grid.rows + tile.placement.row * grid.columns + tile.placement.column,
+        slot: index * grid.columns * grid.rows + row * grid.columns + column,
         ...(Object.keys(options).length ? { options } : {}) };
-    })).sort((a, b) => a.slot - b.slot).concat(layout.pages.flatMap((page) => page.tiles.flatMap((tile) =>
+    })).sort((a, b) => a.slot - b.slot).concat(layout.pages.flatMap((page) => placedTiles(page).flatMap(({ tile }) =>
       (tile.children || []).map((child, key) => keyTile(child, entityOf(layout, tile), key))))),
   };
 }
 
-export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
+// `before`: the document an edit starts from. A tile it already had, unchanged, is not refused over its options: the
+// add-on checked it when it was saved, so an edit elsewhere on the screen, or deleting it, never waits on it. A tile
+// that is refused is named, with its page.
+export function validatePages(layout: PageLayout, grid: PageGrid, before?: PageLayout): PageLayout {
+  const kept = new Map((before?.pages ?? []).flatMap((page) => allTiles(page).map((tile) => [tile.id, JSON.stringify(tile)] as const)));
   validatePageShape(layout, grid.plugins === true);
   if (![grid.columns, grid.rows].every((n) => Number.isInteger(n) && n > 0) || grid.columns * grid.rows > 64)
     throw new Error(t("editor.pages.wait_grid"));
@@ -289,10 +418,40 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
       if (item.kind !== "home") throw new Error(t("addon.errors.top_bar.unknown_item"));
     }
     for (const item of bar.trailing) identity(item.id);
-    const occupied = new Set<number>();
-    for (const tile of page.tiles) {
+    const occupied = new Set<number>(), blocked = new Set<number>();
+    if (page.sections !== undefined) {
+      if (!Array.isArray(page.sections) || page.sections.length > SECTIONS_MAX) throw new Error(t("addon.errors.pages.sections_full"));
+      for (const section of page.sections) {
+        identity(section.id);
+        if (typeof section.title !== "string" || !section.title.trim() || byteLength(section.title) > SECTION_TITLE_BYTES)
+          throw new Error(t("addon.errors.pages.section_title"));
+        if (section.contrast !== undefined && typeof section.contrast !== "boolean") throw new Error(t("addon.errors.pages.fields"));
+        if (section.contrastTiles !== undefined && (typeof section.contrastTiles !== "boolean" || !section.contrast))
+          throw new Error(t("addon.errors.pages.fields"));
+        const { row, column, columns, rows } = section.placement;
+        if (![row, column, columns, rows].every(Number.isInteger) || row < 0 || column < 0 || columns < 1 || rows < 1 ||
+            row + rows > grid.rows || column + columns > grid.columns) throw new Error(t("addon.errors.layout.position"));
+        for (let y = row; y < row + rows; y++) for (let x = column; x < column + columns; x++) {
+          if (blocked.has(y * grid.columns + x)) throw new Error(t("addon.errors.pages.section_overlap"));
+          blocked.add(y * grid.columns + x);
+        }
+      }
+      // A tile stands wholly in one section's block or wholly outside every block, never across an edge; and a tile
+      // that fills its page stands in none.
+      for (const tile of page.tiles) {
+        const { row, column, columns, rows } = tile.placement;
+        if (![row, column, columns, rows].every(Number.isInteger)) continue;   // refused below, with the other tiles
+        if (sectionOf(page, tile)) {
+          if (tile.appearance.presentation === "full") throw new Error(t("addon.errors.pages.section_tiles"));
+          continue;
+        }
+        for (let y = row; y < row + rows; y++) for (let x = column; x < column + columns; x++)
+          if (blocked.has(y * grid.columns + x)) throw new Error(t("addon.errors.pages.section_overlap"));
+      }
+    }
+    for (const { tile, row, column } of placedTiles(page)) {
       identity(tile.id);
-      const { row, column, columns, rows } = tile.placement;
+      const { columns, rows } = tile.placement;
       if (![row, column, columns, rows].every(Number.isInteger) || row < 0 || column < 0 || columns < 1 || rows < 1 ||
           row + rows > grid.rows || column + columns > grid.columns) throw new Error(t("addon.errors.layout.position"));
       footprintSize(tile, grid);
@@ -302,7 +461,12 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
         occupied.add(cell);
       }
       const entity = entityOf(layout, tile);
-      validateCardOptions(tile, entity, footprintSize(tile, grid));
+      try { validateCardOptions(tile, entity, footprintSize(tile, grid)); }
+      catch (error: any) {
+        if (kept.get(tile.id) !== JSON.stringify(tile))
+          throw new Error(t("addon.errors.pages.on_tile", { page: layout.pages.indexOf(page) + 1,
+            tile: tile.appearance.label || entity, problem: error.message }), { cause: error });
+      }
       // Any entity may stand on several tiles (firmware 0.16.0+; the add-on asks an older screen to update first), but
       // a clock with keys: its keys name it by its entity.
       if (entity in rules.keyHolders) {
@@ -316,10 +480,60 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
   return layout;
 }
 
-export function changePages(layout: PageLayout, grid: PageGrid, apply: (draft: PageLayout) => void): PageLayout {
+// What the editor takes out of a tile whose options do not pass, instead of refusing the edit (0.4.92): first what it
+// can put in its own form (a light's presets, a name without spaces at its ends), then the one option that does not
+// fit, then as many as it takes; a tile that still does not pass leaves its page. One note per tile, in the person's
+// words. A name too long for the screen is the person's to shorten: that tile stays and its edit is refused.
+export function repairPages(layout: PageLayout, grid: PageGrid): string[] {
+  const notes: string[] = [];
+  const tooLong = t("addon.errors.layout.tile_name");
+  layout.pages.forEach((page, index) => {
+    keepTiles(page, (tile) => {
+      const entity = entityOf(layout, tile);
+      let footprint: string | null = null;
+      try { footprint = footprintSize(tile, grid); } catch { /* a footprint is no option: validatePages names it */ }
+      if (footprint === null) return true;
+      const size: string = footprint;
+      const problem = () => { try { validateCardOptions(tile, entity, size); return null; } catch (error: any) { return String(error.message); } };
+      const first = problem();
+      if (first === null || first === tooLong || !tile.appearance || !tile.interaction) return true;
+      const name = (typeof tile.appearance.label === "string" && tile.appearance.label.trim()) || entity;
+      if (typeof tile.appearance.label === "string") tile.appearance.label = tile.appearance.label.trim();
+      const gone: string[] = [];
+      if (Array.isArray(tile.interaction.presets)) {
+        const kept = tile.interaction.presets.map(cleanPreset).filter((item): item is Preset => item !== null).slice(0, PRESETS_MAX);
+        if (kept.length) tile.interaction.presets = kept;
+        else { delete tile.interaction.presets; gone.push("presets"); }
+      }
+      const parts = [tile.interaction, tile.appearance] as Record<string, unknown>[];
+      const options = parts.flatMap((part) => Object.keys(part).filter((key) => part !== tile.appearance || key !== "label")
+        .map((key) => [part, key] as const));
+      for (const [part, key] of options) {
+        if (problem() === null) break;
+        const value = part[key];
+        delete part[key];
+        if (problem() === null) gone.push(key);
+        else part[key] = value;
+      }
+      for (const [part, key] of options) {
+        if (problem() === null) break;
+        if (key in part) { delete part[key]; gone.push(key); }
+      }
+      if (problem() !== null) { notes.push(t("editor.pages.repaired_tile", { page: index + 1, tile: name })); return false; }
+      if (gone.length) notes.push(t("editor.pages.repaired", { page: index + 1, tile: name, what: gone.join(", ") }));
+      return true;
+    });
+  });
+  return notes;
+}
+/** The draft after `apply`, checked; with `repairs`, a tile that does not pass is put right first (repairPages), and
+ * what was taken out is said in `repairs`. */
+export function changePages(layout: PageLayout, grid: PageGrid, apply: (draft: PageLayout) => void, repairs?: string[]): PageLayout {
   const draft = clone(layout);
   apply(draft);
-  return validatePages(draft, grid);
+  rehomeSections(draft);
+  if (repairs) repairs.push(...repairPages(draft, grid));
+  return validatePages(draft, grid, layout);
 }
 export function reorderPage(layout: PageLayout, grid: PageGrid, pageId: string, to: number) {
   return changePages(layout, grid, (draft) => {
@@ -333,7 +547,7 @@ export function deletePage(layout: PageLayout, grid: PageGrid, pageId: string) {
     if (draft.pages.length === 1 || !draft.pages.some((page) => page.id === pageId)) throw new Error(t("addon.errors.pages.delete"));
     draft.pages = draft.pages.filter((page) => page.id !== pageId);
     if (draft.homePageId === pageId) draft.homePageId = draft.pages[0].id;
-    for (const page of draft.pages) page.tiles = page.tiles.filter((tile) => tile.content.kind !== "navigation" ||
+    for (const page of draft.pages) keepTiles(page, (tile) => tile.content.kind !== "navigation" ||
       tile.content.target.kind !== "page" || tile.content.target.pageId !== pageId);
   });
 }
@@ -344,14 +558,17 @@ export function duplicatePage(layout: PageLayout, grid: PageGrid, pageId: string
     const source = draft.pages[index], copy = emptyPage(source.topbar);
     if (!empty) {
       copy.navigation = clone(source.navigation);
-      copy.tiles = source.tiles.map((tile) => {
+      const copied = (tile: PageTile) => {
         const next = { ...clone(tile), id: instanceId() };
         // A key under a copied tile is a new key too: every tile and key has an id of its own.
         if (next.children) next.children = next.children.map((child) => ({ ...child, id: instanceId() }));
         if (next.content.kind === "navigation" && next.content.target.kind === "page" && next.content.target.pageId === pageId)
           next.content.target.pageId = copy.id;
         return next;
-      });
+      };
+      copy.tiles = source.tiles.map(copied);
+      if (source.sections?.length)
+        copy.sections = source.sections.map((section) => ({ ...clone(section), id: instanceId() }));
     }
     draft.pages.splice(index + 1, 0, copy);
   });
@@ -375,9 +592,9 @@ export function replaceBar(layout: PageLayout, grid: PageGrid, source: string, t
 /** Apply existing card-placement calculations as one document operation.
  * Instance IDs, not entity names or array indexes, identify existing tiles.
  */
-export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile: Tile; slot: number }[]) {
+export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile: Tile; slot: number }[], blocks?: SectionBlock[]) {
   return changePages(layout, grid, (draft) => {
-    const cells = grid.columns * grid.rows, existing = new Map(draft.pages.flatMap((page) => page.tiles.map((tile) => [tile.id, tile] as const)));
+    const cells = grid.columns * grid.rows, existing = new Map(draft.pages.flatMap((page) => allTiles(page).map((tile) => [tile.id, tile] as const)));
     // Keys have no cell: they go back under their clock below. A holder whose keys are not among the entries keeps them.
     const keys = entries.filter(({ tile }) => tile.in !== undefined).map(({ tile }) => tile);
     entries = entries.filter(({ tile }) => tile.in === undefined);
@@ -386,6 +603,14 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
     const required = Math.max(draft.pages.length, ...entries.map(({ slot }) => Math.floor(slot / cells) + 1));
     if (required > pageLimit(grid)) throw new Error(t("addon.errors.pages.pages_full"));
     while (draft.pages.length < required) draft.pages.push(emptyPage(draft.pages.at(-1)!.topbar));
+    // The sections keep their blocks, or take the ones given (a section moved, made, made wider or taken away). The
+    // tiles come back from the entries below, at their cells: each is its section's by where it stands.
+    if (blocks) for (const page of draft.pages) delete page.sections;
+    for (const block of blocks ?? []) {
+      const page = draft.pages[block.page];
+      if (!page) throw new Error(t("addon.errors.pages.page_missing"));
+      (page.sections ??= []).push(sectionOfBlock(block));
+    }
     for (const page of draft.pages) page.tiles = [];
     for (const { tile, slot } of entries) {
       if (!Number.isInteger(slot) || slot < 0) throw new Error(t("addon.errors.layout.position"));
@@ -413,7 +638,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
         if (options[wire] !== undefined) Object.assign(appearance, { [key]: clone(options[wire]) });
       }
       const interaction: PageTile["interaction"] = {};
-      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open"] as const) {
+      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open", "presets", "preset_levels"] as const) {
         if (options[key] !== undefined) Object.assign(interaction, { [key]: clone(options[key]) });
       }
       // A key keeps its id: an edit of one key is not a new key.
@@ -427,13 +652,24 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
   });
 }
 
+/** A section taken away (docs/PAGES.md "Sections"): its tiles stay where they stand, loose, or go with it. */
+export function removeSection(layout: PageLayout, grid: PageGrid, id: string, withTiles = false) {
+  return changePages(layout, grid, (draft) => {
+    const page = draft.pages.find((item) => item.sections?.some((section) => section.id === id));
+    const section = page?.sections?.find((item) => item.id === id);
+    if (!page || !section) throw new Error(t("addon.errors.pages.fields"));
+    if (withTiles) page.tiles = page.tiles.filter((tile) => !inside(tile.placement, section.placement));
+    page.sections = page.sections!.filter((item) => item !== section);
+  });
+}
 export function remapLayout(layout: PageLayout, grid: PageGrid) {
   const result = clone(layout), ids = new Map(result.pages.map((page) => [page.id, instanceId()]));
   result.homePageId = ids.get(result.homePageId)!;
   for (const page of result.pages) {
     page.id = ids.get(page.id)!;
     page.topbar = copyBar(page.topbar);
-    for (const tile of page.tiles) {
+    for (const section of sectionsOf(page)) section.id = instanceId();
+    for (const tile of allTiles(page)) {
       tile.id = instanceId();
       for (const child of tile.children || []) child.id = instanceId();
       if (tile.content.kind === "navigation" && tile.content.target.kind === "page") {
@@ -448,7 +684,7 @@ export function remapLayout(layout: PageLayout, grid: PageGrid) {
 
 export type PageConnection = { tileId: string; from: string; to: string; home: boolean };
 export function connections(layout: PageLayout): PageConnection[] {
-  return layout.pages.flatMap((page) => page.tiles.flatMap((tile) => tile.content.kind === "navigation"
+  return layout.pages.flatMap((page) => allTiles(page).flatMap((tile) => tile.content.kind === "navigation"
     ? [{ tileId: tile.id, from: page.id, to: destination(layout, tile.content.target), home: tile.content.target.kind === "home" }] : []));
 }
 export function initialPositions(layout: PageLayout): Record<string, { x: number; y: number }> {

@@ -13,7 +13,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-import picture_links  # noqa: E402
+import lan_address  # noqa: E402
 import picture_question  # noqa: E402
 import map_card  # noqa: E402
 import map_tiles  # noqa: E402
@@ -419,7 +419,7 @@ class Source(unittest.IsolatedAsyncioTestCase):
 @unittest.skipUnless(HAS_PIL and HAS_AIOHTTP, 'Pillow and aiohttp')
 class Screens(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        picture_links.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     async def test_a_screen_gets_its_map_in_its_own_look(self):
         from test_camera import fake_ha, picture

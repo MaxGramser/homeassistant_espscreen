@@ -35,6 +35,7 @@ public:
  bool input_started_=false;
  std::atomic<uint32_t> startup_silence_frames_{0};
  std::atomic<bool> enabled_{true};
+ std::atomic<bool> needed_{true};
  int handle_storage_=1;
  void*handle_=&handle_storage_;void*handle_mutex_=nullptr;
  int16_t storage_[1024]{};int16_t*input_frame_=storage_;
@@ -88,7 +89,11 @@ int main() {
  fail.handle_=&fail.handle_storage_;lock_available=false;
  clear_out();assert(!fail.process(mic,ref,out,1));zero_out();lock_available=true;
  assert(dsp_calls==11 && fail.startup_silence_frames_==0);
- std::cout << "PASS: actual process body, leading zeros, first 1-LSB input, reference-only input, stride, later silence, bypass/resume, feature control, unchanged modes and failure guards\n";
+ // On demand and at rest: the microphone as it is, and the DSP not run at all; needed again, it runs.
+ EspAec rest;rest.needed_=false;mic[0]=700;mic[1]=900;ref[0]=5;
+ clear_out();assert(rest.process(mic,ref,out,2));assert(out[0]==700 && dsp_calls==11 && !rest.input_started_);
+ rest.needed_=true;assert(rest.process(mic,ref,out,2));assert(dsp_calls==12 && rest.input_started_);
+ std::cout << "PASS: actual process body, leading zeros, first 1-LSB input, reference-only input, stride, later silence, bypass/resume, feature control, unchanged modes, failure guards and rest on demand\n";
 }
 '''
 import unittest

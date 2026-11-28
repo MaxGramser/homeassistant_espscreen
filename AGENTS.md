@@ -15,21 +15,37 @@ Home Assistant entity belongs in a board file. docs/README.md lists every doc an
 
 ## Where to start for a change
 
+Read in this order, and stop as soon as you know enough: docs/ARCHITECTURE.md (the one map of the firmware's layers,
+the hard rules between them and the measurement behind each), then the document of the thing you change (the table
+below), then the head of the file (every file in `components/smart_display/` opens with what it is, what it knows and
+what it does not, and which test proves it), then that test. A change in the code gets its line in the document of its
+subject in the same commit, and a measurement goes with it; the map is updated when a layer, a seam or a rule changes.
+
 | You want to | Read first | The source of truth |
 |---|---|---|
+| understand how the firmware's layers fit, or find where a rule is written | docs/ARCHITECTURE.md | `engine_build.py`, `glass.h`, `picture_engine.h`, `live_view.h`, `hw.h`, `pressure.h`, `audio_owner.h` |
 | support a new entity type, or a new control on a tile | docs/CATALOGUE.md | `catalogue/<type>.yaml`, `catalogue/_ha.json` |
 | add a screen setting | docs/SETTINGS.md | `settings_screen.h`, `SETTING_RULES` in `screen_manager/app/core.py` |
 | give a board a setting of its own (Extras: on the screen, in the app, in Home Assistant) | docs/SETTINGS.md, "A board's own settings" | `boards.yaml` `settings`, the board's `BOOT_BOARD_SETTINGS`, `entity_settings.py` |
 | add a board | docs/ADDING_A_BOARD.md, then docs/BOARD_RELEASES.md | `boards.yaml`, `packages/boards/<file>.yaml` |
+| change sections on a page (titled groups of tiles) | docs/PAGES.md, "Sections" | `section_layout.h`, `module_sections.h`, `page_layout.py` (`sections_of`), `web/src/model/sections.ts` |
+| change the first layout the editor makes from a home (Auto layout), or how groups of tiles are placed on pages | docs/AUTO_LAYOUT.md | `web/src/model/auto-layout.ts`, `web/src/model/placement.ts`, `screen_manager/app/home_facts.py` |
 | add a part of the UI that only the larger boards get | docs/MODULES.md | `components/smart_display/modules.py`, `module_<name>.h` |
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
+| change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
+| add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
+| change Layoutbot, the editor's chat that arranges pages | docs/LAYOUTBOT.md | `screen_manager/app/layoutbot.py`, `web/src/stores/layoutbot.ts` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
+| give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
-| make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `runtime_tiles.h` |
+| change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
+| change the alarm panel's card, the keypad for a code, or what the screens do when it goes off | docs/ALARM_PANEL.md | `alarm_panel.h`, `alarm_panel_lvgl.h`, `screen_manager/app/alarm_screens.py` |
+| make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
+| make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
 | touch the flash of a board with 4 MB | docs/FLASH_LAYOUT.md | `components/flash_layout/`, `packages/hardware/flash-4mb.yaml` |
@@ -92,6 +108,8 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   frontend. Never write a value into the model before an action, never add a hold or flag of a control's own, and
   never show a value the screen cannot know (a lock's end state, the next track). A card binds the parts that show a
   value and is painted in place, never built again for a change of value (docs/CARD_PARTS.md).
+- **Nothing past LVGL at a turn** (docs/KEPT_PAGES.md): a page turn is drawn by LVGL alone. What writes the frame
+  buffer past LVGL is a live picture in its own room and the veil, and never without the glass knowing.
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
 - **Memory.** Never walk the PSRAM heap (`heap_caps_get_largest_free_block`, `heap_caps_get_info`) while an RGB panel
@@ -111,20 +129,35 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   build` and commit both. Keep every URL the page asks for relative (`api/...`) so it works behind ingress.
 - Production ingress needs no long-lived token or public port.
 
+## What is still open
+
+`docs/open-issues/` holds one file per thing we do not understand or have not solved: the symptom, what was measured
+(dates, commits, numbers), what was ruled out, the candidates left and the experiment that decides. Look there when a
+bench is free, between releases, when a user's report rhymes with one, or when you want work nobody is on: pick one,
+say so, and take the file along as you learn. Whatever stays open at the end of a day's work goes in as a new file
+or a dated section of an existing one, in the same commit as the work; a solved one gets its "Solved" section with
+the commit and stays a release long. The README there has the table and the rules.
+
 ## Checks
 
 How much is checked follows the branch (next section): work on dev moves fast and is proven on real screens, a
 release is checked fully, once a week. docs/TESTING.md says what each layer proves.
 
-- **On dev the proof is the bench**: the three real boards on the owner's bench Home Assistant and its local app
-  (`.esphome/bench/README.md` on the owner's machine). Put the app on it, flash the change to the boards it concerns,
-  and have the owner look and tap. Run a single test when that is the quickest way to see a piece of logic work. No
+- **On dev the proof is the bench**: the owner's home Home Assistant is the test Home Assistant (since 2026-10-29),
+  with the owner's real screens and the bench boards as screens of it. The bench HA VM and
+  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house from the machine
+  you work on, over Home Assistant's own API (after a push to `origin dev`: the dev app rebuilt, its screens
+  reinstalled from dev); the builds run on the app's build server, which is the only thing that machine does: run
+  nothing else there. Flash the change to the boards it concerns, and have the owner look and tap. After a release
+  the house runs the released app from main again. Run a single test when
+  that is the quickest way to see a piece of logic work. No
   `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
   image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
-  draw, and the upgrade test on the bench (docs/TESTING.md, "6. The upgrade"). What fails there is fixed in the release.
+  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"). What fails there is fixed
+  in the release.
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
@@ -154,7 +187,7 @@ Two branches, and the difference between them is the most important rule in this
   whether it is a release or work to test on the bench, before anything goes near main.
 - **The release**, about once a week: `tools/release.py` with docs/RELEASING.md, "The release", step by step. It counts
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
-  upgrade from main on the bench, and then main moves to that exact commit with its tag and GitHub release. The
+  upgrade from main on the home Home Assistant, and then main moves to that exact commit with its tag and GitHub release. The
   plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into

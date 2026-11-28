@@ -476,6 +476,10 @@ describe("saving while you keep editing (app 0.2.78)", () => {
     const body = JSON.parse((fetchMock.mock.calls[0] as any[])[1].body);
     expect(body.layout.pages[0].tiles.map((t: any) => t.content.entityId)).toEqual(["light.a", "sensor.t", "light.b"]);
     expect(body.layout.pages[0].tiles[0].appearance.background).toBeUndefined();
+    // The save sends the page document alone: a screen's settings have a call of their own.
+    expect(body.format).toBe("pages-v2");
+    expect("settings" in body).toBe(false);
+    expect("settings" in body.layout).toBe(false);
   });
   it("leaves the unsaved flag of a screen opened meanwhile alone", async () => {
     useSessionStore().select("living");

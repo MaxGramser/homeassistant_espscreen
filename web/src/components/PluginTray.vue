@@ -38,6 +38,10 @@ const builds = computed(() => groups.value.length === 1
   ? t("editor.plugins.tray.one_build", { screen: groups.value[0].screen.name })
   : t("editor.plugins.tray.builds", { n: groups.value.length }));
 async function install() { await plugins.installTray(); trust.value = false; }
+// How many plugins a screen runs once this group is built; from MANY on the tray says that this many can make it unstable.
+const MANY = 4;
+const runsAfter = (group: (typeof groups.value)[number]) => plugins.index.filter((p) => plugins.installedOn(group.screen, p.id)).length
+  + plugins.testsOn(group.screen).length + group.plugins.length + plugins.trayAlong(group).length - group.removes.length;
 </script>
 
 <template>
@@ -101,6 +105,7 @@ async function install() { await plugins.installTray(); trust.value = false; }
               </select>
             </label>
             <p v-if="plugins.trayPlan(group)?.error" class="pt-room over">{{ plugins.trayPlan(group)!.error }}</p>
+            <p v-if="group.plugins.length && runsAfter(group) >= MANY" class="pt-room over pt-many" :data-screen="group.screen.id">{{ t("editor.plugins.risk.many", { screen: group.screen.name, n: runsAfter(group) }) }}</p>
             <template v-if="small(group.screen)">
               <div class="pd-meter pt-meter" :class="{ tight: over(group.screen, group.plugins) }" role="meter" aria-valuemin="0" :aria-valuemax="headroomKb(group.screen)" :aria-valuenow="plugins.setAsideKb(group.screen, group.plugins)">
                 <i class="added" :style="{ left: 0, width: Math.min(100, (plugins.setAsideKb(group.screen, group.plugins) / Math.max(1, headroomKb(group.screen))) * 100) + '%' }"></i>
@@ -117,6 +122,7 @@ async function install() { await plugins.installTray(); trust.value = false; }
             <span><b>{{ t("editor.plugins.trust.title") }}</b>{{ t("editor.plugins.tray.trust", { names: community.map((p) => text(p.name)).join(", ") }, community.length) }}</span>
           </label>
 
+          <p v-if="adds" class="pt-risk" id="plugin-tray-risk"><Icon name="alert-circle-outline" />{{ t("editor.plugins.tray.risk") }}</p>
           <div class="pt-foot">
             <button type="button" class="btn primary pt-install" id="plugin-tray-install" :disabled="blocked" @click="install">
               <span v-if="plugins.tray.sending" class="spin" aria-hidden="true"></span>{{ changes ? t("editor.plugins.tray.build", { n: count }, count) : t("editor.plugins.tray.install", { n: count }, count) }}

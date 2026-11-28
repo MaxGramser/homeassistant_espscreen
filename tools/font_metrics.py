@@ -29,3 +29,15 @@ def font_file(core_text, font_id):
     if not found:
         raise KeyError(f'no font {font_id} in packages/core.yaml')
     return 'fonts/' + found[1]
+
+
+def ink_top(font, size, char='H'):
+    """From the top of a line of an ESPHome font to the top of a glyph's ink, as LVGL gets it: ESPHome's offset_y of that
+    glyph, its ascender (FreeType's size ascender, rounded up to whole pixels) less the rendered glyph's top
+    (font/__init__.py glyph_to_glyphinfo). Pillow renders with the same FreeType and the same hinting. The sections'
+    band (docs/PAGES.md "Sections") puts a title's capitals by this; a host build logs the firmware's own figure."""
+    from PIL import ImageFont
+    face = ImageFont.truetype(str(font), size)
+    ascender = face.getmetrics()[0]
+    top = face.getbbox(char, anchor='ls')[1]  # the glyph's top above the baseline, negative
+    return ascender + top

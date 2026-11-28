@@ -16,6 +16,15 @@
 #include "calendar_card.h"
 #include "vacuum_model.h"
 #include "roomy.h"
+#ifdef SD_MOD_TEXT_CARD
+#include "module_text_card.h"
+#endif
+#ifdef SD_MOD_LIGHT_PRESETS
+#include "module_light_presets.h"
+#endif
+#ifdef SD_MOD_TODO
+#include "module_todo.h"
+#endif
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -200,9 +209,21 @@ inline bool valid_entity(const std::string &entity) {
     // (firmware 0.47.0+): the house's power, Home Assistant's energy distribution live (energy_card.h).
     if (entity == "screen.clock" || entity == "screen.settings" || entity == "screen.nightstand" || entity == "screen.map" ||
         entity == "screen.energy") return true;
+#ifdef SD_MOD_TEXT_CARD
+    // screen.text (module text_card, firmware 0.58.0+): a template Home Assistant renders, as rows the app sends.
+    if (entity == "screen.text") return true;
+#endif
+#ifdef SD_MOD_CALL
+    // screen.call (module call): opens the list of the house's screens, or calls one (docs/CALLS.md).
+    if (entity == "screen.call") return true;
+#endif
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
+#ifndef SD_MOD_TODO
+  // A to-do list is the module todo's (docs/TODO.md): a screen without it has no such tile.
+  if (domain == "todo") return false;
+#endif
   for (const auto *allowed : tile_catalogue::DOMAINS)
     if (domain == allowed) return true;
   return false;
@@ -333,6 +354,14 @@ struct Extra {
   std::shared_ptr<const energy_card::Data> energy;
   // A calendar card's events (firmware 0.56.0+, calendar_card.h): its own block too, shared with the card that paints it.
   std::shared_ptr<const calendar_card::Data> calendar;
+#ifdef SD_MOD_TEXT_CARD
+  // A template tile's rows (module text_card, firmware 0.58.0+): its own block, kept in PSRAM.
+  std::shared_ptr<const text_card::Data> text;
+#endif
+#ifdef SD_MOD_TODO
+  // A to-do card's items (module todo, firmware 0.61.0+): its own block too, kept in PSRAM.
+  std::shared_ptr<const todo::Data> todo;
+#endif
   // A vacuum card's map, rooms and routines (module vacuum, vacuum_model.h): its own block too.
   std::shared_ptr<const vacuum_model::Data> vacuum;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
@@ -412,7 +441,14 @@ struct Extra {
            media_source.empty() && media_repeat.empty() && media_sources.empty() && media_shuffle < 0 && !media_features &&
            speaker_flags.empty() && speaker_volumes.empty() && media_inputs.empty() && media_input.empty() && media_target.empty() &&
            !has_ground && !ground_known && !media_library && fav_kind.empty() && fav_source.empty() && fav_mark.empty() &&
-           fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty();
+           fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty()
+#ifdef SD_MOD_TEXT_CARD
+           && !text  // a template tile's rows, even an empty list: "nothing to say" hides the card
+#endif
+#ifdef SD_MOD_TODO
+           && !todo
+#endif
+           ;
   }
 };
 // The numbers of a clock text ("0:05:00", "07:45"), at most `max` of them, each after optional white space, up to the
@@ -497,6 +533,8 @@ struct Tile {
   int hue = 0, kelvin = 3000, min_kelvin = 0, max_kelvin = 0;
   bool received = false;
   bool has_hs_color = false;
+  // A light in a white shade: Home Assistant reports its colour temperature, which it names in no colour mode.
+  bool white = false;
   int saturation = 0;
   std::string tap = "auto", display = "standard", inline_control = "none", guard = "confirm";
   // What the second line says (firmware 0.2.90+), as the option was stored: "auto" is the line the screen works
@@ -528,6 +566,10 @@ struct Tile {
     std::array<float, 2> thresholds{NAN, NAN};  // in the sensor's unit; NAN: 80 % and 90 % of the range
   };
   std::shared_ptr<const Meter> meter;
+#ifdef SD_MOD_LIGHT_PRESETS
+  // A light's presets (module light_presets): its tile's round keys and its card's; none on any other tile.
+  std::shared_ptr<const light_presets::Presets> presets;
+#endif
   bool is_meter() const { return display == "meter" && domain() == "sensor"; }
   bool live() const { const auto d = domain(); return display == "live" && (d == "camera" || d == "image"); }
   // A media player's album cover in the icon's place (firmware 0.2.78+): "display": "cover" on a single or double-width
@@ -539,11 +581,21 @@ struct Tile {
   bool is_map() const { return display == "map" && (domain() == "person" || entity == "screen.map"); }
   // The energy card (firmware 0.47.0+): the house's power, drawn from the numbers the app sends (energy_card.h).
   bool is_energy() const { return entity == "screen.energy"; }
+  // The template tile (module text_card, firmware 0.58.0+): rows of text the app sends, drawn by its module.
+  bool is_text() const { return entity == "screen.text"; }
   // A favourite (firmware 0.24.0+): a player's tile that plays one thing of its library on a tap, with that thing's
   // picture over the card where the board draws pictures. Never a whole page: the player's card is that.
   bool favorite() const { return display == "favorite" && domain() == "media_player" && !full; }
   // A tile that draws its picture out of the page's strip (runtime_tiles.h, live_*).
-  bool pictured() const { return live() || cover_tile() || is_map() || (favorite() && !extra().fav_mark.empty()); }
+  bool pictured() const { return live() || cover_tile() || is_map() || (favorite() && !extra().fav_mark.empty()) || vacuum_map(); }
+  // A robot's map on its larger tile (module vacuum, module_vacuum_tile.cpp): the app draws it at the map's place.
+  bool vacuum_map() const {
+#ifdef SD_MOD_VACUUM_CARD
+    return domain() == "vacuum" && (controls == "map" || controls == "map_rooms") && extra().vacuum && extra().vacuum->has_map();
+#else
+    return false;
+#endif
+  }
   // Double width takes a row; full (firmware 0.2.62+) takes the whole page, all six slots, and is also wide.
   bool wide = false, full = false;
   uint8_t height = 1;  // Row span; independent of the card design and page height.
@@ -561,6 +613,8 @@ struct Tile {
   // Direct control set on a wide card (firmware 0.2.19+); empty keeps the plain card.
   std::string controls, device_class;
   bool muted = false;
+  // A text entity in mode password (docs/TEXT_ENTITY.md): its tile and its field show dots instead of its value.
+  bool secret = false;
   // A -/+ edit shows at once and is sent as one call after a short pause; the
   // value stays until Home Assistant reports it (or a timeout clears it).
   float edit_value = NAN; uint32_t edit_since = 0; bool edit_sent = false;
@@ -579,6 +633,11 @@ struct Tile {
   // Where the slats stand open (the tile's tilt_open option): at 100 as Home Assistant's rule has it, or at 50 for a blind
   // that reports 0 and 100 as closed one way and the other.
   bool tilt_middle = false;
+  // An alarm panel's tile: how many digits send the code by themselves (4 to 8, the alarm's choice on the Events page,
+  // which the app gives every tile of it), 0 for the OK key. Home Assistant never says how long a code is.
+  uint8_t send_after = 0;
+  // An alarm panel this screen does not wake for when it goes off (alarm_wake "off": the Events page left it out).
+  bool alarm_quiet = false;
   // A sensor's graph: 24 samples over `history_hours`, empty without one.
   unsigned history_hours = 24;
   std::vector<float> history;
@@ -723,6 +782,9 @@ struct Tile {
   // Two built-in cards, and only one of them is a clock that has to be redrawn every minute.
   bool is_clock() const { return entity == "screen.clock"; }
   bool is_settings() const { return entity == "screen.settings"; }
+  bool is_call() const { return entity == "screen.call"; }
+  std::string call_to;           // a screen's node: a tap calls it at once; empty: a tap opens the list
+  bool call_sound_only = false;
   // The bedside clock (firmware 0.8.0+): the time as large as the page allows, with its keys under it.
   bool is_bedside() const { return entity == "screen.nightstand"; }
   // A navigation tile (screen.page_<n>, firmware 0.2.62+) and the page it goes to, counted from one.
@@ -736,12 +798,17 @@ struct Tile {
   // (hui-button-entity-row disables only an unavailable one): its state is the moment it last ran (firmware 0.2.58+).
   bool available() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // A text's value may be empty (docs/TEXT_ENTITY.md): that is a value, not a state that is missing.
+    if (state.empty()) return d == "text" || d == "input_text";
     // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
     // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
     // (frontend data/cover.ts canOpen, canClose, canStop).
-    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover";
+    // A remote that never reports on or off (Home Assistant's Android TV integration over ADB: always "unknown") still
+    // sends its keys, as in Home Assistant, whose toggle shows both keys for "unknown" and turns them off only for
+    // "unavailable" (frontend components/entity/ha-entity-toggle.ts; GitHub #387).
+    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover" || d == "remote";
   }
   // Home Assistant's stateActive() (frontend src/common/entity/state_active.ts), the rule its cards colour by: an
   // entity it calls inactive is grey, such as an airco that is off, a closed blind, a docked robot, a player in
@@ -750,8 +817,10 @@ struct Tile {
   // inactive. A built-in card has no state and is always active.
   bool active() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // An empty text is a value (docs/TEXT_ENTITY.md); any other empty state is one that has not come yet.
+    if (state.empty()) return d == "text" || d == "input_text";
     if (d == "scene" || d == "button" || d == "input_button" || d == "image") return true;
     // An automation that runs on a tap is a script's button: coloured while its actions run, whether it is on or off.
     if (runs()) return running;

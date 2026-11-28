@@ -38,8 +38,9 @@ export const useScreenStore = defineStore("screen", () => {
   /** Whether the open screen's firmware is this version or newer, the version as the add-on names one ("0.38.0"). */
   const supportsVersion = (version: string) => versionAtLeast(firmwareOf.value, version);
   // Whether the screen's board draws pictures (camera tiles, an album cover): the add-on says so per screen from the
-  // board's own camera sizes (app 0.2.94), and this page always comes with that add-on.
-  const pictures = computed(() => Boolean(currentScreen.value?.pictures));
+  // board's own camera sizes (app 0.2.94); a preview screen, which the add-on does not know, by its board (drawsPictures,
+  // as its firmware preview: a preview Guition has its album cover's square on the mockup too, app 0.4.90).
+  const pictures = computed(() => currentScreen.value?.virtual ? drawsPictures(currentScreen.value) : Boolean(currentScreen.value?.pictures));
   // A new media tile starts with its album cover where the screen draws one (app 0.4.42): a board with pictures, firmware 0.2.78+.
   const coversByDefault = computed(() => pictures.value && supports(0, 2, 78));
   // The memory this screen has for its tiles (firmware 0.34.0+, its hello): the meter beside the tile count, and the
@@ -85,6 +86,10 @@ export const useScreenStore = defineStore("screen", () => {
   }
   async function sendTestAlert(target: string, data: Record<string, unknown>) {
     return (await send("alerts/test", "POST", { screen: target, data })) as { sent: number; failed: number; skipped: number; unusable?: string[] };
+  }
+  // Events, Doorbell, Try it: one ring as esp_screens_doorbell sends it, to one screen or to every screen.
+  async function sendTestDoorbell(target: string, data: Record<string, unknown>) {
+    return (await send("doorbell/test", "POST", { screen: target, data })) as { sent: number; alerts: number; failed: number; skipped: number; unusable?: string[] };
   }
   // ---- Calibrate touch (app 0.2.117): the screen's own Calibrate touch button, pressed from here ----
   // Only a screen whose panel is one you calibrate has it, and the add-on says so by the button being on its device
@@ -209,6 +214,6 @@ export const useScreenStore = defineStore("screen", () => {
     entityTilesRepeat, noTitle, pageReady, topbarMax, newLanguageText, removing, allowing,
     // What the editor's parts read as they draw (stores/lookup.ts).
     ...lookups({ supports, supportsVersion, repeatable, canAlert, updateState, screenLight, screenSubline, needsAttention }),
-    identify, sendTestAlert, calibrateTouch, feedbackAction, setScreensaver, renameScreen, forgetPending, allowActions,
+    identify, sendTestAlert, sendTestDoorbell, calibrateTouch, feedbackAction, setScreensaver, renameScreen, forgetPending, allowActions,
   };
 });

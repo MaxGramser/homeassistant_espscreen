@@ -17,7 +17,8 @@ const canvas = useCanvasStore();
 const doc = useDocumentStore();
 const insp = useInspectorStore();
 
-const props = defineProps<{ tile: Tile; icon?: boolean }>();
+// `fit`: the most height it takes (170 at the head of the inspector; a look's miniature in LookTip takes less).
+const props = defineProps<{ tile: Tile; icon?: boolean; fit?: number }>();
 const emit = defineEmits<{ icon: []; name: [] }>();
 const key = computed(() => props.tile.in !== undefined);
 const shape = computed(() => dimensions(sizeOf(props.tile), doc.editorLayout.grid));
@@ -36,7 +37,7 @@ const size = computed(() => {
 const box = ref<HTMLElement | null>(null);
 const room = ref(0);
 useResizeObserver(box, (entries) => { room.value = entries[0]?.contentRect.width || 0; });
-const zoom = computed(() => (key.value ? 1 : Math.min(1, (room.value || size.value.width) / size.value.width, 170 / size.value.height)));
+const zoom = computed(() => (key.value ? 1 : Math.min(1, (room.value || size.value.width) / size.value.width, (props.fit ?? 170) / size.value.height)));
 const grid = computed(() => ({ gridTemplateColumns: `repeat(${size.value.columns}, ${size.value.cell.width}px)`, gridTemplateRows: `repeat(${size.value.rows}, ${size.value.cell.height}px)` }));
 function click(e: MouseEvent) {
   const at = e.target as HTMLElement;

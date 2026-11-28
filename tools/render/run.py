@@ -6,7 +6,9 @@ real firmware for the host, starts it, and drives it over its API with no Home A
 - the demo layout of diagnostics/send_layout.py (every kind of card, fixed states at a fixed moment);
 - the firmware's own self test (ui_self_test): every page and overlay rendered, each page's cards and bar checked,
   and on every board the geometry check that nothing falls outside its area. A FAIL fails the run;
-- PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors), of an alert with a camera picture
+- PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors; each checked for its
+  parts inside the card and apart, its words on their own parts, one button or two as asked and a title one line high),
+  of an alert with a camera picture
   (one button and two) on the boards
   that draw pictures (sized by the add-on's own picture_question.alert_box for the frame this screen's card makes for it
   and painted by its picture_paint), and of page 1 in Dark mode.
@@ -97,6 +99,7 @@ HEADER = re.compile(r'state page=(-?\d+) name=\[(.*?)\] shown=\[(.*?)\] name_box
 NAVIGATION = re.compile(r'navigation page=(-?\d+) footer=(\d) back=(\d) grid_height=(\d+) tile=(-?\d+),(-?\d+) prev=(-?\d+),(-?\d+) header=(-?\d+),(-?\d+)')
 ALERT = re.compile(r'alert on=(\d) ' + ' '.join(f'{part}=(-?\\d+),(-?\\d+),(-?\\d+),(-?\\d+)'
                                               for part in ('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2')))
+ALERT_WORDS = re.compile(r'alert words title=\[(.*?)\] button=\[(.*?)\] button2=\[(.*?)\]')
 # A page's own title (app 0.2.123): a long one among them, the kind that stood in dots after a page change (GitHub #27).
 PAGE_TITLES = ['Demo cards', 'Living room downstairs', 'Kitchen']
 DOCK_TITLES = ['Home', 'Living room', 'Kitchen', 'Bedroom', 'Garden', 'Climate', 'Media', 'Energy']
@@ -121,6 +124,35 @@ def alert_faults(state):
         for other in names[i + 1:]:
             if overlap(parts[one], parts[other]):
                 faults.append(f'{one} {parts[one]} over {other} {parts[other]}')
+    return faults
+
+
+def shown_as(words, given):
+    """Whether a label shows `given`: whole, or cut short and ended in dots (screen_alert::clipped, or LVGL's long mode
+    DOT, which writes its dots into the label's text)."""
+    return words == given or (words.endswith('...') and given.startswith(words[:-3]))
+
+
+def alert_words_faults(given, state, title_h):
+    """What an alert shows wrongly of what Home Assistant gave it: each text on its own part (the title on the title, the
+    first button's words on the first button, the second's on the second: screen_alert::make in alert_show), one button
+    or two as it asked (alert_two_buttons, before alert_place lays the row out), and a title one line high however long
+    it is (`title_h`, the height of the first alert's title), so a long one ends in dots instead of running into the
+    subtitle."""
+    faults, boxes = [], state['boxes']
+    title, button, button2 = state['words']
+    if not shown_as(title, given['title'].strip()):
+        faults.append(f'the title shows [{title}], not [{given["title"]}]')
+    if not shown_as(button, given.get('button_text', '').strip() or 'OK'):
+        faults.append(f'the button shows [{button}], not [{given.get("button_text") or "OK"}]')
+    two = bool(given.get('button2_text', '').strip())
+    if (boxes['button2'][2] >= boxes['button2'][0]) != two:
+        faults.append('no second button where one was asked for' if two else 'a second button nobody asked for')
+    if two and not shown_as(button2, given['button2_text'].strip()):
+        faults.append(f'the second button shows [{button2}], not [{given["button2_text"]}]')
+    height = boxes['title'][3] - boxes['title'][1] + 1
+    if height != title_h:
+        faults.append(f'the title is {height} px high, not one line ({title_h} px)')
     return faults
 
 
@@ -260,6 +292,21 @@ def painted(question, raws, said=None):
     return picture_paint.paint(question, raws), question
 
 
+def too_old(esphome):
+    """Refuse an ESPHome older than the app's (screen_manager/Dockerfile): an older one fails the host build on what it
+    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3."""
+    wanted = re.search(r'esphome/esphome:(\d+\.\d+\.\d+)', (REPO / 'screen_manager/Dockerfile').read_text())[1]
+    try:
+        said = subprocess.run([*esphome, 'version'], capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise SystemExit(f'{" ".join(esphome)} does not run ({error}); set ESPHOME to an ESPHome {wanted}') from error
+    found = re.search(r'(\d+)\.(\d+)\.(\d+)', said)
+    if not found or tuple(map(int, found.groups())) < tuple(map(int, wanted.split('.'))):
+        raise SystemExit(f'The host renders need ESPHome {wanted} or newer (the app\'s) and {" ".join(esphome)} is '
+                         f'{found[0] if found else "unknown"}: run uv run --no-project --python 3.13 --with esphome=={wanted} '
+                         f'--with pillow python tools/render/run.py {" ".join(sys.argv[1:])}')
+
+
 def free(port):
     with socket.socket() as probe:
         return probe.connect_ex(('127.0.0.1', port)) != 0
@@ -273,6 +320,7 @@ class Run:
         self.only = only
         self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
+        self.alert_title_h = None  # the first alert's title, one line high: every alert's title is as high
 
     async def call(self, name, **args):
         await self.client.execute_service(self.services[name], args)
@@ -405,6 +453,9 @@ class Run:
         await self.until(lambda l: '[alert' in l and 'show "' in l, 10, f'{name}: the alert never showed', start)
         state = await self.state()
         self.failures += [f'{name}, as it opens: {fault}' for fault in alert_faults(state['boxes'])]
+        if self.alert_title_h is None:
+            self.alert_title_h = state['boxes']['title'][3] - state['boxes']['title'][1] + 1
+        self.failures += [f'{name}: {fault}' for fault in alert_words_faults(args, state, self.alert_title_h)]
         if name.startswith('alert-camera'):
             if state['boxes']['frame'][2] < state['boxes']['frame'][0]:
                 self.failures.append(f'{name}: no frame for the picture while it loads')
@@ -437,9 +488,10 @@ class Run:
         await self.call('render_state')
         line = await self.until(lambda l: ALERT.search(l), 10, 'render_state', start)
         header = next(HEADER.search(l) for l in self.lines[start:] if HEADER.search(l))
+        words = next(ALERT_WORDS.search(l) for l in self.lines[start:] if ALERT_WORDS.search(l)).groups()
         values = [int(v) for v in ALERT.search(line).groups()]
         boxes = {name: tuple(values[1 + 4 * i:5 + 4 * i]) for i, name in enumerate(('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2'))}
-        return {'page': int(header[1]), 'name': header[2], 'shown': header[3], 'alert': values[0], 'boxes': boxes}
+        return {'page': int(header[1]), 'name': header[2], 'shown': header[3], 'alert': values[0], 'boxes': boxes, 'words': words}
 
     async def swipe(self, forward):
         """A finger across the tiles, the way a page is changed on the glass; returns the title label as it was read back
@@ -587,6 +639,21 @@ class Run:
             self.warnings.append(f'swipe to page {target + 1}: title {final!r}, {len(seen)} read-backs')
         return count
 
+    def hello_record(self):
+        """The hardware record of the screen's hello (hw.cpp, hw::hello), as the app's own Sender read it from the host build:
+        the firmware writes it (live_tiles and the memory are only there when it does), and a template tile's numbers come
+        with the module that has them, small enough for one state message."""
+        import page_delivery
+        caps = getattr(self.sender, 'caps', None) or {}
+        if caps.get('live_tiles') is None or not isinstance(caps.get('psram_kb'), int) or not isinstance(caps.get('internal_kb'), int):
+            self.failures.append(f'hello: no hardware record (hw::hello) in the screen\'s hello: {caps}')
+            return
+        if caps.get('text_tiles') is not None and not (isinstance(caps.get('text_bytes'), int)
+                                                       and caps['text_bytes'] + 512 <= page_delivery.MAX_MESSAGE):
+            self.failures.append(f'hello: the template tile\'s numbers do not fit a state message: {caps}')
+        self.warnings.append(f'hello record: {page_delivery.caps_line(caps)}'
+                             + (f', {caps["text_tiles"]} template tiles of {caps["text_bytes"]} B' if caps.get('text_tiles') else ''))
+
     async def self_test(self):
         start = len(self.lines)
         await self.call('ui_self_test')
@@ -676,8 +743,90 @@ class Run:
         await self.render('appearance-card-kept-open')
         await probe(-1)
 
+    async def hello_again(self, grid):
+        """A restarted app over the layout the screen holds: a new Sender, so a new hello and a new lease, with the same
+        layout. It costs the glass nothing: the feed stays fresh and no card is drawn again. Another layout after it is
+        exchanged whole, as always. A Guition 10.1 greyed its values and drew every card twice at each rebuild of the
+        app (2026-11-16, then reproduced on a Waveshare 10.1 by restarting the app); docs/PAGES.md, "A hello"."""
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES,
+                                                                 pages=len(PAGE_TITLES))  # a page each, whatever the grid
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+
+        async def whole(tiles, pages, what):
+            end = time.monotonic() + 30
+            while (p := await self.probe())[3] != tiles or p[5] != pages or p[1] != 0:
+                if time.monotonic() > end: raise AssertionError(f'{what} never landed whole: {p}')
+                await asyncio.sleep(0.2)
+        await whole(len(values), len(record['layout']['pages']), 'the layout')
+        await asyncio.sleep(1)
+        before, start = self.sender, len(self.lines)
+        # As the app does when it starts (server.probe_pages): a hello to learn what the screen can do, then the layout
+        # once Home Assistant's states are read, seconds later on a real house.
+        self.sender = send_layout.api_sender(self.client, list(self.services.values()))
+        await self.sender.probe()
+        await asyncio.sleep(3)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        assert self.sender.session and self.sender.session != before.session, 'a restarted app takes a new lease'
+        assert self.sender.confirmed == before.confirmed, 'the same layout keeps its revision'
+        await asyncio.sleep(1.5)
+        cost = [line for line in self.lines[start:] if 'the feed is no longer fresh' in line or 'every card drawn' in line]
+        assert not cost, f'a hello over the same layout changed the glass: {cost}'
+        await whole(len(values), len(record['layout']['pages']), 'the same layout after a hello')
+        # Another layout from the restarted app: one page fewer, exchanged whole like any new layout.
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES[:-1],
+                                                                 pages=len(PAGE_TITLES) - 1)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.until(lambda line: 'every card drawn: a new layout' in line, 10, 'the new layout', start)
+        await whole(len(values), len(record['layout']['pages']), 'another layout after a hello')
+        self.warnings.append('A hello: the same layout costs nothing, another one is exchanged whole')
+        return 2
+
+    async def pages_from_the_loop(self, grid):
+        """A page is built on the loop's next pass, never at the bottom of the API's call that asked for it
+        (docs/ARCHITECTURE.md, "The loop's stack"): a layout's commit answers as it did, a state that comes right after
+        it shows on the page built after it, and two show_page calls in a row land on the last, each turn seen once."""
+        # Another layout than the one on the glass (hello_again left PAGE_TITLES[:-1]), so the commit builds a page.
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES,
+                                                                 pages=len(PAGE_TITLES))
+        sensor = next((i for i, v in enumerate(values) if str(v.get('entity', '')).startswith('sensor.')), None)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        if sensor is not None:
+            # Straight after the commit's answer, before the loop's pass that builds the page.
+            # A state message carries no options or slot: those are the tile's first message's (page_receiver.cpp). Every
+            # tile of the entity gets it, as the app sends it (a layout of several pages repeats the demo's tiles).
+            for value in values:
+                if value.get('entity') == values[sensor]['entity']:
+                    changed = {**{k: v for k, v in value.items() if k not in ('o', 'slot')}, 'op': 'state', 'state': '77'}
+                    await self.sender._packet(changed, self.sender.confirmed)
+        # Landed whole: every tile, every page, the page placed. Not a log line: the render log keeps a redraw's first
+        # reason only, and a feed that was not fresh while the layout was exchanged may come first.
+        end = time.monotonic() + 30
+        while (p := await self.probe())[3] != len(values) or p[5] != len(record['layout']['pages']) or p[1] != 0:
+            if time.monotonic() > end:
+                raise AssertionError(f'the new layout never landed whole: {p}')
+            await asyncio.sleep(0.2)
+        await self.page_done(0)
+        if sensor is not None:
+            entity = values[sensor]['entity']
+            end = time.monotonic() + 3  # a state's redraw comes with ui_refresh, 100 ms after it
+            while '77' not in (cards := await self.cards()).get(entity, {}).get('value', '') and time.monotonic() < end:
+                await asyncio.sleep(0.2)
+            assert entity in cards and '77' in cards[entity]['value'], f'the state after the commit is on the page: {cards.get(entity)}'
+        # Two pages asked at once: the last one opens, and the first at most once before it.
+        start = len(self.lines)
+        await asyncio.gather(self.call('show_page', page=2), self.call('show_page', page=3))
+        await self.page_done(2)
+        opened = [line for line in self.lines[start:] if 'open from Home Assistant' in line]
+        assert opened and 'page 3 of' in opened[-1] and len(opened) <= 2, opened
+        await self.call('show_page', page=1)
+        await self.page_done(0)
+        self.warnings.append(f'Pages from the loop: the commit, the state after it, then the page; {len(opened)} turn(s) for two asks')
+        return 2
+
     async def detail_navigation(self, grid, entities):
-        """Real touchscreen taps, nested Back, hidden footer and excluded swipes.
+        """Real touchscreen taps, nested Back, hidden footer, and swipes past excluded pages with Loop pages on and off.
 
         This replaces the demo only after its render checks. There are no HA
         actions: every card navigates to a page. No test hooks ship on a board.
@@ -722,6 +871,7 @@ class Run:
         assert await self.sender.ping(), 'The original configuration must remain active after refusal'
         buttons = next(e for e in entities if getattr(e, 'name', '') == 'Page buttons')
         home = next(e for e in entities if getattr(e, 'name', '') == 'Show home button')
+        loop = next(e for e in entities if getattr(e, 'name', '') == 'Loop pages')
         self.client.switch_command(self.swipe_switch.key, True)
         for footer in (True, False):
             self.client.switch_command(buttons.key, footer)
@@ -744,7 +894,15 @@ class Run:
             await self.call('show_page', page=1)
             await self.page_done(0)
             assert (await self.swipe(True))[-1]['page'] == home_page, 'swipe must stay within included pages'
-            assert (await self.swipe(True))[-1]['page'] == home_page, 'swipe must stop before excluded pages'
+            # Loop pages (on by default, docs/SETTINGS.md): past the last included page comes the first, never an
+            # excluded one (PageData::step); off, the swipe stops at the last included page.
+            assert (await self.swipe(True))[-1]['page'] == 0, 'past the last page a swipe comes round to the first, past excluded pages'
+            self.client.switch_command(loop.key, False)
+            await self.call('show_page', page=home_page + 1)
+            await self.page_done(home_page)
+            await asyncio.sleep(0.3)
+            assert (await self.swipe(True))[-1]['page'] == home_page, 'without Loop pages a swipe stops before excluded pages'
+            self.client.switch_command(loop.key, True)
             await self.call('show_page', page=detail_page + 1)
             await self.page_done(detail_page)
             assert (await self.swipe(False))[-1]['page'] == detail_page, 'detail pages have no sequential exit'
@@ -876,6 +1034,59 @@ class Run:
         assert len(json.dumps({'n': 3, **x}, separators=(',', ':'))) <= 2600, 'the prices are larger than a tile may get'
         await self.sender.synchronize(self.inbox.object_id, record, region, values(3, x), bars)
         await self.until(lambda l: probe(l, 'tile=0 state n=3') and 'today=96 tomorrow=96' in l, 10, 'two days of prices', start)
+        # The card's own colour (plugin API 0.26, ui::set_card_color): the tile names green, the card wears the screen's
+        # green for a card in the pass that follows, and "none" gives the card back.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'green'}), bars)
+        said_card = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green', start)
+        own, named = re.search(r'own=(\w+) named=(\w+)', said_card).groups()
+        if own != named or own == 'FFFFFF':
+            self.failures.append(f'ui::card_color is not the colour the tile set: {said_card}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={own}' in l, 10, 'the card wears the tile\'s colour', start)
+        # An instrument's face edge to edge (plugin API 0.28, CardColor::INSTRUMENT): the card wears the INSTRUMENT
+        # role's ground, the same that ui::color(theme::INSTRUMENT) gives, dark in the light look too.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'instrument'}), bars)
+        said_dark = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'the tile set its card to an instrument', start)
+        dark_own = re.search(r'own=(\w+)', said_dark).group(1)
+        if dark_own != '0E1621':
+            self.failures.append(f'CardColor::INSTRUMENT is not the instrument\'s ground: {said_dark}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={dark_own}' in l, 10, 'the card wears the instrument', start)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(5, {'card': 'none'}), bars)
+        back = await self.until(lambda l: probe(l, 'tile=0 card set none'), 10, 'the tile gave its card back', start)
+        plain = re.search(r'own=(\w+)', back).group(1)
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the person\'s again', start)
+        if plain == own:
+            self.failures.append(f'the card kept the tile\'s colour after CardColor::NONE: {back}')
+        # In a section whose tiles follow its contrast (docs/THEME.md "A card's look"), on a board that draws sections: the
+        # probe's card is in the other look, so ui::card_color answers in that look (green's dark value on the light
+        # screen), the card wears it, an instrument's face is the instrument's in that look, and out of the section the
+        # card is the screen's again. A section's header changes the card's room, so the card is made anew in its look
+        # (create, not on_theme).
+        if 'sections' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board].get('modules', []):
+            import copy
+            following = copy.deepcopy(record)
+            following['layout']['pages'][0]['sections'] = [{'id': '5ec9000000000001', 'title': 'Following', 'contrast': True,
+                'contrastTiles': True, 'placement': {'row': 0, 'column': 0, 'columns': 1, 'rows': 1}}]
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(6, {'card': 'green'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green, following', start)
+            if 'own=243A26' not in told:
+                self.failures.append(f'ui::card_color in a following section is not green in the other look: {told}')
+            await self.until(lambda l: probe(l, 'tile=0 tick') and 'ground=243A26' in l, 10, 'the card wears green in the other look', start)
+            # A plugin-wide moment (on_interval) paints a role onto a part of the tile: the other look's INK in here.
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=DADADA'), 10, 'on_interval paints in the card\'s look', start)
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(7, {'card': 'instrument'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'an instrument, following', start)
+            if 'own=0B1119' not in told:
+                self.failures.append(f'an instrument\'s face in a following section is not the instrument in the other look: {told}')
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(8, {'card': 'none'}), bars)
+            await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the screen\'s again', start)
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=1B1B1B'), 10, 'on_interval paints in the screen\'s look again', start)
+            self.warnings.append('plugin card in a following section: green and the instrument in the other look, back again')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)
@@ -970,8 +1181,8 @@ class Run:
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'re': body['re'], 'ok': True, 'result': {
             'prices': days[1]['prices'], 'start': 1791410400}}})
         await self.until(lambda l: probe(l, f'message re={body["re"]} ok=1 prices=96'), 10, 'a mapped answer of 96 prices', start)
-        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap
-        # and on_touch; the plugin opens its card.
+        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap;
+        # the plugin opens its card.
         start = len(self.lines)
         tile = (await self.navigation_state())['tile']
         since = len(calls)
@@ -1009,7 +1220,6 @@ class Run:
         if not (0 <= tx < tw and 0 <= ty < th):
             self.failures.append(f'the tap point {tx},{ty} is not within the tile\'s {tw}x{th}: {tapped}')
         await self.until(lambda l: probe(l, 'press'), 10, 'on_press', start)
-        await self.until(lambda l: probe(l, 'touch'), 10, 'on_touch', start)
         await self.until(lambda l: probe(l, 'card open') and 'tile=0' in l, 10, 'the card opened', start)
         await self.until(lambda l: probe(l, 'card tick'), 10, 'the card ticked', start)
         # Pictures on the card (plugin API 0.13): its place asks for its picture as a plugin tile's do, as a card's
@@ -1051,6 +1261,31 @@ class Run:
                 stored = await self.until(lambda l: 'store:' in l and 'pcard' in l, 10, 'the card\'s picture in the store', start)
                 self.warnings.append(f'card picture kept: {stored.split("store:", 1)[1].strip()[:80]}')
             self.warnings.append('card pictures: asked once, answered as pcard, shown on its place')
+            # A popup over the card with pictures of its own: each is an owner of the loader, so the card keeps its
+            # picture while the popup comes, shows and goes, and asks for nothing again.
+            start_popup, since_popup = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup over the card did not ask for its picture'
+            body, _ = painted(questions[-1].question, [porch(400, 400)])
+            await self.reply(questions[-1], self.pictures.url(f'{self.item.key}-popup-over-card.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture over the card', start_popup)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup over the card closed', start_popup)
+            await asyncio.sleep(1.5)
+            again = [read.data for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                     and read.owner.key == 'plugin:host_probe.detail']
+            assert not again, f'the card asked again for its picture after a popup over it: {again}'
+            assert not [l for l in self.lines[start_popup:] if probe(l, 'card destroy')], 'the popup closed the card'
+            shot = await self.render('plugin-card-after-popup')
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'after a popup over it the card\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('card pictures: kept through a popup with pictures over the card')
         await self.render('plugin-card')
         # A tap on the card's room (plugin API 0.12): on_tap through the touch filter, where in the card's own pixels;
         # a tap on another spot right after it counts too (a list's next row), the same spot again is a bounce.
@@ -1130,6 +1365,11 @@ class Run:
             start = len(self.lines)
             await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'wake'}})
             await self.until(lambda l: 'Wake from plugin host_probe, screen on' in l, 10, 'tessera::wake on a lit screen', start)
+            # How far the camera turns its picture (tessera::camera_turn, plugin API 0.19): 0 on a board that mounts no
+            # camera upside down, lying down as built.
+            start = len(self.lines)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'camera_turn'}})
+            await self.until(lambda l: probe(l, 'camera_turn=0'), 10, 'tessera::camera_turn on a board lying down', start)
         await self.call('render_page', page=0)
         await self.page_done(0)
         # A card that closes itself, or opens another in its place, from inside one of its own calls (the probe's
@@ -1236,6 +1476,82 @@ class Run:
         await self.call('dismiss_alert')
         self.warnings.append('popup: shown, ticked, tapped, closed beside, by its key, by its plugin, by itself and by an '
                              'alert; it woke a screen in standby')
+        # A popup with an id of the manifest's `popups` (plugin API 0.27): its place asks for its picture as a card's
+        # does (owner plugin_card, the popup's key), the harness answers as the app does, and the piece lands on the
+        # place; on an instrument's ground (dark in both looks) a mark turned along a course (ui::rotate).
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+        made = await self.until(lambda l: probe(l, 'instrument ground='), 10, 'the picture popup opened', start)
+        ground, ink, turned, pulsed, stilled = re.search(r'ground=(\w+) ink=(\w+) turned=(-?\d+) pulsed=(-?\d+) stilled=(-?\d+)', made).groups()
+        if turned != '900' or ground == ink:
+            self.failures.append(f'ui::rotate or the instrument roles: {made}')
+        # A turned part keeps its turn through ui::animate and ui::still (a plane's icon that blinks keeps its course).
+        if pulsed != '900' or stilled != '900':
+            self.failures.append(f'a turned part lost its turn to ui::animate or ui::still: {made}')
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup did not ask for its picture'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup.bmp', body))
+            shown = await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture shown', start)
+            await asyncio.sleep(0.6)
+            shot = await self.render('plugin-popup-picture')
+            x1, y1, x2, y2 = (int(n) for n in shown.rsplit(' ', 1)[1].split(','))
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'the popup\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('popup pictures: asked as a card\'s with the popup\'s key, shown on its place')
+        else:
+            self.warnings.append('popup pictures: none on this board (pictures=0)')
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the picture popup closed', start)
+        # A popup that closes itself as it hears of its first picture: it hears of nothing more (its second place is never
+        # told of), its places are not read again, and the screen goes on.
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            start, since = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture_close'}})
+            await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'the closing popup opened', start)
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the closing popup did not ask for its pictures'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400), porch(200, 200)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup-close.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup closes in on_picture'), 10, 'the popup closed in on_picture', start)
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup that closed itself went', start)
+            await asyncio.sleep(1.0)
+            heard = [l for l in self.lines[start:] if probe(l, 'picture popup heard ')]
+            assert len(heard) == 1, f'a popup that closed in on_picture heard more: {heard}'
+            self.warnings.append('popup pictures: one that closes in on_picture hears nothing more')
+        # A part's turn through ui::animate and ui::still, and none kept for a part that is gone (plugin_api.h, ui::rotate).
+        start = len(self.lines)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'turns'}})
+        line = await self.until(lambda l: probe(l, 'turns pulsing='), 10, 'the turns of parts', start)
+        got = dict(re.findall(r'(\w+)=([\d,]+)', line.split('turns ', 1)[1]))
+        before, after, end = (int(n) for n in got['kept'].split(','))
+        if (got['pulsing'], got['pulsed'], got['spun'], got['again'], got['unturned']) != ('900', '900', '900', '1800', '0') \
+                or after != before or end != before - 3:
+            self.failures.append(f'a part\'s turn through animate and still, or the turns kept: {line}')
+        self.warnings.append(f'part turns: {line.split("turns ", 1)[1]}')
+        # A popup without an id may make a place, but it has no pictures: it asks for nothing.
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_place'}})
+        await self.until(lambda l: probe(l, 'do popup_place shown=1'), 10, 'the popup without an id', start)
+        await asyncio.sleep(2.5)
+        asked = [read.data for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card']
+        assert not asked, f'a popup without an id asked for pictures: {asked}'
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the popup without an id closed', start)
+        self.warnings.append('popup without an id: its place asks for nothing')
         # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
         # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
         start = len(self.lines)
@@ -1304,13 +1620,13 @@ class Run:
             word = {'k': 'media', 'e': entity, 'n': 'Living room', 't': 'Evening Drive', 'x': {'artist': 'Nova Coast', 'pic': 'c0ffee1234'},
                     's': 'playing', 'f': 1 | 4 | 8 | 1024 | 16384}
             contract = {'entity': entity, 'name': 'Living room', 'title': 'Evening Drive', 'artist': 'Nova Coast', 'state': 'playing',
-                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'saver:picture', 'mark': 'c0ffee1234'}
+                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'step:', 'mark': 'c0ffee1234'}
             await self.send({'v': 1, 'op': 'saver', **word, 'pf': {'p': 'plugin:host_probe.deck', 'o': {}, 'x': contract}})
             await self.until(lambda l: probe(l, 'saver=dial destroy'), 10, 'the clock face left for the music', lines)
             key = await self.until(lambda l: probe(l, 'saver=deck key '), 10, 'the music face and its key', lines)
             x1, y1, x2, y2 = (int(n) for n in key.rsplit(' ', 1)[1].split(','))
-            # Its cover: asked as a saver's (owner plugin_saver), the source the step's own picture (`step:`, which
-            # `saver:picture` names too), answered as the app does.
+            # Its cover: asked as a saver's (owner plugin_saver), the source the step's own picture (`step:`), answered
+            # as the app does.
             for _ in range(24):
                 questions = [read for _, read in self.unanswered(calls, start) if read.owner.kind == 'plugin_saver']
                 if questions:
@@ -1352,7 +1668,7 @@ class Run:
             # face draws over it on a clear glass, and the photo moves (`mv`).
             start, lines = len(calls), len(self.lines)
             await self.send({'v': 1, 'op': 'saver', 'k': 'photos', 'e': 'saver.photos', 'n': '', 'x': {'pic': 'beef00beef', 'mv': 1},
-                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'saver:picture', 'mark': 'beef00beef',
+                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'step:', 'mark': 'beef00beef',
                                                                                      'index': 2, 'count': 9, 'album': 'Family'}}})
             await self.until(lambda l: probe(l, 'saver=frame show'), 10, 'the photo face over its photo', lines)
             for _ in range(24):
@@ -1533,6 +1849,118 @@ class Run:
                 'title': m[4], 'status': m[5], 'line': m[6], 'modes': points(m[7]), 'keys': points(m[8]), 'faults': m[9],
                 'locked': int(m[10])}
 
+    async def standby_state(self):
+        """What ui_state says of standby and pages: the standby clock (idle), the page clock (use), dimmed and the page."""
+        start = len(self.lines)
+        await self.call('ui_state')
+        line = await self.until(lambda l: 'ui_diag' in l and 'use_idle_ms=' in l, 10, 'ui_state', start)
+        nav = await self.until(lambda l: 'ui_diag' in l and 'navigation page=' in l, 10, 'ui_state navigation', start)
+        found = re.search(r'idle_ms=(\d+) use_idle_ms=(\d+) dimmed=(\d+)', line)
+        return dict(idle=int(found[1]), use=int(found[2]), dimmed=found[3] == '1',
+                    page=int(re.search(r'navigation page=(\d+)', nav)[1]))
+
+    async def standby_round(self):
+        """Wake and Sleep for Home Assistant automations (docs/SETTINGS.md), on the real firmware: Sleep dims now and holds
+        whatever turns Auto standby off; Wake lights a dimmed screen and only restarts the standby time of a lit one, and
+        is no touch, so it never holds up Back to page 1; a tap on the dimmed glass and Wake take the same way out; Sleep
+        closes an alert from Home Assistant's side; a setting the screen changes itself reaches Home Assistant. Took the
+        place of quotes of core.yaml (tests/test_wake_sleep.py, tests/test_screen_owned_settings.py)."""
+        entities = {getattr(e, 'name', ''): e for e in (await self.client.list_entities_services())[0]}
+        wake, sleep, auto = entities['Wake'], entities['Sleep'], entities['Auto standby']
+        failed = lambda what: self.failures.append(f'standby: {what}')  # noqa: E731
+        width, height = self.canvas
+
+        async def press(button, log):
+            start = len(self.lines)
+            self.client.button_command(button.key)
+            await self.until(lambda l: log in l, 10, f'the {button.name} button', start)
+            await asyncio.sleep(0.6)
+            return await self.standby_state()
+
+        self.client.switch_command(auto.key, True)
+        await asyncio.sleep(0.6)
+        state = await press(sleep, 'Sleep from Home Assistant')
+        if not state['dimmed']:
+            failed('Sleep did not dim the screen')
+        # Auto standby turned off, which applies the settings again: a Sleep holds.
+        self.client.switch_command(auto.key, False)
+        await asyncio.sleep(1.2)
+        state = await self.standby_state()
+        if not state['dimmed']:
+            failed('turning Auto standby off undid a Sleep')
+        # Wake on a dimmed screen lights it, and is no touch: the page clock goes on.
+        await asyncio.sleep(1.5)
+        state = await press(wake, 'Wake from Home Assistant, screen in standby')
+        if state['dimmed']:
+            failed('Wake did not light a dimmed screen')
+        if state['use'] < 1500:
+            failed(f'Wake restarted the page clock ({state["use"]} ms): it would hold up Back to page 1')
+        # Wake on a lit screen restarts the standby time alone.
+        await asyncio.sleep(1.5)
+        state = await press(wake, 'Wake from Home Assistant, screen on')
+        if state['dimmed'] or state['idle'] > 1500 or state['use'] < 3000:
+            failed(f'Wake on a lit screen: {state} (lit, the standby clock restarted, the page clock not)')
+        # Auto standby turned on counts the standby time from that moment, and is no touch either.
+        await asyncio.sleep(1.5)
+        self.client.switch_command(auto.key, True)
+        await asyncio.sleep(0.6)
+        state = await self.standby_state()
+        if state['idle'] > 1500 or state['use'] < 3000:
+            failed(f'Auto standby turned on: {state} (the standby clock restarts, the page clock goes on)')
+        # A tap on the dimmed glass ends a Sleep the way Wake does.
+        await press(sleep, 'Sleep from Home Assistant')
+        await self.tap(width // 2, height // 2)
+        await asyncio.sleep(0.6)
+        state = await self.standby_state()
+        if state['dimmed']:
+            failed('a tap on the dimmed glass did not end a Sleep')
+        if state['use'] > 1500:
+            failed(f'a tap is a touch: the page clock starts from it ({state})')
+        # Sleep closes an alert, said to Home Assistant as closed from its side.
+        start = len(self.lines)
+        await self.call('show_alert', title='Washing done', subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+        await self.until(lambda l: '[alert' in l and 'show "' in l, 10, 'the alert before Sleep', start)
+        start = len(self.lines)
+        self.client.button_command(sleep.key)
+        await self.until(lambda l: 'dismissed: remote' in l, 10, 'Sleep did not close the alert as closed from Home Assistant', start)
+        await press(wake, 'Wake from Home Assistant')
+        # Back to page 1 counts from the last touch: page 2 opened from Home Assistant, Wake pressed every few seconds,
+        # and the page still goes home once its time is over.
+        home, after = entities['Back to page 1'], entities['Back to page 1 after']
+        self.client.switch_command(auto.key, False)
+        self.client.number_command(after.key, 30)
+        self.client.switch_command(home.key, True)
+        await asyncio.sleep(0.6)
+        await self.call('show_page', page=2)
+        await asyncio.sleep(1)
+        state = await self.standby_state()
+        if state['page'] != 1 or state['use'] > 1500:
+            failed(f'show_page 2: {state} (page index 1, the page clock started from it)')
+        for _ in range(7):
+            await asyncio.sleep(4)
+            self.client.button_command(wake.key)
+        end = time.monotonic() + 12
+        while (state := await self.standby_state())['page'] != 0 and time.monotonic() < end:
+            await asyncio.sleep(1)
+        if state['page'] != 0:
+            failed(f'Back to page 1 never came while Wake was pressed every 4 s: {state}')
+        self.client.switch_command(home.key, False)
+        # Home Assistant sees every setting change the screen makes itself: a brightness under the standby brightness
+        # pulls that one down, and its entity follows without anyone setting it (apply_screen_settings publishes it).
+        states = {}
+        self.client.subscribe_states(lambda update: states.__setitem__(getattr(update, 'key', None), getattr(update, 'state', None)))
+        normal, dimmed = entities['Normal brightness'], entities['Standby brightness']
+        self.client.number_command(dimmed.key, 30)
+        self.client.number_command(normal.key, 80)
+        await asyncio.sleep(1)
+        self.client.number_command(normal.key, 10)
+        end = time.monotonic() + 5
+        while states.get(dimmed.key) != 10 and time.monotonic() < end:
+            await asyncio.sleep(0.2)
+        if states.get(dimmed.key) != 10:
+            failed(f'the standby brightness the screen pulled down to 10 reached Home Assistant as {states.get(dimmed.key)}')
+        return 'standby round'
+
     async def tap(self, x, y):
         await self.call('render_finger', x=x, y=y, down=True)
         await asyncio.sleep(0.15)
@@ -1675,16 +2103,17 @@ class Run:
         refused = [c for c in calls if c.service == 'esphome.screen_alarm_code_refused']
         if refused[-1].data.get('locked') != '30':
             faults.append(f'the third wrong code locked for {refused[-1].data.get("locked")} s, not 30')
-        # The alarm goes off: the screen opens the keypad to disarm by itself (still locked here), and Back shows the
-        # card with its big Disarm key.
+        # The alarm goes off: the screen opens the keypad to disarm by itself (still locked here), on red. It is the
+        # card now, so Back closes it, and the tile opens the keypad again.
         states[entity] = alarm('triggered')
         await push()
-        card = await self.alarm_until(lambda c: c['pad'] and c['title'] == 'Disarm' and c['status'] == 'Triggered',
-                                      'going off never opened the keypad to disarm')
-        await self.tap(*card['back'][:2])
-        card = await self.alarm_until(lambda c: c['open'] and not c['pad'] and len(c['modes']) == 1, 'triggered never showed the Disarm key')
+        card = await self.alarm_until(lambda c: c['pad'] and c['title'] == 'Disarm', 'going off never opened the keypad to disarm')
         keep(card, 'triggered')
         await self.snapshot(self.out / 'alarm-triggered.png')
+        await self.tap(*card['back'][:2])
+        await self.alarm_until(lambda c: not c['open'], 'Back on the red keypad never closed the card')
+        await self.tap(*tile)
+        card = await self.alarm_until(lambda c: c['open'] and c['pad'], 'the tile of a panel going off never opened its keypad')
         # A panel without a code: a mode goes straight out, without a keypad.
         states[entity] = alarm('disarmed', code_format=None)
         await push()
@@ -1720,6 +2149,138 @@ class Run:
         await asyncio.sleep(1.0)
         await self.call('render_finger', x=x, y=y, down=False)
         await asyncio.sleep(0.4)
+
+    async def vacuum_tiles(self, grid):
+        """A robot's larger tile (module_vacuum_tile.cpp, docs/VACUUM.md "A larger tile") the way it is used: each face on
+        a 2x2 and the map with the rooms on the whole page, docked; two rooms tapped (Start counts them); cleaning with how
+        far it is; an error; dark. The map is the add-on's own vacuum_map at the size the tile asks for. Every part a
+        finger acts on is read back (render_vacuum) and must lie on the glass."""
+        import vacuum_map
+        from core import state_message
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        ENTITY = 'vacuum.robot'
+        FULL = 4 | 8 | 16 | 32 | 512 | 4096 | 8192 | 16384
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        from PIL import Image as _Image, ImageDraw as _Draw
+        cells = _Image.new('RGBA', (160, 84), (0, 0, 0, 0))
+        d = _Draw.Draw(cells)
+        for box, colour in [((2, 2, 60, 22), (165, 105, 189, 255)), ((2, 22, 50, 82), (217, 136, 128, 255)),
+                            ((50, 50, 96, 82), (240, 178, 122, 255)), ((60, 2, 158, 82), (133, 193, 233, 255))]:
+            d.rectangle(box, fill=colour, outline=(93, 109, 126, 255))
+        plan = io.BytesIO()
+        cells.resize((640, 336), _Image.NEAREST).save(plan, 'PNG')
+        drawing = vacuum_map.read(plan.getvalue())
+        rows = {'mode': {'e': 'select.robot_cleaning_mode', 's': 'vac_and_mop', 'o': ['vacuum', 'vac_and_mop', 'mop'],
+                         'l': ['Vacuum', 'Vac & mop', 'Mop'], 'r': 'vbm'}}
+        six = [['kitchen', 'Kitchen', 'F0B7C', 0], ['living_room', 'Living room', 'F04B9', 0], ['hall', 'Hallway', 'F081A', 0],
+               ['bedroom', 'Bedroom', 'F02E3', 0], ['study', 'Office', 'F1239', 0], ['bathroom', 'Bathroom', 'F09A0', 0]]
+        routines = [['button.robot_after_dinner', 'After dinner'], ['button.robot_daily', 'Daily clean'],
+                    ['button.robot_deep', 'Deep clean'], ['button.robot_bin', 'Empty the bin'], ['button.robot_mop', 'Mop the kitchen']]
+        card_map = {'e': 'image.robot_home', 'm': '2026-09-15T08:00:00+00:00'}
+        def scene(state, battery=100, charging=True, room=None, vc=None):
+            x = dict(rows, bat=battery)
+            if charging:
+                x['chg'] = 1
+            if room:
+                x['room'] = room
+            x['vc'] = {'map': card_map, 'rooms': six, 'rt': routines, **(vc or {})}
+            return {'state': state, 'attributes': {'friendly_name': 'Robot', 'supported_features': FULL}}, x
+        faces = [('rooms', 'square'), ('map', 'square'), ('routines', 'square'), ('map_rooms', 'full')]
+        legacy = [dict(entity=ENTITY, name='Robot', options={'size': size, 'controls': face}, slot=n * grid.slots)
+                  for n, (face, size) in enumerate(faces)]
+        record = send_layout.migrate_legacy(dict(title='Robot', tiles=legacy, pages=len(faces)), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        served = [0]
+        async def answer_maps():
+            for call, read in self.unanswered(calls):
+                if read.question.sources[0].kind != 'vacuum':
+                    continue
+                ground, dark = read.question.places[0].ground, read.question.dark
+                body, _ = painted(read.question, [lambda w, h: vacuum_map.render(drawing, (w, h), ground, dark)])
+                await self.reply(read, self.pictures.url(f'{self.item.key}-vtile-{served[0]}.bmp', body))
+                served[0] += 1
+                call.data['_answered'] = '1'
+        async def push(state, x):
+            await self.sender.synchronize(self.inbox.object_id, record, region,
+                                          [state_message(i, tile, {ENTITY: state}, x) for i, tile in enumerate(tiles)], bars)
+            await asyncio.sleep(0.8)
+        async def settle():
+            for _ in range(3):
+                await asyncio.sleep(0.7)
+                await answer_maps()
+        async def parts(page):
+            start = len(self.lines)
+            await self.call('render_vacuum')
+            await self.until(lambda l: 'vacuum open=' in l, 10, 'render_vacuum', start)
+            await asyncio.sleep(0.3)
+            found = {}
+            for line in self.lines[start:]:
+                if 'vacuum tile slot=' not in line:
+                    continue
+                face = line.split('vacuum tile slot=', 1)[1].split(' ', 1)[1]
+                spots = {}
+                for item in face.split('|')[1].split(';'):
+                    if '@' in item:
+                        key, point = item.split('@')
+                        spots[key] = tuple(int(n) for n in point.split(','))
+                        if min(spots[key]) < 0:
+                            self.warnings.append(f'vacuum tile {face.split("|")[0]}: part {key} off the glass at {point}')
+                found[face.split('|')[0]] = (spots, face)
+            return found
+        async def show(page, name, dark=False):
+            await self.call('render_page', page=page)
+            await self.page_done(page)
+            await settle()
+            await self.render(name)
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await settle()
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            card = await self.alarm_probe()
+            if card['faults']:
+                self.warnings.append(f'vacuum tile {name}: {card["faults"]}')
+        # No finger has touched the glass for minutes: its Back to page 1 would take every page home within a second.
+        home = next((e for e in (await self.client.list_entities_services())[0] if getattr(e, 'name', '') == 'Back to page 1'), None)
+        if home:
+            self.client.switch_command(home.key, False)
+        await push(*scene('docked'))
+        for page, (face, size) in enumerate(faces):
+            await show(page, f'vacuum-tile-{face}', dark=face in ('rooms', 'map_rooms'))
+        # Two rooms tapped on the 2x2 of rooms, the bedroom first: Start counts them, each says its place.
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        found = await parts(0)
+        spots = found.get('rooms', ({}, ''))[0]
+        # The last room on the tile first, then the first: a short tile shows fewer rooms and a "+N".
+        rooms = sorted((int(key[2:]) for key in spots if key.startswith('4:')), reverse=True)
+        tapped = [rooms[0], rooms[-1]] if len(rooms) > 1 else rooms
+        for room in tapped:
+            await self.tap(*spots[f'4:{room}'])
+            await asyncio.sleep(0.6)
+        await self.render('vacuum-tile-rooms-picked')
+        after = await parts(0)
+        if 'picks=' + ''.join(f'{room},' for room in tapped) not in after.get('rooms', ({}, ''))[1]:
+            self.warnings.append(f'vacuum tile: picks after two taps: {after.get("rooms")}')
+        # Start cleans those two, in the order of the taps.
+        since = len(calls)
+        if '1:0' in spots:
+            await self.tap(*spots['1:0'])
+            await asyncio.sleep(1.6)
+            sent = [c for c in calls[since:] if 'clean_area' in c.service or 'clean_area' in str(c.data)]
+            if not sent:
+                self.warnings.append(f'vacuum tile: Start with two rooms sent no vacuum.clean_area: {[c.service for c in calls[since:]]}')
+        await push(*scene('cleaning', battery=64, charging=False, room='Living room', vc={'pg': 42}))
+        await show(0, 'vacuum-tile-rooms-cleaning')
+        await show(3, 'vacuum-tile-map_rooms-cleaning')
+        await push(*scene('error', battery=38, charging=False, vc={'err': 'Main brush jammed'}))
+        await show(3, 'vacuum-tile-map_rooms-error')
+        if home:
+            self.client.switch_command(home.key, True)
+        return 1
 
     async def lock_panel(self, grid):
         """The lock (firmware 0.5.0+) the way it is used: a tap locks at once, a locked lock asks for a second tap on its
@@ -1974,6 +2535,399 @@ class Run:
             await self.render('weather-card-dark')
             self.client.switch_command(self.dark_switch.key, False)
             await asyncio.sleep(1.0)
+        return 1
+
+    async def todo_panel(self, grid):
+        """The to-do card (module todo, docs/TODO.md) on this board: lists on every size of tile, a finger that ticks an
+        item on a tile, the full screen, its keyboard, a letter's accents, and a name offered while typing. The lists
+        are made up; what the screen asks (esphome.screen_todo) is done to them as Home Assistant would, with the
+        app's own todo_feed, and sent back."""
+        import profiles
+        import todo_feed
+        from core import extras, state_message
+        tz = MOMENT.tzinfo
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+
+        def item(uid, summary, done=False, due=None):
+            return {'uid': uid, 'summary': summary, 'status': 'completed' if done else 'needs_action', 'due': due}
+        day = MOMENT.date()
+        lists = {
+            'todo.shopping': [item(f's{n}', name) for n, name in enumerate(('Oat milk', 'Bananas', 'Coffee beans', 'Tomatoes', 'Dishwasher tablets', 'Olive oil', 'Sourdough bread', 'Eggs', 'Toilet paper'))]
+                             + [item('sb', 'Butter', True), item('sa', 'Apples', True), item('sy', 'Yoghurt', True)],
+            'todo.tasks': [item('t1', 'Renew passport', due=(day.replace(day=day.day - 4)).isoformat()), item('t2', 'Call the plumber', due=day.isoformat()),
+                           item('t3', 'Water the plants', due=(day.replace(day=day.day + 1)).isoformat()), item('t4', 'Return the parcel', due=(day.replace(day=day.day + 3)).isoformat()),
+                           item('t5', 'Book the dentist'), item('t6', 'Pay the invoice', True)],
+            'todo.chores': [item('c1', 'Empty the bins', True), item('c2', 'Vacuum upstairs', True)],
+        }
+        names = {'todo.shopping': 'Shopping list', 'todo.tasks': 'To do', 'todo.chores': 'Chores'}
+        numbers = todo_feed.Numbers()
+        states = {'sensor.hall': {'state': '21.5', 'attributes': {'unit_of_measurement': '°C', 'friendly_name': 'Hall'}}}
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        shown = {}
+
+        def refresh_states():
+            for entity, items in lists.items():
+                numbers.update(entity, items)
+                states[entity] = {'state': str(sum(not todo_feed.done(i) for i in items)),
+                                  'attributes': {'friendly_name': names[entity], 'supported_features': 127}}
+
+        async def send():
+            refresh_states()
+            values = []
+            for i, t in enumerate(shown['tiles']):
+                extra = extras(t, states, None, None, None, MOMENT) or {}
+                if t['entity'].startswith('todo.'):
+                    extra = {**extra, 'todo': todo_feed.card(t, lists[t['entity']], numbers.of(t['entity']), 127, tz, MOMENT)}
+                values.append(state_message(i, t, states, extra))
+            await self.sender.synchronize(self.inbox.object_id, shown['record'], region, values, shown['bars'])
+
+        async def answer():
+            """What the screen asked since the last time, done to the lists as Home Assistant does it."""
+            done = 0
+            while calls:
+                call = calls.pop(0)
+                if call.service != todo_feed.EVENT:
+                    continue
+                data = dict(call.data)
+                tile = shown['tiles'][int(data['i'])]
+                entity, items = tile['entity'], lists[tile['entity']]
+                uid = numbers.uid(entity, int(data.get('n') or 0))
+                asked = todo_feed.request(data['a'], items, uid, data.get('t'), 127)
+                print(f"    the screen asked: {data['a']} {data.get('t') or uid or ''} -> {asked}")
+                if not asked:
+                    continue
+                service, body = asked
+                if service == 'add_item':
+                    items.insert(sum(not todo_feed.done(i) for i in items), item(f'n{len(items)}{time.monotonic_ns()}', body['item']))
+                elif service == 'update_item':
+                    for it in items:
+                        if it['uid'] == body['item']:
+                            it['status'] = body.get('status', it['status'])
+                            it['summary'] = body.get('rename', it['summary'])
+                    items.sort(key=todo_feed.done)
+                elif service == 'remove_item':
+                    items[:] = [it for it in items if it['uid'] != body['item']]
+                elif service == 'remove_completed_items':
+                    items[:] = [it for it in items if not todo_feed.done(it)]
+                done += 1
+            if done:
+                await send()
+            return done
+
+        async def show(name, tiles_in, dark=True):
+            spans = {'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                w, h = spans.get(tile['options'].get('size'), (1, 1))
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title='Kitchen', tiles=tiles_in), grid)
+            shown.update(record=record, tiles=send_layout.compile_tiles(record['layout'], grid), bars=[[{'k': 'clock'}] for _ in record['layout']['pages']])
+            await send()
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(1.0)
+            await self.render(name)
+            if dark:
+                await both(name, False)
+
+        async def both(name, light=True):
+            if light:
+                await self.render(name)
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render(name + '-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.5)
+
+        await show('todo-sizes', [dict(entity='todo.chores', name='Chores', options={}),
+                                  dict(entity='todo.shopping', name='Shopping list', options={'size': 'wide'}),
+                                  dict(entity='todo.tasks', name='To do', options={'size': 'tall'}),
+                                  dict(entity='todo.shopping', name='Shopping list', options={'size': 'square'}),
+                                  dict(entity='sensor.hall', name='Hall', options={})])
+        await show('todo-full', [dict(entity='todo.shopping', name='Shopping list', options={'size': 'full'})])
+        width, height = self.canvas
+        spots = await self.slots()
+        if 'todo.shopping' not in spots:
+            raise RuntimeError('The to-do tile is not on the page')
+        # A finger ticks the row in the middle of the list: it shows at once, in its place, and the list closes up
+        # only when the finger has been away for a moment.
+        await self.tap(*spots['todo.shopping'])
+        await self.render('todo-ticked')
+        if await answer() != 1:
+            raise RuntimeError('A tap on a row of the to-do tile asked nothing of the app')
+        await asyncio.sleep(0.3)
+        await self.render('todo-ticked-held')
+        await asyncio.sleep(2.6)
+        await self.render('todo-settled')
+        # The board's own sizes, as module_todo.h works them out, to find the keys.
+        board = self.item.board if self.item.board.startswith('checkout/') else f'checkout/{self.item.board}.yaml'
+        subs = profiles.substitutions(board)
+        dpi = round(float(subs['DISPLAY_DPI']))
+        scale = (dpi * 100 + 85) // 170
+        px = lambda n: (n * scale + 50) // 100
+        mm = lambda n: (dpi * n + 12) // 25
+        big = width >= mm(150) and height >= mm(85)
+        key, line = mm(7), round(int(subs['FONT_HEADLINE_SIZE' if big else 'FONT_SUBLABEL_BIG_SIZE']) * 1.172)
+        head, rowh = max(px(56), key + px(16)), max(key, line + px(18))
+        # The card's head opens the full screen.
+        tile_top = int(subs['SCROLL_Y'])
+        await self.tap(width // 3, tile_top + px(14) + key // 2)
+        await asyncio.sleep(1.2)
+        await both('todo-card')
+        # A row drawn to the left shows what may be done with its item, and a tap on Remove removes it.
+        y = head + px(4) + key + px(8) + rowh * 5 // 2
+        column = min(width - 2 * px(16), px(740))
+        x = width // 2 + column // 4
+        await self.finger([(x, y)] + [(x - n * column // 40, y) for n in range(1, 15)], rest=0.1, step=0.02)
+        await asyncio.sleep(0.6)
+        await self.render('todo-swiped')
+        await self.tap(width // 2 + column // 2 - px(40), y)
+        await asyncio.sleep(0.3)
+        if await answer() != 1:
+            raise RuntimeError('A tap on Remove under a row drawn aside asked nothing of the app')
+        await asyncio.sleep(0.8)
+        await self.render('todo-removed')
+        await self.tap(width // 2, head + px(4) + key // 2)
+        await asyncio.sleep(0.8)
+        await self.render('todo-keys')
+
+        def keys(offered):
+            sp, g, field, margin = px(10), max(3, px(6)), key, px(16)
+            kw = min(width, mm(165))
+            if width - kw < mm(24):
+                kw = width
+            floats = kw < width
+            top = head + rowh + px(8)
+            whole = height - top - (margin if floats else 0) < 2 * sp + field + 5 * g + 4 * mm(7)
+            if whole:
+                top = 0
+            room = height - top - (margin if floats and not whole else 0)
+            chips = mm(6) + g
+            if not offered or (room - 2 * sp - field - chips - 5 * g) // 4 < mm(13) // 2:
+                chips = 0
+            keyh = max(px(20), min(mm(9), (room - 2 * sp - field - chips - 5 * g) // 4))
+            sh = height if whole else 2 * sp + field + chips + 5 * g + 4 * keyh
+            sx, sy = (width - kw) // 2, 0 if whole else height - sh - (margin if floats else 0)
+            inner, x0 = kw - 2 * sp, sx + sp
+            kwid, y0 = (inner - 9 * g) // 10, sy + sp + field + chips + g + g // 2
+            if whole:
+                y0 = max(y0, height - sp - 4 * keyh - 3 * g)
+            x2, side = x0 + (kwid + g) // 2, (3 * kwid + g) // 2
+            x3 = x0 + side + g + ((inner - 2 * side - 2 * g) - (7 * kwid + 6 * g)) // 2
+            spot = {}
+            for n, letter in enumerate('qwertyuiop'):
+                spot[letter] = (x0 + n * (kwid + g) + kwid // 2, y0 + keyh // 2)
+            for n, letter in enumerate('asdfghjkl'):
+                spot[letter] = (x2 + n * (kwid + g) + kwid // 2, y0 + keyh + g + keyh // 2)
+            for n, letter in enumerate('zxcvbnm'):
+                spot[letter] = (x3 + n * (kwid + g) + kwid // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['offer'] = (x0 + px(24), sy + sp + field + g + (chips - g) // 2)
+            spot['back'] = (x0 + inner - side // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['row'] = keyh
+            spot['accent'] = (min(x0 + inner - 4 * kwid - 2 * g, max(x0, spot['e'][0] - kwid // 2 - g)) + g + kwid // 2, y0 - keyh // 2 - g - g // 2)
+            spot['chips'] = chips
+            return spot
+        spot = keys(True)
+        for letter in 'bu':
+            await self.tap(*spot[letter])
+        await asyncio.sleep(0.4)
+        await self.render('todo-typed')
+        # Held, a letter shows its accents; a tap takes the first.
+        await self.hold(*spot['e'])
+        await asyncio.sleep(0.4)
+        await self.render('todo-accents')
+        await self.tap(*spot['accent'])
+        await asyncio.sleep(0.4)
+        await self.render('todo-accent-typed')
+        # Typed away again, the names of what was done before are offered, and a tap on one brings it back.
+        spot = keys(True)
+        if spot['chips']:
+            await self.call('render_finger', x=spot['back'][0], y=spot['back'][1], down=True)
+            await asyncio.sleep(1.6)
+            await self.call('render_finger', x=spot['back'][0], y=spot['back'][1], down=False)
+            await asyncio.sleep(0.5)
+            await self.render('todo-erased')
+            await self.tap(*spot['offer'])
+            await asyncio.sleep(0.3)
+            if await answer() != 1:
+                raise RuntimeError('A tap on an offered name asked nothing of the app')
+            await asyncio.sleep(0.8)
+            await self.render('todo-added')
+        return 1
+
+    async def text_panel(self, grid):
+        """A Home Assistant text on this board (text, input_text; module text_edit, docs/TEXT_ENTITY.md): tiles of every
+        size with a short value, a long one, a password and an empty one, then the field a tap opens with its keyboard,
+        a password's field, the check faded under the text's min, and a value typed and sent. The entities are made up;
+        what the screen sends (text.set_value, input_text.set_value) is done to them as Home Assistant would."""
+        import profiles
+        from core import extras, state_message
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        long = ('Back at three. Parcels go to the side door behind the garden gate, please ring twice and wait a moment '
+                'before you leave them on the bench under the window.')
+        states = {
+            'text.status': {'state': 'Back at three', 'attributes': {'friendly_name': 'Door message', 'mode': 'text', 'min': 0, 'max': 255}},
+            'text.message': {'state': long, 'attributes': {'friendly_name': 'Note for the courier', 'mode': 'text', 'min': 0, 'max': 255}},
+            'input_text.door_code': {'state': '2468', 'attributes': {'friendly_name': 'Door code', 'mode': 'password', 'min': 4, 'max': 8}},
+            'input_text.empty': {'state': '', 'attributes': {'friendly_name': 'Shopping note', 'mode': 'text', 'min': 0, 'max': 100}},
+        }
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        shown = {}
+
+        async def send():
+            values = [state_message(i, t, states, extras(t, states, None, None, None, MOMENT) or None) for i, t in enumerate(shown['tiles'])]
+            await self.sender.synchronize(self.inbox.object_id, shown['record'], region, values, shown['bars'])
+
+        async def both(name, light=True):
+            if light:
+                await self.render(name)
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render(name + '-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.5)
+
+        async def show(name, tiles_in):
+            spans = {'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                w, h = spans.get(tile['options'].get('size'), (1, 1))
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title='Hall', tiles=tiles_in), grid)
+            shown.update(record=record, tiles=send_layout.compile_tiles(record['layout'], grid), bars=[[{'k': 'clock'}] for _ in record['layout']['pages']])
+            await send()
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(1.0)
+            await both(name)
+
+        await show('text-sizes', [dict(entity='text.status', name='Door message', options={}),
+                                  dict(entity='text.message', name='Note for the courier', options={'size': 'wide'}),
+                                  dict(entity='input_text.door_code', name='Door code', options={'size': 'tall'}),
+                                  dict(entity='text.message', name='Note for the courier', options={'size': 'square'}),
+                                  dict(entity='input_text.empty', name='Shopping note', options={})])
+        width, height = self.canvas
+        spots = await self.slots()
+        # A small grid puts the tall tile on a later page: the two tiles the field is opened from, on a page of their own.
+        if 'text.message' not in spots or 'input_text.door_code' not in spots:
+            await show('text-tiles', [dict(entity='text.message', name='Note for the courier', options={}),
+                                      dict(entity='input_text.door_code', name='Door code', options={})])
+            spots = await self.slots()
+        for entity in ('text.message', 'input_text.door_code'):
+            if entity not in spots:
+                raise RuntimeError(f'The tile of {entity} is not on the page')
+        # The board's own sizes, as keyboard.h and detail_bar.h work them out, to find the keys.
+        board = self.item.board if self.item.board.startswith('checkout/') else f'checkout/{self.item.board}.yaml'
+        subs = profiles.substitutions(board)
+        dpi = round(float(subs['DISPLAY_DPI']))
+        scale = (dpi * 100 + 85) // 170
+        px = lambda n: (n * scale + 50) // 100
+        mm = lambda n: (dpi * n + 12) // 25
+        large = subs.get('LOOK', 'standard') == 'standard'
+        bar_key, bar_y = px(60 if large else 40), px(16 if large else 8)
+        bar_x = px(16 if large else 10)
+
+        def keys(field=False):
+            # The page's text area stands above the keys, so the keyboard comes without its own field
+            # (keyboard.h Spec::field), unless the glass is too short for both.
+            sp, g, margin = px(10), max(3, px(6)), px(16)
+            fieldh, gaps, keys_y = (mm(7), 5 * g, mm(7) + g + g // 2) if field else (0, 3 * g + g // 2, 0)
+            kw = min(width, mm(165))
+            if width - kw < mm(24):
+                kw = width
+            floats = kw < width
+            top = bar_y + bar_key + px(12)
+            whole = height - top - (margin if floats else 0) < 2 * sp + fieldh + gaps + 4 * mm(7)
+            if whole:
+                top = 0
+            room = height - top - (margin if floats and not whole else 0)
+            keyh = max(px(20), min(mm(9), (room - 2 * sp - fieldh - gaps) // 4))
+            sh = height if whole else 2 * sp + fieldh + gaps + 4 * keyh
+            sx, sy = (width - kw) // 2, 0 if whole else height - sh - (margin if floats else 0)
+            if not field and (whole or sy - px(12) - top < 2 * px(16) + px(20)):
+                return keys(True)
+            inner, x0 = kw - 2 * sp, sx + sp
+            kwid, y0 = (inner - 9 * g) // 10, sy + sp + keys_y
+            if whole:
+                y0 = max(y0, height - sp - 4 * keyh - 3 * g)
+            spot = {}
+            for n, letter in enumerate('qwertyuiop'):
+                spot[letter] = (x0 + n * (kwid + g) + kwid // 2, y0 + keyh // 2)
+            side, wide = (3 * kwid + g) // 2, 2 * kwid + g
+            spot['back'] = (x0 + inner - side // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['check'] = (x0 + inner - wide // 2, y0 + 3 * (keyh + g) + keyh // 2)
+            # The text area's first line, a third of the way in.
+            area_x = (width - (kw if kw < width else width - 2 * px(16))) // 2
+            spot['text'] = (area_x + px(16) + (inner // 3), top + px(16) + px(8))
+            spot['field'] = field
+            return spot
+        spot = keys()
+        # The long value's field: its end in view, the cursor after it.
+        await self.tap(*spots['text.message'])
+        await asyncio.sleep(1.2)
+        await both('text-field')
+        # A finger on the text puts the cursor there, and a letter goes in where it stands.
+        if not spot['field']:
+            await self.tap(*spot['text'])
+            await asyncio.sleep(0.3)
+            await self.tap(*spot['q'])
+            await asyncio.sleep(0.4)
+            await self.render('text-caret')
+        # Back sends nothing.
+        await self.tap(bar_x + bar_key // 2, bar_y + bar_key // 2)
+        await asyncio.sleep(0.8)
+        if any(c.service.endswith('.set_value') for c in calls):
+            raise RuntimeError('Back from a text\'s field sent a value')
+        # The password's field: a dot per character.
+        await self.tap(*spots['input_text.door_code'])
+        await asyncio.sleep(1.2)
+        await both('text-password')
+        # Under the door code's min of 4 the check is faded, and a tap on it sends nothing.
+        await self.tap(*spot['back'])
+        await asyncio.sleep(0.4)
+        await self.render('text-short')
+        await self.tap(*spot['check'])
+        await asyncio.sleep(0.6)
+        if any(c.service.endswith('.set_value') for c in calls):
+            raise RuntimeError('The check sent a value shorter than the text\'s min')
+        for letter in 'qw':
+            await self.tap(*spot[letter])
+        await asyncio.sleep(0.4)
+        await self.render('text-typed')
+        await self.tap(*spot['check'])
+        await asyncio.sleep(0.6)
+        sent = [c for c in calls if c.service.endswith('.set_value')]
+        if len(sent) != 1 or sent[0].service != 'input_text.set_value' or dict(sent[0].data).get('value') != '246qw':
+            raise RuntimeError(f'The check sent {[(c.service, dict(c.data)) for c in sent]}, not input_text.set_value 246qw')
+        print(f"    the screen sent: {sent[0].service} {dict(sent[0].data)}")
+        # The tile shows the new value at once; Home Assistant takes it, and its report squares the wish.
+        await self.render('text-sent')
+        states['input_text.door_code']['state'] = dict(sent[0].data)['value']
+        await send()
+        await asyncio.sleep(1.0)
+        await both('text-settled')
         return 1
 
     async def calendar_panel(self, grid):
@@ -2508,11 +3462,12 @@ class Run:
             sent = await call_for('remote.send_command', since)
             sent_as(sent, {'entity_id': 'remote.bluray_ir', 'command': 'play', 'device': 'bluray'})
             answer(sent)
-        # Set to On / off, a tap switches it.
+        # Set to On / off, a tap switches it, as Home Assistant's toggle sends it: turn_on or turn_off by the state the
+        # tile shows, never toggle (optimistic_lvgl.h, toggle_tap). The Shield is on.
         if 'remote.shield' in spots:
             since = len(calls)
             await self.tap(*spots['remote.shield'])
-            sent = await call_for('remote.toggle', since)
+            sent = await call_for('remote.turn_off', since)
             sent_as(sent, {'entity_id': 'remote.shield'})
             answer(sent)
         # The keypad: power in the bar, four arrows and OK, Back, Home, Play/Pause, the volume.
@@ -2577,6 +3532,49 @@ class Run:
             if time.monotonic() > end:
                 raise RuntimeError(f'media: {what}: {card}')
             await asyncio.sleep(0.15)
+
+    async def doorbell_round(self):
+        """A doorbell's ring (module doorbell, docs/DOORBELL.md): the op doorbell opens the camera full view as a ring, with
+        its picture as ESP Screens paints it in the room beside its keys; a touch answers it (esphome.screen_doorbell), a
+        second ring keeps it open, and the close of a ring answered on another screen closes it."""
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        # Page 1 stands first: a layout that lands closes a camera's view (cancel_layout_input), a ring's too.
+        await self.page_done(0)
+        await asyncio.sleep(2)
+        key, start, since = 'ring0001', len(self.lines), 0
+        ring = {'v': 1, 'op': 'doorbell', 'e': 'camera.front_door', 'n': 'Front door', 'k': key, 'r': int(MOMENT.timestamp()) - 20}
+        await self.send(ring)
+        await self.until(lambda l: 'for a ring' in l, 10, 'doorbell: the view never opened', start)
+        end, answered = time.monotonic() + 10, False
+        while time.monotonic() < end and not answered:
+            for call, read in self.unanswered(calls, since):
+                body, _ = painted(read.question, [porch(*self.camera)], [{}])
+                await self.reply(read, self.pictures.url(f'{self.item.key}-doorbell.bmp', body))
+                call.data['_answered'] = '1'
+                answered = True
+                self.warnings.append(f'doorbell: its picture asked at {read.question.box[0]} x {read.question.box[1]}')
+                break
+            await asyncio.sleep(0.05)
+        if not answered:
+            self.failures.append('doorbell: the view asked for no picture')
+        await self.render('doorbell')
+        # A touch in the middle of the picture answers the ring, once.
+        since = len(calls)
+        await self.tap(self.canvas[0] // 3, self.canvas[1] // 2)
+        await self.tap(self.canvas[0] // 3, self.canvas[1] // 2)
+        reports = [dict(c.data) for c in calls[since:] if c.service == 'esphome.screen_doorbell']
+        if [r.get('action') for r in reports] != ['answered'] or any(r.get('key') != key for r in reports):
+            self.failures.append(f'doorbell: a touch should report answered once, reported {reports}')
+        # Answered elsewhere: the close of that ring closes it here, without a report of its own.
+        since, start = len(calls), len(self.lines)
+        await self.send({'v': 1, 'op': 'doorbell', 'k': key, 'c': 1})
+        await self.until(lambda l: 'answered on another screen' in l, 10, 'doorbell: the close never came', start)
+        await self.page_done(0)
+        await self.render('doorbell-closed')
+        if any(c.service == 'esphome.screen_doorbell' for c in calls[since:]):
+            self.failures.append('doorbell: a ring closed from elsewhere reported again')
+        return 1
 
     async def saver_panel(self):
         """The screensaver (firmware 0.29.0+) over the demo layout in standby: a cover that plays, a camera and the clock,
@@ -3213,10 +4211,11 @@ class Run:
         # Unavailable: in the unavailable grey, not the colour of an automation that is on, and taps send nothing.
         if 'automation.garden' in start and start['automation.garden']['circle'] == start['automation.curtains']['circle']:
             faults.append('start: an unavailable automation is coloured like one that is on')
-        # Tap on an automation that switches: it turns off at once (optimistic) and automation.toggle goes out.
+        # Tap on an automation that switches: it turns off at once (optimistic) and automation.turn_off goes out, as Home
+        # Assistant's toggle sends it (turn_on or turn_off by the state shown, never toggle; optimistic_lvgl.h, toggle_tap).
         since = len(calls)
         await self.tap(*spots['automation.curtains'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_off', since)
         sent_only(sent, 'automation.curtains')
         await asyncio.sleep(0.1)
         await expect('automation.curtains', 'Off', False, where='right after the tap')
@@ -3229,7 +4228,7 @@ class Run:
         # Tap again: back on.
         since = len(calls)
         await self.tap(*spots['automation.curtains'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_on', since)
         answer(sent)
         states['automation.curtains'] = automation('on', 'Curtains')
         await push()
@@ -3240,7 +4239,7 @@ class Run:
         await self.hold(*spots['automation.curtains'])
         sent = await call_for('automation.trigger', since)
         sent_only(sent, 'automation.curtains')
-        if [c for c in calls[since:] if c.service == 'automation.toggle']:
+        if [c for c in calls[since:] if c.service in ('automation.toggle', 'automation.turn_on', 'automation.turn_off')]:
             faults.append('holding a switching tile also switched it')
         answer(sent)
         await asyncio.sleep(0.4)
@@ -3267,7 +4266,7 @@ class Run:
         # Hold the run button: it switches off, at once, and says Off.
         since = len(calls)
         await self.hold(*spots['automation.doorbell'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_off', since)
         sent_only(sent, 'automation.doorbell')
         if [c for c in calls[since:] if c.service == 'automation.trigger']:
             faults.append('holding a run button also ran it')
@@ -3629,6 +4628,7 @@ class Run:
             await asyncio.sleep(0.2)
         pages = p[5]
         self.canvas = (side['width'], side['height'])
+        self.hello_record()
         if self.only == 'alarm':
             return 1, await self.alarm_panel(grid)
         if self.only == 'lock':
@@ -3645,20 +4645,30 @@ class Run:
             return 1, await self.media_tiles(grid)
         if self.only == 'saver':
             return 1, await self.saver_panel()
+        if self.only == 'doorbell':
+            return 1, await self.doorbell_round()
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
         if self.only == 'vacuum':
             return 1, await self.vacuum_panel(grid)
+        if self.only == 'vacuumtile':
+            return 1, await self.vacuum_tiles(grid)
         if self.only == 'bars':
             return 1, await self.bars_round(grid)
         if self.only == 'weather':
             return 1, await self.weather_panel(grid)
         if self.only == 'calendar':
             return 1, await self.calendar_panel(grid)
+        if self.only == 'todo':
+            return 1, await self.todo_panel(grid)
+        if self.only == 'text':
+            return 1, await self.text_panel(grid)
         if self.only == 'dock':
             return 1, await self.dock(pages)
         if self.only == 'plugin':
             return 1, await self.plugin_round(grid)
+        if self.only == 'standby':
+            return 1, await self.standby_round()
         checks = await self.self_test()
         await self.moments(pages)
         await self.dock(pages)
@@ -3688,6 +4698,8 @@ class Run:
         await self.render('page-1-dark')
         self.client.switch_command(dark.key, False)
         await self.appearance_edits(grid)
+        checks += await self.hello_again(grid)
+        checks += await self.pages_from_the_loop(grid)
         checks += await self.detail_navigation(grid, entities)
         checks += await self.rectangular_tiles(grid)
         checks += await self.bedside_clock(grid)
@@ -3704,6 +4716,11 @@ class Run:
         self.process = subprocess.Popen([str(self.build.program)], stdout=log, stderr=subprocess.STDOUT, cwd=self.build.work)
         try:
             pages, checks = await self.drive()
+            # The card look's own checks in the program (docs/THEME.md "A card's look"): a card painted outside its look,
+            # the look changed inside a card's scope, a trade of a card's styles that does not undo exactly.
+            failed = [line for line in self.lines if '[card_look' in line and 'FAIL' in line]
+            if failed:
+                raise RuntimeError(f'card look: {failed[0]} ({len(failed)} in all)')
             return f'{pages} pages, {checks} page checks'
         finally:
             try:
@@ -3747,7 +4764,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'bars', 'dock', 'vacuum'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
@@ -3764,6 +4781,7 @@ def main():
     if busy:
         raise SystemExit(f'ports {", ".join(busy)} are in use; stop what listens there first')
     esphome = shlex.split(os.environ.get('ESPHOME', 'esphome'))
+    too_old(esphome)
     camera = tuple(int(n) for n in args.camera.split('x'))
     pictures = Pictures()
     results, failed = {}, []

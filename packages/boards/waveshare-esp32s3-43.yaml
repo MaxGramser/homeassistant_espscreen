@@ -75,6 +75,9 @@ display:
   # 19.5 kHz) it stays locked, through standby and back.
   - id: !extend my_display
     model: ESP32-S3-TOUCH-LCD-4.3
+    # The model's enable pin is EXIO2, the backlight line hardware/waveshare-ch422g.yaml gives the firmware. No enable
+    # pin here, as on the 7-inch: ESPHome 2026.10 refuses a line used twice ("Pin 2 is used in multiple places").
+    enable_pin: []
     hsync_pulse_width: 4
     hsync_back_porch: 8
     hsync_front_porch: 8

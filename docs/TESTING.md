@@ -5,6 +5,25 @@ directly, or a screen looked at once it has settled, can pass while the screen o
 after every page change (GitHub #27 was exactly that). So before calling a change tested, say which entry point was
 driven (a finger, a layout message from the add-on, an action from Home Assistant) and which moment was looked at.
 
+## A test reads behaviour, not lines
+
+Many tests here read the firmware's source, because most of it cannot run on a PC. That is right for a rule that holds
+everywhere: no colour outside the theme's table, every label a card draws itself going through `draw_text::label`,
+every draw callback opening its card's scope. Such a test names the rule, searches every file, and fails with the
+sentence that says what to do.
+
+It is wrong for behaviour. A test that looks for one line as it was written (`assertIn('theme::pressed(bare ? ...')`)
+proves that the line was not edited, not that the card is painted right: it breaks when the code is improved and keeps
+passing when the behaviour is broken somewhere else. For behaviour, in this order: a pure function with a test of its
+own (the planners, `picture_store`, `section_layout`), a case both sides answer from one fixture
+(`tests/fixtures/page-conformance.json`, `plugin-conformance.json`), a check the compiler makes (`static_assert`), the
+firmware preview (`web/wasm/test_*.mjs`, `tests/test_editor_parity.py`), the host render (`tools/render`). When code
+that a line-quoting test names is rewritten, the test is replaced by one of those, not edited to the new line.
+
+The firmware preview's `preview_layout()` gives what a test needs to read a card without its lines: every object's box,
+its ground (`bg`), and for a label its text and its ink (`color`), as the firmware set them. An icon is a label whose
+text is its glyph (`icon`). `web/wasm/test_state_look.mjs` reads a card's state that way.
+
 There are six levels, from fast to real. Each is a different check: a green level does not stand in for the next.
 Work on dev is proven at level 4, on the screens a change concerns; a release runs every level, the sixth included
 (docs/RELEASING.md).
@@ -54,6 +73,35 @@ fontTools and jinja2, and stops when one is missing, because a skipped test prov
   rebuilds and commits it when the firmware sources move; locally, `sh web/wasm/build.sh` with Emscripten does the
   same.
 
+### Running a test
+
+Every Python test runs in each of these ways, from the root of a working copy:
+
+```bash
+python -m unittest discover -s tests
+```
+
+```bash
+python -m unittest tests.test_wifi_chip
+```
+
+```bash
+python -m unittest tests.test_wifi_chip.TheRestart.test_the_c6_reset_line_is_left_to_esp_hosted
+```
+
+```bash
+python tests/test_wifi_chip.py
+```
+
+A test imports its helpers (`firmware_sources`, `manager_fixtures`, the fakes of another test) by their plain name,
+and none puts `tests/` on `sys.path` itself. The way of running puts it there: discover and a file run alone by their
+own rules, and `tests/__init__.py` for `tests.X`. A test that needs the add-on or the tools puts
+`screen_manager/app` in front and appends `tools/` after it (`sys.path.append`): both folders have an `i18n.py` and
+a `build_cache.py`, and the tools' must not hide the add-on's. A test that means the tools' own script of such a name
+asks for it by path, `tool_modules.tool('i18n')`, which loads it as `tools_i18n`: a plain `import i18n` gives the tool
+when the test runs alone and the add-on's in the whole run. A test that only passes after another test has imported
+something for it is a broken test. Run a file alone to see whether it stands on its own.
+
 ## 2. Firmware builds
 
 `tools/check.sh --firmware` compiles boards the way their owners build them: from the checkout entries, with
@@ -83,8 +131,11 @@ A build that passes says the YAML and the C++ compile and fit their slot. It say
 the glass, with an SDL surface in place of the panel and the touch chip. Lying down, and standing up where the glass is
 not square. `tools/check.sh --render` does it for every board, and `tools/check.sh --render --sample` for the three of
 `RENDER_SAMPLE` in `tools/profiles.py` (the smallest, a middle and the largest glass). It needs SDL2 and ESPHome's
-Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. For each
-variant it:
+Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. It needs the
+ESPHome of the app (`screen_manager/Dockerfile`) or newer, and refuses an older one before it builds: an older ESPHome
+fails the host build on what it lacks, which reads as a broken test. Without one installed, uv brings it:
+`uv run --no-project --python 3.13 --with esphome==<the app's version> --with pillow python tools/render/run.py guition`.
+For each variant it:
 
 - sends the demo layout through the screen's inbox, as the add-on does, with a title per page;
 - runs the firmware's own self test (`ui_self_test`): every page and overlay, each page's cards and bar, and the check
@@ -98,6 +149,10 @@ variant it:
 - saves every page, the alerts and Dark mode as PNGs under `.esphome/render/out`, with a sheet of all of them. To
   compare with an earlier commit, render a checkout of it with `--tree <checkout> --out .esphome/render/base` and run
   `tools/compare_renders.py` on the two folders.
+
+`--tree` also shows that a new check fails before its fix: run this checkout's `run.py` with `--tree` set to a worktree
+of the commit before the fix and `--work` set to a folder of its own, so the two builds do not share one. The harness
+is today's, the firmware the older one. The `hello_again` round was shown failing that way before its fix went in.
 
 What it cannot show: colours and timing of a real panel, a real finger on real glass, memory and heat, and anything a
 real Home Assistant or camera adds.
@@ -115,8 +170,8 @@ the plugin round alone: a layout with a plugin tile on page 1 and on page 2 and 
 plugin's tap action, then every moment in the order the API promises them. The hello names the plugin; create, then
 state, then tick; new data reaches `on_state` without a new object, and so do two days of 96 prices (a full 2.6 KB
 `x`, as a tile of an entity gets them); dark and light reach `on_theme`; the plugin's question is answered through the
-screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a finger on the tile reaches `on_press`, `on_tap` and
-`on_touch` and opens the plugin's card, which closes with the cards; on a board with pictures the card's place asks
+screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a finger on the tile reaches `on_press` and `on_tap` and
+opens the plugin's card, which closes with the cards; on a board with pictures the card's place asks
 for its picture as a card (plugin API 0.13), the harness answers as the app does and the piece shows on the place, and
 with `KEPT_PAGES_HOST=1` the store holds it while the card is open and frees it when the card closes; a board without
 pictures asks for none; the tap action opens the card with the sensor's entity, which asks again for it; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways, and the probe's `tessera::wake` (plugin API 0.16) lights a screen in standby through the script Home Assistant's Wake runs (`wake_from`, the log naming the plugin) and only restarts the standby time of a lit one; the probe's popup (plugin API 0.18) shows, ticks, takes a tap with its place and goes on a tap beside it, by `close_popup`, by itself inside its own `on_tap` and when an alert comes. The self test
@@ -126,10 +181,21 @@ and with `KEPT_PAGES_HOST=1`, the path a board with PSRAM takes (docs/KEPT_PAGES
 and the probe counts no new object. A host program never has PSRAM, so a Guition built plain proves the CYD's path at
 the Guition's sizes, not the kept one.
 
+### Feature pictures
+
+`tools/render/features.py` renders the to-do card, calls between screens and the doorbell's Talk on a board lying and a
+board standing up, for the website and the release notes. It drives the host program with the messages the app sends
+(the to-do round of `run.py`, the ops `call`, `contacts` and `doorbell` made by `calls.py`), answers the screen's picture
+questions from `--pictures DIR` (`caller.jpg`, `door.jpg`) and writes beside each PNG where every picture lands on the
+glass. Its own build folder carries the audio caps of a board that plays and hears (`HW_SPEAKER`, `HW_MICROPHONE`), and
+the host's stand-in microphone of `talk_uplink.h` (`USE_HOST`, the action `render_talk`) lets the Talk key show each of
+its states without a microphone.
+
 ## 4. One screen on the glass
 
 `diagnostics/send_layout.py` pushes the same demo layout to a screen over its API; `diagnostics/run_ui_test.py` runs
-its self test (don't touch the screen meanwhile); `diagnostics/capture_ui.py` saves what LVGL draws as a picture. A
+its self test (don't touch the screen meanwhile); `diagnostics/capture_ui.py` saves what LVGL draws as a picture (`--glass`: the panel's frame buffer, live pictures
+included; both the whole glass, docs/PICTURE_ARCHITECTURE.md). A
 new board is flashed and walked through by hand: touch in the corners, a drag, the backlight, the colour order, a page
 swipe from each edge, and the same standing up (docs/ADDING_A_BOARD.md). A resistive panel's calibration is tapped by
 a person (docs/CALIBRATING.md); a GT911 panel is checked with `tools/verify_gt911.py`.
@@ -155,16 +221,20 @@ The release a user gets, from end to end, on a screen of its own (not one a hous
 ## 6. The upgrade
 
 What a user goes through when a release comes out: the app they run updates, and then each screen, from the release
-before. Every release runs it, on the commit that will be published (docs/RELEASING.md, "The release", step 5), with a
-test Home Assistant whose app is installed locally (a copy of `screen_manager/` in its local add-ons folder, rebuilt in
-place, so it keeps its data from one version to the next the way an installed app does) and screens of its own.
+before. Every release runs it, on the commit that will be published (docs/RELEASING.md, "The release", step 5). The
+test Home Assistant is the owner's own home Home Assistant (the bench VM is gone): its screens are the real ones plus
+the bench boards, and every build runs on the app's build server. The steps below are done over Home Assistant's own
+API from the machine the release is made on; nothing runs on the build server's machine but the build server. Before
+anything, keep a backup of the app in Home Assistant; everything made there for a test carries `tessera:test` in its
+name, so it can all be cleaned up one day. After the release the house runs the app from GitHub, which is then the
+release, on the house's own data, and the dev app is stopped.
 
 1. **Start from main.** The app as main has it, and every test screen on main's firmware: `ref: main` under
    `packages: display:` in its YAML, built by the app (Firmware & USB, Install over Wi-Fi). The screens keep the
    layouts they normally have, heavy ones included. Note what the app holds: its screens, their documents and settings.
 2. **The app of the release.** Put the release's `screen_manager/` in place of main's and rebuild. The data is the same
-   after the update (the documents byte for byte), and every screen still gets its tiles while it runs the old
-   firmware. Look at each screen.
+   after the update (the documents byte for byte: `release-test` compares the data of a backup before and after, and
+   names what differs), and every screen still gets its tiles while it runs the old firmware. Look at each screen.
 3. **Each screen's own Update.** `tools/release.py candidate`, `ref: release-candidate` in the test screens' YAML, and
    **Update** on each screen in the app: the app builds the release with its own ESPHome, fetching every component and
    font from GitHub, and sends it over Wi-Fi, as it will for every user. The screen comes back on the new firmware with

@@ -26,6 +26,7 @@ import { slug } from "../model/slug";
 import type { ChildTile, Inventory, Layout, PageDocument, PageGrid, PageLayout, PageTile, PageWorkspace, Screen, Tile } from "../types";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
+import { presetRowEntities } from "../model/light-presets";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
@@ -73,7 +74,10 @@ export const useDocumentStore = defineStore("document", () => {
   const justAdded = ref<string | null>(null);
 
   // The draft as the mockup draws it: a projection worked out again when the draft changes, never edited itself.
-  const layout = computed<Layout | null>(() => document.value && documentGrid.value ? pages.projectLayout(document.value, documentGrid.value) : null);
+  // What the editor shows and what it makes are held to the screen: a board that draws no sections (docs/PAGES.md
+  // "Sections") has none in its draft, whichever way a layout came in (a copy from another screen, a file, an old save).
+  const held = (layout: PageLayout) => (scr.currentScreen?.sections === true ? layout : pages.withoutSections(layout));
+  const layout = computed<Layout | null>(() => document.value && documentGrid.value ? pages.projectLayout(held(document.value), documentGrid.value) : null);
   // The chosen page by its place in the row, for the parts that still count pages.
   const barPage = computed(() => Math.max(0, document.value?.pages.findIndex((page) => page.id === selectedPageId.value) ?? 0));
   // The tile chosen, as the draft has it now.
@@ -114,7 +118,7 @@ export const useDocumentStore = defineStore("document", () => {
     return upright !== null && (shape.height > shape.width) !== upright ? { ...shape, width: shape.height, height: shape.width } : shape;
   });
   // The cells, pages and arrangements of the draft's grid (model/layout.ts), read through it as it changes.
-  const editorLayout = markRaw(createLayout(() => documentGrid.value ?? screenShape.value, () => scr.currentScreen?.page_limit));
+  const editorLayout = markRaw(createLayout(() => documentGrid.value ?? screenShape.value, () => scr.currentScreen?.page_limit, () => layout.value?.sections ?? []));
   // What the screen holds and draws, as the add-on says (app 0.2.78), so a screen whose version Home Assistant can't
   // report for a moment keeps its 48 tiles instead of dropping to ten, and a copied or imported layout isn't cut to ten.
   const tileLimit = computed(() => {
@@ -184,7 +188,8 @@ export const useDocumentStore = defineStore("document", () => {
   // when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
   function applyDocument(next: PageLayout, remember = true, nextGrid = documentGrid.value, said?: ChangeLabel) {
     if (!document.value || !documentGrid.value || !nextGrid) return false;
-    pages.validatePages(next, screenGridOf(nextGrid));
+    next = held(next);
+    pages.validatePages(next, screenGridOf(nextGrid), document.value);
     if (pages.sameValue(next, document.value) && pages.sameGrid(nextGrid, documentGrid.value)) return false;
     if (remember) {
       history.remember(snapshot(), "document", said ?? describeChange(document.value, next, documentGrid.value, nextGrid, nameOf));
@@ -203,7 +208,7 @@ export const useDocumentStore = defineStore("document", () => {
     // A key under a bedside clock is a child of its clock: a change to it keeps it chosen like any tile. A tile that went
     // is no longer chosen, and its drawer closes (stores/inspector.ts follows the chosen tile).
     const selected = selectedTileId.value;
-    if (selected && !next.pages.some((page) => page.tiles.some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
+    if (selected && !next.pages.some((page) => pages.allTiles(page).some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
       selectedTileId.value = null;
     markEdited();
     return true;
@@ -223,7 +228,13 @@ export const useDocumentStore = defineStore("document", () => {
   /** An edit of the draft in place (model/pages.ts changePages); a refused one is said, and changes nothing. */
   function editDocument(apply: (draft: PageLayout) => void, field?: string) {
     if (!document.value || !documentGrid.value) return false;
-    try { return applyEdit(pages.changePages(document.value, heldTo(documentGrid.value), apply), field); }
+    // A tile that does not fit is put right rather than the edit refused, and the toast says what went (0.4.92).
+    const repairs: string[] = [];
+    try {
+      const changed = applyEdit(pages.changePages(document.value, heldTo(documentGrid.value), apply, repairs), field);
+      if (repairs.length) ui.toast(repairs.join(" "));
+      return changed;
+    }
     catch (error: any) { ui.toast(error.message); return false; }
   }
   function restoreSnapshot(value: DraftSnapshot, scope: HistoryScope) {
@@ -294,9 +305,10 @@ export const useDocumentStore = defineStore("document", () => {
     return () => { followers.delete(follower); };
   }
   const replaced = (opened: boolean) => { for (const follower of followers) follower(opened); };
-  // The states of the open layout's entities, for the mockup.
+  // The states of the open layout's entities, for the mockup, with the device's settings a light's presets name (their ring).
   function loadStates() {
-    return entities.loadStates((layout.value?.tiles || []).map((tile) => tile.entity), stillSelected());
+    return entities.loadStates((layout.value?.tiles || []).flatMap((tile) =>
+      [tile.entity, ...(tile.entity.startsWith("light.") ? presetRowEntities(tile.options) : [])]), stillSelected());
   }
   // A screen's saved document becomes the draft, with nothing to undo and nothing unsaved: when a screen is opened, when it
   // is read again, and for the tests' fixtures (tests/helpers/fixtures.ts), which so start from what the editor starts from.

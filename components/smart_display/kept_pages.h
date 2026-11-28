@@ -25,6 +25,10 @@ namespace kept_pages {
 // of a layout, which prepares every page (docs/KEPT_PAGES.md, "Prepared pages"). Until GitHub #183's round: seven.
 constexpr size_t MAX_KEPT = page_protocol::MAX_PAGES - 1;
 constexpr size_t NONE = MAX_KEPT;
+// PSRAM another kept page may never take: the pictures
+// (picture_store.h), a camera full screen and an alert's picture live there too. Measured on the 4-inch Guition
+// (2026-09-26): about 5.6 MB of its 8 MB are free with a layout loaded.
+constexpr size_t KEEP_RESERVE = 2u << 20;
 
 // Where a page's cards come from when it goes on the glass.
 struct Visit {

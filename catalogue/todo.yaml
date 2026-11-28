@@ -1,0 +1,11 @@
+# To-do list. Home Assistant: homeassistant/components/todo.
+# Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
+# docs/CATALOGUE.md says what every key means; the card itself: docs/TODO.md.
+# One card that shows more as it gets more room (the number of open items, the first items, a list to tick with a key to
+# add an item) and a full screen a tap opens, with a keyboard. Its items come from the app (todo/item/subscribe), in the
+# tile's order, in extras. A screen without the module todo (a board with 4 MB) has no to-do tile (todo_feed.unsupported).
+domain: todo
+memory: {bytes: 1152, extras: true}
+firmware: 0.61.0   # the first firmware that draws this type
+displays:
+  standard: {}

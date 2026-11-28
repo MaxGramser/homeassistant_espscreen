@@ -17,7 +17,7 @@
 // What online_image did for us, this keeps, so a screen behaves as before in every case that mattered: the ETag of the
 // last picture goes out as If-None-Match and a 304 reports the picture unchanged; a link that does not connect, an
 // answer that is not 200, a body that is no BMP or breaks off, a chunk that does not come within four seconds and a
-// picture that takes over thirty all end as a failure the card's own retry handles (camera_view::Feed); the BMP is
+// picture that takes over thirty all end as a failure the loader's own retry handles (picture_loader.h); the BMP is
 // decoded as it streams, so no copy of the file is kept, and the pixels of a camera's next frame land in the buffer of
 // the last; a picture of another size gets a new buffer, swapped in on the main loop. It decodes every BMP the add-on
 // writes (Pillow: 24-bit, or 8-bit on a palette, BITMAPINFOHEADER, bottom-up) and the other plain forms too (16 and 32
@@ -35,6 +35,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "picture_jpeg.h"
 #include "roomy.h"
 
 namespace picture_fetch {
@@ -83,6 +84,15 @@ struct Head {
   // X-Picture: still, a live camera's picture from before its stream came (its still while WebRTC starts): the screen
   // shows it with the loader in its corner (live_view.h, "Until it is live"). Without it a picture is live.
   bool still = false;
+  // X-Made: when the app made a live camera's picture, in its own milliseconds (wrapping at 2^32): set beside the
+  // screen's clock, what is left over the least of it is how long the picture waited on its way (live_view.cpp).
+  bool has_made = false;
+  uint32_t made = 0;
+  // X-Sound: talk, a part of sound from someone in a conversation: the screen plays it with a far smaller run-up.
+  bool talk = false;
+  // X-Turn: the app turned a live picture as a turned glass is (90, 180 or 270 degrees, the hello's picture_turn), so
+  // the screen copies it onto the glass straight (live_view.cpp, show); 0: upright.
+  int turn = 0;
 };
 inline bool same_ignoring_case(const char *a, const char *b, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -144,6 +154,24 @@ inline Head parse_head(const char *data, size_t size) {
           h.audio = ve - v >= 6 && same_ignoring_case(line + v, "audio/", 6);
         } else if (colon == 9 && same_ignoring_case(line, "x-picture", 9)) {
           h.still = ve - v == 5 && same_ignoring_case(line + v, "still", 5);
+        } else if (colon == 7 && same_ignoring_case(line, "x-sound", 7)) {
+          h.talk = ve - v == 4 && same_ignoring_case(line + v, "talk", 4);
+        } else if (colon == 6 && same_ignoring_case(line, "x-made", 6)) {
+          uint32_t n = 0;
+          bool digits = v < ve;
+          for (size_t i = v; i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + static_cast<uint32_t>(line[i] - '0');
+          }
+          if (digits) { h.has_made = true; h.made = n; }
+        } else if (colon == 6 && same_ignoring_case(line, "x-turn", 6)) {
+          int n = 0;
+          bool digits = v < ve && ve - v <= 3;
+          for (size_t i = v; digits && i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + (line[i] - '0');
+          }
+          if (digits && (n == 90 || n == 180 || n == 270)) h.turn = n;
         }
       }
     }
@@ -342,56 +370,9 @@ class Decoder {
 // ---- a JPEG answer, gathered whole (a P4: docs/PICTURES.md, "Formats") ----
 // The P4's hardware decoder takes a JPEG at once, so its bytes are kept, as many as the answer's Content-Length says
 // and at most MAX_JPEG (a busy camera over the 10-inch glass is 150 to 250 KB), in a buffer the decoder reads. Every
-// other picture is a BMP and decoded as it streams (Decoder).
+// other picture is a BMP and decoded as it streams (Decoder). What a JPEG for a screen is, and what the app says along
+// with it, is picture_jpeg.h.
 constexpr size_t MAX_JPEG = 1536u * 1024;
-inline bool is_jpeg(const uint8_t *data, size_t size) { return size >= 2 && data[0] == 0xFF && data[1] == 0xD8; }
-// What the app says along with a JPEG (picture_paint.encode: an APP15 segment right after its start, `TSSR`): the size it
-// is shown at, since every JPEG is made whole MCUs (a multiple of 16 each way, the P4's decoder takes no other), and the
-// rounded corners of its flat places. JPEG rings where a corner's edge meets its ground (white flecks on a light page
-// around a dark cover), so each corner is made exact again after decoding (mask_corners). False without the segment:
-// the JPEG's own size holds, and it has no corners to mend.
-struct Corner {
-  int x = 0, y = 0, w = 0, h = 0, radius = 0;
-  uint16_t ground = 0;  // RGB565, as the pixels are
-};
-struct JpegNotes {
-  int width = 0, height = 0;
-  std::vector<Corner> corners;
-};
-inline bool jpeg_notes(const uint8_t *data, size_t size, JpegNotes &notes) {
-  if (size < 15 || data[2] != 0xFF || data[3] != 0xEF || std::memcmp(data + 6, "TSSR", 4) != 0) return false;
-  const size_t end = 4 + ((static_cast<size_t>(data[4]) << 8) | data[5]);  // the segment ends here
-  if (end < 15 || end > size) return false;
-  const auto u16 = [&](size_t at) { return (static_cast<int>(data[at]) << 8) | data[at + 1]; };
-  notes.width = u16(10);
-  notes.height = u16(12);
-  notes.corners.clear();
-  for (size_t i = 0, at = 15; i < data[14] && at + 11 <= end; ++i, at += 11) {
-    Corner c;
-    c.x = u16(at), c.y = u16(at + 2), c.w = u16(at + 4), c.h = u16(at + 6), c.radius = data[at + 8];
-    c.ground = static_cast<uint16_t>(u16(at + 9));
-    notes.corners.push_back(c);
-  }
-  return notes.width > 0 && notes.height > 0;
-}
-// Every pixel of `c`'s four corners that lies wholly outside its arc (past its soft edge, half a pixel wide) back to its
-// ground, in pixels of `stride` a row and `width` x `height` shown. The soft edge itself stays as the app painted it.
-inline void mask_corners(uint16_t *pixels, int stride, int width, int height, const Corner &c) {
-  const int r = std::min(c.radius, std::min(c.w, c.h) / 2);
-  if (!pixels || r <= 0) return;
-  const float edge = r + 0.5f;
-  for (int dy = 0; dy < r; ++dy) {
-    const float across = r - dy - 0.5f;  // the row's distance from the arc's centre
-    const int out = std::max(0, std::min(r, static_cast<int>(std::ceil(r - std::sqrt(edge * edge - across * across) - 0.5f))));
-    for (const int y : {c.y + dy, c.y + c.h - 1 - dy}) {
-      if (y < 0 || y >= height) continue;
-      for (int i = 0; i < out; ++i)
-        for (const int x : {c.x + i, c.x + c.w - 1 - i})
-          if (x >= 0 && x < width) pixels[static_cast<size_t>(y) * stride + x] = c.ground;
-    }
-  }
-}
-
 struct Gather {
   using Allocate = std::function<uint8_t *(size_t bytes, size_t *got)>;
   uint8_t *buffer = nullptr;
@@ -423,6 +404,10 @@ void bind(Slot &slot, Done done);
 // Starts the download of `url` (a new link forgets the ETag of the last). While one runs, this one waits for its end:
 // a load that was released (cancelled) ends at its next chunk.
 void load(Slot &slot, const std::string &url);
+// The same with the ETag of a picture its owner already has (another link of the same picture comes back 304), "" for none.
+void load(Slot &slot, const std::string &url, const std::string &etag);
+// The ETag of the slot's last picture, "" without one.
+std::string etag(const Slot &slot);
 // Frees the picture; a download on its way is cancelled and reports nothing.
 void release(Slot &slot);
 // The store took the picture over (picture_store::adopt): the slot forgets its pixels without freeing them, and

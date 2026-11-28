@@ -18,6 +18,11 @@ int main() {
   // ---- the duration ladder: seconds low down, quarters of an hour up top, and symmetric ----
   assert(ladder_step(60) == 30 && ladder_step(600) == 60 && ladder_step(1800) == 300);
   assert(ladder_step(3600) == 900 && ladder_step(36000) == 1800);
+  // The same edges web/tests/settings.spec.ts steps the editor's ladderStep over: the two ladders are one.
+  {
+    const int32_t edges[] = {299, 300, 899, 900, 3599, 3600, 7199, 7200}, steps[] = {30, 60, 60, 300, 300, 900, 900, 1800};
+    for (int i = 0; i < 8; i++) assert(ladder_step(edges[i]) == steps[i]);
+  }
   Row timeout = duration(screen_text::txt::settings_after, nullptr, nullptr, 30, 3600);
   assert(stepped(timeout, 120, 1) == 150 && stepped(timeout, 120, -1) == 90);
   assert(stepped(timeout, 300, 1) == 360 && stepped(timeout, 360, -1) == 300);
@@ -132,10 +137,21 @@ int main() {
     buttons.write(1);
     assert(page_buttons == 1);
   }
-  // The home key in the top bar (firmware 0.2.100+): on by default, the row right after Page buttons.
+  // Loop pages: on by default, the row right after Page buttons.
+  {
+    const Row &looping = row_named(screen, "Loop pages");
+    assert(looping.kind == Kind::toggle && &looping == &row_named(screen, "Page buttons") + 1);
+    assert(loop_pages == 1 && value_text(looping) == "On");
+    looping.write(0);
+    assert(loop_pages == 0 && value_text(looping) == "Off");
+    assert(set("loop_pages", 0) == SetResult::same);
+    looping.write(1);
+    assert(loop_pages == 1);
+  }
+  // The home key in the top bar (firmware 0.2.100+): on by default, the row after Loop pages.
   {
     const Row &key = row_named(screen, "Show home button");
-    assert(key.kind == Kind::toggle && &key == &row_named(screen, "Page buttons") + 1);
+    assert(key.kind == Kind::toggle && &key == &row_named(screen, "Loop pages") + 1);
     assert(home_button == 1 && value_text(key) == "On");
     key.write(0);
     assert(home_button == 0 && value_text(key) == "Off");
@@ -176,7 +192,9 @@ int main() {
   assert(PAGE_COUNT == 5);
   for (uint8_t p = 0; p < PAGE_COUNT; ++p) {
     const Page &page = pages[p];
-    assert(page.title != NO_TEXT && *screen_text::tr(page.title) && page.count && page.count <= 8);
+    // At most nine rows a page: This screen holds nine since Debug mode (Calibrate touch only on a resistive panel), and
+    // the pager takes any count the glass cannot show at once (fitting_rows).
+    assert(page.title != NO_TEXT && *screen_text::tr(page.title) && page.count && page.count <= 9);
     for (uint8_t i = 0; i < page.count; ++i) {
       const Row &row = page.rows[i];
       assert(row.label != NO_TEXT && *label_text(row));
@@ -236,6 +254,24 @@ int main() {
   assert(stored == 1 && applied == 1 && last_key == "standby_enabled" && last_value == 0);
   row_named(screen, "After").write(600);
   assert(stored == 2 && last_key == "auto_home_seconds" && last_value == 600 && auto_home_seconds == 600);
+  // Debug mode: off on a screen that never chose, a toggle under This screen right after Tessera, the one value of the
+  // row and the entity (set_debug_mode); stored and applied, and never reported, as no key of ESP Screens.
+  {
+    const Row &debug = row_named(pages[4], "Debug mode");
+    assert(debug.kind == Kind::toggle && &debug == &row_named(pages[4], "Tessera") + 1);
+    assert(debug_mode == 0 && value_text(debug) == "Off");
+    const int stored_before = stored, applied_before = applied;
+    const std::string key_before = last_key;
+    debug.write(1);
+    assert(debug_mode == 1 && value_text(debug) == "On");
+    assert(stored == stored_before + 1 && applied == applied_before + 1 && last_key == key_before);
+    set_debug_mode(1);
+    assert(stored == stored_before + 1);
+    set_debug_mode(0);
+    assert(debug_mode == 0 && set("debug_mode", 1) == SetResult::unknown);
+    stored = 2;
+    applied = 2;
+  }
 
   // ---- set(): the one path for the rows and for Home Assistant's entities (firmware 0.2.49+) ----
   // A value the screen already has is not stored, applied or reported: an automation may set it on every change.

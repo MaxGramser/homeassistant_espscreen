@@ -18,10 +18,13 @@ namespace mc = meter_card;
 struct View : meter_paint::Look {};
 
 
-// The board's fixed fonts, in meter_card::Face's order.
-static std::array<const lv_font_t *, mc::FACES> faces() {
+// The board's fixed fonts, in meter_card::Face's order. The tile's icon size is this card's own (its icon label's font),
+// not the first card on the glass that has one (rt::tile_icon_font): drawn while another page's cards were bound, a
+// meter measured that card's icon font, fell to a face without its glyph and showed an empty disc until the sensor's
+// next value (a Guition 10.1, 2026-11-15).
+static std::array<const lv_font_t *, mc::FACES> faces(const Widgets &w) {
   return {rt::label_font, rt::small_font, rt::control_font, rt::watch_font, rt::watch_value_font, rt::setpoint_font,
-          rt::watch_icon_font, rt::mini_icon_font, rt::tile_icon_font(), rt::big_icon_font};
+          rt::watch_icon_font, rt::mini_icon_font, w.icon_font ? w.icon_font : rt::tile_icon_font(), rt::big_icon_font};
 }
 // The first codepoint of a UTF-8 text from `at`, moving `at` past it.
 static uint32_t next_codepoint(const std::string &s, size_t &at) {
@@ -32,9 +35,8 @@ static uint32_t next_codepoint(const std::string &s, size_t &at) {
   at += n;
   return cp;
 }
-static mc::Measure measure() {
+static mc::Measure measure(const std::array<const lv_font_t *, mc::FACES> &f) {
   mc::Measure m;
-  const auto f = faces();
   for (int i = 0; i < mc::FACES; ++i) {
     // A board without a face (none has fewer today) never picks it: its line is taller than any card.
     m.line[i] = f[i] ? lv_font_get_line_height(f[i]) : 1 << 20;
@@ -79,6 +81,7 @@ static View *view_of(lv_obj_t *canvas) {
 }
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *v = view_of(canvas);
   if (!v) return;
   lv_layer_t *layer = lv_event_get_layer(e);
@@ -105,7 +108,7 @@ void render(Widgets &w, const Tile &t, int width, int height) {
   lv_obj_set_pos(canvas, 0, 0);
   lv_obj_set_size(canvas, width, height);
   View &v = *w.meter;
-  v.faces = faces();
+  v.faces = faces(w);
   static const Tile::Meter none;
   const Tile::Meter &o = t.meter ? *t.meter : none;
   // The range: the tile's own, else Home Assistant's: a percentage from 0 to 100, and anything else as its gauge card,
@@ -115,7 +118,7 @@ void render(Widgets &w, const Tile &t, int width, int height) {
   const bool live = rt::fresh() && t.available();
   v.value = live ? number_of(t.state) : NAN;
   v.own = tile_controls::accent(t);
-  v.ground = theme::surface(t.background);
+  v.ground = rt::card_surface(w);
   v.background = t.background != 0;
   v.icon = rt::icon_for(t);
   // The colours: one (the tile's own unless one was chosen), or two or three segments in Home Assistant's green,
@@ -149,7 +152,7 @@ void render(Widgets &w, const Tile &t, int width, int height) {
   for (float x : v.history) samples += std::isfinite(x);
   d.graph = samples >= 2;
   const mc::Style style = o.style == 1 ? mc::TAPE : o.style == 2 ? mc::BAR : mc::RING;
-  mc::plan(v.plan, measure(), d, style, width, height, v.high - v.low);
+  mc::plan(v.plan, measure(v.faces), d, style, width, height, v.high - v.low);
   lv_obj_invalidate(canvas);
 }
 }  // namespace meter_view

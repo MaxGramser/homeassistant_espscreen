@@ -1,9 +1,11 @@
 """An automation as a tile (firmware 0.7.0, GitHub #62): a tap switches it on or off and holding the tile runs its actions,
-or with the tap option `run` the other way round. tests/test_tile_controls.cpp checks the firmware's routes and colours;
-these keep the app, the firmware and the editor in step with each other and with Home Assistant (its 2026.9 core and
-frontend: automation/icons.json, state_color.ts, DOMAINS_TOGGLE and more-info-automation.ts).
+or with the tap option `run` the other way round, as Home Assistant (its 2026.9 core and frontend:
+automation/icons.json, state_color.ts, DOMAINS_TOGGLE and more-info-automation.ts). tests/test_tile_controls.cpp checks
+the firmware's routes (trigger with the entity alone), keys and colours (a run button only while it runs);
+web/wasm/test_automation_tile.mjs reads the real tiles (icons, colours, the app's `run`, a tap and a run button);
+the editor's choices and colours are in web/tests (tile-options.spec, pages.spec, layout.spec). Here: the app's side.
 """
-from firmware_sources import firmware_domains, runtime_source
+from firmware_sources import firmware_domains
 import sys
 import unittest
 from pathlib import Path
@@ -16,14 +18,6 @@ import ha_catalogue  # noqa: E402
 import header_bar  # noqa: E402
 import tile_icons  # noqa: E402
 
-COMPONENT = ROOT / 'components/smart_display'
-MODEL = (COMPONENT / 'runtime_model.h').read_text()
-CONTROLS = (COMPONENT / 'tile_controls.h').read_text()
-RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
-TILES = runtime_source()
-VALIDATION = (ROOT / 'web/src/model/page-validation.ts').read_text()
-INSPECTOR = (ROOT / 'web/src/model/tile-options.ts').read_text()
-PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
 
 
 def layout(entity, **options):
@@ -54,12 +48,9 @@ class TheApp(unittest.TestCase):
         for entity in ('script.a', 'switch.a', 'scene.a'):
             with self.assertRaises(ValueError):
                 core.validate_layout(layout(entity, tap='run'))
-        # The editor offers and validates the same choice, and the firmware reads the tap option as it is.
+        # The editor offers and validates the same choice (tile-options.spec.ts, pages.spec.ts), and the screen runs a
+        # tile set to it (test_automation_tile.mjs).
         self.assertEqual(catalogue.taps('automation'), [*catalogue.TILE['taps'], 'run'])
-        # (A plugin's tap action is the one exception, checked by the plugin's manifest: page-validation.ts.)
-        self.assertIn("? undefined : i.tap, catalogueTaps(domain)]", VALIDATION)
-        self.assertIn('const keys = ["auto", "run", "none", "action"];', INSPECTOR)
-        self.assertIn('tile.tap = string(options["tap"]);', RECEIVER)
         self.assertEqual(core.screen_options({'entity': 'automation.a', 'options': {'tap': 'run'}}, {})['tap'], 'run')
 
     def test_when_it_last_ran_and_whether_it_runs_now(self):
@@ -71,7 +62,6 @@ class TheApp(unittest.TestCase):
         self.assertEqual(core.extras(tile, states('off', current=1)), {'run': True})
         self.assertIsNone(core.extras(tile, states(last_triggered=None, current=0)))
         self.assertIsNone(core.extras(tile, states()))
-        self.assertIn('tile.running = extra["run"].as<bool>();', RECEIVER)
 
     def test_the_wide_card_controls(self):
         self.assertEqual([key for key, _ in core.CONTROLS['automation']], ['toggle', 'run'])
@@ -89,24 +79,7 @@ class HomeAssistantsWay(unittest.TestCase):
         self.assertEqual((tile_icons.GLYPHS['robot'], tile_icons.GLYPHS['robot-off'], tile_icons.GLYPHS['robot-confused']),
                          ('F06A9', 'F16A7', 'F169F'))
         self.assertEqual(tile_icons.DEFAULTS['automation'], 'robot')
-        self.assertIn('if (d == "automation" && tile.state == "off") return "\\U000F16A7";', TILES)
         self.assertIn('robot-off', tile_icons.BIG_GLYPHS)
-
-    def test_colours(self):
-        # state_color.ts: automation has no colour variable of its own, so on is --state-active-color (amber).
-        self.assertIn('d == "script" || d == "automation" || d == "remote" || d == "timer"', CONTROLS)
-        self.assertIn('"script", "automation", "remote", "timer", "camera"].includes(domain)) return c.AMBER', PALETTE)
-        # A run button is coloured only while its actions run, in the firmware and in the editor's preview.
-        self.assertIn('if (runs()) return running;', MODEL)
-        self.assertIn('if (runs && domain === "automation") return Number(value?.a?.current) > 0;', PALETTE)
-
-    def test_run_is_home_assistants_run_actions(self):
-        # more-info-automation.ts: automation.trigger with skip_condition true, which is Home Assistant's default for
-        # the action and a strict bool in its schema, so the screen sends the entity alone.
-        self.assertIn('if (d == "automation") return {"automation.trigger", "", ""};', CONTROLS)
-        self.assertIn('hold != t.runs() ? "automation.trigger" : "automation.toggle"', CONTROLS)
-        self.assertNotIn('"skip_condition"', CONTROLS)
-
 
 if __name__ == '__main__':
     unittest.main()

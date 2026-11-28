@@ -69,6 +69,16 @@ wake). Firmware 0.2.13-0.2.56 used the LEDC hardware fader (`backlight_fade.h`) 
 0.2.57 went back to ESPHome's transition, because that fader reached into ESPHome's LEDC
 output, which ESPHome 2026.8 no longer allows.
 
+The backlight's PWM runs at 150 Hz with a floor of 1 %, as ESPHome's own device page has it: some batches of this
+board cannot follow a fast PWM and look off below 85-95 % at 20 kHz (firmware before 0.3.5). Other batches whine
+audibly at anything under 20 kHz, and on some the floor of 1 % is under the driver's start, so the glass is black
+below about 25 %. No marking tells the batches apart, so both are a setting of the screen since firmware 0.60.0,
+under **Extras** on the screen's settings page, under Screen settings in the app, and as entities of the screen in
+Home Assistant: **Backlight PWM** (150 Hz, 15 kHz or 20 kHz) and **Dimmest level** (1 to 10 %). Both take effect
+at once and are kept over a restart. Pick 20 kHz when the screen whines, 15 kHz when 20 kHz does not dim it evenly,
+and raise the dimmest level when the lowest brightness is black or flickers. The `BACKLIGHT_FREQUENCY` override
+(docs/EASY_SETUP.md) still sets the value the screen boots with, and stays the first choice of the extra.
+
 The existing tile actions, climate control, and vacuum card are preserved.
 Every card type works in all 48 positions.
 

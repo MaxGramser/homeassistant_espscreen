@@ -74,15 +74,17 @@ export const useSessionStore = defineStore("session", () => {
   // (the promise returned then); otherwise it happens at once. The open screen again, with unsaved changes, comes back to
   // its layout as it is.
   // Both hand back what is still on its way (the question, then the move of the address), so a caller can wait for it.
-  function select(id: string | null): void | Promise<unknown> {
+  // `replace`: the address moves in place of the browser's entry instead of adding one (ui.go), for a screen opened on the
+  // person's behalf on the way to another, as Layoutbot's Yes does; Back then skips it.
+  function select(id: string | null, how: { replace?: boolean } = {}): void | Promise<unknown> {
     if (id === scr.selected && doc.document && doc.dirty) {
-      ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); return ui.go("");
+      ui.tab = "layout"; ui.menuOpen = false; insp.closeInspector(); return ui.go("", how);
     }
     if (id !== scr.selected && doc.dirty) return askConfirm(t(id ? "editor.screen_view.confirm.switch" : "editor.confirm.leave_question"),
-      { confirm: t(id ? "editor.confirm.discard_open" : "editor.confirm.discard_leave"), danger: true }).then((yes) => (yes ? open(id) : undefined));
-    return open(id);
+      { confirm: t(id ? "editor.confirm.discard_open" : "editor.confirm.discard_leave"), danger: true }).then((yes) => (yes ? open(id, how) : undefined));
+    return open(id, how);
   }
-  function open(id: string | null) {
+  function open(id: string | null, how: { replace?: boolean } = {}) {
     // What waits to go to the screen shown before goes out first, and its changes are no longer shown. Its unsaved changes
     // were discarded on purpose (Discard and open): this browser forgets them too.
     if (id !== scr.selected) settings.leaveScreen();
@@ -93,7 +95,7 @@ export const useSessionStore = defineStore("session", () => {
     const opened = doc.openDocument(inv.inventory.screens.find((item) => item.id === id));
     // Unsaved changes this browser kept of it are offered (stores/drafts.ts).
     drafts.opened();
-    return opened ? ui.go("") : undefined;
+    return opened ? ui.go("", how) : undefined;
   }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
   function goHome(): void | Promise<unknown> {

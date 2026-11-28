@@ -6,7 +6,10 @@ the three icon fonts of both board profiles and builds the editor font
 fonts/materialdesignicons-webfont.ttf. Firmware 0.2.18+ carries every glyph here.
 """
 
+import contextvars
+import json
 import re
+from pathlib import Path
 
 from i18n import t
 
@@ -78,6 +81,7 @@ GROUPS = (
         ('soundbar', 'F17DB', 'Soundbar'),
         ('headphones', 'F02CB', 'Headphones'),
         ('microphone', 'F036C', 'Microphone'),
+        ('phone', 'F03F2', 'Phone'),
         ('piano', 'F067D', 'Piano'),
         ('guitar-acoustic', 'F0771', 'Guitar'),
         ('television', 'F0502', 'TV'),
@@ -272,6 +276,10 @@ HA_DEFAULTS = (
     # Home Assistant's calendar icons (homeassistant/components/calendar/icons.json): on while an event runs, off else.
     ('calendar-blank', 'F00EE'),
     ('calendar-check', 'F00EF'),
+    # Home Assistant's to-do list icon (homeassistant/components/todo/icons.json).
+    ('clipboard-list', 'F10D4'),
+    # A text's (text/icons.json; an input_text has none of its own and takes its frontend's FALLBACK_DOMAIN_ICONS one).
+    ('form-textbox', 'F060E'),
     ('account-arrow-right', 'F0B53'),
     ('air-filter', 'F0D43'),
     ('air-humidifier', 'F1099'),
@@ -425,20 +433,62 @@ HA_DEFAULTS = (
 ICONS = {name: (codepoint, label) for _, icons in GROUPS for name, codepoint, label in icons}
 GLYPHS = {**{name: codepoint for name, (codepoint, _) in ICONS.items()}, **dict(FIXED), **dict(HA_DEFAULTS)}
 
+# A screen with room for them takes icons of its own beside this set, up to MOST_ICONS in all (docs/ICONS.md): they are
+# compiled into that screen's firmware (screen_icons.py), so what a screen can draw differs per screen. MDI_TABLE names
+# every icon there is, written by tools/generate_icons.py.
+MOST_ICONS = 500
+MDI_TABLE = Path(__file__).with_name('mdi_icons.json')
+_mdi = None
+
+def mdi():
+    """Every Material Design icon: {name: [codepoint, xMin, yMin, xMax, yMax]}, read the first time it is asked for."""
+    global _mdi
+    if _mdi is None:
+        _mdi = json.loads(MDI_TABLE.read_text())['icons']
+    return _mdi
+
+def known(name):
+    """Whether this is the name of a Material Design icon: what a tile may have chosen, on any screen."""
+    return isinstance(name, str) and (name in GLYPHS or name in mdi())
+
+def room():
+    """How many icons of its own a screen with room for them may have."""
+    return max(0, MOST_ICONS - len(GLYPHS))
+
+# The icons of its own the screen being served has on its glass ({name: codepoint}), for this task only: the manager sets
+# it around everything that is sent to one screen. Elsewhere (the editor's lists) it is empty.
+_own = contextvars.ContextVar('tile_icons_own', default={})
+
+def own_icons():
+    return _own.get()
+
+class carrying:
+    """`with carrying(icons):` the screen these are for draws these icons as well."""
+    def __init__(self, icons):
+        self.icons, self.token = icons, None
+    def __enter__(self):
+        self.token = _own.set(self.icons)
+    def __exit__(self, *_):
+        _own.reset(self.token)
+
+def carried(name):
+    """Codepoint of an icon the screen being served can draw, else None."""
+    return (GLYPHS.get(name) or own_icons().get(name)) if isinstance(name, str) else None
+
 # Mirrors runtime_tiles::icon_for() so the editor mockup shows what the screen draws.
 DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'humidifier': 'air-humidifier', 'vacuum': 'robot-vacuum', 'fan': 'fan',
             'cover': 'window-shutter', 'scene': 'sofa', 'script': 'sofa', 'automation': 'robot', 'remote': 'remote', 'sensor': 'gauge', 'binary_sensor': 'gauge',
             'timer': 'timer-outline', 'person': 'account', 'camera': 'cctv', 'image': 'cctv', 'screen': 'clock-outline'}
 # The cards the screen brings itself: one icon per entity, not per domain.
-BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
-# The energy card's icon (app 0.4.77), Home Assistant's Energy panel's: never drawn big, since the card is its diagram on
+BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', 'screen.call': 'phone', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
+# The energy card's icon (app 0.4.77), Home Assistant's Energy panel's, and the template tile's (app 0.4.9x): never drawn big, since the card is its diagram (or its text) on
 # every size, so it stays out of the big icon font.
-DIAGRAM_TILES = {'screen.energy': 'lightning-bolt'}
+DIAGRAM_TILES = {'screen.energy': 'lightning-bolt', 'screen.text': 'format-list-bulleted'}
 FALLBACK = 'power'
 # The large icon font of a card that takes the whole page (firmware 0.2.62+): what the screen draws on its own for a
 # domain, a state or a built-in card, at 64 px on the Guition and 40 px on the CYD. Kept to these so the CYD's flash
 # stays free; a chosen icon outside this set shows at its usual size in the big circle.
-BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'remote-off', 'air-humidifier-off', 'calendar-check', 'calendar-blank', FALLBACK] +
+BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'robot-confused', 'remote-off', 'air-humidifier-off', 'calendar-check', 'calendar-blank', FALLBACK] +
                                  ['weather-sunny', 'weather-night', 'weather-cloudy', 'weather-partly-cloudy', 'weather-rainy',
                                   'weather-pouring', 'weather-snowy', 'weather-snowy-rainy', 'weather-fog', 'weather-hail',
                                   'weather-lightning', 'weather-lightning-rainy', 'weather-windy', 'alert-circle-outline',
@@ -455,6 +505,9 @@ WEATHER = {'sunny': 'weather-sunny', 'clear-night': 'weather-night', 'cloudy': '
 
 # Domains whose icon the screen draws from the state itself: a weather condition, the sun above or below the horizon.
 OWN_ICON_DOMAINS = frozenset(('weather', 'sun', 'screen', 'calendar'))
+# Home Assistant's frontend's FALLBACK_DOMAIN_ICONS (src/data/icons.ts), for the types whose integration has no icon of
+# its own in its icons.json: the last step of its domainIcon before the bookmark.
+FALLBACK_DOMAIN_ICONS = {'input_text': 'form-textbox', 'text': 'form-textbox'}
 # Home Assistant's icon resources ({'entity_component': ..., 'entity': ...}), set by the app when it reads them; empty keeps
 # the tables of earlier releases.
 HA_ICONS = {}
@@ -535,6 +588,8 @@ def ha_default_icon(entity_id, state, attributes, entry, icons):
         component = (icons.get('entity_component') or {}).get(domain) or {}
         device_class = (attributes or {}).get('device_class')
         icon = icon_for_state(state, (isinstance(device_class, str) and component.get(device_class)) or component.get('_'))
+    if not icon and domain in FALLBACK_DOMAIN_ICONS:
+        return FALLBACK_DOMAIN_ICONS[domain]
     return icon[4:] if isinstance(icon, str) and icon.startswith('mdi:') else None
 
 def default_glyph(entity_id, state, attributes, entry=None, icons=None):
@@ -542,12 +597,12 @@ def default_glyph(entity_id, state, attributes, entry=None, icons=None):
     if entity_id.split('.', 1)[0] in OWN_ICON_DOMAINS:
         return None
     name = ha_default_icon(entity_id, state, attributes, entry, HA_ICONS if icons is None else icons)
-    return GLYPHS.get(name) if name else None
+    return carried(name) if name else None
 
 def ha_icon(attributes):
     """Codepoint of Home Assistant's own `mdi:` icon when the firmware carries it, else None."""
     icon = attributes.get('icon') if isinstance(attributes, dict) else None
-    return GLYPHS.get(icon[4:]) if isinstance(icon, str) and icon.startswith('mdi:') else None
+    return carried(icon[4:]) if isinstance(icon, str) and icon.startswith('mdi:') else None
 
 def label_key(name):
     """The translation key of an icon's label ('ceiling-light'), or of a group's ('Media and music')."""
@@ -566,4 +621,7 @@ def editor():
             # A calendar draws Home Assistant's icon of its state (firmware 0.56.0, runtime_tiles icon_for).
             'calendar': {'on': GLYPHS['calendar-check'], 'off': GLYPHS['calendar-blank']},
             # Glyphs of the direct controls on wide cards, so the mockup previews them.
-            'controls': {name: GLYPHS[name] for name in CONTROL_GLYPHS}}
+            'controls': {name: GLYPHS[name] for name in CONTROL_GLYPHS},
+            # What every screen carries beyond the groups, offered on a screen with room for icons of its own (the
+            # 4 MB boards keep the groups): the words are the icons' own names.
+            'more': [{'name': name, 'cp': GLYPHS[name], 'label': name.replace('-', ' ')} for name in sorted(set(GLYPHS) - set(ICONS))]}

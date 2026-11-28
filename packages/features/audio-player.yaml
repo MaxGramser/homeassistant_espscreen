@@ -23,6 +23,9 @@ substitutions:
   AUDIO_SAMPLE_RATE: "48000"
   AUDIO_HALF_DUPLEX: "false"
   AUDIO_MIC_BUS: ts_mic_bus
+  # What a call's and the doorbell's voice is multiplied by on its way out (talk_uplink.h): these boards' microphones
+  # are quiet. A transport that keeps its microphone lower for its echo canceller makes it up here.
+  AUDIO_VOICE_GAIN: "4"
   # The volume as ears hear it: Home Assistant's 0 to 100 % runs evenly in decibels, from AUDIO_VOLUME_DB_LOW (5 % is
   # just audible beside the screen) to AUDIO_VOLUME_DB_HIGH (the DAC's full scale, without a digital gain that clips);
   # 0 % mutes. The media player maps its volume onto that part of the DAC's range (volume_min and volume_max below).
@@ -38,6 +41,17 @@ substitutions:
     // its resampler makes the 16 kHz the bus's rate, whatever the board's, an announcement or a plugin's sound plays
     // over it rather than into it, and the volume under Extras holds for it too.
     live_view::bind_speaker(id(ts_media_speaker));
+    // The screen's voice to the app, for the doorbell's Talk and a call (talk_uplink.h).
+    talk_uplink::bind_microphone(id(ts_microphone), ${AUDIO_VOICE_GAIN});
+    // The ring's loudness is the speaker's own, never the media player's: Home Assistant does not see it and nothing keeps it.
+    // Its top is the same top the media player has, the DAC's full scale without digital gain.
+    // What a finger does in a call goes to ESP Screens (module call, esphome.screen_call).
+    runtime_tiles::call_reports([](const std::string &action, const std::string &to, bool video, const std::string &key) { id(call_report).execute(action, to, video, key); });
+    runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_speaker_out)->get_volume(); },
+                              [](float volume) { id(ts_speaker_out)->set_volume(volume); },
+                              []() { return id(ts_call_ringtone).state; },
+                              []() { return id(ts_call_voice_switching).state; },
+                              ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f);
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
       id(ts_speaker_out)->start();
@@ -48,10 +62,56 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_microphone,
         []() -> int32_t { return id(ts_microphone_on).state ? 1 : 0; },
         [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
+    // A call's settings (docs/CALLS.md): the same three switches Home Assistant and the app show.
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_ringtone,
+        []() -> int32_t { return id(ts_call_ringtone).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_ringtone).turn_on(); else id(ts_call_ringtone).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_do_not_disturb,
+        []() -> int32_t { return id(ts_call_do_not_disturb).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_do_not_disturb).turn_on(); else id(ts_call_do_not_disturb).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_voice_switching,
+        []() -> int32_t { return id(ts_call_voice_switching).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_voice_switching).turn_on(); else id(ts_call_voice_switching).turn_off(); }));
+    // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
+    runtime_tiles::doorbell_audio(id(ts_speaker));
+
+# A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
+font:
+  - id: !extend materialdesign_icons
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
+  - id: !extend materialdesign_icons_mini
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
 switch:
+  # Whether a call makes this screen ring out loud (docs/CALLS.md): off, it lights up and shows who calls, without a sound.
+  - platform: template
+    id: ts_call_ringtone
+    name: "Call ringtone"
+    icon: "mdi:phone-ring"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  # Do not disturb (docs/CALLS.md): on, a call to this screen is refused at once and the caller reads why. ESP Screens reads
+  # the switch from Home Assistant; the doorbell is not a call and still rings.
+  - platform: template
+    id: ts_call_do_not_disturb
+    name: "Do not disturb"
+    icon: "mdi:bell-off"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  # Whether this screen's calls start with voice switching (docs/CALLS.md, "Echo"): on, the microphone of the side that
+  # listens goes down, so a voice does not come back; off, both stay open and both can speak at once. A small key in the
+  # call changes it for that call, on both screens.
+  - platform: template
+    id: ts_call_voice_switching
+    name: "Call voice switching"
+    icon: "mdi:account-voice"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: template
     id: ts_microphone_on
     name: "Microphone"
@@ -72,7 +132,17 @@ speaker:
     num_channels: 1
     task_stack_in_psram: true
     source_speakers:
+      # The rule for a sound the screen's loop hands over (plugin_sound.h: the doorbell's chime, a plugin's sounds): the
+      # buffer it lands in, with ts_speaker_out's 100 ms behind it, covers the time between two handovers and the main
+      # loop's longest absence: the board's 250 ms interval and a 300 ms redraw of a 10-inch, 550 ms, so 500 ms here. A
+      # sound at the bus's own rate (16 kHz on a Guition or a Waveshare P4, as the chime) lands here and not in
+      # ts_speaker's buffer: ESPHome's resampler hands it straight on when there is nothing to resample. With ESPHome's
+      # default of 100 ms a Guition's chime played in pieces of 200 ms with gaps between (2026-10-28).
       - id: ts_announcement_input
+        buffer_duration: 500ms
+      # A live camera's sound (live_view.cpp speak) stays at ESPHome's 100 ms: it is handed over at every pass of the
+      # loop, and what waits for the speaker is held in the stream's own buffer, where the picture's catch-up reaches it.
+      # Half a second here would let the sound fall that far behind the picture, out of that catch-up's reach.
       - id: ts_media_input
   # And in front of each a resampler, as in Home Assistant's Voice PE: a sound at any rate (a plugin's 48 kHz sound on a
   # bus that runs at 16 kHz) reaches the mixer at the bus's own rate, so the bus never starts again for another rate.
@@ -81,9 +151,10 @@ speaker:
     id: ts_speaker
     output_speaker: ts_announcement_input
     task_stack_in_psram: true
-    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, so a long redraw of
-    # the glass (a popup coming up over a 10-inch, 300 ms) never runs it dry. ESPHome's default of 100 ms stuttered the
-    # voice assistant's wake sound. Announcements and voice fill it from their own task, as before.
+    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, by the rule at
+    # ts_announcement_input above, for a sound this resampler does convert (a 16 kHz sound on a 48 kHz bus, as on the
+    # reTerminal D1001). ESPHome's default of 100 ms stuttered the voice assistant's wake sound. Announcements and voice
+    # fill it from their own task, as before.
     buffer_duration: 500ms
   - platform: resampler
     id: ts_media_speaker
@@ -103,6 +174,21 @@ media_player:
     volume_initial: 0.5
     volume_min: ${ ((AUDIO_VOLUME_DB_LOW | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
     volume_max: ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
+    # Who may play (components/smart_display/audio_owner.h, docs/PLATFORM_PLAN.md 3.4): music claims the speaker as
+    # MEDIA when it starts playing and gives it back when it pauses or ends. A camera's sound, the voice assistant or a
+    # doorbell outranks it and pauses it, and the music does not start again by itself; while one of them holds the
+    # speaker, music that starts is paused at once. Announcements take the mixer's other input and are not claimed.
+    on_play:
+      - lambda: |-
+          audio_owner::Claim claim;
+          claim.role = audio_owner::Role::MEDIA;
+          claim.lost = []() { id(ts_media_player).make_call().set_command(media_player::MEDIA_PLAYER_COMMAND_PAUSE).perform(); };
+          if (!audio_owner::the().claim(audio_owner::Side::OUT, claim))
+            id(ts_media_player).make_call().set_command(media_player::MEDIA_PLAYER_COMMAND_PAUSE).perform();
+    on_pause:
+      - lambda: audio_owner::the().release(audio_owner::Side::OUT, audio_owner::Role::MEDIA);
+    on_idle:
+      - lambda: audio_owner::the().release(audio_owner::Side::OUT, audio_owner::Role::MEDIA);
     announcement_pipeline:
       speaker: ts_speaker
       sources: [ts_announcement_source]
@@ -115,3 +201,21 @@ media_player:
       format: FLAC
       sample_rate: ${AUDIO_SAMPLE_RATE}
       num_channels: 1
+
+script:
+  # What a finger did in a call (module call, docs/CALLS.md): list, dial, cancel, answer, decline, end, camera or mic.
+  - id: call_report
+    parameters:
+      action: string
+      to: string
+      video: bool
+      key: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_call
+          data:
+            action: !lambda 'return action;'
+            to: !lambda 'return to;'
+            video: !lambda 'return video ? "1" : "0";'
+            key: !lambda 'return key;'
+            screen: !lambda 'return App.get_name();'

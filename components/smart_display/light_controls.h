@@ -44,6 +44,23 @@ inline Values shown;
 // Where the three rows start, their pitch, the gap between them and the height of the glass they were built
 // for: place() puts the rows that show in the middle of the room under the title with them.
 inline int top, spacing, row_gap, glass_h;
+// Rows a card adds under the three (a light's presets, module light_presets): counted when the rows share the room, and
+// the place and size of a row, for the card to draw its own in the same shape (place() returns where it goes).
+inline int extra = 0;
+inline int row_x = 0, row_w = 0, row_h = 0, row_inset = 0, row_text_y = 0;
+// A row's own white card, as each of the three has one (a change of look builds the card again).
+inline lv_obj_t *row_card(lv_obj_t *parent, int x, int y, int w, int h) {
+  auto *box = lv_obj_create(parent);
+  lv_obj_remove_style_all(box);
+  lv_obj_remove_flag(box, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE));
+  lv_obj_set_pos(box, x, y); lv_obj_set_size(box, w, h);
+  lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
+  lv_obj_set_style_radius(box, ui::px(ui::large() ? 18 : 10), 0);
+  lv_obj_set_style_border_width(box, 1, 0);
+  lv_obj_set_style_bg_color(box, theme::color(theme::CARD), 0);
+  lv_obj_set_style_border_color(box, theme::color(theme::LINE), 0);
+  return box;
+}
 // The picker's own spectrum: the colours a light can take, not a look, so they stay the same in dark.
 constexpr uint32_t WARM = 0xFF9C32, COOL = 0xC6E6FF;
 inline constexpr uint32_t RAINBOW[] = {0xFF0000, 0xFFFF00, 0x00FF00, 0x00FFFF, 0x0000FF, 0xFF00FF, 0xFF0000};
@@ -158,10 +175,11 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   const int wanted = ui::px(large ? 122 : 60), gap = ui::px(large ? 12 : 5);
   const int least = ui::touch_min() + lv_font_get_line_height(font) + ui::px(12);
   const int room = height - top - ui::px(large ? 18 : 8);
-  spacing = std::max(least, std::min(wanted, (room + gap) / 3));
+  spacing = std::max(least, std::min(wanted, (room + gap) / (3 + extra)));
   row_gap = gap; glass_h = height;
   int margin = ui::px(large ? 20 : 12), w = width - 2 * margin, card_h = spacing - gap;
   int inset = ui::px(large ? 18 : 10), text_y = ui::px(large ? 14 : 5), track_h = ui::px(large ? 32 : 18);
+  row_x = margin; row_w = w; row_h = card_h; row_inset = inset; row_text_y = text_y;
   int track_x = inset, track_w = w - 2 * inset, track_y = card_h - inset + (ui::px(large ? 2 : 3)) - track_h;
   // A row squeezed by a short screen keeps its words: the track moves right under them and gets thinner,
   // never thinner than something a finger can still drag.
@@ -253,8 +271,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
 // The rows the light has, in the middle of the room under the title, and only when that leaves more than a finger
 // over: on a CYD and a Guition three rows already fill the glass, so nothing there moves. The way every card centres
 // what it draws (overlay_card::centre).
-inline void place(const Values &v) {
-  const int showing = (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1;
+inline int place(const Values &v) {
+  const int showing = (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1 + extra;
   const int block = showing * spacing - row_gap;
   const int over = glass_h - top - ui::px(ui::large() ? 18 : 8) - block;
   int y = over > ui::touch_min() ? top + over / 2 : top;
@@ -264,6 +282,7 @@ inline void place(const Values &v) {
     if (!visible) { lv_obj_add_flag(row.box, LV_OBJ_FLAG_HIDDEN); continue; }
     lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y); y += spacing;
   }
+  return y;
 }
 // The light as it is now: each slider where the tile says, unless a finger holds it or has just let it go (its wish
 // is on its way and comes back through the tile). A white shade waits for the light's range; an off light shows only

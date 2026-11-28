@@ -3,7 +3,6 @@
 Numbers: 24 time-weighted averages, the highest and lowest moment, an axis in round steps for every kind of unit.
 States: a timeline in runs of slots with Home Assistant's words and the time in each state.
 """
-from firmware_sources import runtime_source
 from manager_fixtures import with_screen_grid
 import asyncio
 import importlib.util
@@ -21,17 +20,27 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import history_card as hc  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
-RUNTIME = runtime_source()
 
 AMSTERDAM = ZoneInfo('Europe/Amsterdam')
 
 
 def at(text, tz=AMSTERDAM):
     return int(datetime.fromisoformat(text).replace(tzinfo=tz).timestamp())
+
+
+def screen_fixture():
+    """A day of a temperature and of a kettle as the add-on answers a screen (`op: history`), which
+    web/wasm/test_history_card.mjs plays to the real firmware; tests/fixtures/history-card.json holds it."""
+    end = at('2026-09-16T12:00:00')
+    start, _ = end - 24 * 3600, end
+    temperature = [(start - 60, 19.5), (start + 6 * 3600, 21.0), (start + 14 * 3600, 23.5), (start + 20 * 3600, 20.0)]
+    kettle = [(start - 60, 'off'), (start + 7 * 3600, 'on'), (start + 7 * 3600 + 300, 'off'), (start + 18 * 3600, 'on'),
+              (start + 18 * 3600 + 240, 'off')]
+    return {'line': hc.line('sensor.t', 24, temperature, start, end, AMSTERDAM, None, '°C'),
+            'timeline': hc.timeline('switch.kettle', 24, kettle, start, end, AMSTERDAM, {})}
 
 
 class Kinds(unittest.TestCase):
@@ -393,36 +402,19 @@ class Requests(unittest.IsolatedAsyncioTestCase):
 
 
 class Firmware(unittest.TestCase):
-    def test_the_screen_asks_with_an_event_and_takes_only_the_answer_it_waits_for(self):
-        request = RUNTIME[RUNTIME.index('inline void history_request('):]
-        request = request[:request.index('\n}\n')]
-        self.assertIn('request.service = esphome::StringRef("esphome.screen_history");', request)
-        self.assertIn('request.is_event = true;', request, 'an event needs no permission to call actions')
-        self.assertIn('const std::string keys[] = {"inbox", "entity", "hours", "session", "rev", "view"}', request)
-        receive = RUNTIME[RUNTIME.index('if (op == "history") {'):]
-        receive = receive[:receive.index('#ifdef SWIPE_PROFILE')]
-        self.assertIn('if (next.entity != history_asked_entity || next.hours != history_asked_hours) {', receive)
-        self.assertIn('if (!valid_entity(next.entity) || (next.hours != 1 && next.hours != 24 && next.hours != 168)) return false;', receive)
+    def test_the_screen_reads_the_fixture_the_add_on_makes(self):
+        # web/wasm/test_history_card.mjs reads the real firmware with this fixture: which cards ask (by event, with
+        # inbox, entity, hours, session, rev and view), the answers it draws, drops and refuses, the range keys while a
+        # command waits and a finger on the chart.
+        self.assertEqual(json.loads((ROOT / 'tests/fixtures/history-card.json').read_text()), screen_fixture(),
+                         'write tests/fixtures/history-card.json from screen_fixture(); the firmware preview test reads it')
 
-    def test_the_card_opens_for_every_entity_with_history_and_keeps_its_range_keys_enabled(self):
-        self.assertIn('return d=="sensor"||d=="binary_sensor"||d=="switch"||d=="input_boolean"||d=="person"||d=="number"||d=="input_number";', RUNTIME)
-        self.assertIn('if(with_history){\n    render_history_detail(t,large,width,height,pad);', RUNTIME)
-        # Range keys ask the manager, not Home Assistant: they are left out of the keys a waiting command disables.
-        ranges = RUNTIME[RUNTIME.index('inline void history_ranges('):]
-        ranges = ranges[:ranges.index('\n}\n')]
-        self.assertIn('if(detail_action_count&&detail_actions[detail_action_count-1]==segment)--detail_action_count;', ranges)
-        self.assertIn('if(cmd>=160&&cmd<163){', RUNTIME)
-        self.assertLess(RUNTIME.index('if(cmd>=160&&cmd<163){'), RUNTIME.index('if(!(wish_command(cmd)?allowed_wish(esphome::millis(),300+cmd,what):allowed(esphome::millis(),300+cmd,what)))return;'))
-
-    def test_the_scrub_area_keeps_the_finger_and_the_boards_carry_the_small_font(self):
-        touch = RUNTIME[RUNTIME.index('inline void history_touch('):]
-        touch = touch[:touch.index('\n}\n')]
-        for flag in ('lv_obj_add_flag(area,LV_OBJ_FLAG_PRESS_LOCK);', 'lv_obj_remove_flag(area,LV_OBJ_FLAG_GESTURE_BUBBLE);',
-                     'lv_obj_add_event_cb(area,history_scrub,LV_EVENT_ALL,nullptr);'):
-            self.assertIn(flag, touch)
+    def test_the_boards_carry_the_small_font(self):
+        # Rule: the history card's axis is in the small font, which every board hands the runtime once.
         for name in ('checkout/guition.yaml', 'checkout/cyd.yaml', 'packages/guition.yaml', 'packages/cyd.yaml'):
             text = profiles.text(name)
-            self.assertEqual(len(re.findall(r'runtime_tiles::small_font = id\(sublabel\)->get_lv_font\(\);', text)), 1, name)
+            self.assertEqual(len(re.findall(r'runtime_tiles::small_font = id\(sublabel\)->get_lv_font\(\);', text)), 1,
+                             f'{name} sets runtime_tiles::small_font once')
 
 
 if __name__ == '__main__':

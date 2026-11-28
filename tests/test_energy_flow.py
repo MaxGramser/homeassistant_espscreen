@@ -237,8 +237,9 @@ class EditorParity(unittest.TestCase):
         editor = (ROOT / 'web/src/model/ui-scale.ts').read_text()
         found = dict(re.findall(r'(MIN_\w+_MM\w*) = (\d+)', firmware))
         ts = re.search(r'ENERGY_MIN_MM = \{ width: (\d+), compact: (\d+), standard: (\d+) \}', editor)
-        self.assertIsNotNone(ts)
-        self.assertEqual((found['MIN_WIDTH_MM'], found['MIN_HEIGHT_MM_COMPACT'], found['MIN_HEIGHT_MM_STANDARD']), ts.groups())
+        self.assertIsNotNone(ts, 'ui-scale.ts states ENERGY_MIN_MM as { width, compact, standard }')
+        self.assertEqual((found['MIN_WIDTH_MM'], found['MIN_HEIGHT_MM_COMPACT'], found['MIN_HEIGHT_MM_STANDARD']), ts.groups(),
+                         'energy_card.h and ui-scale.ts ENERGY_MIN_MM name the same least room: change both')
 
 
 class Layout(unittest.TestCase):

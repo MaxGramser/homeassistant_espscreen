@@ -70,3 +70,26 @@ class ShowPage(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class FromTheLoop(unittest.TestCase):
+    """A page is built on the loop's next pass, never at the bottom of the API's call that asked for it: on top of the API
+    and the parser a page and its cards came within 40 bytes of the loop task's 16 KB on a Guition 10.1
+    (docs/ARCHITECTURE.md, "The loop's stack"). The host render's pages_from_the_loop round proves the order; here, the
+    scripts that build a page for an API call start with a delay of 0 ms, and the latest ask wins."""
+
+    def test_the_page_builders_an_api_call_reaches_start_from_the_loop(self):
+        import yaml
+
+        class Loader(yaml.SafeLoader):
+            pass
+        Loader.add_multi_constructor('!', lambda loader, suffix, node: None)
+        core = yaml.load((ROOT / 'packages/core.yaml').read_text(), Loader=Loader)
+        scripts = {script['id']: script for script in core['script']}
+        for name in ('open_page', 'go_home', 'show_tile_page_soon'):
+            first = scripts[name]['then'][0]
+            self.assertEqual(first, {'delay': '0ms'}, f'{name} starts on the loop\'s next pass (delay: 0ms)')
+            self.assertEqual(scripts[name].get('mode'), 'restart', f'{name}: a second ask before the pass replaces the first')
+        text = (ROOT / 'packages/core.yaml').read_text()
+        self.assertIn('runtime_tiles::layout_changed = []() { id(show_tile_page_soon).execute(); };', text,
+                      "a layout's commit asks for its page from the loop")

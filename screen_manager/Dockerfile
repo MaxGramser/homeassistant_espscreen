@@ -6,7 +6,7 @@ ARG BUILD_ARCH
 # platforms at once, so there Docker's own TARGETARCH (arm64, amd64) fills the label.
 ARG TARGETARCH
 LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUILD_ARCH:-$TARGETARCH}"
-# A camera live on a P4 screen (live_feed.py): aiortc receives Home Assistant's WebRTC of a camera, and brings PyAV
+# A camera live on a P4 screen (camera_source.py): aiortc receives Home Assistant's WebRTC of a camera, and brings PyAV
 # (FFmpeg) to decode its H.264 and make its JPEGs. Every Home Assistant builds this image itself, so the WebRTC part
 # is pinned to the set pip resolves on this ESPHome for amd64 and aarch64 (wheels on Python 3.12 and 3.13), and ESPHome's
 # own cryptography is a constraint: a later ESPHome that no longer fits fails this build instead of losing its pin.

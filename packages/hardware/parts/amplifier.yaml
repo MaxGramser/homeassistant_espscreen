@@ -1,0 +1,15 @@
+# ESP Screens - a speaker amplifier with an enable pin, high for on (a part: docs/PROFILES.md, "Parts"). The board
+# declares the pin (AUDIO_AMPLIFIER_PIN, an expander's pin as a mapping); the amplifier stays off from start and follows
+# playback (features/audio-amplifier.yaml), so it never hisses in silence.
+packages:
+  follow: !include ../../features/audio-amplifier.yaml
+
+substitutions:
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: ${AUDIO_AMPLIFIER_PIN}
+    restore_mode: ALWAYS_OFF

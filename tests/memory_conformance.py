@@ -6,7 +6,7 @@ alike (firmware 0.34.0+, docs/TILE_MEMORY.md).
 tests/test_tile_memory.py checks the file still is what core.tile_cost answers; tests/test_tile_memory.cpp and
 web/tests/memory.spec.ts check the firmware and the editor answer the same. The cases: every type of the catalogue and one
 it does not know, on a board with PSRAM and on one without, with no choice of its own, with its own action, with its own
-second line and with both; and a page with none to twelve entity items in its top bar. One case per line, so the C++ test reads it without a JSON library.
+second line and with both; and a page with none to twelve entity items in its top bar, with and without sections. One case per line, so the C++ test reads it without a JSON library.
 """
 import json
 import sys
@@ -33,12 +33,16 @@ def cases():
                 entity = domain if '.' in domain else f'{domain}.thing'
                 yield {'domain': domain, 'action': action, 'line': line, **board,
                        'cost': tile_cost({'entity': entity, 'options': options}, memory)}
-    # A page with a top bar of builtins and entity items: only the entity items keep a text.
+    # A page with a top bar of builtins and entity items: only the entity items keep a text. And its sections, which count
+    # on a screen that draws them (`sections`, its hello) and on no other, which is sent none.
     for board in BOARDS:
         for entities in (0, 1, 6, 12):
             trailing = [{'id': f'{n:016x}', 'type': 'clock'} for n in range(2)] + [
                 {'id': f'{n + 2:016x}', 'type': 'entity', 'entity': f'sensor.s{n}'} for n in range(entities)]
-            yield {'page_entities': entities, **board, 'cost': page_cost({'topbar': {'trailing': trailing}}, {'room': 0, 'used': 0, **board})}
+            for sections, drawn in ((0, False), (0, True), (3, False), (1, True), (16, True)):
+                page = {'topbar': {'trailing': trailing}, 'sections': [{'title': f'Section {n}'} for n in range(sections)]}
+                yield {'page_entities': entities, 'page_sections': sections, 'sections': drawn, **board,
+                       'cost': page_cost(page, {'room': 0, 'used': 0, 'sections': drawn, **board})}
 
 
 def output():

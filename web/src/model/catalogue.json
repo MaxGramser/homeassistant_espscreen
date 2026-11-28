@@ -25,7 +25,8 @@
    "action": 256,
    "line": 96,
    "page": 48,
-   "bar_text": 48
+   "bar_text": 48,
+   "section": 224
   }
  },
  "domains": {
@@ -90,6 +91,14 @@
    "toggle": null,
    "taps": [],
    "guards": [],
+   "send_after": [
+    "off",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+   ],
    "picture": null,
    "map": null,
    "keypad": null
@@ -1094,6 +1103,31 @@
    "map": null,
    "keypad": null
   },
+  "input_text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 576,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "light": {
    "firmware": null,
    "memory": {
@@ -1140,6 +1174,37 @@
        }
       ]
      }
+    },
+    {
+     "key": "presets",
+     "needs": {
+      "actions": [
+       {
+        "action": "light.turn_on",
+        "field": "brightness_pct"
+       }
+      ]
+     },
+     "screen": {
+      "feature": "light_presets",
+      "else": "brightness"
+     },
+     "room": {
+      "feature": "light_presets"
+     }
+    },
+    {
+     "key": "brightness_presets",
+     "screen": {
+      "feature": "light_presets",
+      "else": "brightness"
+     },
+     "rows": 2,
+     "of": [
+      "brightness",
+      "presets"
+     ],
+     "one_row": "presets"
     }
    ],
    "inline": {
@@ -1881,6 +1946,10 @@
     "screen.energy": {
      "bytes": 6144,
      "extras": true
+    },
+    "screen.text": {
+     "bytes": 2048,
+     "extras": true
     }
    },
    "key": false,
@@ -2120,6 +2189,31 @@
    "map": null,
    "keypad": null
   },
+  "text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 576,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "timer": {
    "firmware": "0.2.14",
    "memory": {
@@ -2158,6 +2252,37 @@
      }
     }
    ],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
+  "todo": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 1152,
+    "extras": true
+   },
+   "key": true,
+   "features": {
+    "CREATE_TODO_ITEM": 1,
+    "DELETE_TODO_ITEM": 2,
+    "MOVE_TODO_ITEM": 8,
+    "SET_DESCRIPTION_ON_ITEM": 64,
+    "SET_DUE_DATETIME_ON_ITEM": 32,
+    "SET_DUE_DATE_ON_ITEM": 16,
+    "UPDATE_TODO_ITEM": 4
+   },
+   "actions": {},
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
    "inline": null,
    "toggle": null,
    "taps": [],
@@ -2258,9 +2383,98 @@
        }
       ]
      }
+    },
+    {
+     "key": "map",
+     "needs": {
+      "actions": [
+       {
+        "action": "vacuum.start"
+       },
+       {
+        "action": "vacuum.pause"
+       },
+       {
+        "action": "vacuum.stop"
+       },
+       {
+        "action": "vacuum.return_to_base"
+       }
+      ],
+      "device": [
+       "map"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons"
+    },
+    {
+     "key": "rooms",
+     "needs": {
+      "features": [
+       "CLEAN_AREA"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons",
+     "fallback": "buttons"
+    },
+    {
+     "key": "routines",
+     "needs": {
+      "actions": [
+       {
+        "action": "vacuum.start"
+       },
+       {
+        "action": "vacuum.pause"
+       },
+       {
+        "action": "vacuum.stop"
+       },
+       {
+        "action": "vacuum.return_to_base"
+       }
+      ],
+      "device": [
+       "routines"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons"
+    },
+    {
+     "key": "map_rooms",
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "of": [
+      "map",
+      "rooms"
+     ],
+     "one_row": "buttons"
     }
    ],
    "inline": null,
+   "grow": [
+    "map_rooms",
+    "map",
+    "rooms"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],

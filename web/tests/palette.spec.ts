@@ -14,7 +14,7 @@ const actions = (): PaletteActions => ({ openScreen: vi.fn(), go: vi.fn(), showT
 describe("the search's rows", () => {
   it("lists every screen and the actions, the open screen's first, and nothing to add until something is typed", () => {
     const rows = paletteItems(facts(), actions());
-    expect(rows.map((row) => row.label)).toEqual(["Hall", "Attic", t("editor.nav.new_screen"), t("editor.nav.firmware"), t("editor.nav.alerts"), t("editor.nav.settings")]);
+    expect(rows.map((row) => row.label)).toEqual(["Hall", "Attic", t("editor.nav.new_screen"), t("editor.nav.firmware"), t("editor.nav.events"), t("editor.nav.settings")]);
     expect(rows[1].detail).toBe(`${t("editor.common.offline")} · ${t("editor.common.unknown")}`);
     const open = paletteItems(facts({ open: hall, dirty: true }), actions());
     expect(open.slice(2, 7).map((row) => row.label)).toEqual([t("editor.common.save_send"), t("editor.screen_view.tabs.layout"), t("editor.screen_view.tabs.settings"),
@@ -25,11 +25,11 @@ describe("the search's rows", () => {
   it("does what a row says", () => {
     const does = actions(), rows = paletteItems(facts({ open: hall, query: "" }), does);
     rows.find((row) => row.label === "Attic")!.run();
-    rows.find((row) => row.label === t("editor.nav.alerts"))!.run();
+    rows.find((row) => row.label === t("editor.nav.events"))!.run();
     rows.find((row) => row.label === t("editor.screen_view.tabs.settings"))!.run();
     rows.find((row) => row.label === t("editor.palette.identify"))!.run();
     expect(does.openScreen).toHaveBeenCalledWith(attic);
-    expect(does.go).toHaveBeenCalledWith("#alerts");
+    expect(does.go).toHaveBeenCalledWith("#events");
     expect(does.showTab).toHaveBeenCalledWith("settings");
     expect(does.identify).toHaveBeenCalledWith(hall);
     const cannot = actions();

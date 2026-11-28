@@ -16,7 +16,6 @@ STATIC = ROOT / 'screen_manager/app/static'
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
     sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-    sys.path.insert(0, str(ROOT / 'tests'))
     import test_scaling
     from aiohttp.test_utils import TestClient, TestServer
     from server import Manager, create_app

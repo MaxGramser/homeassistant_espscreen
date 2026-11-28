@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Video van een Tessera-scherm",
+        "description": "Kies een scherm met het onderdeel Video van Schermcamera. De camera Video verschijnt bij het apparaat van het scherm.",
+        "data": { "device": "Scherm" }
+      }
+    },
+    "abort": {
+      "already_configured": "Dit scherm heeft zijn video al.",
+      "unknown_device": "Dat apparaat staat niet in Home Assistant."
+    }
+  },
+  "entity": { "camera": { "video": { "name": "Video" } } }
+}

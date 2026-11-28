@@ -13,15 +13,21 @@ import TileClockFace from "./tile/TileClockFace.vue";
 import TileEnergy from "./tile/TileEnergy.vue";
 import TileLine from "./tile/TileLine.vue";
 import TileMeter from "./tile/TileMeter.vue";
+import TileText from "./tile/TileText.vue";
+import TileTodo from "./tile/TileTodo.vue";
 import TilePicture from "./tile/TilePicture.vue";
 import TilePlugin from "./tile/TilePlugin.vue";
 import TileRoundKey from "./tile/TileRoundKey.vue";
 import TileTall from "./tile/TileTall.vue";
+import TileVacuum from "./tile/TileVacuum.vue";
 import TileWatch from "./tile/TileWatch.vue";
 import { useUiStore } from "../stores/ui";
 import { placeTile, removeTile } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { PLAIN_GRID, useSectionGrid } from "../composables/useSectionGrid";
+import { glassMargins, OTHER_LOOK } from "../model/sections";
+import theme from "virtual:esp-screens-theme";
 
 const ui = useUiStore();
 const doc = useDocumentStore();
@@ -58,13 +64,21 @@ const classes = computed(() => {
   const face = card.face;
   return { wide: face.wide, full: face.full, tall: face.tall, "watch-card": kind.value === "watch", "tall-action": face.tallAction || face.tallStack, "big-key": face.bigKey,
     photo: card.loaded.artwork && !!card.artwork, camera: (kind.value === "camera" && card.loaded.camera) || (kind.value === "favorite" && card.loaded.favorite),
-    bare: props.tile.options?.background === "none", placeholder: props.placeholder || (!card.live && !card.foreign), chosen: card.chosen,
+    glass: !!card.head, bare: props.tile.options?.background === "none", placeholder: props.placeholder || (!card.live && !card.foreign), chosen: card.chosen,
     "just-added": !props.preview && !!props.tile.id && doc.justAdded === props.tile.id };
 });
+// A page with sections (docs/PAGES.md "Sections"): the card's rows with the bands and edges between them, and the panel's
+// padding at a block's side, as the glass lays it out (module_sections.h place).
+const sections = useSectionGrid();
+// The other look's hairline (theme.h LINE), for a card of the page's own colour in a contrast section.
+const OTHER_LINE = `#${theme.roles.LINE.dark.toString(16).padStart(6, "0")}`;
 const style = computed(() => {
-  const background = card.background;
-  return { gridColumn: `${props.at % card.grid.columns + 1} / span ${card.shape.columns}`, gridRow: `${Math.floor(props.at % card.grid.slots / card.grid.columns) + 1} / span ${card.shape.rows}`,
-    ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
+  const background = card.background, column = props.at % card.grid.columns, row = Math.floor(props.at % card.grid.slots / card.grid.columns);
+  const sg = sections?.value ?? PLAIN_GRID, m = sg.margins(column, row, card.shape.columns, card.shape.rows);
+  return { gridColumn: `${column + 1} / span ${card.shape.columns}`, gridRow: `${row + 1} / span ${card.shape.rows}`, ...glassMargins(m),
+    ...(sg.otherLook(column, row, card.shape.columns, card.shape.rows) ? { filter: OTHER_LOOK } : {}),
+    ...(!background && sg.standsOut(column, row, card.shape.columns, card.shape.rows) ? { borderColor: OTHER_LINE } : {}),
+    ...card.glassStyle.frame, ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
     "--tile-cols": card.shape.columns, "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
 });
 
@@ -105,9 +119,12 @@ async function onKey(e: KeyboardEvent) {
     <TilePlugin v-else-if="kind === 'plugin-live' || kind === 'plugin'" :card="card" />
     <TileEnergy v-else-if="kind === 'energy'" :card="card" />
     <TileMeter v-else-if="kind === 'meter'" :card="card" />
+    <TileText v-else-if="kind === 'text'" :card="card" />
+    <TileTodo v-else-if="kind === 'todo'" :card="card" />
     <TileClockFace v-else-if="CLOCKS.includes(kind)" :card="card" />
     <TilePicture v-else-if="kind === 'favorite' || kind === 'camera'" :card="card" />
     <TileWatch v-else-if="kind === 'watch'" :card="card" />
+    <TileVacuum v-else-if="kind === 'vacuum'" :card="card" />
     <TileTall v-else-if="kind === 'tall' || kind === 'big-key'" :card="card" />
     <TileLine v-else :card="card" />
     <TileResize v-if="card.live && !preview && !placeholder" :tile="tile" />

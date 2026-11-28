@@ -1,0 +1,95 @@
+# ESP Screens - what every ESP32-P4 screen shares, whatever its Wi-Fi wiring, panel or board: the chip and its
+# revision switch, its frequency, the task watchdog, the PSRAM, running from PSRAM and the options of the Wi-Fi
+# co-processor's driver and of FreeRTOS that the P4's memory work rests on. hardware/esp32p4-c6.yaml (the Guition,
+# Waveshare and reTerminal panels) and hardware/m5stack-tab5.yaml include it and keep their pins, SDIO clock, flash and
+# supplies; tests/test_p4_core.py keeps every P4 hardware file on it, so a new P4 cannot miss what the others have (the
+# Tab5 had its own copy of this block and missed the 20 s watchdog and the driver's buffers in PSRAM until 2026-10-25).
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  variant: esp32p4
+  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz.
+  cpu_frequency: 360MHz
+  # The chips in these panels are pre-v3 ("chip revision: v1.3" in the boot log). ESP-IDF links a different
+  # memory layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two are NOT binary
+  # compatible: a firmware built with this flag does not boot on rev3 silicon, and the other way round.
+  # Checked on a real JC8012P4A1 (pull request #14); a panel that reports v3.0 or higher needs this set to false.
+  engineering_sample: true
+  # The main loop asks the C6 things over esp_hosted's RPC and waits for the answer: the Wi-Fi signal, the access
+  # point, the power save mode at standby and at wake, and at boot the whole setup of the Wi-Fi. Each such wait gives
+  # up after 5 seconds (DEFAULT_RPC_RSP_TIMEOUT in esp_hosted), and ESPHome's task watchdog gives up on the main loop
+  # after 5 seconds too, so under a busy SDIO link (two live camera tiles, a video going out) a slow answer restarted
+  # the screen instead of failing one call: a reTerminal D1001 ten minutes after boot with two streams just started, a
+  # Tab5 in the first minute of every boot with two streams starting, a Guition 10.1 with a live tile and the video
+  # (2026-10-24; the main loop's stack at the watchdog read wait_for_sync_response in esp_hosted's rpc_core.c,
+  # docs/REPORTS.md). The answer is not slow, it is lost: esp_hosted's SDIO reader frees a received block whole when
+  # its copy task still holds the previous one ("task still writing Rx data to queue!", espressif/esp-hosted-mcu
+  # #197), and an answer in that block never comes. With the watchdog at 20 seconds a lost answer is a failed call
+  # and the screen goes on; three of them in a row still fit. A screen whose main loop truly hangs restarts after
+  # 20 seconds instead of 5.
+  watchdog_timeout: 20s
+  framework:
+    advanced:
+      execute_from_psram: true
+    sdkconfig_options:
+      # The Wi-Fi co-processor's driver (esp_hosted): its own memory pool off and its task stack in PSRAM, so the
+      # memory inside the chip stays for LVGL and the panel; the extra thread-local slot is what that driver asks
+      # for. All three from the build that ran on the real board (pull request #14).
+      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
+      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
+      # Its transport buffers (every packet to and from the C6, and Bluetooth's HCI) in PSRAM, which the P4's SDIO DMA
+      # reaches (SOC_SDMMC_PSRAM_DMA_CAPABLE), internal RAM only when PSRAM has none: a received packet stays in its
+      # buffer until the reader of its connection has taken it, and in internal RAM two live tiles held enough of them to
+      # leave the next buffer without room (heap_watch on a reTerminal D1001, 2026-10-24).
+      CONFIG_ESP_HOSTED_MEMPOOL_PREFER_SPIRAM: "y"
+      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
+      # The compiler optimises for speed, not size (2026-10-28, docs/PLATFORM_PLAN.md 4.7): on the bench Guition 10.1
+      # with four live tiles the second core ran at 52 % instead of 63 and a live tile's picture was laid out in 26.5 ms
+      # instead of 32.1, for 889 KB more firmware (5.54 MB of the 8 MB update slot every P4 board has with its 16 or
+      # 32 MB of flash). Keep the app at 6.5 MB a slot at most: above that, first see what can go before size wins again.
+      CONFIG_COMPILER_OPTIMIZATION_PERF: "y"
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+# The Wi-Fi co-processor's own firmware, which flashing the P4 never changes ("ESP-Hosted 2.3.2 (host 2.12.12)",
+# components/smart_display/wifi_chip.h). The troubleshooting report reads it, so the reports tell which C6 firmwares
+# the screens run. The same file makes every restart of a P4 a reset of the whole chip: ESP-IDF's resets only the CPUs,
+# and the SDIO link to the C6 now and then came out of that stuck, the screen restarting until its power went off.
+text_sensor:
+  - platform: template
+    name: "Wi-Fi co-processor"
+    entity_category: diagnostic
+    lambda: 'return {wifi_chip::firmware()};'
+    update_interval: 60s
+  # The panel watch (glass.h, glass_dsi.cpp): the last minute in one line, "quiet, 3601 frames" when the panel never ran
+  # dry in it, or for example "2 flashes, 3 of 3601 frames dry; +12.3 s LVGL flushing, finger, 4 log; +40.1 s a
+  # stream, 0 log; 31 log lines; DSI host errors 0 (0x00000000)": who held the glass as each flash began, the finger,
+  # the log's lines in the second before. The screen sees each frame of blue itself, so a flash needs no eye on the glass, and Home
+  # Assistant's history of this sensor is the record (the log gets the same line, once a minute and only after a flash).
+  - platform: template
+    name: "Panel watch"
+    icon: "mdi:monitor-eye"
+    entity_category: diagnostic
+    lambda: 'return {glass::watch_said()};'
+    update_interval: 60s
+
+# How often the panel ran dry since boot (glass_dsi.cpp, "The panel's share of the memory bus"): each frame the DSI
+# bridge could not fetch the next pixels from PSRAM in time and the panel showed blue, over the whole glass or its
+# lower part. A tester who sees a flash reads here whether the screen counted it, and a graph of this number
+# beside the screen's activity says what brings them on. Every ten seconds, so a flash and its count are near in time.
+sensor:
+  - platform: template
+    name: "Panel misses"
+    icon: "mdi:monitor-off"
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    lambda: 'return glass::misses();'
+    update_interval: 10s
+
+esphome:
+  includes:
+    - <esphome/components/smart_display/glass.h>

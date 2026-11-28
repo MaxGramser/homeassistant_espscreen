@@ -26,7 +26,7 @@ from core import SCREENSAVER_MIN_FIRMWARE, media_extras, short, validate_layout 
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
-    import picture_links
+    import lan_address
     import picture_sources
     from server import Manager
 
@@ -371,11 +371,10 @@ class Picture(unittest.TestCase):
 
     def test_the_firmware_lays_its_words_by_the_same_rule(self):
         import picture_paint
-        header = (ROOT / 'components/smart_display/saver_view.h').read_text()
         self.assertEqual(picture_paint.SQUARE, (5, 4))
-        self.assertIn('width * 4 <= height * 5 && height * 4 <= width * 5', header)
         # The cover fills glass that is about square (picture_paint.fills against a square), and stands at the left of
-        # lying glass or at the top of standing glass.
+        # lying glass or at the top of standing glass. The firmware's saver_view::shape gives the same answer for these
+        # same boxes in tests/test_saver_view.cpp: change one side and that test, or the two lay a cover apart.
         for box, shape in (((480, 480), 'fill'), ((500, 400), 'fill'), ((501, 400), 'side'), ((400, 501), 'top'), ((1024, 600), 'side')):
             fills = picture_paint.fills(box, (1, 1))
             self.assertEqual('fill' if fills else 'side' if box[0] > box[1] else 'top', shape, box)
@@ -512,15 +511,15 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
 
             async def base_url(request, *args, **kwargs):
                 return 'http://addon:8098'
-            original = picture_links.base_url
-            picture_links.base_url = base_url
+            original = lan_address.base_url
+            lan_address.base_url = base_url
             try:
                 ha.changed.clear()
                 ha.request = None
                 screen['online'] = True
                 await m.answer_camera({'inbox': 'text.d1_tiles', 'saver': 'media', 'entity': PLAYER})
             finally:
-                picture_links.base_url = original
+                lan_address.base_url = original
             self.assertEqual(answers[-1]['u'], '')
             self.assertTrue(ha.changed.is_set(), 'a pass right away')
             self.assertTrue(m.snapshots.cover_broken(PLAYER))

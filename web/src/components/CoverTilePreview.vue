@@ -69,9 +69,9 @@ const icon = (name: string) => glyph(inv.inventory.icons?.controls?.[name] || ''
             <svg v-if="i === 1" class="slats" :viewBox="`0 0 ${layout.groups[i].control.w} ${layout.groups[i].control.h}`" preserveAspectRatio="none">
               <line v-for="(s, n) in slatsOf(layout.groups[i])" :key="n" :x1="s.x1" :y1="s.y1" :x2="s.x2" :y2="s.y2" :stroke-width="Math.max(3, mm(1) + 1)" />
             </svg>
-            <span v-if="i === 0" class="fill" :style="layout.groups[i].lying ? { width: `${value(0) ?? 0}%` } : { height: `${100 - (value(0) ?? 100)}%` }"></span>
-            <i class="handle" :style="i === 1 ? (layout.groups[i].lying ? { left: `${value(1) ?? 50}%` } : { bottom: `${value(1) ?? 50}%` })
-              : (layout.groups[i].lying ? { left: `${value(0) ?? 0}%` } : { top: `${100 - (value(0) ?? 100)}%` })"></i>
+            <span v-if="i === 0" class="fill" :style="layout.groups[i].lying ? { width: `${100 - (value(0) ?? 100)}%` } : { height: `${100 - (value(0) ?? 100)}%` }"></span>
+            <i class="handle" :style="i === 1 ? (layout.groups[i].lying ? { left: `${100 - (value(1) ?? 50)}%` } : { bottom: `${value(1) ?? 50}%` })
+              : (layout.groups[i].lying ? { left: `${100 - (value(0) ?? 100)}%` } : { top: `${100 - (value(0) ?? 100)}%` })"></i>
           </span>
         </template>
         <template v-else>

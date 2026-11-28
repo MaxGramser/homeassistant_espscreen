@@ -14,6 +14,25 @@ api:
     - action: ui_snapshot
       then:
         - script.execute: capture_ui_snapshot
+    # The panel's frame buffer instead (screen_diagnostics::glass_begin): a live picture written past LVGL shows too.
+    - action: glass_snapshot
+      then:
+        - lambda: screen_diagnostics::glass_begin();
+        - script.execute: send_snapshot_rows
+    # A burst: the frame buffer now and after each refresh that follows, at least `every` ms apart (count at most 8),
+    # kept in PSRAM until glass_send streams each copy (screen_diagnostics.h).
+    - action: glass_burst
+      variables:
+        count: int
+        every: int
+      then:
+        - lambda: screen_diagnostics::glass_burst(count, every);
+    - action: glass_send
+      variables:
+        n: int
+      then:
+        - lambda: screen_diagnostics::glass_send(n);
+        - script.execute: send_snapshot_rows
     # The Dock opened from afar (docs/MODULES.md), so a snapshot can show it: a finger is the only other way. A board
     # without the module does nothing.
     - action: ui_dock
@@ -28,8 +47,13 @@ script:
     mode: single
     then:
       - lambda: screen_diagnostics::snapshot_begin();
-      - repeat:
-          count: 240
+      - script.execute: send_snapshot_rows
+  - id: send_snapshot_rows
+    mode: single
+    then:
+      - while:
+          condition:
+            lambda: return screen_diagnostics::streaming();
           then:
             - lambda: screen_diagnostics::snapshot_next_row();
             - delay: 100ms

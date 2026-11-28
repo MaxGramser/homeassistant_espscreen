@@ -4,6 +4,10 @@
 domain: alarm_control_panel
 memory: {bytes: 160, extras: true}
 firmware: 0.3.3   # the first firmware that draws this type
+# After how many digits a code sends itself (`send_after`, a tile's choice in the editor, the first the default: never,
+# the OK key). Home Assistant never says how long a code is (an alarm panel reports only code_format), so only the
+# tile can; a code sent too early counts as a wrong one (docs/ALARM_PANEL.md).
+send_after: ['off', '4', '5', '6', '7', '8']
 displays:
   standard: {}
   watch: {}

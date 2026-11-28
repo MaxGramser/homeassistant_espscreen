@@ -81,8 +81,12 @@ only that screen:
 
 ```yaml
 substitutions:
-  TAB5_AUDIO_TRANSPORT: "i2s"
+  AUDIO_TRANSPORT: "i2s"
 ```
+
+`TAB5_AUDIO_TRANSPORT`, the old name, still works in firmware 0.58 and goes in the release after. Since firmware
+0.58 the plain I2S bus reads the microphones with the same ES7210 driver as the Waveshare P4 (`es7210_extended`, ALC
+off, 30 dB), where it had ESPHome's own `es7210` before.
 
 Keep the screen's own name, Wi-Fi settings and API/update keys. Plain I2S removes the AEC stack and its DSP libraries
 entirely. It has no Echo cancellation switch, so the editor shows that row as unavailable.

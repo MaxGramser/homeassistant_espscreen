@@ -1,0 +1,14 @@
+# ESP Screens - the ES8388, a codec whose DAC drives the speaker (a part: docs/PROFILES.md, "Parts"). The board declares
+# its I2C bus (AUDIO_I2C) and the DAC output its speaker hangs on (AUDIO_DAC_OUTPUT, LINE1 or LINE2): ESPHome's es8388
+# leaves both off as the chip starts, so the part turns the board's on at start. The DAC maps ESPHome's volume from
+# -96 dB at 0 to 0 dB at 1, half a decibel a step.
+substitutions:
+  AUDIO_DAC_DB_AT_0: "-96"
+  AUDIO_DAC_DB_AT_1: "0"
+  BOOT_SPEAKER_PART: |-
+    id(ts_audio_dac)->set_dac_output(es8388::DAC_OUTPUT_${AUDIO_DAC_OUTPUT});
+
+audio_dac:
+  - platform: es8388
+    id: ts_audio_dac
+    i2c_id: ${AUDIO_I2C}

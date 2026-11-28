@@ -255,9 +255,27 @@ export const useInventoryStore = defineStore("inventory", () => {
     }
   }
 
+  // ---- Video in Home Assistant (Settings): the tessera_video integration, which the add-on writes on request ----
+  async function installVideo() {
+    try {
+      inventory.value.video = await send("video", "POST");
+      ui.toast(t("editor.settings.video.installed"));
+    } catch (e: any) {
+      ui.toast(e.message);
+    }
+  }
+  async function restartForVideo() {
+    try {
+      await send("video/restart", "POST");
+      ui.toast(t("editor.settings.video.restarting"));
+    } catch (e: any) {
+      ui.toast(e.message);
+    }
+  }
+
   return {
     inventory, reachable, loaded, connected, tallerTilesEnabled, pluginsEnabled,
     ...lookups({ entityOf }),
-    persistVirtualScreens, createVirtualScreen, onArrival, refresh, applyLive, takeBuildServer, installClaudeSkill, start,
+    persistVirtualScreens, createVirtualScreen, onArrival, refresh, applyLive, takeBuildServer, installClaudeSkill, installVideo, restartForVideo, start,
   };
 });

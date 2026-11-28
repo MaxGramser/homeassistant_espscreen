@@ -5,8 +5,8 @@ font of a board profile gets exactly those glyphs (the first font carries the
 list as a YAML anchor, the smaller sizes reuse it); the big font of the full-page
 card (id ending in _big) gets tile_icons.BIG_GLYPHS as its own anchor, and the editor gets a subset
 of the same TTF so its mockup shows the glyphs the screen draws. The top bar
-mockup also gets Roboto 400/500 with the glyphs of header_bar.GLYPHS, so text
-widths in the editor match the screen. The fonts live in packages/core.yaml, shared by every board;
+mockup and its cards also get Roboto 400/500/700 with the glyphs of header_bar.GLYPHS, so text
+widths in the editor match the screen (a card's name is the bold 700, packages/core.yaml `label`). The fonts live in packages/core.yaml, shared by every board;
 --check changes nothing and fails when anything is out of date.
 """
 import argparse
@@ -27,11 +27,18 @@ import tile_icons  # noqa: E402
 TTF = ROOT / 'fonts/materialdesignicons-webfont.ttf'
 PROFILES = [ROOT / 'packages/core.yaml']  # the fonts every board shares (app 0.2.84+); the sizes are the boards' substitutions
 WEB_FONT = ROOT / 'web/src/assets/tile-icons.woff'
-BAR_FONTS = {weight: ROOT / f'web/src/assets/bar-roboto-{weight}.woff' for weight in (400, 500)}
+BAR_FONTS = {weight: ROOT / f'web/src/assets/bar-roboto-{weight}.woff' for weight in (400, 500, 700)}
 NAME_TABLE = ROOT / 'components/smart_display/tile_icon_names.h'
+# Each tile glyph's ink in font units (app 0.4.90): the mockup steps a card's icon down to the mini font where its ink
+# does not fit its circle, as runtime_tiles center_icon measures the glyph's box on the glass.
+INK = ROOT / 'web/src/model/icon-ink.json'
 # Glyphs only the editor draws: its own controls (web/src/model/ui-icons.json, app 0.3.19), such as the board icon in the
 # screens list and the keys of the toolbar, menus and inspector. The firmware's fonts leave them out.
 UI_ICONS = ROOT / 'web/src/model/ui-icons.json'
+# Every icon of the font, for the icons a screen takes on top of the set (docs/ICONS.md): the add-on's table of them and
+# the editor's font to draw them in, which a browser fetches only for an icon the set's own font lacks.
+MDI_TABLE = ROOT / 'screen_manager/app/mdi_icons.json'
+MDI_FONT = ROOT / 'web/src/assets/mdi-all.woff'
 WEB_EXTRA = {name: code for name, code in json.loads(UI_ICONS.read_text()).items() if not name.startswith('_')}
 # Four bits per pixel: the default of one draws a thin ring like mdi:power as a lumpy circle on the CYD.
 FONT_BLOCK = re.compile(r"(  - file: \"\$\{FONT_DIR\}/materialdesignicons-webfont\.ttf\"\n    id: \w+\n    size: [^\n]+\n    bpp: \$\{FONT_ICON_BPP\}\n)    glyphs:.*\n(?:      .*\n)*")
@@ -122,13 +129,64 @@ def web_font():
     font.save(buffer)
     return buffer.getvalue()
 
+def ink_table():
+    """{'upm': units per em, 'F0335': [xMin, yMin, xMax, yMax], ...} for every tile glyph, in font units."""
+    font = TTFont(TTF)
+    glyf, cmap = font['glyf'], font.getBestCmap()
+    table = {'upm': font['head'].unitsPerEm}
+    for code in sorted({code.upper() for code in tile_icons.GLYPHS.values()}):
+        glyph = glyf[cmap[int(code, 16)]]
+        glyph.recalcBounds(glyf)
+        table[code] = [getattr(glyph, key, 0) for key in ('xMin', 'yMin', 'xMax', 'yMax')]
+    return json.dumps(table, separators=(',', ':')) + '\n'
+
+def every_icon():
+    """{name: codepoint} of every icon in the font, a name's lowest codepoint where it has more."""
+    found = {}
+    for code, name in TTFont(TTF).getBestCmap().items():
+        if 0xF0000 <= code <= 0xFFFFD and code < found.get(name, 0x110000):
+            found[name] = code
+    return found
+
+def mdi_table():
+    """{'upm': units per em, 'icons': {name: ['F0335', xMin, yMin, xMax, yMax]}}, sorted by name."""
+    font = TTFont(TTF)
+    glyf = font['glyf']
+    icons = {}
+    for name, code in sorted(every_icon().items()):
+        glyph = glyf[name]
+        glyph.recalcBounds(glyf)
+        icons[name] = [f'{code:05X}'] + [getattr(glyph, key, 0) for key in ('xMin', 'yMin', 'xMax', 'yMax')]
+    return json.dumps({'upm': font['head'].unitsPerEm, 'icons': icons}, separators=(',', ':')) + '\n'
+
+def mdi_font():
+    """The whole icon font for the editor."""
+    font = TTFont(TTF)
+    options = subset.Options()
+    options.flavor = 'woff'
+    options.layout_features = []
+    options.name_IDs = []
+    options.notdef_outline = False
+    subsetter = subset.Subsetter(options)
+    subsetter.populate(unicodes=list(every_icon().values()))
+    subsetter.subset(font)
+    glyf, hmtx = font['glyf'], font['hmtx']
+    for name in font.getGlyphOrder():
+        glyph = glyf[name]
+        glyph.recalcBounds(glyf)
+        hmtx[name] = (hmtx[name][0], getattr(glyph, 'xMin', 0))
+    buffer = io.BytesIO()
+    font.flavor = 'woff'
+    font.save(buffer)
+    return buffer.getvalue()
+
 def bar_codepoints(weight):
     """The characters of header_bar.GLYPHS that Roboto has: the hearts come from another font on the screens
     (packages/core.yaml), and the browser draws them from its own."""
     return {ord(char) for char in header_bar.GLYPHS} & set(TTFont(ROOT / f'fonts/Roboto-{weight}.ttf').getBestCmap())
 
 def bar_font(weight):
-    """Roboto subset for the editor's top bar mockup: the glyphs and metrics the screens draw."""
+    """Roboto subset for the editor's mockup (its top bar and cards): the glyphs and metrics the screens draw."""
     font = TTFont(ROOT / f'fonts/Roboto-{weight}.ttf')
     options = subset.Options()
     options.flavor = 'woff'
@@ -155,6 +213,10 @@ def main():
             path.write_text(expected)
     if args.check:
         if not NAME_TABLE.exists() or NAME_TABLE.read_text() != name_table(): raise SystemExit(f'Outdated: {NAME_TABLE.name}')
+        if not INK.exists() or INK.read_text() != ink_table(): raise SystemExit(f'Outdated: {INK.name}')
+        if not MDI_TABLE.exists() or MDI_TABLE.read_text() != mdi_table(): raise SystemExit(f'Outdated: {MDI_TABLE.name}')
+        if not MDI_FONT.exists() or set(TTFont(MDI_FONT).getBestCmap()) != set(every_icon().values()):
+            raise SystemExit(f'Outdated: {MDI_FONT.name}')
         # Compare glyph coverage, not bytes: font output differs between fontTools versions.
         wanted = {int(code, 16) for code in {**tile_icons.GLYPHS, **WEB_EXTRA}.values()}
         if not WEB_FONT.exists() or set(TTFont(WEB_FONT).getBestCmap()) != wanted:
@@ -164,6 +226,9 @@ def main():
                 raise SystemExit(f'Outdated: {path.name}')
     else:
         NAME_TABLE.write_text(name_table())
+        INK.write_text(ink_table())
+        MDI_TABLE.write_text(mdi_table())
+        MDI_FONT.write_bytes(mdi_font())
         WEB_FONT.write_bytes(web_font())
         for weight, path in BAR_FONTS.items():
             path.write_bytes(bar_font(weight))

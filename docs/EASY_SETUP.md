@@ -17,6 +17,7 @@ ESPHome Device Builder is optional:
 | CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
+| Waveshare, 4.3 inch 4.3C (experimental) | ESP32-S3-Touch-LCD-4.3C (not the 4.3), 800×480, ST7262 and GT911, CH32V003 expander ([details](WAVESHARE43C.md)) |
 | Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Guition, 5 inch (experimental) | JC8048W550C_I (the capacitive variant only), 800×480, ST7262 RGB and GT911 ([details](JC8048W550.md)) |
 | Waveshare, 7 inch (experimental) | ESP32-S3-Touch-LCD-7, 800×480, RGB and GT911 |
@@ -35,6 +36,7 @@ ESPHome Device Builder is optional:
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
 | Waveshare P4, 10.1 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-10.1, 1280×800, JD9365 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHARE101.md)) |
+| Waveshare P4, 10.1 inch V3 (new) | ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 ESP32-P4 silicon ("chip revision: v3" in the USB log), 1280×800, JD9365 MIPI-DSI and GT911 ([details](WAVESHARE101.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
@@ -88,7 +90,9 @@ Use the GitHub version for updates; a local test add-on is a separate app.
    the screen uses them automatically. If they're missing, or the file doesn't
    exist yet, the Set up step asks for them once and Tessera only adds the
    missing lines to `secrets.yaml`; comments and other secrets are left
-   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first.
+   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes its keys
+   from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
+   included file counts, and a key of the file's own wins.
 4. **Install**: choose **USB on Home Assistant** (the port it found has a green light) and click
    **Install**. Tessera stores the profile (`kitchen.yaml`, with unique
    API and OTA keys) in the ESPHome folder, builds the firmware, and writes it
@@ -186,6 +190,16 @@ reads. That is every screen made with **New screen**, and a screen of your own w
 ESPHome folder (`/config/esphome`, the folder ESPHome Device Builder uses too; with [Docker](DOCKER.md), the folder
 you mounted as the ESPHome folder).
 
+Home Assistant keeps one ESPHome device per board, keyed on the board's MAC address. A board that is already a screen
+in Home Assistant cannot be added again under a new name: flashed with a new profile, it would wait for Home Assistant
+for ever. Installing from this browser, **New screen** reads the board's MAC before it builds and, when Home Assistant
+has that board already, names the screen it is and offers to install that screen again or to replace it (app 0.4.96).
+Replacing writes the new firmware first; then the old screen goes the way Remove takes it (out of Home Assistant with
+its entities, its YAML out of the ESPHome folder, everything Tessera kept for it; app 0.4.97), and the new screen
+pairs by itself. Over the other ways (USB on the Home Assistant machine, a
+file) the board's MAC is not known before the build: remove the old device under **Settings → Devices & services →
+ESPHome** yourself, and the new screen pairs.
+
 ### Adding a screen by hand
 
 A screen whose YAML lives somewhere else (built with the ESPHome CLI on your own computer, with an ESPHome Device
@@ -276,7 +290,9 @@ Click **Save & send** to send your changes.
   Assistant (its conditions are skipped). Under **On tap**, **Run automation actions** swaps the two: a tap runs it and holding the
   tile turns it on or off. The tile then looks like a script's button, coloured while the actions run (firmware 0.7.0+).
 - Remote: tap for its card with the power key and, where the remote has them, its activities, or for an Apple TV,
-  Android TV, Roku and others a keypad with arrows, OK, Back, Home and the volume (firmware 0.22.0+). For
+  Android TV, Roku and others a keypad with arrows, OK, Back, Home and the volume (firmware 0.22.0+). A remote
+  that reports no state ("unknown", as Home Assistant's Android TV integration over ADB does) keeps its keys;
+  only an unavailable one is switched off. For
   a key such as Play or Menu, add the remote again with **On tap** set to **Perform action** and **Send command**, and
   pick the command from the list under the field (Android TV, Apple TV, Roku and others) or type it as Home Assistant
   knows it (Harmony, Broadlink).
@@ -397,7 +413,7 @@ that screen and says where it is set.
 | `GRID_MAX_COLUMNS`, `GRID_MAX_ROWS` | every board | the most columns and rows the editor offers lying down (`GRID_MAX_COLUMNS_PORTRAIT` and `GRID_MAX_ROWS_PORTRAIT` standing up), at most `8`; worked out from the glass (docs/RESPONSIVE.md, "The grid a screen is given") |
 | `GRID_MIN_COLUMNS`, `GRID_MIN_ROWS` | every board | the fewest columns and rows the editor offers (`1`) |
 | `GRID_CELL_MIN_W_MM`, `GRID_CELL_MIN_H_MM` | every board | the smallest cell the range is worked out from, in millimetres (`20` x `8` on the standard look, `15` x `6.5` on the compact one) |
-| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`) |
+| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150 Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`). On the 4-inch Guition the **Backlight PWM** extra under Screen settings changes it without a build (150 Hz, 15 kHz or 20 kHz, kept over a restart), beside **Dimmest level** for a backlight that stays black or flickers at 1 % |
 
 The parts an override names stay the same on every board and in every update:
 `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm`
@@ -524,6 +540,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Also on standby | Standby goes back to the Home page too (it always closes an open card) | Off |
 | Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On for a screen set up with New screen, off for one set up before |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
+| Loop pages | On: past the last page comes the first, and before the first the last. Off: the pages stop at their ends | On |
 | Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |
 

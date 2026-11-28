@@ -4,6 +4,9 @@
 
 using namespace optimistic;
 
+// Home Assistant's frontend (ha-entity-toggle.ts) puts a toggle back two seconds after the call returned unchanged.
+static_assert(TAP_HOLD == 2000, "TAP_HOLD is ha-entity-toggle.ts's two seconds");
+
 // A choice tapped, as wish() does it (it sends at once with a tick).
 static void tap(Wish &w, const char *entity, Field field, const std::string &shown, const std::string &value, uint32_t now) {
   want(w, entity, entity, field, shown, value, now);

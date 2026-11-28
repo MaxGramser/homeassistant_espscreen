@@ -6,12 +6,24 @@ from pathlib import Path
 import re
 import sys
 
+def module_sources(root):
+    """The source files of the modules the preview is built with (modules.py's `preview` column), as build.py takes them."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("smart_display_modules", root / "components/smart_display/modules.py")
+    modules = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modules)
+    return [path for name in modules.preview_modules()
+            for path in [root / f"components/smart_display/module_{name}.cpp"] if path.is_file()]
+
+
 root = Path(next((arg for arg in sys.argv[1:] if not arg.startswith('--')), Path(__file__).resolve().parents[2])).resolve()
 files = [root / "components/smart_display/runtime_tiles.h", root / "components/smart_display/renderer_host_api.h",
          root / "components/smart_display/page_receiver.cpp", root / "components/smart_display/media_library.cpp",
+         root / "components/smart_display/tile_panel.cpp",
          root / "components/smart_display/energy_view.cpp",
          root / "components/smart_display/calendar_view.cpp",
          root / "components/smart_display/meter_view.cpp",
+         *module_sources(root),
          root / "components/smart_display/plugin_host.cpp",
          root / "components/smart_display/screen_hooks.cpp"]
 seen = set()
