@@ -251,7 +251,7 @@ brightness of 0 (`components/smart_display/screen_power.h`). Two seconds after t
 
 A touch on the dark glass resumes drawing at once and wakes the screen as before; the light fades in over 200 ms. A
 standby or night brightness above 0 keeps the screen drawing, since its glass still shows something. The log says
-when the saving starts (`dark: saving`) and stops (`awake`), under the tag `power`.
+when the saving starts (`at rest: saving`) and stops (`awake`), under the tag `power`.
 
 A screen whose glass is e-paper has no dark: its standby is rest, with the page still on the glass (docs/PAPER.md,
 "Standby is rest"). Its Wi-Fi dozes at rest in the same way, and its drawing does not pause, so the page keeps
