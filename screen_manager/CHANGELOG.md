@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The library and the inspector are panes of their own.** On a wide page a screen's page, the library under it and the inspector beside it are now three cards on the same ground as the sidebar, each with its own rounded corners, as the windows of macOS have their content, sidebar and inspector.
+
 - **The library shows many tiles at once.** Every entity now stands on the library's shelf as one tile, at the size that suits it best: a light as a row of two with its slider, a media player with its cover, a switch as one cell. The tiles stand close together as on a page of the screen, so a low library shows many instead of one. Point at a tile and a card opens with all its sizes; click or drag the one you want. The switch at the top right also shows everything at 1 x 1, 2 x 1 or 2 x 2, or as the list.
 
 - **The editor is one window: the sidebar and the page as a card.** On a wide page the sidebar no longer stands apart behind a line. It lies on the same ground as the rest and the page is a rounded card in it, so there is more calm and the page reads as the thing you work on. In the sidebar, Overview, Plugins and Events now stand at the top, with the tiles that ask for a look between them while there are any; the manual and the settings stay at the foot, and search is a key beside the logo (still ⌘K). Every screen has a small picture of its own glass with the tiles of its home page, so you tell your screens apart at a glance, also when the sidebar is folded to its icons; a screen that is away is a dark glass.

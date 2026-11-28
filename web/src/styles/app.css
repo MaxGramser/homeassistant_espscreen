@@ -370,6 +370,23 @@ a:hover { text-decoration: underline; }
 
 /* Body: the pages with the library drawer under them, and the inspector in a column of its own on the right while
    something is selected (app 0.4.32). Nothing lies over anything else. */
+/* A screen's page is three panes on the app's ground (docs/PAGES.md, "The panes"), the way a window of macOS has its
+   sidebar, its content and its inspector as planes of their own: the page (its head and what the tab shows), the library
+   under it, and the inspector beside both, from the top of the window to its bottom. On a wide page each is a rounded
+   card with the ground between them, and the card the app gives every page (.main) steps back. A narrow page keeps the
+   three flush, with the lines they had; a phone has the library and the inspector as sheets, so there the wrappers are
+   not boxes at all. A margin, not a gap, keeps the panes apart: a pane that is not there leaves no room behind. */
+.screen-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto; }
+.pane { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.library-dock { grid-area: 2 / 1; min-width: 0; }
+.screen-shell > .drawer { grid-area: 1 / 2 / 3 / 3; }
+.app.phone .screen-shell, .app.phone .pane, .app.phone .library-dock { display: contents; }
+@media (min-width: 961px) {
+  .app:not(.phone) > .main:has(> .screen-shell) { border: 0; border-radius: 0; background: transparent; overflow: visible; }
+  .app:not(.phone) .pane { border: 1px solid var(--line); border-radius: 12px; background: var(--ground); overflow: auto; }
+  .app:not(.phone) .library-dock > .library { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; }
+  .app:not(.phone) .screen-shell > .drawer { margin-left: 8px; border: 1px solid var(--line); border-radius: 12px; }
+}
 .body { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; flex: 1; min-height: 0; overflow: hidden; }
 .work { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .work > .settings { flex: 1; min-height: 0; overflow: auto; }

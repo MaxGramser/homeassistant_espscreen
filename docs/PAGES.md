@@ -29,6 +29,24 @@ A screen's page says what matters in one look, in two rows with one job each (`S
 A phone keeps its own head and dock (app 0.4.40): the line under the screen's name says its state, and the dock holds
 Add tile and Save & send.
 
+### The panes
+
+A screen's page is three panes on the app's ground, the way a window of macOS has its sidebar, its content and its
+inspector as planes of their own (`ScreenView.vue`, `.screen-shell` in `web/src/styles/app.css`):
+
+- **The page**: the head and what the tab shows, a rounded card.
+- **The library**: a card of its own under the page, with the ground between them. `LayoutView.vue` owns it and moves it
+  into the screen's dock (`#library-dock`, a deferred Teleport), so it is no part of the page's card; mounted by
+  itself, as in a test, it stays where it is written.
+- **The inspector**: a card of its own beside both, from the top of the window to its bottom, there only while
+  something is selected.
+
+The card the app gives every other page (`.main`) steps back on a screen's page, so the three stand directly on the
+ground beside the sidebar. A margin keeps them apart, never a gap of the grid: a pane that is not there leaves no room
+behind. A narrow page keeps the three flush with the lines they had, and on a phone the library and the inspector are
+sheets, so there the wrappers are no boxes at all (`display: contents`). A new pane of a screen's page goes in the
+shell's grid as a card of its own, never inside the page's card.
+
 **Row** is the default: the pages side by side, as you swipe through them on the screen. Drag entities from the library onto the page grid, or select an empty cell and add an entity. Each page has a header with its number, its title, a **Home** label on the Home page and one **···** menu: **Page settings**, **Edit top bar**, **Set as Home**, **Duplicate page**, **New empty page with this top bar** and **Remove page**. Page settings hold the page title (the screen title, which every page without its own title shows, is one click under it), **Set as Home**, **Show in page dots and swipe navigation**, **Show a Home control on this page**, the page order and the page's top bar. Every page can have different top-bar items. Copying a bar creates independent items on the chosen pages.
 
 The library lists everything a tile can show: the rows come as the list is scrolled (`libraryWindow` in `web/src/model/library.ts`), and a room's number is the whole room's. A search (`web/src/model/search.ts`) takes each word on its own, in any order, in the name, the entity id, the device, the room or what the entity is: its kind in the editor's language and its device class in Home Assistant's words (`kind_words` in `core.py`). Case, accents and whether words are joined by a space, a dash or an underscore make no difference, and a match in the name stands first.

@@ -3,7 +3,7 @@
 // and the one filled key, Save & send, while something is unsaved; under it the tab's view and the inspector in a column
 // on the right (docs/PAGES.md, "The head and the toolbar").
 import { useEventListener, useFileDialog } from "@vueuse/core";
-import { computed, ref, watch } from "vue";
+import { computed, provide, ref, watch } from "vue";
 import { t } from "../i18n";
 import { needsUpdate, restarting, restartingText } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
@@ -38,6 +38,8 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
+// The library stands in a pane of its own under the page: LayoutView.vue moves it into this view's dock.
+provide("libraryDock", true);
 // A part of the Settings tab is in the address (`?settings=<part>`): an address with one opens the tab, and leaving the
 // tab takes the part out of the address again, in place, so Back does not walk through it.
 watch(() => ui.screenSettingsPart, (part) => { if (part) ui.tab = "settings"; }, { immediate: true });
@@ -161,6 +163,10 @@ useEventListener(document, "keydown", onKey);
 </script>
 
 <template>
+  <!-- Three panes on the app's ground (docs/PAGES.md, "The panes"): the page, the library under it (LayoutView.vue puts
+       it in its dock) and the inspector beside both. -->
+  <div class="screen-shell">
+  <section class="pane">
   <header class="main-head">
     <span v-if="ui.phone" class="phone-lead">
       <button type="button" class="icon-btn phone-menu-key" id="phone-menu" :aria-label="t('editor.phone.menu')" @click="ui.sideOpen = true"><Icon name="menu" /></button>
@@ -250,7 +256,10 @@ useEventListener(document, "keydown", onKey);
       <SettingsTab v-else-if="ui.tab === 'settings'" />
       <ScreenPluginsTab v-else />
     </div>
-    <Drawer />
+  </div>
+  </section>
+  <div class="library-dock" id="library-dock"></div>
+  <Drawer />
   </div>
   <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. Layoutbot's key
        stands before it (docs/LAYOUTBOT.md). -->

@@ -4,7 +4,7 @@
 // right. One toolbar above both views (docs/PAGES.md, "The head and the toolbar"): Add, undo and redo, the preview, and
 // on the right the view and the how-to.
 import { useElementSize, useSwipe } from "@vueuse/core";
-import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch, watchEffect } from "vue";
 import { useAtMost } from "../composables/useWidths";
 import { useBandSelect } from "../composables/useBandSelect";
 import { modifierKey, shortcut } from "../editor/clipboard";
@@ -41,6 +41,7 @@ import LayoutBot from "./LayoutBot.vue";
 import GlassFaces from "./GlassFaces.vue";
 
 const ui = useUiStore();
+const docked = inject("libraryDock", false);
 const builds = useBuildsStore();
 const scr = useScreenStore();
 const dragging = useDragStore();
@@ -284,7 +285,9 @@ function onCanvasClick(e: MouseEvent) {
     </template>
   </div>
   <Teleport to="body"><div v-if="band" class="select-band" :style="{ left: `${band.left}px`, top: `${band.top}px`, width: `${band.width}px`, height: `${band.height}px` }"></div></Teleport>
-  <Library v-if="doc.layout" />
+  <!-- Under a screen's page the library is a pane of its own (ScreenView.vue's dock, docs/PAGES.md "The panes"); mounted
+       by itself, as in a test, it stays where it is written. -->
+  <Teleport defer to="#library-dock" :disabled="!docked"><Library v-if="doc.layout" /></Teleport>
   <GrowTip v-if="!ui.previewOpen" />
   <LookTip v-if="!ui.previewOpen" />
   <!-- Layoutbot (docs/LAYOUTBOT.md): on every page width; on a phone its key stands in the dock (ScreenView.vue). -->
