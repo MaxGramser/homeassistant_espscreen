@@ -107,7 +107,7 @@ function offersOf(tile: Tile): Map<string, Offer> {
   }
 
   // ---- Its icon and its colour ----
-  if (Boolean(inv.inventory.icons) && (domain !== "screen" || goesTo > 0) && !["forecast", "sunpath"].includes(display))
+  if (Boolean(inv.inventory.icons) && (domain !== "screen" || goesTo > 0) && !["forecast", "hourly", "sunpath"].includes(display))
     add("icon", { section: "style", kind: "icon", label: t("editor.icon.label"), icon: "tablet-dashboard", choices: [], value: String(option("icon", "auto")), write: set("icon") });
   const backgrounds = Object.entries(inv.inventory.backgrounds || {}).map(([key, choice]) => [key, choice.label] as [string, string]);
   if (backgrounds.length)

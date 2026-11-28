@@ -202,6 +202,12 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   no tier, the tile keeps the older forms of `forecast_tile.h`. The columns are the forecast's own days: a list that
   starts tomorrow (Buienradar in the evening) counts the line's hours from tomorrow's midnight
   (`first_day_from_today`, GitHub #280), so today's hours never stand under tomorrow's column.
+- A weather tile set to the next hours (display `hourly`, for an entity with Home Assistant's hourly forecast) keeps
+  the same head and draws the card's Hourly view under it where `weather_chart::hours_fit` holds: the curve, the
+  rain per hour and the time axis. Where it does not (a card of one row), the hours become columns
+  (`weather_week::hour_columns`): from the running hour, each with its time, its icon and its temperature alone, in
+  the week's form of one line only (`plan(..., one_line)`). A card too low even for that (the CYD's double card) takes
+  the forms of `forecast_tile.h` with the same columns and no pill. The card a tap opens starts on Hourly.
 - A thermostat tile of more than one row (`climate_tile.h`) has two groups: the number between - and +, and a
   bar with one segment per mode. Off is not on the bar; the tile's circle switches the thermostat on and off.
   With room the number stands large with the bar under it; otherwise the stepper and the bar share one row, or

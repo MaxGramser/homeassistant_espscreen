@@ -2542,6 +2542,19 @@
       ]
      },
      "wide": true
+    },
+    {
+     "key": "hourly",
+     "needs": {
+      "features": [
+       "FORECAST_HOURLY"
+      ]
+     },
+     "screen": {
+      "feature": "weather_hours",
+      "else": "forecast"
+     },
+     "wide": true
     }
    ],
    "controls": [],

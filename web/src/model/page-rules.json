@@ -163,11 +163,13 @@
     "weather": [
       "standard",
       "watch",
-      "forecast"
+      "forecast",
+      "hourly"
     ]
   },
   "wideOnly": [
     "forecast",
+    "hourly",
     "sunpath"
   ],
   "controls": {

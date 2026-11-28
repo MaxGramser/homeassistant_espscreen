@@ -143,7 +143,8 @@ inline const std::array<std::array<int, Widths::KINDS>, DAYS> &Widths::at(int le
       auto &x = w[level][k];
       x[Widths::NAME_W] = m.width(level, NAME, d.name);
       x[Widths::HIGH_W] = m.width(level, HIGH, degrees(d.high));
-      x[Widths::LOW_W] = m.width(level, LOW, degrees(d.low));
+      // A column without a low (an hour of the next hours) gives its high the whole line.
+      x[Widths::LOW_W] = std::isfinite(d.low) ? m.width(level, LOW, degrees(d.low)) : 0;
       x[Widths::AMOUNT_W] = wet(d.mm, unit) ? m.width(level, RAIN, amount(d.mm, unit)) : 0;
       const std::string words = rain_words(d, unit);
       x[Widths::WORDS_W] = words.empty() ? 0 : m.width(level, RAIN, words);
@@ -157,7 +158,7 @@ inline int column_need(const Metrics &m, Widths &t, int cols, int tier, int leve
   for (int k = 0; k < cols; ++k) {
     const auto &x = row[k];
     w = std::max({w, x[Widths::NAME_W], x[Widths::HIGH_W], x[Widths::LOW_W]});
-    if (tier == 0) w = std::max(w, x[Widths::HIGH_W] + pair_gap(level) + x[Widths::LOW_W]);
+    if (tier == 0) w = std::max(w, x[Widths::HIGH_W] + (x[Widths::LOW_W] ? pair_gap(level) + x[Widths::LOW_W] : 0));
     if (tier >= 3) w = std::max(w, x[Widths::AMOUNT_W]);
     if (tier < 3) w = std::max(w, x[Widths::WORDS_W]);
   }
@@ -167,7 +168,9 @@ inline int column_need(const Metrics &m, const std::vector<Day> &days, int cols,
   Widths t = measure(m, days, unit);
   return column_need(m, t, cols, tier, level);
 }
-inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::string &unit, int width, int height) {
+// one_line: the columns are hours (hour_columns), so only the form of one line fits them: the rows and the line through
+// the week below it count in days.
+inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::string &unit, int width, int height, bool one_line = false) {
   int cols = std::min<int>(DAYS, days.size());
   if (cols < 2) return {};
   const int all = cols;  // a card of one row may hold more narrow columns than the tiers above
@@ -203,6 +206,7 @@ inline Plan plan(const Metrics &m, const std::vector<Day> &days, const std::stri
     if (st.tier >= 3 && !rain && !chance) continue;  // a dry week has no rain row to show
     if (st.tier == 4 && !chance) continue;
     if (st.words && !says) continue;
+    if (one_line && st.tier) continue;
     if (st.tier == 0) {
       const Plan p = one_row(st.words);
       if (p.ok()) return p;
@@ -259,6 +263,25 @@ inline Place place(const Metrics &m, const Plan &p, int height) {
   if (p.words) y += h[RAIN];
   r.bottom = y + w.pp;
   return r;
+}
+
+// ---- the next hours as columns ---------------------------------------------------------------------------------------
+// A weather tile set to the next hours (display hourly) on a card too low for their curve: a column per hour from the
+// running one, as Home Assistant's own hourly forecast lists them, each with its time ("15:00", the hour axis's
+// words), its condition and its temperature as the high, with no low. The chance of rain is left out: an hour has its
+// amount, which the one-line form says on a wet hour (rain_words).
+inline std::vector<Day> hour_columns(const std::vector<Hour> &hours, int now, int most = DAYS) {
+  std::vector<Day> out;
+  for (const Hour &h : hours) {
+    if (h.at < now) continue;
+    if ((int) out.size() == most) break;
+    Day d;
+    char b[12];
+    snprintf(b, sizeof(b), "%02d:00", ((h.at % 24) + 24) % 24);
+    d.name = b; d.condition = h.condition; d.high = h.temp; d.mm = h.mm;
+    out.push_back(d);
+  }
+  return out;
 }
 
 // ---- the temperature through the week ------------------------------------------------------------------------------

@@ -38,6 +38,8 @@ export const controlParts = (domain: string, key: string | null | undefined): st
   !key || key === "none" ? [] : controlOption(domain, key)?.of ?? [key];
 export const controlOption = (domain: string, key: string | null | undefined) => TYPES[domain]?.controls.find((item) => item.key === key);
 export const displayOption = (domain: string, key: string | null | undefined) => TYPES[domain]?.displays.find((item) => item.key === key);
+/** A display that needs a card of two columns or more (`wide`: a forecast by day or by hour, the sun's path). */
+export const wideDisplay = (domain: string, key: unknown) => Boolean(displayOption(domain, typeof key === "string" ? key : null)?.wide);
 /** Home Assistant's feature bits of a type by their names (catalogue/_ha.json, from its source), joined. */
 export const bits = (domain: string, ...names: string[]) => names.reduce((sum, name) => sum | (TYPES[domain]?.features[name] ?? 0), 0);
 

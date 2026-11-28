@@ -5,6 +5,7 @@
 import { t } from "../i18n";
 import { askConfirm } from "../composables/useConfirm";
 import { dimensions, effectiveControls, entriesOf, isFull, isWide, newTile, pageTarget, sizeOf, type Size } from "../model/layout";
+import { wideDisplay } from "../model/catalogue";
 import { memoryCrossing } from "../model/memory";
 import { suggestedPageTitle } from "../model/page-naming";
 import { validateCardOptions } from "../model/page-validation";
@@ -218,7 +219,7 @@ export function tileSizeChoices(tile: Tile): Size[] {
   const choices: Size[] = ["single", "wide"];
   const said = screenSizes();
   // A forecast or the sun's path needs width: nothing one column wide and taller than a row.
-  const narrow = ["forecast", "sunpath"].includes(String(tile.options?.display));
+  const narrow = wideDisplay(tile.entity.split(".")[0], tile.options?.display);
   if (taller) for (const size of ["tall", "square"] as const) {
     if (!said.includes(size) || grid.rows < 2 || (size === "square" && grid.columns < 2)) continue;
     if (size === "tall" && narrow) continue;
@@ -328,7 +329,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   const domain = tile.entity.split(".")[0], caps = useEntitiesStore().capabilities[tile.entity], wasSize = sizeOf(tile);
   // Beyond single, wide and the whole page, a size is one the screen said it takes (tall and square 0.3.1, spans 0.19.0).
   if (key === "size" && !["single", "wide", "full"].includes(String(value)) && ((isTallSize(value) && !inv.tallerTilesEnabled) || !screenSizes().includes(String(value)))) return;
-  if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && ["forecast", "sunpath"].includes(String(tile.options?.display))) return;
+  if (key === "size" && isTallSize(value) && sizeColumns(value) === 1 && wideDisplay(domain, tile.options?.display)) return;
   // Perform action is a choice with a second step (app 0.4.0, GitHub #47): nothing is stored until an action is chosen,
   // which comes here as `action` and brings the tap choice with it.
   if (key === "tap" && value === "action" && !tile.options?.action) return;
@@ -337,7 +338,7 @@ export function setTileOption(tile: Tile, key: string, value: unknown, field?: s
   tile.options = coupledOptions(tile.options, key, value, Boolean(inv.inventory.controls?.[domain]));
   if (key === "size" && isTallSize(value) && dimensions(wasSize, grid).rows === 1 && !("controls" in tile.options))
     tile.options.controls = previousControls || "none";
-  if (key === "display" && ["forecast", "sunpath"].includes(value as string) && !isWide(tile)) tile.options.size = "wide";
+  if (key === "display" && wideDisplay(domain, value) && !isWide(tile)) tile.options.size = "wide";
   // A card that becomes wide gets the first direct control Home Assistant offers when the usual one isn't there.
   const catalogue = inv.inventory.controls?.[domain];
   if (key === "size" && value !== "full" && sizeColumns(value) > 1 && caps && catalogue && !("controls" in tile.options) && !caps.controls.includes(catalogue.default))

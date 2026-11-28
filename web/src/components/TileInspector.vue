@@ -213,7 +213,7 @@ const showSlider = computed(() => sliderOffered(props.tile, panel.value));
 const sliderWarn = computed(() => inline.value === "slider" && caps.value && !caps.value.inline);
 const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {}));
 const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
-const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
+const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "hourly", "sunpath"].includes(display.value));
 // The way up in the head: the page the tile stands on opens that page's settings.
 const pageId = computed(() => doc.document?.pages.find((page) => allTiles(page).some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [

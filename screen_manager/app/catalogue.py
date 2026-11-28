@@ -281,12 +281,23 @@ def drawable(domain, key, attributes, features):
     return key
 
 
+def drawn_display(domain, key, features):
+    """The display a screen draws in place of `key`: its `else` where the screen's hello lacks the feature it needs (a
+    weather tile's next hours: the days to a screen without weather_hours), else `key` itself."""
+    screen = (option(domain, 'displays', key) or {}).get('screen') or {}
+    if screen.get('feature') and 'else' in screen and not screen_holds(screen, features=features):
+        return drawn_display(domain, screen['else'], features)
+    return key
+
+
 def drawn_controls(message, features, spans=lambda size: None):
-    """The state message a screen gets, its controls cut to what it draws right (app 0.4.32): the entity's features and
+    """The state message a screen gets, its display (drawn_display) and its controls cut to what it draws right (app 0.4.32): the entity's features and
     the screen's hello (`features`, the list it said; None where not known, as for the editor's preview, which runs
     the newest firmware). A control the screen lays out by its room goes whole only to a screen that says so."""
     domain = message.get('entity', '').split('.', 1)[0]
     options = message.get('o')
+    if isinstance(options, dict) and options.get('display') and domain in TYPES:
+        options['display'] = drawn_display(domain, options['display'], features)
     if not isinstance(options, dict) or not options.get('controls') or domain not in TYPES:
         return message
     key = options['controls']

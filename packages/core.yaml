@@ -872,6 +872,9 @@ api:
                     // with their weekday, the next 48 hours with their hour, and the wind's bearing, the air pressure,
                     // the visibility and the rain's unit.
                     features.add("weather_week");
+                    // weather_hours: a weather tile set to the next hours (display hourly) draws them (weather_tile_lvgl.h), so
+                    // ESP Screens sends that display; to a screen without it, the days (catalogue/weather.yaml).
+                    features.add("weather_hours");
                     // calendar_detail: a calendar card takes short events (calendar_feed.compact) and keeps 48 without PSRAM;
                     // a tap on one asks for its whole title, place and notes (esphome.screen_calendar, op "calendar_event").
                     features.add("calendar_detail");

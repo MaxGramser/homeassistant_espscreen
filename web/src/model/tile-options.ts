@@ -223,6 +223,8 @@ export function displayChoices(tile: Tile, panel: TilePanel) {
   const c = panel.caps, display = tileDisplay(tile), size = sizeOfTile(tile);
   const keys = ((rules.displays as Record<string, string[]>)[domainOf(tile)] || ["standard", "watch"]).filter((key) => {
     if (key === "forecast") return !c || c.displays.includes("forecast") || display === "forecast";
+    // The next hours, for a weather service that has an hourly forecast (Buienradar has days alone).
+    if (key === "hourly") return !c || c.displays.includes("hourly") || display === "hourly";
     if (key === "graph") return !c || c.displays.includes("graph") || display === "graph";
     // A meter (firmware 0.56.0) for a sensor whose history is numbers, as a graph has.
     if (key === "meter") return !c || c.displays.includes("meter") || display === "meter";
@@ -242,6 +244,7 @@ export function displayHint(tile: Tile, panel: TilePanel): Hint | null {
   let text = "";
   if (c && display === "graph" && !c.displays.includes("graph")) text = t("editor.tile.display.no_graph");
   else if (c && display === "forecast" && !c.displays.includes("forecast")) text = t("editor.tile.display.no_forecast");
+  else if (c && display === "hourly" && !c.displays.includes("hourly")) text = t("editor.tile.display.no_hourly");
   else if (c && display === "meter" && !c.displays.includes("meter")) text = t("editor.tile.display.no_meter");
   // A meter (firmware 0.56.0): an older screen shows the name and status until it is updated.
   else if (display === "meter" && !supports(0, 56, 0)) text = t("editor.tile.display.meter_needs_firmware");

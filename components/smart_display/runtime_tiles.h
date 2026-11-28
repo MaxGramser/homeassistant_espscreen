@@ -2186,7 +2186,9 @@ inline void render_slot(size_t slot) {
   lap(swipe_profile::TEXT);
   // Cards that replace the name/status layout entirely.
   bool bedside=t.is_bedside() && w.full;
-  bool clock=t.is_clock(), forecast=d=="weather" && t.display=="forecast" && w.wide && t.extra().forecast.size()>0 && fresh() && t.available();
+  // The days ahead (forecast), or the next hours (hourly), which keep the days where a forecast has no hours.
+  const bool by_day=t.display=="forecast" || t.display=="hourly", by_hour=t.display=="hourly" && t.extra().hours.size()>=2;
+  bool clock=t.is_clock(), forecast=d=="weather" && by_day && w.wide && (t.extra().forecast.size()>0 || by_hour) && fresh() && t.available();
   bool sunpath=d=="sun" && t.display=="sunpath" && w.wide && !t.extra().sunrise.empty() && !t.extra().sunset.empty() && fresh() && t.available();
   bool graph=d=="sensor" && t.display=="graph" && t.has_history && !clock;
   // The energy card (firmware 0.47.0+) draws its own diagram, on any size it takes.

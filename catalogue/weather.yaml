@@ -12,3 +12,9 @@ displays:
   forecast:
     needs: {features: [FORECAST_DAILY]}
     wide: true
+  # The next hours, for an entity with an hourly forecast: the curve with a time axis where the card is tall enough,
+  # a column per hour on a card of one row. A screen that does not say weather_hours draws the days instead.
+  hourly:
+    needs: {features: [FORECAST_HOURLY]}
+    wide: true
+    screen: {feature: weather_hours, else: forecast}

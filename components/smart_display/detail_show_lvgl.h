@@ -13,9 +13,11 @@ inline void show_detail(unsigned index){
   Tile &t=index==SENSOR_DETAIL?detail_sensor:model.tiles[index];
   // Another tile's card: a keypad left open for an alarm does not come back with it.
   if(alarm_pad.open&&t.entity!=alarm_pad.entity)alarm_close_pad();
-  // A card that opens starts on a day (an hour for a tile whose graph shows one); switching ranges keeps it open.
+  // A card that opens starts on a day (an hour for a tile whose graph or forecast shows hours); switching ranges keeps it open.
   if(!detail_root||lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)||detail_index!=index){
-    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_view=0;select_page=0;
+    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();select_page=0;
+    // A weather card opens on the hours where its tile shows them (render_weather_detail falls back to the days).
+    weather_view=t.display=="hourly"?1:0;
     // A player's card that opens shows its cover and colour as they are; one built again while open keeps its face.
     media_face=MediaFace{};
   }
