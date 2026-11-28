@@ -29,6 +29,28 @@ A screen's page says what matters in one look, in two rows with one job each (`S
 A phone keeps its own head and dock (app 0.4.40): the line under the screen's name says its state, and the dock holds
 Add tile and Save & send.
 
+### The mockup's scale
+
+A page in the editor is a picture of a screen that may hang in another room, so inside a tile it has to look as it does
+on that screen, and the page as a whole has to be comfortable to work on. The two are kept apart
+(`web/src/stores/canvas.ts`):
+
+- **The layout is the glass in the hand.** A page is laid out with its glass as large as it is in life (`lifeGlass`,
+  96 CSS pixels to the inch from the board's density), the scale the mockup's letters, icons and controls are drawn
+  for. So a name that fits its tile on the screen fits it in the editor, and one the screen cuts is cut here too.
+- **The page is shown scaled whole** to the width that suits the editor (`pageWidth`, `pageScale`; the `.device-fit`
+  wrapper in `DevicePage.vue`): at least 300 px on its shorter side, as large as in life where the room allows, never
+  larger than its room, times the zoom. A 2.8 inch screen is shown about twice as large as it is, a tablet a little
+  smaller, and both keep their proportions. Before, the page's boxes followed that width while its letters stayed as
+  they were, so a small screen's tiles looked roomier and a tablet's fuller than the real ones.
+- **What the editor lays over a tile** to work on it (the key that removes it, the handles that size it) is no part of
+  the glass and keeps its own size at any scale. A tile carried by the pointer is a copy at the size it is shown at.
+- A size computed in the mockup's code is a layout size: `canvas.deviceStyle` and `--glass` are the layout's, and
+  `canvas.pageWidth` is what a part outside the glass needs (the page to add, the map's cards). A board that does not
+  say its density, and a phone, whose page is as wide as the phone, are laid out at the size they are shown at.
+
+The library's shelf follows the same rule with a width of its own ("The library").
+
 ### The panes
 
 A screen's page is three panes on the app's ground, the way a window of macOS has its sidebar, its content and its
@@ -74,13 +96,20 @@ The library shows what a tile can show on a shelf or in a list, switched at its 
 
 - **The shelf** (the default): every entity as one tile, the mockup's own card (`TileCard`), in a strip of the screen's
   glass for each room. The strip is a wide page of the screen: its tiles stand in the screen's own cells, each on the
-  cells it takes on a page, with the glass's own gaps, at one scale, so a low drawer shows many and they compare. Three
-  lines of tiles fill the drawer's height; a taller drawer shows them larger, up to their size on the page, and then
-  more lines.
+  cells it takes on a page, with the glass's own gaps, at one scale, so they compare. Under every tile stands the
+  entity's name on a line of its own, since a tile's own name shares its room with a slider or a curve and the name is
+  what a thing is found by; on the shelf a name never rolls.
+- **The shelf's scale is its own**, not the page mockup's, which follows the room a page has: a tile is laid out with the
+  glass as large as in the hand (`lifeGlass` in `web/src/stores/canvas.ts`, the scale the mockup's letters are drawn
+  for), so inside it everything has the proportions it has on the screen, and is then scaled whole so one cell is
+  between 128 and 168 px wide (`CELL` in `Library.vue`). A small screen's tiles stand a little larger than life, a large
+  one's a little smaller, and the shelf reads the same on a 2.8 inch screen and on a tablet. A tile is the same size
+  whatever the drawer's height: a taller drawer shows more lines, and a low one opens at least a line high.
 - **Which tile** is the view's choice (`shelfSample` in `web/src/editor/library-tiles.ts`). **Best fit** shows each
   entity at the size that suits its type best: the size its type names in the catalogue (`shelf`, docs/CATALOGUE.md
-  "The library's tiles": a light as a row of two with its slider, a player as two rows with its cover), else the size
-  the tile starts at. **1 x 1**, **2 x 1** and **2 x 2** (the tall size where the grid has no 2 x 2) show every entity at
+  "The library's tiles": a light as a row of two with its slider, a player as a row of two with its cover), else the
+  size the tile starts at, and never higher than one row where the entity has such a size, so the shelf's lines stand
+  even. **1 x 1**, **2 x 1** and **2 x 2** (the tall size where the grid has no 2 x 2) show every entity at
   that size, and one that does not take it at the largest it takes under it, so nothing leaves the shelf for the size
   it is shown at. A click puts that very tile on the marked cell or the first free one, a drag where it is let go, and
   Enter adds the result the arrows stand on as the shelf shows it.

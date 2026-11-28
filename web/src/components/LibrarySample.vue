@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // One tile the library offers (editor/library-tiles.ts Sample): the real card the mockup draws (TileCard), at the size
-// it lands, on a patch of the screen's glass, scaled as the shelf says. A click puts that very tile on the marked cell
+// it lands, on a patch of the screen's glass. It is laid out at the scale the mockup's letters are drawn for (`glass`,
+// the glass as large as in the hand) and then scaled whole (`zoom`), so inside a tile everything keeps the proportions
+// it has on the screen, whatever size the shelf shows it at (Library.vue). A click puts that very tile on the marked cell
 // or the first free one; a drag puts it where it lands. The shelf shows it bare (LibraryShelf.vue); the card with all
 // of an entity's sizes writes its cells and its controls under it (LibrarySizes.vue).
 import { computed } from "vue";
@@ -14,24 +16,28 @@ import { useInventoryStore } from "../stores/inventory";
 import TileCard from "./TileCard.vue";
 import type { Tile } from "../types";
 
-const props = defineProps<{ sample: Sample; name: string; disabled: boolean; zoom: number; maxHeight?: number; maxWidth?: number; foot?: boolean }>();
+const props = defineProps<{ sample: Sample; name: string; disabled: boolean; glass: number; zoom: number; maxHeight?: number; maxWidth?: number; foot?: boolean }>();
 const emit = defineEmits<{ add: [tile: Tile] }>();
 const canvas = useCanvasStore();
 const doc = useDocumentStore();
 const inv = useInventoryStore();
 
-const glass = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
-// A card's size on the glass, the way the screen lays out its grid (model/ui-scale.ts), in the mockup's pixels.
+// The glass's own sizes at that scale, as the page mockup has them at its own (stores/canvas.ts styleFor).
+const style = computed(() => canvas.styleFor(props.glass));
+// A card's size on the glass, the way the screen lays out its grid (model/ui-scale.ts), before it is scaled.
 const box = computed(() => {
   const shape = doc.screenShape as Parameters<typeof frameOf>[0], grid = doc.editorLayout.grid, frame = frameOf(shape);
   const width = cardContent(shape, grid.columns, props.sample.columns) + 2 * frame.tile_pad + 2;
   const height = cardHeight(shape, grid.rows, props.sample.rows, 0, canvas.pageBarShown);
-  return { width: width * glass.value, height: height * glass.value };
+  return { width: width * props.glass, height: height * props.glass };
 });
 // One scale for every tile, so they compare; a tile higher or wider than its room (the energy card's diagram, a
 // calendar on a narrow shelf) is drawn smaller to stand in it.
 const scale = computed(() => Math.min(props.zoom, (props.maxHeight ?? Infinity) / Math.max(1, box.value.height), (props.maxWidth ?? Infinity) / Math.max(1, box.value.width)));
 const labels = computed(() => Object.fromEntries((inv.inventory.controls?.[props.sample.tile.entity.split(".")[0]]?.choices ?? []).map((choice) => [choice.key, choice.label])));
+// On the shelf a name stands still: dozens of names rolling by at once read as none, and a name cut at its front reads
+// as another. The tile that is placed keeps its own choice (the inspector's two switches).
+const shown = computed<Tile>(() => ({ ...props.sample.tile, options: { ...props.sample.tile.options, name_scroll: "off", sub_scroll: "off" } as Tile["options"] }));
 // Under a tile: its face where it has another than the plain card, and its controls.
 const controls = computed(() => {
   const display = String(props.sample.tile.options?.display ?? "standard");
@@ -46,10 +52,10 @@ const controls = computed(() => {
     v-drag="disabled ? null : { kind: 'entity', id: sample.tile.entity, tile: sample.tile }" @click="emit('add', sample.tile)">
     <span class="sample-glass" :style="{ width: `${box.width * scale}px`, height: `${box.height * scale}px` }">
       <span class="sample-zoom" :style="{ transform: `scale(${scale})` }">
-        <span class="page sample-page" :style="canvas.deviceStyle">
+        <span class="page sample-page" :style="style">
           <span class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
             <span class="tiles" :style="{ '--screen-columns': sample.columns, '--screen-rows': sample.rows, width: `${box.width}px`, height: `${box.height}px` }">
-              <TileCard :tile="sample.tile" :at="0" :grid="doc.editorLayout.grid" preview />
+              <TileCard :tile="shown" :at="0" :grid="doc.editorLayout.grid" preview />
             </span>
           </span>
         </span>

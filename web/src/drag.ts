@@ -119,6 +119,15 @@ function beginDrag(e: PointerEvent) {
   ghost.classList.add("drag-ghost");
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;
+  // A card of a page that is shown scaled (stores/canvas.ts pageScale) is carried at the size it is shown at: its copy
+  // keeps the size it is laid out at, scaled alike, so it does not change under the pointer.
+  const shown = drag.element.offsetWidth ? rect.width / drag.element.offsetWidth : 1, copy = ghost.firstElementChild as HTMLElement | null;
+  if (copy && ghost.classList.contains("drag-glass") && Math.abs(shown - 1) > 0.01) {
+    copy.style.width = `${drag.element.offsetWidth}px`;
+    copy.style.height = `${drag.element.offsetHeight}px`;
+    copy.style.transform = `scale(${shown})`;
+    copy.style.transformOrigin = "0 0";
+  }
   drag.offset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
   // Where the press was, not where the drag began a few pixels later: the cell a finger or the mouse took the tile by.
   drag.grab = source.kind === "tile" ? grabbedCell(drag.element, drag.start.x, drag.start.y) : { column: 0, row: 0 };

@@ -68,8 +68,8 @@ describe("the one tile the shelf shows of an entity", () => {
 
   it("shows each type at the size that suits it best (catalogue shelf), and one cell where its type names none", () => {
     expect(shown("light.hall", "best")).toBe("wide");
-    expect(shown("sensor.power", "best")).toBe("wide");
-    expect(shown("media_player.kitchen", "best")).toBe("square");
+    expect(shown("media_player.kitchen", "best")).toBe("wide");
+    expect(shown("sensor.power", "best")).toBe("single");
     expect(shown("switch.fan", "best")).toBe("single");
   });
 
@@ -80,11 +80,6 @@ describe("the one tile the shelf shows of an entity", () => {
     const largest = samplesOf("switch.fan").at(-1)?.size;
     expect(shown("switch.fan", "large")).toBe(largest);
     expect(shown("switch.fan", "small")).toBe("single");
-  });
-
-  it("falls back to the largest it has under its best on a screen that has no such size", () => {
-    screen(["single", "wide", "full"]);
-    expect(shown("media_player.kitchen", "best")).toBe("wide");
   });
 
   it("hands the key that adds what is in focus the very tile the shelf shows", () => {

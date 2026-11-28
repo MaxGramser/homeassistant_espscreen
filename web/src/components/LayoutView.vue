@@ -101,7 +101,7 @@ const zoomPercent = computed(() => `${Math.round(canvas.zoom * 100)}%`);
 // The page to add at the end of the row, in pixels: on its proportions alone (aspect-ratio) it kept the size of a zoom
 // after the zoom went back, while the pages beside it followed.
 const ghostSize = computed(() => {
-  const width = parseFloat(canvas.deviceStyle["--mockup-width"]), shape = doc.screenShape;
+  const width = canvas.pageWidth, shape = doc.screenShape;
   return { width: `${width}px`, height: `${((width * shape.height) / shape.width).toFixed(2)}px` };
 });
 // A zoom keeps the part of the row that is in view: the row scrolls along with its pages, instead of standing on a page

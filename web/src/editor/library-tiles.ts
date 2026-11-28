@@ -46,7 +46,7 @@ export function shelfSizes(): Size[] {
   return [SHOWN[0][0], SHOWN[1][0], grid.columns >= 2 && grid.rows >= 2 ? "square" : "tall"];
 }
 /** The one tile of `samples` the shelf shows. Best: the size its type names (catalogue `shelf`), else the size the tile
- * starts at. A chosen size: that size, and where the entity does not take it the largest it takes under it, so nothing
+ * starts at (a bedside clock and the energy card start at two rows, and are drawn for that). A chosen size: that size, and where the entity does not take it the largest it takes under it, so nothing
  * leaves the shelf for the size it is shown at. An entity that only comes larger stands at its smallest. */
 export function shelfSample(samples: Sample[], view: ShelfView, entity: string, start?: Size): Sample | undefined {
   if (!samples.length) return undefined;
