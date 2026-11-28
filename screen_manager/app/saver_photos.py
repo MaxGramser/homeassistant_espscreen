@@ -127,8 +127,15 @@ class Photos:
     async def _read(self, source, folder):
         try:
             photos, title = await self.read(source)
-            folder.photos, folder.title, folder.read_at, folder.failed_at = photos, title, self.clock(), 0.0
-            LOG.info('Screensaver photos: a folder of %d photo%s', len(photos), '' if len(photos) == 1 else 's')
+            if not photos and folder.photos:
+                folder.failed_at = self.clock()
+                LOG.info('Screensaver photos: folder refresh returned 0 photos; keeping %d existing photos', len(folder.photos))
+            elif not photos:
+                folder.failed_at = self.clock()
+                LOG.info('Screensaver photos: a folder of 0 photos (retrying in %ds)', FAIL_SECONDS)
+            else:
+                folder.photos, folder.title, folder.read_at, folder.failed_at = photos, title, self.clock(), 0.0
+                LOG.info('Screensaver photos: a folder of %d photo%s', len(photos), '' if len(photos) == 1 else 's')
         except asyncio.CancelledError:
             raise
         except Exception as error:  # noqa: BLE001 - Home Assistant may not have the source (yet)
@@ -173,6 +180,8 @@ class Photos:
         now = self.clock()
         if not photos:
             return {'ready': False}
+        if show.misses >= MAX_MISSES and now - show.waited_at >= FAIL_SECONDS:
+            show.misses = 0
         if show.next is None and show.misses < MAX_MISSES:
             show.next = self._upcoming(show, photos)
             show.at += 1
@@ -225,10 +234,12 @@ class Photos:
                     if folder:
                         folder.read_at = 0.0  # read the folder again: photos may have gone
                     LOG.info('Screensaver photos: %d photos in a row could not be had (%s)', show.misses, type(error).__name__)
+                elif self.changed:
+                    self.changed()
             return
         if self.shows.get(inbox) is show and show.next == wanted:
             show.next_raw = raw
-            if self.changed and show.current is None:
+            if self.changed and (show.current is None or self.clock() - show.shown_at >= show.every):
                 self.changed()
 
     def raw(self, inbox, wanted=''):
@@ -246,8 +257,18 @@ class Photos:
     def due(self):
         """Whether a screen's next photo is here and its turn has come (or the first one is here): a pass then."""
         now = self.clock()
-        return any(show.next_raw is not None and (show.current is None or now - show.shown_at >= show.every)
-                   for show in self.shows.values())
+        for show in self.shows.values():
+            if show.next_raw is not None and (show.current is None or now - show.shown_at >= show.every):
+                return True
+            folder = self.folders.get(show.source)
+            if folder and folder.photos:
+                if show.next is None and (show.task is None or show.task.done()) and (
+                        show.misses < MAX_MISSES or now - show.waited_at >= FAIL_SECONDS):
+                    return True
+            elif folder and folder.failed_at and (folder.task is None or folder.task.done()) and (
+                    now - folder.failed_at >= FAIL_SECONDS):
+                return True
+        return False
 
 
 def readable(raw):
