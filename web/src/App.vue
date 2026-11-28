@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onKeyStroke } from "@vueuse/core";
-import { computed, watch } from "vue";
+import { computed, useTemplateRef, watch } from "vue";
 import { t } from "./i18n";
 import Icon from "./components/ui/Icon.vue";
 import Sidebar from "./components/Sidebar.vue";
@@ -50,6 +50,10 @@ const view = computed(() => {
 });
 // The sidebar of a phone closes once something in it is chosen: a screen, the overview or another page.
 watch(() => [ui.route, scr.selected, ui.phone], () => { ui.sideOpen = false; });
+// On a wide page the page is a card that scrolls by itself (styles/app.css "The page as a card"), so another page or
+// another screen starts at its top, as the window does for the router (router.ts).
+const main = useTemplateRef<HTMLElement>("main");
+watch(() => [ui.route, scr.selected], () => { if (main.value) main.value.scrollTop = 0; }, { flush: "post" });
 onKeyStroke("Escape", () => { ui.sideOpen = false; }, { target: document });
 // ⌘K (Ctrl+K) opens the search from anywhere, unless a question of the editor's is open.
 onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !question.value,
@@ -63,7 +67,7 @@ onKeyStroke((e) => (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !q
          the overview, of a screen and of every other page. -->
     <Sidebar :class="{ sheet: ui.phone, open: ui.phone && ui.sideOpen }" :inert="ui.phone && !ui.sideOpen" />
     <div v-if="ui.phone && ui.sideOpen" class="sheet-dim side-dim" @click="ui.sideOpen = false"></div>
-    <main class="main">
+    <main ref="main" class="main">
       <ConnectionBar />
       <header v-if="ui.phone && ui.route !== ''" class="phone-nav">
         <button type="button" class="icon-btn phone-menu-key" id="phone-menu" :aria-label="t('editor.phone.menu')" @click="ui.sideOpen = true"><Icon name="menu" /></button>

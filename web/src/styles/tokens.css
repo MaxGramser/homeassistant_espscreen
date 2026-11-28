@@ -7,6 +7,9 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: light dark;
   /* Neutral greys in small steps, the way Attio layers its surfaces: depth from the step, not from a shadow (app 0.4.32). */
+  /* What the page's card and the sidebar lie on, on a wide page (app 0.4.110, styles/app.css "The page as a card"): a
+     step under the ground, so the card stands out of it by its step and a hairline. */
+  --shell: #ecedf0;
   --ground: #f7f7f8;
   --surface: #ffffff;
   --surface-2: #f6f7f7;
@@ -31,6 +34,13 @@
      colours of the Tessera mark on a page of tiles (the same as components/DeviceArt.vue draws). */
   --brand-ha: #18bcf2;
   --device-frame: #17181b;
+  /* A screen's miniature in the sidebar (components/ScreenMini.vue): its frame, the glass and the cards of the screens'
+     light look (the glass a step darker than on a screen, so cards this small still stand apart), and a glass that is
+     dark because its screen is away. */
+  --mini-frame: #17181b;
+  --mini-glass: #cfd1d6;
+  --mini-tile: #ffffff;
+  --mini-off: #3b3c41;
   --tile-amber: #f4b400;
   --tile-blue: #0a96d6;
   --tile-purple: #8e63c4;
@@ -71,6 +81,7 @@
   /* The neutral near-black greys of Home Assistant's own dark theme (primary background #111111, cards
      #1c1c1c), so the panel sits in Home Assistant without a blue cast. */
   :root {
+    --shell: #0a0a0a;
     --ground: #111111;
     --surface: #1c1c1c;
     --surface-2: #222222;
@@ -92,6 +103,8 @@
     --danger-ink: #1c0c0b;
     --seg: #262626;
     --device-frame: #000000;
+    --mini-frame: #34363b;
+    --mini-off: #17181a;
     --star: #f2b84b;
     --kind-tile: #000000;
     --kind-page: #3f6fe0;

@@ -10,6 +10,23 @@ The toolbar above the pages switches between two views, **Row** and **Map**, and
 
 The library lists everything a tile can show: the rows come as the list is scrolled (`libraryWindow` in `web/src/model/library.ts`), and a room's number is the whole room's. A search (`web/src/model/search.ts`) takes each word on its own, in any order, in the name, the entity id, the device, the room or what the entity is: its kind in the editor's language and its device class in Home Assistant's words (`kind_words` in `core.py`). Case, accents and whether words are joined by a space, a dash or an underscore make no difference, and a match in the name stands first.
 
+### The shell and the sidebar
+
+On a wide page the editor is one window in two parts. The sidebar lies on the app's own ground (`--shell` in
+`web/src/styles/tokens.css`) without a line of its own, and the page is a rounded card in that ground (`.main`, under
+"The page as a card" in `web/src/styles/app.css`). The card scrolls by itself, so a part that sticks to the top sticks
+to the top of the card, and a part that fills the height takes `--main-h` instead of the height of the window. Below
+961 pixels and on a phone the page runs from edge to edge as before: the sidebar is a row above it, or a sheet from the
+left.
+
+The sidebar (`web/src/components/Sidebar.vue`) reads from top to bottom: the logo with search beside it, then where the
+app goes (**Overview**, the tiles that ask for a look while there are any, **Plugins**, **Events**), then the screens,
+and at the foot the manual and the settings. A screen's row starts with its picture (`ScreenMini.vue`,
+`web/src/model/miniature.ts`): its glass in its own proportions with the tiles of its home page where they stand, and a
+dark glass while the screen is away. The picture draws places only, never states or names, so nothing in it goes stale.
+Folded to its icons, the sidebar keeps the same order and each screen is its picture. `tests/miniature.spec.ts` proves
+the picture, and the Sidebar tests in `tests/components.spec.ts` the rows.
+
 ### The library
 
 The library shows what a tile can show in one of two views, switched at its top right and remembered in the browser:

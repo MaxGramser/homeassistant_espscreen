@@ -1744,7 +1744,8 @@
       "events": "Zdarzenia",
       "settings": "Ustawienia",
       "new_screen_detail": "Podłącz i zainstaluj",
-      "manual": "Instrukcja"
+      "manual": "Instrukcja",
+      "overview": "Przegląd"
     },
     "api": {
       "failed": "Nie udało się. Odśwież stronę i spróbuj ponownie."

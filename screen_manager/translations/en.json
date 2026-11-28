@@ -1744,7 +1744,8 @@
       "settings": "Settings",
       "new_screen_detail": "Connect and install",
       "plugins": "Plugins",
-      "manual": "Manual"
+      "manual": "Manual",
+      "overview": "Overview"
     },
     "api": {
       "failed": "That didn't work. Refresh the page and try again."

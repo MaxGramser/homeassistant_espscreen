@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The editor is one window: the sidebar and the page as a card.** On a wide page the sidebar no longer stands apart behind a line. It lies on the same ground as the rest and the page is a rounded card in it, so there is more calm and the page reads as the thing you work on. In the sidebar, Overview, Plugins and Events now stand at the top, with the tiles that ask for a look between them while there are any; the manual and the settings stay at the foot, and search is a key beside the logo (still ⌘K). Every screen has a small picture of its own glass with the tiles of its home page, so you tell your screens apart at a glance, also when the sidebar is folded to its icons; a screen that is away is a dark glass.
+
 - **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
 - **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
 

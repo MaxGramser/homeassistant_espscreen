@@ -1744,7 +1744,8 @@
       "events": "Eventi",
       "settings": "Impostazioni",
       "new_screen_detail": "Collega e installa",
-      "manual": "Manuale"
+      "manual": "Manuale",
+      "overview": "Panoramica"
     },
     "api": {
       "failed": "Non ha funzionato. Ricarica la pagina e riprova."

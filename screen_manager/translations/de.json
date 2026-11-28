@@ -1744,7 +1744,8 @@
       "events": "Events",
       "settings": "Einstellungen",
       "new_screen_detail": "Verbinden und installieren",
-      "manual": "Handbuch"
+      "manual": "Handbuch",
+      "overview": "Übersicht"
     },
     "api": {
       "failed": "Das hat nicht geklappt. Lade die Seite neu und versuche es noch einmal."

@@ -50,9 +50,20 @@ a:hover { text-decoration: underline; }
 .app.side-resizing { transition: none; cursor: col-resize; user-select: none; -webkit-user-select: none; }
 .app.dragging { user-select: none; -webkit-user-select: none; cursor: grabbing; }
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* The page as a card (app 0.4.110): on a wide page the sidebar lies on the app's own ground, without a line of its own,
+   and the page is a rounded card in that ground which scrolls by itself, so the two read as one window (the shell of
+   Linear and Notion). --main-h is the card's height, for a part inside it that fills it. Inside the sidebar a row under
+   the pointer and the chosen row are a tint of the ink, which shows on that ground in either look. A narrow page and a
+   phone keep the page from edge to edge. */
+@media (min-width: 961px) {
+  .app:not(.phone) { background: var(--shell); --main-h: calc(100vh - 16px); }
+  .app:not(.phone) > .main { height: var(--main-h); margin: 8px 8px 8px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--ground); overflow: auto; }
+  .app:not(.phone) > .side { background: transparent; border-right: 0; --side-bg: var(--shell);
+    --surface-2: color-mix(in srgb, var(--ink) 5%, transparent); --seg: color-mix(in srgb, var(--ink) 9%, transparent); }
+}
 
 /* Sidebar */
-.side { background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; gap: 4px; min-height: 0; overflow: auto; position: sticky; top: 0; height: 100vh; z-index: 25; }
+.side { --side-bg: var(--surface); background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px; gap: 4px; min-height: 0; overflow: auto; position: sticky; top: 0; height: 100vh; z-index: 25; }
 /* A layer of its own above the page, so its edge (.side-resize, inside it) is above the canvas beside it too. */
 /* The logo is the way home (app 0.4.0): the overview of every screen, the page shown with nothing selected. */
 .brand { display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 8px; font-weight: 600; font-size: 13px; text-align: left; border-radius: 10px; }
@@ -67,39 +78,44 @@ a:hover { text-decoration: underline; }
 .side-fold { flex: none; width: 28px; height: 28px; border-radius: 7px; font-size: 17px; color: var(--muted); opacity: 0; transition: opacity 0.12s; }
 .side:hover .side-fold, .side-fold:focus-visible, .side-fold[aria-pressed="true"] { opacity: 1; }
 .side-fold:hover { background: var(--surface-2); color: var(--ink); }
+/* Search beside the logo (app 0.4.110): a key the size of the fold's, always there; its shortcut is in its tooltip. */
+.side-search { flex: none; width: 28px; height: 28px; border-radius: 7px; color: var(--muted); }
+.side-search .ui-icon { font-size: 17px; }
+.side-search:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+/* Where the app goes, above the screens: the overview, what asks for a look, the plugins and the events. */
+.side-nav { display: grid; gap: 1px; margin-top: 6px; }
 /* The edge: a strip as wide as a finger's aim, a line in the accent while it is pointed at or dragged. */
 .side-resize { position: fixed; top: 0; bottom: 0; left: calc(var(--side-w, 248px) - 4px); width: 8px; cursor: col-resize; z-index: 30; touch-action: none; }
 .side-resize::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background 0.12s; }
 .side-resize:hover::after, .side-resize:focus-visible::after, .app.side-resizing .side-resize::after { background: var(--accent); }
 .side-resize:focus-visible { outline: none; }
-.side .search-btn .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side .more .nav-item .txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .side-nav .nav-item .txt, .side .more .nav-item .txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Folded (app 0.4.85): one column of icons, every row's words in its tooltip. Only on a wide page; a narrow one keeps
    its row of screens. */
 @media (min-width: 961px) {
   .side-folded .side { padding: 14px 8px; align-items: stretch; overflow-x: hidden; }
   .side-folded .side-top { flex-direction: column; gap: 4px; }
   .side-folded .brand { justify-content: center; padding: 0; flex: none; width: 100%; }
-  .side-folded .brand .txt, .side-folded .conn-text, .side-folded .search-btn .txt, .side-folded .search-btn kbd,
+  .side-folded .brand .txt, .side-folded .conn-text, .side-folded .side .side-nav .nav-item .txt,
   .side-folded .label-row > span, .side-folded .label-row #refresh, .side-folded .screen-item .name, .side-folded .screen-item .sub,
   .side-folded .screen-item .unsaved, .side-folded .row-end, .side-folded .side .more .nav-item .txt, .side-folded .broken-nav .txt, .side-folded .screen-item .broken-dot { display: none; }
-  .side-folded .side-fold { width: 100%; }
+  .side-folded .side-fold, .side-folded .side-search { width: 100%; }
   /* Folded, the chip sits on the mark's corner, as small as it reads. */
   .side-folded .brand { position: relative; }
   .side-folded .brand .channel-chip { position: absolute; top: -3px; right: 2px; padding: 0 4px; font-size: 9px; }
   .side-folded .conn { justify-content: center; padding: 4px 0; }
-  .side-folded .search-btn, .side-folded .nav-item { justify-content: center; padding: 0; gap: 0; }
+  .side-folded .nav-item { justify-content: center; padding: 0; gap: 0; }
   .side-folded .label-row { justify-content: center; padding: 10px 0 4px; }
   .side-folded .screen-item .nav-item, .side-folded .screen-item.update .nav-item { padding: 0; position: relative; }
   .side-folded .screen-item .spin, .side-folded .screen-item .sub-icon, .side-folded .screen-item .row-ring { position: absolute; top: 3px; right: 6px; }
   .side-folded .builds-btn { width: 100%; }
-  .side-folded .screen-item .row-ring { width: 10px; height: 10px; border-radius: 50%; background: var(--surface); box-shadow: 0 0 0 2px var(--surface); }
+  .side-folded .screen-item .row-ring { width: 10px; height: 10px; border-radius: 50%; background: var(--side-bg); box-shadow: 0 0 0 2px var(--side-bg); }
   .side-folded .screen-item .sub-icon { font-size: 12px; }
   .side-folded .screen-item .spin.small { width: 9px; height: 9px; }
-  .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--surface); }
+  .side-folded .fold-badge { position: absolute; top: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2.5px var(--side-bg); }
   .side-folded .fold-badge.waiting { background: var(--warn); }
   /* The unsaved dot of the open screen, on its icon. */
-  .side-folded .screen-item.selected .nav-item:has(.unsaved)::after { content: ""; position: absolute; bottom: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2.5px var(--surface); }
+  .side-folded .screen-item.selected .nav-item:has(.unsaved)::after { content: ""; position: absolute; bottom: 5px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2.5px var(--side-bg); }
   .side-folded .pending-folded { color: var(--muted); }
 }
 /* Only while something is wrong: unreachable, or reconnecting. Connected says nothing. */
@@ -133,16 +149,22 @@ a:hover { text-decoration: underline; }
    chosen screen or under the pointer and folds out its details: the facts and what can be done with it. */
 #screens { display: grid; gap: 1px; }
 .screen-item { display: grid; grid-template-columns: minmax(0, 1fr); border-radius: 8px; position: relative; }
-.screen-item .nav-item { padding-right: 34px; }
+.screen-item .nav-item { height: 34px; padding-right: 34px; }
 .screen-item.update .nav-item { padding-right: 58px; }
 .screen-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.screen-item .board-icon { font-size: 17px; width: 20px; text-align: center; color: var(--muted); flex: none; line-height: 1; }
-.screen-item.selected .board-icon { color: var(--accent); }
-.screen-item.down .board-icon, .screen-item.down .name { color: var(--muted); }
+/* Its picture (app 0.4.110, ScreenMini.vue): the screen's own glass with the tiles of its home page, in the screens' light
+   look whatever the editor's; a screen that is away is a dark glass. */
+.screen-item .screen-pic { flex: none; width: 30px; height: 22px; display: grid; place-items: center; }
+.screen-mini { display: block; }
+.screen-mini .mini-frame { fill: var(--mini-frame); }
+.screen-mini .mini-glass { fill: var(--mini-glass); }
+.screen-mini .mini-tile { fill: var(--mini-tile); }
+.screen-mini.off .mini-glass { fill: var(--mini-off); }
+.screen-item.down .name { color: var(--muted); }
 .screen-item .sub { flex: none; font-size: 11.5px; color: var(--muted); font-weight: 400; }
 .screen-item .sub-icon { flex: none; font-size: 15px; }
 .screen-item .sub-icon.failed { color: var(--danger); }
-.row-end { position: absolute; top: 0; right: 4px; height: 32px; display: flex; align-items: center; gap: 2px; }
+.row-end { position: absolute; top: 0; right: 4px; height: 34px; display: flex; align-items: center; gap: 2px; }
 /* Seven screens with an update are seven small icons in the accent, not seven buttons that push the names aside. */
 .update-pill { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; font-size: 16px; color: var(--accent); }
 .update-pill:hover { background: var(--accent-soft); }
@@ -153,7 +175,7 @@ a:hover { text-decoration: underline; }
 .details-toggle[aria-expanded="true"] .ui-icon { transform: rotate(180deg); }
 .screen-item.open .nav-item { background: var(--seg); color: var(--ink); }
 /* The details line up under the name, not under the icon, and keep inside the column. */
-.screen-details { display: grid; gap: 10px; padding: 8px 6px 10px 37px; min-width: 0; }
+.screen-details { display: grid; gap: 10px; padding: 8px 6px 10px 47px; min-width: 0; }
 .screen-details .facts { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 12px; }
 .screen-details .facts dt { color: var(--muted); }
 .screen-details .facts dd { margin: 0; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -245,7 +267,7 @@ a:hover { text-decoration: underline; }
 .builds-btn { position: relative; flex: none; width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; }
 .builds-btn:hover { background: var(--surface-2); }
 .builds-count { position: absolute; right: 0; bottom: 1px; min-width: 13px; height: 13px; padding: 0 3px; border-radius: 7px; background: var(--accent);
-  color: var(--accent-ink); font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; box-shadow: 0 0 0 2px var(--surface); }
+  color: var(--accent-ink); font-size: 9px; font-weight: 700; line-height: 13px; text-align: center; box-shadow: 0 0 0 2px var(--side-bg, var(--surface)); }
 .builds-pop { width: 280px; padding: 6px; display: grid; gap: 1px; align-content: start; }
 .builds-pop h4 { font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 6px 8px 4px; }
 .builds-row { display: flex; align-items: center; justify-content: flex-start; width: 100%; gap: 10px; padding: 7px 8px; border-radius: 7px; text-align: left; min-width: 0; }
@@ -1172,7 +1194,7 @@ td code { white-space: nowrap; }
   .side:not(.sheet) .screen-details { display: none; }
   .side:not(.sheet) #pending { flex-basis: 100%; }
   .side:not(.sheet) .nav-item { width: auto; }
-  .side:not(.sheet) .more { display: contents; }
+  .side:not(.sheet) .more, .side:not(.sheet) .side-nav { display: contents; }
   .main-head { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 14px; gap: 8px; position: static; }
   .main-head .tabs { grid-column: 1 / -1; grid-row: 2; justify-self: start; overflow-x: auto; scrollbar-width: none; }
   .main-head .tabs > button { flex: none; }
@@ -1226,12 +1248,6 @@ td code { white-space: nowrap; }
 .palette-foot span { display: inline-flex; align-items: center; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .palette { animation: none; } }
 @media (max-width: 640px) { .palette-foot { display: none; } }
-/* Search is a row like the others, as in Notion and the Finder: an icon, the word, the shortcut faint at its end. */
-.side .search-btn { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; margin: 2px 0 0; padding: 0 8px; border-radius: 7px; background: transparent; color: var(--ink-2); font-size: 13px; text-align: left; }
-.side .search-btn .ui-icon { font-size: 17px; width: 20px; color: var(--muted); }
-.side .search-btn kbd { margin-left: auto; font: 11px var(--ui-font); color: var(--muted); border: 0; padding: 0; background: none; opacity: 0; transition: opacity 0.12s; }
-.side .search-btn:hover { background: var(--surface-2); color: var(--ink); }
-.side .search-btn:hover kbd, .side .search-btn:focus-visible kbd { opacity: 1; }
 
 /* Menu with a second level */
 .menu .sub { display: grid; padding: 2px 0 4px 10px; }
@@ -1573,6 +1589,9 @@ section.advanced code { font-size: 11.5px; }
    keeps every pixel it had. Text fields stay at 16px: a smaller one makes iOS zoom the page on focus. */
 .app.phone { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; background: var(--ground); }
 .app.phone .side-fold, .app.phone .side-resize { display: none; }
+/* Search in the sheet: a key a thumb finds, the size of the menu key that opened the sheet. */
+.app.phone .side-search { width: 36px; height: 36px; color: var(--ink-2); }
+.app.phone .side-search .ui-icon { font-size: 21px; }
 /* The sidebar of a phone (stores/ui.ts sideOpen): the whole sidebar of a wider page, as a sheet from the left over a dimmed
    page, opened with the menu key of the overview, a screen and every other page. */
 .app.phone .side.sheet { position: fixed; inset: 0 auto 0 0; width: min(320px, 86vw); height: 100%; z-index: 41; border-right: 1px solid var(--line);
@@ -1790,7 +1809,7 @@ section.advanced code { font-size: 11.5px; }
 .plugins-make a { font-weight: 500; }
 
 /* The details: a column of their own, as tall as the view, scrolling on their own. */
-.plugin-detail { position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px); width: 400px; max-width: 100vw; border-left: 1px solid var(--line); background: var(--surface); overflow: hidden; display: flex; }
+.plugin-detail { position: sticky; top: 56px; align-self: start; height: calc(var(--main-h, 100vh) - 56px); width: 400px; max-width: 100vw; border-left: 1px solid var(--line); background: var(--surface); overflow: hidden; display: flex; }
 .plugin-detail.drawer-enter-from, .plugin-detail.drawer-leave-to { width: 0; opacity: 0; }
 .plugin-detail-inner { width: 400px; max-width: 100vw; flex: none; overflow-y: auto; padding: 22px 24px 32px; display: flex; flex-direction: column; gap: 20px; }
 .pd-top { display: flex; align-items: flex-start; justify-content: space-between; }

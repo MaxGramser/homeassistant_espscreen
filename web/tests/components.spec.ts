@@ -892,6 +892,22 @@ describe("Sidebar", () => {
     expect(useScreenStore().selected).toBeNull();
     expect(doc.layout).toBeNull();
   });
+  it("has the overview as a row that says when it is open, search beside the logo and a screen's picture in its row (app 0.4.110)", async () => {
+    const sidebar = mount(Sidebar);
+    expect(sidebar.find("#screens .screen-item .screen-pic .screen-mini").exists()).toBe(true);
+    await sidebar.find("#screens .nav-item").trigger("click");
+    await flushPromises();
+    expect(sidebar.find("#open-home").attributes("aria-current")).toBe("false");
+    await sidebar.find("#open-home").trigger("click");
+    await flushPromises();
+    expect(useScreenStore().selected).toBeNull();
+    expect(sidebar.find("#open-home").attributes("aria-current")).toBe("true");
+    expect(sidebar.find("#open-home .txt").text()).toBe(t("editor.nav.overview"));
+    ui.palette = false;
+    await sidebar.find("#open-palette").trigger("click");
+    expect(ui.palette).toBe(true);
+    ui.palette = false;
+  });
   it("removes a screen that never got its firmware, after asking (GitHub #114)", async () => {
     useInventoryStore().inventory.pending = [{ file: "hall.yaml", friendly: "Hall", node: "hall" } as any];
     const calls: [string, RequestInit][] = [];

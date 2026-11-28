@@ -1744,7 +1744,8 @@
       "settings": "Instellingen",
       "new_screen_detail": "Aansluiten en installeren",
       "plugins": "Plugins",
-      "manual": "Handleiding"
+      "manual": "Handleiding",
+      "overview": "Overzicht"
     },
     "api": {
       "failed": "Dat lukte niet. Vernieuw de pagina en probeer het opnieuw."
