@@ -89,7 +89,9 @@ substitutions:
 esphome:
   # M5STACK-TAB5-ST7121 and the st7123 touch driver are available from ESPHome 2026.7.0; the screen's audio
   # (features/audio.yaml: the speaker_source media player, resamplers) is built and tried on 2026.9.0.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 # The factory firmware identifies this variant as ST7121. ESPHome currently exposes the compatible touch protocol
 # through its st7123 platform; on this board the reset is driven by the I/O expander.

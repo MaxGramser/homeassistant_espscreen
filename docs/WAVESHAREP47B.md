@@ -27,7 +27,7 @@ device); its other port, "USB TO UART", is behind a bridge chip. A screen flashe
 `hardware_uart: UART0` under `logger:` in its Override YAML.
 
 The remote package is `packages/wavesharep47b.yaml` and the checkout entry `checkout/wavesharep47b.yaml`. Both combine
-`packages/core.yaml` with the board file `packages/boards/wavesharep47b.yaml`. The board needs ESPHome 2026.9.0 or
+`packages/core.yaml` with the board file `packages/boards/wavesharep47b.yaml`. The board needs ESPHome 2026.9.1 or
 newer: its display platform is the repository's copy of that version's driver.
 
 ## Layout and capabilities

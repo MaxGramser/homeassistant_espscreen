@@ -114,7 +114,7 @@ same audio worked on the 7-inch of the series.
   - Backlight: GPIO26, PWM.
   - Audio: I2S MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10, speaker data GPIO9, microphone data GPIO11; amplifier enable
     GPIO53, high for on, with a pull-down that keeps it off at reset.
-- This board needs ESPHome 2026.9.0 or newer for its audio.
+- This board needs ESPHome 2026.9.1 or newer: its audio is built from 2026.9.0, and ESPHome's own display driver starts a chip of revision 3 from 2026.9.1 on.
 
 ## What to report while testing
 

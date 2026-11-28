@@ -80,7 +80,9 @@ esphome:
   # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
   # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker.
   # A board file's min_version wins over the core's.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 # The panel as ESPHome's own `model: JC1060P470` describes it (the JD9165's timings and init table), written out in full
 # for the two things that model cannot say: the panel's hardware reset and a wait after it. With the model alone the

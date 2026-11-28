@@ -57,8 +57,13 @@ class Catalog(unittest.TestCase):
         self.assertEqual(SHAPES['reterminalsticky']['esphome'], '2026.11.0')
         core_floor = re.search(r'(?m)^  min_version: (\S+)', profiles.CORE.read_text()).group(1)
         self.assertEqual(SHAPES['guition']['esphome'], core_floor)
-        older, newer = firmware_module.offered('2026.9.0'), firmware_module.offered('2026.11.0')
+        older, newer = firmware_module.offered('2026.9.1'), firmware_module.offered('2026.11.0')
         self.assertNotIn('reterminalsticky', older)
+        # Every ESP32-P4 board asks for 2026.9.1, the first ESPHome whose display driver starts a chip of revision 3
+        # (docs/CHIP_REVISIONS.md, tests/test_p4_core.py): the ESPHome before it is offered none of them.
+        p4 = [board for board in profiles.CATALOG if SHAPES[board]['esphome'] == '2026.9.1']
+        self.assertEqual(len(p4), 14)
+        self.assertFalse(set(p4) & set(firmware_module.offered('2026.9.0')))
         # The paper boards: the reTerminal Sticky, and the reTerminal E1001 whose paper glass needs the same driver.
         self.assertEqual([board for board in profiles.CATALOG if board not in older], ['reterminalsticky', 'reterminale1001'])
         self.assertEqual(list(newer), list(profiles.CATALOG))

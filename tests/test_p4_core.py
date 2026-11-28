@@ -72,6 +72,19 @@ class P4Core(unittest.TestCase):
             if revision:
                 self.assertIn(CORE.resolve(), includes(path), f'{path.name} states a chip revision but is no P4 board')
 
+    def test_every_p4_board_asks_an_esphome_whose_display_driver_starts_on_rev3(self):
+        """ESPHome's mipi_dsi before 2026.9.1 names a display clock that only pre-v3 silicon has, and stops a chip of
+        revision 3 while the display starts (esphome/esphome#18984). A board of any P4 model may carry that silicon,
+        so every P4 board file asks for 2026.9.1 at least: an older ESPHome refuses the build instead of making a
+        firmware that never shows a picture."""
+        p4 = {p.resolve() for p in HARDWARE.glob('*.yaml') if re.search(r'^esp32_hosted:', p.read_text(), re.M)}
+        boards = [board for board in (ROOT / 'packages' / 'boards').glob('*.yaml') if includes(board) & p4]
+        self.assertGreaterEqual(len(boards), 14)
+        for board in boards:
+            floor = re.search(r'(?m)^  min_version: (\d+)\.(\d+)\.(\d+)', board.read_text())
+            self.assertIsNotNone(floor, board.name)
+            self.assertGreaterEqual(tuple(map(int, floor.groups())), (2026, 9, 1), board.name)
+
     def test_every_p4_board_takes_its_dsi_driver_from_the_chip_revision(self):
         p4 = {p.resolve() for p in HARDWARE.glob('*.yaml') if re.search(r'^esp32_hosted:', p.read_text(), re.M)}
         for board in (ROOT / 'packages' / 'boards').glob('*.yaml'):

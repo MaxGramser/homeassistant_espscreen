@@ -83,7 +83,9 @@ esphome:
   # as on the other boards with a speaker. A board file's min_version wins over the core's, so the CYD, the Guition and
   # the Waveshare keep building on an older ESPHome. docs/RELEASING.md says why the packages stay behind the add-on's
   # ESPHome.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 text_sensor:
   - platform: template

@@ -56,7 +56,9 @@ substitutions:
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its display model,
   # `WAVESHARE-P4-86-PANEL` below, arrived in 2026.9.0. A board file's min_version wins over the core's.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 esp32:
   flash_size: 32MB

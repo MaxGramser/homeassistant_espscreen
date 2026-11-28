@@ -119,7 +119,9 @@ substitutions:
 
 esphome:
   # ESPHome knows this panel (mipi_dsi and gsl3670, model SEEED-RETERMINAL-D1001) from 2026.9.0, the add-on's ESPHome.
-  min_version: 2026.9.0
+  # 2026.9.1 and not 2026.9.0, as on every ESP32-P4 board: ESPHome's mipi_dsi before it stops a chip of revision 3
+  # while the display starts, and a board of any P4 model may carry that silicon (docs/CHIP_REVISIONS.md).
+  min_version: 2026.9.1
 
 # The log on the USB port. hardware/esp32p4-c6.yaml puts it on UART0, whose pins on the ESP32-P4 are GPIO37 and GPIO38:
 # on this board those carry the touch bus, and UART0 there crashed the first boot in uart_hal_init (interrupt watchdog).

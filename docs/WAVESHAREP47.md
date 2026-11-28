@@ -105,7 +105,7 @@ a long run.
 - Waveshare's board support package for the series
   ([Waveshare-ESP32-components](https://github.com/waveshareteam/Waveshare-ESP32-components),
   `esp32_p4_wifi6_touch_lcd_x`) has the same audio pins.
-- This board needs ESPHome 2026.9.0 or newer for its audio.
+- This board needs ESPHome 2026.9.1 or newer: its audio is built from 2026.9.0, and ESPHome's own display driver starts a chip of revision 3 from 2026.9.1 on.
 
 ## What to report while testing
 

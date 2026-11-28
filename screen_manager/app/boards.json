@@ -61,7 +61,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 118,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -816,7 +816,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -994,7 +994,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -1317,7 +1317,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -1496,7 +1496,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -1675,7 +1675,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -1854,7 +1854,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -2178,7 +2178,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 189,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -2954,7 +2954,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -3135,7 +3135,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -3315,7 +3315,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -4622,7 +4622,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -4802,7 +4802,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 210,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -4982,7 +4982,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -5303,7 +5303,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 118,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -6058,7 +6058,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -6236,7 +6236,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -6559,7 +6559,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -6738,7 +6738,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -6917,7 +6917,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -7096,7 +7096,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -7418,7 +7418,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 118,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -8173,7 +8173,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -8351,7 +8351,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -8674,7 +8674,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -8853,7 +8853,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -9032,7 +9032,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -9211,7 +9211,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -9535,7 +9535,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 189,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -10311,7 +10311,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -10492,7 +10492,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -10672,7 +10672,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -11979,7 +11979,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -12159,7 +12159,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 210,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -12339,7 +12339,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -12662,7 +12662,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 189,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -13438,7 +13438,7 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 294,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -13619,7 +13619,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -13799,7 +13799,7 @@
   "columns": 5,
   "dimmable": true,
   "dpi": 149,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -15106,7 +15106,7 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 255,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -15286,7 +15286,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 210,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
@@ -15466,7 +15466,7 @@
   "columns": 4,
   "dimmable": true,
   "dpi": 170,
-  "esphome": "2026.9.0",
+  "esphome": "2026.9.1",
   "features": [
    "speaker",
    "microphone",
